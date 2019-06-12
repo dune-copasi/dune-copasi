@@ -1,3 +1,7 @@
+[![Build Status](https://travis-ci.com/SoilRos/dune-copasi.svg?branch=master)](https://travis-ci.com/SoilRos/dune-copasi)
+[![Build status](https://ci.appveyor.com/api/projects/status/un2idwurd0xwu606?svg=true)](https://ci.appveyor.com/project/SoilRos/dune-copasi)
+
+
 Preparing the Sources
 =========================
 
