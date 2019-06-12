@@ -1,0 +1,10 @@
+################################
+# Dune module information file #
+################################
+
+#Name of the module
+Module: dune-copasi
+Version: 0.0.0
+Maintainer: santiago.ospina@iwr.uni-heidelberg.de
+#depending on
+Depends: dune-common
