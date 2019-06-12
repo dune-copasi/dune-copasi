@@ -17,8 +17,8 @@ addons:
 before_script:
   - cd ..
   - git clone -b v2.6.0 https://gitlab.dune-project.org/santiago.ospina/dune-common.git
-  - yes
 
 script:
-  - ./dune-common/bin/dunecontrol all
+  - ./dune-common/bin/dunecontrol configure -G "Visual Studio 16 2019" -A Win32
+  - ./dune-common/bin/dunecontrol make
   
