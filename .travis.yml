@@ -8,7 +8,7 @@ matrix:
       compiler: gcc
 
 before_script:
-  - cd dune
+  - cd ..
   - git clone -b v2.6.0 ssh://git@gitlab.dune-project.org:22022/core/dune-common.git
 
 script:
