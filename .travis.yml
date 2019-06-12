@@ -7,6 +7,11 @@ matrix:
       dist: xenial
       compiler: gcc
 
+addons:
+  apt:
+    packages:
+    - gfortran
+
 before_script:
   - cd ..
   - git clone -b v2.6.0 https://gitlab.dune-project.org/santiago.ospina/dune-common.git
