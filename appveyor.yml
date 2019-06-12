@@ -31,7 +31,7 @@ init:
 - echo %generator%
 
 build_script:
-- cmd: |-
+- ps: |-
     cd ..
     git clone -b v2.6.0 https://gitlab.dune-project.org/santiago.ospina/dune-common.git
     ./dune-common/bin/dunecontrol configure -G %generator%
