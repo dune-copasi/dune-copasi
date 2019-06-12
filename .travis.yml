@@ -5,9 +5,13 @@ matrix:
     # linux release build: gcc 5.4.0 on ubuntu 16.04
     - os: linux
       dist: xenial
-      compiler: gcc
+      env:
+        - CMAKE_GENERATOR='-G "Unix Makefiles"'
     - os: windows
-      language: bash
+      env:
+        - CMAKE_GENERATOR='-G "Visual Studio 15 2017" -A Win32'
+        
+
 
 addons:
   apt:
@@ -19,6 +23,6 @@ before_script:
   - git clone -b v2.6.0 https://gitlab.dune-project.org/santiago.ospina/dune-common.git
 
 script:
-  - ./dune-common/bin/dunecontrol configure -G "Visual Studio 16 2019" -A Win32
+  - ./dune-common/bin/dunecontrol configure -G "Visual Studio 15 2017" -A Win32
   - ./dune-common/bin/dunecontrol make
   
