@@ -1,9 +1,5 @@
 language: cpp
 
-env:
-  - CMAKE_CONFIGURATION=release
-  - CMAKE_CONFIGURATION=debug
-
 matrix:
   include:
     # linux release build: gcc 5.4.0 on ubuntu 16.04

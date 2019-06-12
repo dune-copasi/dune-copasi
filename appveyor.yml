@@ -30,7 +30,7 @@ init:
 - if "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2013" ( set generator="Visual Studio 12 2013%arch%" )
 - echo %generator%
 
-before_build:
+build:
 - cmd: |-
     cd ..
     git clone -b v2.6.0 https://gitlab.dune-project.org/santiago.ospina/dune-common.git
