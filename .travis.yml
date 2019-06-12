@@ -23,6 +23,6 @@ before_script:
   - git clone -b v2.6.0 https://gitlab.dune-project.org/santiago.ospina/dune-common.git
 
 script:
-  - ./dune-common/bin/dunecontrol configure -G "Visual Studio 15 2017" -A Win32
+  - ./dune-common/bin/dunecontrol configure $CMAKE_GENERATOR
   - ./dune-common/bin/dunecontrol make
   
