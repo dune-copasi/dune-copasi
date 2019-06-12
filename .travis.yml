@@ -9,7 +9,7 @@ matrix:
         - CMAKE_GENERATOR=(-G "Unix Makefiles")
     - os: windows
       env:
-        - CMAKE_GENERATOR=(-G "Visual Studio 15 2017" -A Win32)
+        - CMAKE_GENERATOR=(-G "MinGW Makefiles")
         
 addons:
   apt:
