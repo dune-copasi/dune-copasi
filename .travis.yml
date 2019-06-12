@@ -1,15 +1,25 @@
 language: cpp
 
+env:
+  - CMAKE_CONFIGURATION=release
+  
 matrix:
   include:
     # linux release build: gcc 5.4.0 on ubuntu 16.04
     - os: linux
       dist: xenial
       env:
-        - CMAKE_GENERATOR=(-G "Unix Makefiles")
+        - CMAKE_GENERATOR_OVERRIDE="Unix Makefiles"
+
     - os: windows
       env:
-        - CMAKE_GENERATOR=(-G "Visual Studio 14 2015" -A Win32)
+        - CMAKE_GENERATOR_OVERRIDE="Visual Studio 15 2017 Win64"
+        - CMAKE_CONFIGURATION=debug
+
+    - os: windows
+      env:
+        - CMAKE_GENERATOR_OVERRIDE="Visual Studio 14 2015 Win64"
+        
         
 addons:
   apt:
