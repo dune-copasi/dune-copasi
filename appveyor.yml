@@ -34,5 +34,5 @@ build_script:
 - ps: |-
     cd ..
     git clone -b v2.6.0 https://gitlab.dune-project.org/santiago.ospina/dune-common.git
-    ./dune-common/bin/dunecontrol configure -G %generator%
-    ./dune-common/bin/dunecontrol make
+    bash ./dune-common/bin/dunecontrol configure -G %generator%
+    bhas ./dune-common/bin/dunecontrol make
