@@ -9,7 +9,7 @@ matrix:
 
 before_script:
   - cd ..
-  - git clone -b v2.6.0 ssh://git@gitlab.dune-project.org:22022/core/dune-common.git 
+  - git clone -b v2.6.0 https://gitlab.dune-project.org/santiago.ospina/dune-common.git
   - yes
 
 script:
