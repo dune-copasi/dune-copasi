@@ -1,7 +1,22 @@
 [![Build Status](https://travis-ci.com/SoilRos/dune-copasi.svg?branch=master)](https://travis-ci.com/SoilRos/dune-copasi)
 [![Build status](https://ci.appveyor.com/api/projects/status/un2idwurd0xwu606?svg=true)](https://ci.appveyor.com/project/SoilRos/dune-copasi)
 
+#### Dependencies
 
+| Software | Version/Branch | Comments |
+| ---------| -------------- | -------- |
+| CMake | 3.10.2 |
+| C++ compiler | 7.3 | Alternatively: LLVM Clang >=6, or Apple Clang 10
+| [dune-common](https://gitlab.dune-project.org/core/dune-common) | releases/2.6
+| [dune-geometry](https://gitlab.dune-project.org/core/dune-geometry) | releases/2.6
+| [dune-grid](https://gitlab.dune-project.org/core/dune-grid) | releases/2.6
+| [dune-istl](https://gitlab.dune-project.org/core/dune-istl) | releases/2.6
+| [dune-localfunctions](https://gitlab.dune-project.org/core/dune-localfunctions) | releases/2.6
+| [dune-functions](https://gitlab.dune-project.org/staging/dune-functions) | releases/2.6
+| [dune-typetree](https://gitlab.dune-project.org/staging/dune-typetree) | releases/2.6
+| [dune-pdelab](https://gitlab.dune-project.org/pdelab/dune-pdelab) | releases/2.6
+
+<!-- 
 Preparing the Sources
 =========================
 
@@ -66,4 +81,4 @@ See
 for further options.
 
 
-The full build system is described in the `dune-common/doc/buildsystem` (Git version) or under `share/doc/dune-common/buildsystem` if you installed DUNE!
+The full build system is described in the `dune-common/doc/buildsystem` (Git version) or under `share/doc/dune-common/buildsystem` if you installed DUNE! -->

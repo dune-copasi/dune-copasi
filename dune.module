@@ -7,4 +7,4 @@ Module: dune-copasi
 Version: 0.0.0
 Maintainer: santiago.ospina@iwr.uni-heidelberg.de
 #depending on
-Depends: dune-common
+Depends: dune-pdelab (>= 2.6)
