@@ -33,7 +33,6 @@ init:
 build_script:
 - cmd: |-
     cd ..
-    git clone -b releases/2.6 https://gitlab.dune-project.org/dune-common.git
     git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-common
     git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-geometry
     git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-grid
