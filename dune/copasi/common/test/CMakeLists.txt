@@ -1,0 +1,2 @@
+dune_add_test(SOURCES parameter_base.cc NAME ut_parameter_base)
+dune_add_test(SOURCES parameterization.cc NAME ut_parameterization)
