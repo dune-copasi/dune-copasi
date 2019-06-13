@@ -31,7 +31,7 @@ init:
 - echo %generator%
 
 build_script:
-- ps: |-
+- cmd: |-
     cd ..
     git clone -b releases/2.6 https://gitlab.dune-project.org/dune-common.git
     git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-common
@@ -42,5 +42,5 @@ build_script:
     git clone -b releases/2.6 https://gitlab.dune-project.org/staging/dune-functions
     git clone -b releases/2.6 https://gitlab.dune-project.org/staging/dune-typetree
     git clone -b releases/2.6 https://gitlab.dune-project.org/pdelab/dune-pdelab
-    ./dune-common/bin/dunecontrol configure -G %generator%
-    ./dune-common/bin/dunecontrol make
+    bash "./dune-common/bin/dunecontrol configure -G %generator%"
+    bash "./dune-common/bin/dunecontrol make"
