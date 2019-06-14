@@ -1,24 +1,20 @@
-image: gcc
+---
 
-stages:
-  - configure
-  - build
+variables:
+  OMP_NUM_THREADS: 1
 
-configure:
-  stage: configure
-  script:
-    - cd ..
-    - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-common
-    - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-geometry
-    - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-grid
-    - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-istl
-    - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-localfunctions
-    - git clone -b releases/2.6 https://gitlab.dune-project.org/staging/dune-functions
-    - git clone -b releases/2.6 https://gitlab.dune-project.org/staging/dune-typetree
-    - git clone -b releases/2.6 https://gitlab.dune-project.org/pdelab/dune-pdelab
-    - ./dune-common/bin/dunecontrol --builddir=$PWD/build-clang-debug --module=dune-pdelab all
 
-build:
-  stage: build
-  script:
-    - ./dune-common/bin/dunecontrol --builddir=$PWD/build-clang-debug --only=dune-copasi all
+debian:10--gcc:
+  image: registry.dune-project.org/docker/ci/dune-pdelab:2.6
+  script: duneci-standard-test
+  tags:
+    - "cores:4"
+    - "mem:16G"
+
+debian:10--clang:
+  image: registry.dune-project.org/docker/ci/dune-pdelab:2.6
+  script: duneci-standard-test
+  variables: {DUNECI_OPTS: /duneci/opts.clang}
+  tags:
+    - "cores:4"
+    - "mem:16G"
