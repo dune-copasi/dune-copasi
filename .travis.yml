@@ -2,38 +2,37 @@ language: cpp
 
 matrix:
   include:
-    # linux release build: gcc 5.4.0 on ubuntu 16.04
     - os: linux
       dist: xenial
       env:
         - CMAKE_GENERATOR_OVERRIDE="Unix Makefiles"
 
+  allow_failures:
     - os: windows
       env:
         - CMAKE_GENERATOR_OVERRIDE="Visual Studio 15 2017 Win64"
-
-    - os: windows
-      env:
-        - CMAKE_GENERATOR_OVERRIDE="Visual Studio 14 2015 Win64"
-        
         
 addons:
   apt:
     packages:
     - gfortran
 
-before_script:
-  - cd ..
-  - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-common
-  - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-geometry
-  - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-grid
-  - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-istl
-  - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-localfunctions
-  - git clone -b releases/2.6 https://gitlab.dune-project.org/staging/dune-functions
-  - git clone -b releases/2.6 https://gitlab.dune-project.org/staging/dune-typetree
-  - git clone -b releases/2.6 https://gitlab.dune-project.org/pdelab/dune-pdelab
-
-script:
-  - ./dune-common/bin/dunecontrol configure "${CMAKE_GENERATOR[@]}"
-  - ./dune-common/bin/dunecontrol make
-  
+jobs:
+  include:
+    - stage: configure
+      script:
+        - cd ..
+        - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-common
+        - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-geometry
+        - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-grid
+        - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-istl
+        - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-localfunctions
+        - git clone -b releases/2.6 https://gitlab.dune-project.org/staging/dune-functions
+        - git clone -b releases/2.6 https://gitlab.dune-project.org/staging/dune-typetree
+        - git clone -b releases/2.6 https://gitlab.dune-project.org/pdelab/dune-pdelab
+        - ./dune-common/bin/dunecontrol --builddir=$PWD/build-clang-debug --module=dune-pdelab configure "${CMAKE_GENERATOR[@]}"
+        - ./dune-common/bin/dunecontrol --builddir=$PWD/build-clang-debug --module=dune-pdelab make
+    - stage: build
+      script:
+        - ./dune-common/bin/dunecontrol --builddir=$PWD/build-clang-debug --module=dune-copasi configure "${CMAKE_GENERATOR[@]}"
+        - ./dune-common/bin/dunecontrol --builddir=$PWD/build-clang-debug --module=dune-copasi make
