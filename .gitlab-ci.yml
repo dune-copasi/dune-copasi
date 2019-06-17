@@ -42,9 +42,9 @@ stages:
   after_script:
     - mv /duneci/modules/dune-logging dune-logging
   script:
-    - /duneci/modules/dune-common/bin/dunecontrol --module=dune-copasi vcsetup
-    - /duneci/modules/dune-common/bin/dunecontrol --module=dune-copasi configure
-    - /duneci/modules/dune-common/bin/dunecontrol --module=dune-copasi make -j2 all
+    - /duneci/modules/dune-common/bin/dunecontrol --only=dune-copasi vcsetup
+    - /duneci/modules/dune-common/bin/dunecontrol --only=dune-copasi configure
+    - /duneci/modules/dune-common/bin/dunecontrol --only=dune-copasi make -j2 all
 
 .unit_test: &unit_test
   stage: unit_test
