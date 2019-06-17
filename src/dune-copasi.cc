@@ -2,20 +2,41 @@
 # include "config.h"
 #endif
 
-#include <iostream>
-#include <dune/common/parallel/mpihelper.hh>
+#include <dune/logging/logging.hh>
+
 #include <dune/common/exceptions.hh>
+#include <dune/common/parametertree.hh>
+#include <dune/common/parametertreeparser.hh>
+#include <dune/common/parallel/mpihelper.hh>
+
+#include <iostream>
 
 int main(int argc, char** argv)
 {
+
   try{
-    Dune::MPIHelper& helper = Dune::MPIHelper::instance(argc, argv);
-    std::cout << "Hello World! This is dune-copasi." << std::endl;
-    if(Dune::MPIHelper::isFake)
-      std::cout<< "This is a sequential program." << std::endl;
-    else
-      std::cout<<"I am rank "<<helper.rank()<<" of "<<helper.size()
-        <<" processes!"<<std::endl;
+
+    // initialize mpi
+    auto& mpi_helper = Dune::MPIHelper::instance(argc, argv);
+    auto comm = mpi_helper.getCollectiveCommunication();
+
+    // Read and parse ini file
+    if (argc!=2)
+      DUNE_THROW(Dune::IOError, "Wrong number of arguments");
+    const std::string inifilename = argv[1];
+
+    Dune::ParameterTree inifile;
+    Dune::ParameterTreeParser ptreeparser;
+    ptreeparser.readINITree(inifilename, inifile);
+
+
+    // initialize loggers
+    Dune::Logging::Logging::init(comm,inifile.sub("logging"));
+
+    using namespace Dune::Literals;
+    auto log = Dune::Logging::Logging::logger();
+    log.notice("Starting dune-copasi"_fmt);
+
     return 0;
   }
   catch (Dune::Exception &e){
