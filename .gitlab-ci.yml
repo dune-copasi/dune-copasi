@@ -29,7 +29,6 @@ stages:
     - mv /duneci/modules/dune-logging dune-logging
   artifacts:
     paths:
-      - build-cmake/
       - dune-logging/
 
 .unit_test: &unit_test
@@ -38,8 +37,11 @@ stages:
     - . /duneci/bin/duneci-init-job
     - mv dune-logging /duneci/modules/dune-logging
   script: 
+    - DUNECI_TEST_LABELS="unit"
     - duneci-standard-test
-    - ctest -L unit
+  artifacts:
+    paths:
+      - build-cmake/
 
 .system_test: &system_test
   stage: system_test
@@ -47,8 +49,8 @@ stages:
     - . /duneci/bin/duneci-init-job
     - mv dune-logging /duneci/modules/dune-logging
   script: 
+    - DUNECI_TEST_LABELS="system"
     - duneci-standard-test
-    - ctest -L system
 
 # gcc
 setup:gcc:
@@ -65,7 +67,7 @@ system_test:gcc:
   <<: *debian_gcc
   <<: *system_test
   dependencies:
-    - setup:gcc
+    - unit_test:gcc
 
 # clang
 setup:clang:
@@ -82,4 +84,4 @@ system_test:clang:
   <<: *debian_clang
   <<: *system_test
   dependencies:
-    - setup:clang
+    - unit_test:clang
