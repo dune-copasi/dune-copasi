@@ -38,7 +38,9 @@ stages:
   stage: build
   before_script:
     - . /duneci/bin/duneci-init-job
-    - cp -rf dune-logging /duneci/modules/dune-logging
+    - mv dune-logging /duneci/modules/dune-logging
+  after_script:
+    - mv /duneci/modules/dune-logging dune-logging
   script: 
     - duneci-standard-test
   artifacts:
@@ -50,7 +52,7 @@ stages:
   stage: unit_test
   before_script:
     - . /duneci/bin/duneci-init-job
-    - cp -rf dune-logging /duneci/modules/dune-logging
+    - mv dune-logging /duneci/modules/dune-logging
   script: 
     - DUNECI_TEST_LABELS="unit"
     - duneci-standard-test
@@ -63,7 +65,7 @@ stages:
   stage: system_test
   before_script:
     - . /duneci/bin/duneci-init-job
-    - cp -rf dune-logging /duneci/modules/dune-logging
+    - mv dune-logging /duneci/modules/dune-logging
   script: 
     - DUNECI_TEST_LABELS="system"
     - duneci-standard-test
