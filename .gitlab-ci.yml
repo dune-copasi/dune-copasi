@@ -29,6 +29,7 @@ stages:
     - mv /duneci/modules/dune-logging dune-logging
   artifacts:
     paths:
+      - build-cmake/
       - dune-logging/
 
 .unit_test: &unit_test
