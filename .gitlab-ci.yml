@@ -3,23 +3,76 @@
 variables:
   OMP_NUM_THREADS: 1
 
-before_script:
-  - ./duneci/bin/duneci-init-job
-  - duneci-install-module https://gitlab.dune-project.org/staging/dune-logging.git
+stages:
+  - setup
+  - unit_test
+  - system_test
+  - deploy
 
-debian:10--gcc:
+.debian_gcc: &debian_gcc
   image: registry.dune-project.org/docker/ci/dune-pdelab:2.6
-  script: 
-    - duneci-standard-test
-    - ctest -L system
   tags:
     - "cores:2"
 
-debian:10--clang:
+.debian_clang: &debian_clang
   image: registry.dune-project.org/docker/ci/dune-pdelab:2.6
-  script: 
-    - duneci-standard-test
-    - ctest -L system
   variables: {DUNECI_OPTS: /duneci/opts.clang}
   tags:
     - "cores:2"
+
+.setup: &setup
+  stage: setup
+  script:
+    - ./duneci/bin/duneci-init-job
+    - duneci-install-module https://gitlab.dune-project.org/staging/dune-logging.git
+  after_script:
+    - mv /duneci/modules/dune-logging dune-logging
+  artifacts:
+    paths:
+      - dune-logging/
+
+.unit_test: &unit_test
+  stage: unit_test
+  script: duneci-standard-test unit
+  before_script:
+    - mv dune-logging /duneci/modules/dune-logging
+
+.system_test: &system_test
+  stage: system_test
+  script: duneci-standard-test system
+  before_script:
+    - mv dune-logging /duneci/modules/dune-logging
+
+# gcc
+setup:gcc:
+  <<: *debian_gcc
+  <<: *setup
+
+unit_test:gcc:
+  <<: *debian_gcc
+  <<: *unit_test
+  dependencies:
+    - setup:gcc
+
+system_test:gcc:
+  <<: *debian_gcc
+  <<: *system_test
+  dependencies:
+    - setup:gcc
+
+# clang
+setup:clang:
+  <<: *debian_clang
+  <<: *setup
+
+unit_test:clang:
+  <<: *debian_clang
+  <<: *unit_test
+  dependencies:
+    - setup:clang
+
+system_test:clang:
+  <<: *debian_clang
+  <<: *system_test
+  dependencies:
+    - setup:clang
