@@ -42,13 +42,13 @@ stages:
   after_script:
     - mv /duneci/modules/dune-logging dune-logging
   script:
-    - /duneci/modules/dune-common/bin/dunecontrol --only=dune-copasi vcsetup
-    - /duneci/modules/dune-common/bin/dunecontrol --only=dune-copasi configure
-    - /duneci/modules/dune-common/bin/dunecontrol --only=dune-copasi make -j2 all
+    - /duneci/modules/dune-common/bin/dunecontrol --opts=/duneci/dune.opts --only=dune-copasi vcsetup
+    - /duneci/modules/dune-common/bin/dunecontrol --opts=/duneci/dune.opts --only=dune-copasi configure
+    - /duneci/modules/dune-common/bin/dunecontrol --opts=/duneci/dune.opts --only=dune-copasi make -j2 all
   artifacts:
     paths:
       - dune-logging/
-      
+
 .unit_test: &unit_test
   stage: unit_test
   before_script:
