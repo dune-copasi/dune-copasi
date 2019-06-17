@@ -41,29 +41,24 @@ stages:
     - mv dune-logging /duneci/modules/dune-logging
   after_script:
     - mv /duneci/modules/dune-logging dune-logging
+  script:
+    - . /bin/dunecontrol --current make -j2 all
+
+.unit_test: &unit_test
+  stage: unit_test
+  before_script:
+    - . /duneci/bin/duneci-init-job
+    - mv dune-logging /duneci/modules/dune-logging
   script: 
-    - DUNECI_TEST_LABELS="none"
-    - echo $DUNECI_TEST_LABELS
-    - duneci-standard-test
-    - export DUNECI_TEST_LABELS="none"
-    - echo $DUNECI_TEST_LABELS
-    - duneci-standard-test
+    - ctest -j2 -L unit 
 
-# .unit_test: &unit_test
-#   stage: unit_test
-#   before_script:
-#     - . /duneci/bin/duneci-init-job
-#     - mv dune-logging /duneci/modules/dune-logging
-#   script: 
-#     - ctest -j2 -L unit 
-
-# .system_test: &system_test
-#   stage: system_test
-#   before_script:
-#     - . /duneci/bin/duneci-init-job
-#     - mv dune-logging /duneci/modules/dune-logging
-#   script: 
-#     - ctest -j2 -L system
+.system_test: &system_test
+  stage: system_test
+  before_script:
+    - . /duneci/bin/duneci-init-job
+    - mv dune-logging /duneci/modules/dune-logging
+  script: 
+    - ctest -j2 -L system
 
 # gcc
 setup:gcc:
@@ -76,17 +71,17 @@ build:gcc:
   dependencies:
     - setup:gcc
 
-# unit_test:gcc:
-#   <<: *debian_gcc
-#   <<: *unit_test
-#   dependencies:
-#     - build:gcc
+unit_test:gcc:
+  <<: *debian_gcc
+  <<: *unit_test
+  dependencies:
+    - build:gcc
 
-# system_test:gcc:
-#   <<: *debian_gcc
-#   <<: *system_test
-#   dependencies:
-#     - build:gcc
+system_test:gcc:
+  <<: *debian_gcc
+  <<: *system_test
+  dependencies:
+    - build:gcc
 
 # clang
 setup:clang:
@@ -99,14 +94,14 @@ build:clang:
   dependencies:
     - setup:clang
 
-# unit_test:clang:
-#   <<: *debian_clang
-#   <<: *unit_test
-#   dependencies:
-#     - build:clang
+unit_test:clang:
+  <<: *debian_clang
+  <<: *unit_test
+  dependencies:
+    - build:clang
 
-# system_test:clang:
-#   <<: *debian_clang
-#   <<: *system_test
-#   dependencies:
-#     - build:clang
+system_test:clang:
+  <<: *debian_clang
+  <<: *system_test
+  dependencies:
+    - build:clang
