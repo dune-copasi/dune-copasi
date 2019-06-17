@@ -23,7 +23,7 @@ stages:
 .setup: &setup
   stage: setup
   script:
-    - ./duneci/bin/duneci-init-job
+    - . /duneci/bin/duneci-init-job
     - duneci-install-module https://gitlab.dune-project.org/staging/dune-logging.git
   after_script:
     - mv /duneci/modules/dune-logging dune-logging
