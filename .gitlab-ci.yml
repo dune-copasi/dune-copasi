@@ -42,7 +42,7 @@ stages:
   after_script:
     - mv /duneci/modules/dune-logging dune-logging
   script:
-    - . /bin/dunecontrol --current make -j2 all
+    - . /duneci/bin/dunecontrol --current make -j2 all
 
 .unit_test: &unit_test
   stage: unit_test
