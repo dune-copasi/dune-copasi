@@ -48,21 +48,24 @@ stages:
   artifacts:
     paths:
       - dune-logging/
+      - build-cmake/
 
 # .unit_test: &unit_test
 #   stage: unit_test
 #   before_script:
 #     - . /duneci/bin/duneci-init-job
 #     - mv dune-logging /duneci/modules/dune-logging
+#     - cd build-cmake
 #   script: 
 #     - make build_unit_tests
-#     - ctest -j2 -L unit 
+#     - ctest -j2 -L "unit" 
 
 .system_test: &system_test
   stage: system_test
   before_script:
     - . /duneci/bin/duneci-init-job
     - mv dune-logging /duneci/modules/dune-logging
+    - cd build-cmake
   script: 
     - make build_system_tests
     - ctest -j2 -L "system"
