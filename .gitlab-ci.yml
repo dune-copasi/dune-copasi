@@ -33,15 +33,21 @@ stages:
 
 .unit_test: &unit_test
   stage: unit_test
-  script: duneci-standard-test unit
   before_script:
+    - . /duneci/bin/duneci-init-job
     - mv dune-logging /duneci/modules/dune-logging
+  script: 
+    - duneci-standard-test
+    - duneci-ctest -L unit
 
 .system_test: &system_test
   stage: system_test
-  script: duneci-standard-test system
   before_script:
+    - . /duneci/bin/duneci-init-job
     - mv dune-logging /duneci/modules/dune-logging
+  script: 
+    - duneci-standard-test
+    - duneci-ctest -L system
 
 # gcc
 setup:gcc:
