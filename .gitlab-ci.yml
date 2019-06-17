@@ -38,7 +38,7 @@ stages:
     - mv dune-logging /duneci/modules/dune-logging
   script: 
     - duneci-standard-test
-    - duneci-ctest -L unit
+    - ctest -L unit
 
 .system_test: &system_test
   stage: system_test
@@ -47,7 +47,7 @@ stages:
     - mv dune-logging /duneci/modules/dune-logging
   script: 
     - duneci-standard-test
-    - duneci-ctest -L system
+    - ctest -L system
 
 # gcc
 setup:gcc:
