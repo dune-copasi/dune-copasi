@@ -54,13 +54,13 @@ class LocalOperatorDiffusionReaction :
   enum {components=Param::components}; // number of components in diffusion-reaction system
 
   // data members
-  Param& param;           // parameter functions
-  DomainType center;      // center of reference element
-  DomainType qp[m];       // quadrature points
-  double weight[m];       // quadrature weights
-  double phihat[m][n];    // basis functions at quadrature points
+  Param& param;              // parameter functions
+  DomainType center;         // center of reference element
+  DomainType qp[m];          // quadrature points
+  double weight[m];          // quadrature weights
+  double phihat[m][n];       // basis functions at quadrature points
   double gradhat[m][dim][n]; // gradient of basis functions at quadrature points
-  RF time;                // current time
+  RF time;                   // current time
 
 public:
   // pattern assembly flags
@@ -69,7 +69,6 @@ public:
   // residual assembly flags
   enum { doAlphaVolume = true };
 
-  //! constructor stores the speed of sound
   // Constructor precomputes element independent data
   LocalOperatorDiffusionReaction (Param& param_, const FiniteElementType& fel)
     : param(param_)
