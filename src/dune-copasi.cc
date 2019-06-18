@@ -37,7 +37,7 @@ int main(int argc, char** argv)
     Dune::Logging::Logging::init(comm,config.sub("logging"));
 
     using namespace Dune::Literals;
-    auto log = Dune::Logging::Logging::logger();
+    auto log = Dune::Logging::Logging::logger(config);
     log.notice("Starting dune-copasi"_fmt);
 
 
@@ -51,9 +51,9 @@ int main(int argc, char** argv)
     auto& grid_config = config.sub("grid");
     auto level = grid_config.get<int>("initial_level",0);
     auto upper_right = grid_config.get<Domain>("extensions",{1.,1.});
-    auto elements = grid_config.get<std::array<unsigned int, 2>>("cells",{10,10});
+    auto elements = grid_config.get<std::array<uint, 2>>("cells",{10,10});
 
-    log.info("Creating a rectangular grid in {}D"_fmt,dim);
+    log.info("Creating a rectangular grid in {}D"_fmt, dim);
     log.debug("Grid extensions: {}"_fmt, upper_right);
     log.debug("Grid cells: {}"_fmt, elements);
 
