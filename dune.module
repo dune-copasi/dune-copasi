@@ -7,4 +7,4 @@ Module: dune-copasi
 Version: 0.0.0
 Maintainer: santiago.ospina@iwr.uni-heidelberg.de
 #depending on
-Depends: dune-logging dune-pdelab (>= 2.6)
+Depends: dune-logging dune-uggrid (>= 2.6) dune-pdelab (>= 2.6)

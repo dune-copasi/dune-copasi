@@ -5,8 +5,7 @@
 
 #include <dune/logging/logging.hh>
 
-#include <dune/common/exceptions.hh>
-#include <dune/common/float_cmp.hh>
+#include <dune/common/parametertree.hh>
 
 namespace Dune::Copasi {
 
@@ -19,77 +18,84 @@ class ModelBase {
 public:
 
   /**
+   * @brief      Constructs the model
+   *
+   * @param[in]  config  The configuration file for the model.
+   */
+  ModelBase(const Dune::ParameterTree& config);
+
+  /**
+   * @brief      Destroys the model
+   */
+  ~ModelBase();
+
+  /**
    * @brief      Sets the adaptivity policy.
    *
    * @param[in]  adapt_policy  The adaptivity policy.
    */
-  void set_policy(AdaptivityPolicy adapt_policy)
-  {
-    _adapt_policy = adapt_policy;
-  }
+  void set_policy(AdaptivityPolicy adapt_policy);
 
   /**
    * @brief      Returns the current adaptivity policy.
    *
    * @return     The current adaptivity policy.
    */
-  AdaptivityPolicy adaptivity_policy() const {return _adapt_policy;}
+  AdaptivityPolicy adaptivity_policy() const;
 
   /**
    * @brief      Mark the grid for adaptivity.
    */
-  virtual void mark_grid()
-  {
-    DUNE_THROW(Dune::NotImplemented, "'mark_grid' not implemented!");
-  }
+  virtual void mark_grid();
 
 
   /**
    * @brief      Operations before adaptation of the grid.
    */
-  virtual void pre_adapt_grid() {};
+  virtual void pre_adapt_grid();
 
   /**
-   * @brief      Adapt the grid together it every dependency of the grid (e.g.
-   *             solution vector and grid function spaces).
+   * @brief      Adapt the grid together it every dependency of the grid 
+   * @details   (e.g. solution vector and grid function spaces).
    */
-  virtual void adapt_grid()
-  {
-    if (_adapt_policy != AdaptivityPolicy::None) {
-      DUNE_THROW(Dune::NotImplemented, "'adapt_grid' not implemented");
-    }
-    else {
-      DUNE_THROW(Dune::InvalidStateException, "Invalid adaptation policy");
-    }
-  }
+  virtual void adapt_grid();
 
   /**
    * @brief      Operations after adaptation of the grid.
    */
-  virtual void post_adapt_grid() {};
+  virtual void post_adapt_grid();
 
   /**
    * @brief      Method that provides the begin time of the model.
    *
    * @return     Begin time of the model.
    */
-  virtual double begin_time() const = 0;
+  double& begin_time();
+
+  //! @copydoc ModelBase::begin_time()
+  const double& begin_time() const;
 
   /**
   * @brief      Method that provides the end time of the model.
   *
   * @return     End time of the model.
   */
-  virtual double end_time() const = 0;
+  double& end_time();
 
+  //! @copydoc ModelBase::end_time()
+  const double& end_time() const;
+  
   /**
    * @brief      Method that provides the current time of the model.
    *
    * @return     Current time of the model.
    */
-  virtual double current_time() const = 0;
+  double& current_time();
 
-  /*-----------------------------------------------------------------------*//**
+  //! @copydoc ModelBase::current_time()
+  const double& current_time() const;
+
+  /**
    * @brief      Suggest a time step to the model.
    *
    * @param[in]  dt    Suggestion for the internal time step of the model.
@@ -103,36 +109,18 @@ public:
    */
   virtual void step() = 0;
 
-
   /**
    * @brief      Runs the model performing steps until current_time() equals
    *             end_time().
    */
-  virtual void run()
-  {
-    auto do_step = [&](const auto& time)
-    {
-      return Dune::FloatCmp::lt(time, end_time());
-    };
+  virtual void run();
 
-
-    while( do_step(current_time()) )
-    {
-      step();
-
-      if (adaptivity_policy() != AdaptivityPolicy::None)
-        if ( do_step(current_time()) )
-        {
-          mark_grid();
-          pre_adapt_grid();
-          adapt_grid();
-          post_adapt_grid();
-        }
-    }
-  }
+protected:
+  Logging::Logger  _logger;
 
 private:
   AdaptivityPolicy _adapt_policy;
+  double           _begin_time, _end_time, _current_time;
 };
 
 } // Dune::Copasi namespace

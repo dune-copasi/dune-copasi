@@ -2,6 +2,11 @@
 # include "config.h"
 #endif
 
+#include <dune/copasi/model_diffusion_reaction.hh>
+#include <dune/copasi/model_diffusion_reaction.cc>
+
+#include <dune/grid/utility/structuredgridfactory.hh>
+
 #include <dune/logging/logging.hh>
 
 #include <dune/common/exceptions.hh>
@@ -15,7 +20,6 @@ int main(int argc, char** argv)
 {
 
   try{
-
     // initialize mpi
     auto& mpi_helper = Dune::MPIHelper::instance(argc, argv);
     auto comm = mpi_helper.getCollectiveCommunication();
@@ -23,19 +27,49 @@ int main(int argc, char** argv)
     // Read and parse ini file
     if (argc!=2)
       DUNE_THROW(Dune::IOError, "Wrong number of arguments");
-    const std::string inifilename = argv[1];
+    const std::string config_filename = argv[1];
 
-    Dune::ParameterTree inifile;
+    Dune::ParameterTree config;
     Dune::ParameterTreeParser ptreeparser;
-    ptreeparser.readINITree(inifilename, inifile);
-
+    ptreeparser.readINITree(config_filename, config);
 
     // initialize loggers
-    Dune::Logging::Logging::init(comm,inifile.sub("logging"));
+    Dune::Logging::Logging::init(comm,config.sub("logging"));
 
     using namespace Dune::Literals;
     auto log = Dune::Logging::Logging::logger();
     log.notice("Starting dune-copasi"_fmt);
+
+
+    // test the current code... 
+
+    // create a grid
+    constexpr int dim = 2;
+    using Grid = Dune::UGGrid<dim>;
+    using Domain = Dune::FieldVector<double,2>;
+
+    auto& grid_config = config.sub("grid");
+    auto level = grid_config.get<int>("initial_level",0);
+    auto upper_right = grid_config.get<Domain>("extensions",{1.,1.});
+    auto elements = grid_config.get<std::array<unsigned int, 2>>("cells",{10,10});
+
+    log.info("Creating a rectangular grid in {}D"_fmt,dim);
+    log.debug("Grid extensions: {}"_fmt, upper_right);
+    log.debug("Grid cells: {}"_fmt, elements);
+
+    Domain origin(.0);
+
+    std::shared_ptr<Grid> grid;
+    grid = Dune::StructuredGridFactory<Grid>::createCubeGrid(origin,
+                                                             upper_right,
+                                                             elements);
+
+    log.debug("Applying global refinement of level: {}"_fmt, level);
+    grid->globalRefine(level);
+
+    // instantiate a model
+    auto& model_config = config.sub("model");
+    Dune::Copasi::ModelDiffusionReaction<3> model(grid,model_config);
 
     return 0;
   }

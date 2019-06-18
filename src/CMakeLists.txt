@@ -1,2 +1,4 @@
-add_executable("dune-copasi" dune-copasi.cc)
-target_link_dune_default_libraries("dune-copasi")
+add_executable("dune-copasi-exec" dune-copasi.cc)
+
+dune_target_link_libraries("dune-copasi-exec" ${DUNE_LIBS})
+target_link_libraries("dune-copasi-exec" dune_copasi)
