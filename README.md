@@ -19,6 +19,8 @@
 | [dune-typetree](https://gitlab.dune-project.org/staging/dune-typetree) | releases/2.6
 | [dune-pdelab](https://gitlab.dune-project.org/pdelab/dune-pdelab) | releases/2.6
 
+<!-- TODO: Add UGGrid dependency. Still to decide if it will be permanent -->
+
 <!-- 
 Preparing the Sources
 =========================
