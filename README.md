@@ -10,6 +10,7 @@
 | CMake | 3.10.2 |
 | C++ compiler | 7.3 | Alternatively: LLVM Clang >=6, or Apple Clang 10
 | [dune-common](https://gitlab.dune-project.org/core/dune-common) | releases/2.6
+| [dune-logging](https://gitlab.dune-project.org/staging/dune-logging) | master
 | [dune-geometry](https://gitlab.dune-project.org/core/dune-geometry) | releases/2.6
 | [dune-grid](https://gitlab.dune-project.org/core/dune-grid) | releases/2.6
 | [dune-istl](https://gitlab.dune-project.org/core/dune-istl) | releases/2.6
