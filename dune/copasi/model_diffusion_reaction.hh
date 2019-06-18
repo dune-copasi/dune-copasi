@@ -2,6 +2,7 @@
 #define DUNE_COPASI_MODEL_DIFFUSION_REACTION_HH
 
 #include <dune/copasi/model_base.hh>
+#include <dune/copasi/model_state.hh>
 
 #include <dune/pdelab/finiteelementmap/qkfem.hh>
 #include <dune/pdelab/constraints/conforming.hh>
@@ -43,20 +44,20 @@ class ModelDiffusionReaction : public ModelBase {
   //! Constraints builder
   using CON = PDELab::ConformingDirichletConstraints;
 
-  //! Root vector backend
-  using RVBE = PDELab::ISTL::VectorBackend<>;
+  //! Leaf vector backend
+  using LVBE = PDELab::ISTL::VectorBackend<>;
 
-  //! Root grid function space
-  using RGFS = PDELab::GridFunctionSpace<GV,FEM,CON,RVBE>;
+  //! Leaf grid function space
+  using LGFS = PDELab::GridFunctionSpace<GV,FEM,CON,LVBE>;
 
   //! Vector backend
-  using VBE = RVBE;
+  using VBE = LVBE;
 
   //! Ordering tag
   using OrderingTag = PDELab::LexicographicOrderingTag;
 
   //! Grid function space
-  using GFS = PDELab::PowerGridFunctionSpace<RGFS,components,VBE,OrderingTag>;
+  using GFS = PDELab::PowerGridFunctionSpace<LGFS,components,VBE,OrderingTag>;
 
   //! Coefficient vector
   using X = PDELab::Backend::Vector<GFS,RF>;
@@ -65,6 +66,9 @@ class ModelDiffusionReaction : public ModelBase {
   using CC = typename GFS::template ConstraintsContainer<RF>::Type;
 
 public:
+
+  //! Model state structure
+  using ModelState = Dune::Copasi::ModelState<Grid,GFS,X>;
 
   ModelDiffusionReaction(std::shared_ptr<Grid> grid, 
                          const Dune::ParameterTree& config);
@@ -91,10 +95,10 @@ protected:
   void operator_setup();
 
 private:
-  std::shared_ptr<Grid> _grid;
-  std::shared_ptr<GFS> _gfs;
-
-  GV _grid_view;
+  GV                    _grid_view;
+  ModelState            _state;
+  std::shared_ptr<FEM>  _finite_element_map;
+  std::unique_ptr<CC>   _constraints;
 };
 
 } // Dune::Copasi namespace
