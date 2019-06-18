@@ -8,7 +8,7 @@
 | Software | Version/Branch | Comments |
 | ---------| -------------- | -------- |
 | CMake | 3.10.2 |
-| C++ compiler | 7.3 | Alternatively: LLVM Clang >=6, or Apple Clang 10
+| C++ compiler | gcc 7.3 | Must support c++17
 | [dune-common](https://gitlab.dune-project.org/core/dune-common) | releases/2.6
 | [dune-logging](https://gitlab.dune-project.org/staging/dune-logging) | master
 | [dune-geometry](https://gitlab.dune-project.org/core/dune-geometry) | releases/2.6
