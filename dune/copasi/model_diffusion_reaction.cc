@@ -14,7 +14,7 @@ ModelDiffusionReaction<components,Param>::ModelDiffusionReaction(
   _parameterization = std::make_shared<Param>();
   _state.grid = grid;
   operator_setup();
-  // set_state(1.);
+  set_state(1.);
 
   _logger.debug("ModelDiffusionReaction constructed"_fmt);
 }
@@ -39,44 +39,44 @@ void ModelDiffusionReaction<components,Param>::set_state(const T& input_state)
 {
   if constexpr (std::is_arithmetic<T>::value)
   {
-    // convert state to a vector of components
+    _logger.trace("convert state to a vector of components"_fmt);
     Dune::FieldVector<RF,components> component_state( RF{input_state} );
 
-    // set state from constant vector of components
+    _logger.trace("set state from constant vector of components"_fmt);
     set_state(component_state);
   }
   else if constexpr (std::is_same_v<T,Dune::FieldVector<RF,components>>)
   {
-    // convert state to a callable
+    _logger.trace("convert vector of components to a callable"_fmt);
     auto callable = [&](const auto& e, const auto& x)
     {
       return input_state;
     };
 
-    // set state from callable
+    // _logger.trace("set state from callable"_fmt);
     // set_state(callable);
 
-    // convert callable to a grid function
+    _logger.trace("convert callable to a grid function"_fmt);
     auto grid_function = PDELab::makeGridFunctionFromCallable(_grid_view, 
                                                               callable);
 
-    // interpolate grid function to model coefficients
+    _logger.trace("interpolate grid function to model coefficients"_fmt);
     Dune::PDELab::interpolate(grid_function,
                               *(_state.grid_function_space),
                               *(_state.coefficients));
   }
   // else if constexpr (is_pdelab_callable<GV,T>::value)
   // {
-  //   // convert callable to a grid function
+  //   _logger.trace("convert callable to a grid function"_fmt);
   //   auto grid_function = PDELab::makeGridFunctionFromCallable(_grid_view, 
   //                                                             input_state);
 
-  //   // set state from grid function
+  //   _logger.trace("set state from grid function"_fmt);
   //   set_state(grid_function);
   // }
   // else if constexpr (is_grid_function<T>::value)
   // {
-  //   // interpolate grid function to model coefficients
+  //   _logger.trace("interpolate grid function to model coefficients"_fmt);
   //   Dune::PDELab::interpolate(grid_function,
   //                             *(_state.grid_function_space),
   //                             *(_state.coefficients));
@@ -101,6 +101,9 @@ void ModelDiffusionReaction<components,Param>::operator_setup()
   // reference to grid function space pointer
   auto& gfs = _state.grid_function_space;
 
+  // reference to coefficients pointer
+  auto& x = _state.coefficients;
+
   _logger.trace("create a finite element map"_fmt);
   _finite_element_map = std::make_shared<FEM>(_grid_view);
 
@@ -117,6 +120,11 @@ void ModelDiffusionReaction<components,Param>::operator_setup()
     _logger.trace("component name {}: {}"_fmt, i, gfs->child(i).name());
   }
  
+  _logger.trace("create vector backend"_fmt);
+  if (not _state.coefficients)
+    x = std::make_shared<X>(*gfs);
+  else
+    x = std::make_shared<X>(*gfs,*(x->storage()));
 
   auto b0lambda = [&](const auto& i, const auto& x)
     {return _parameterization->b(i,x);};
