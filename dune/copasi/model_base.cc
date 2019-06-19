@@ -15,12 +15,12 @@ ModelBase::ModelBase(const Dune::ParameterTree& config)
   , _end_time(config.template get<double>("end_time"))
   , _current_time(config.template get<double>("current_time",0.))
 {
-  _logger.trace("ModelBase constructed"_fmt);
+  _logger.debug("ModelBase constructed"_fmt);
 }
 
 ModelBase::~ModelBase()
 {
-  _logger.trace("ModelBase destroyed"_fmt);
+  _logger.debug("ModelBase destroyed"_fmt);
 }
 
 void ModelBase::set_policy(AdaptivityPolicy adapt_policy)
@@ -89,7 +89,6 @@ void ModelBase::run()
   {
     return Dune::FloatCmp::lt(current_time(), end_time());
   };
-
 
   while( do_step() )
   {

@@ -1,8 +1,3 @@
-#include<dune/common/exceptions.hh>
-#include<dune/common/fvector.hh>
-#include<dune/geometry/referenceelements.hh>
-#include<dune/geometry/type.hh>
-
 #include<dune/pdelab/common/geometrywrapper.hh>
 #include<dune/pdelab/common/quadraturerules.hh>
 #include<dune/pdelab/localoperator/defaultimp.hh>
@@ -10,6 +5,13 @@
 #include<dune/pdelab/localoperator/flags.hh>
 #include<dune/pdelab/localoperator/idefault.hh>
 #include<dune/pdelab/finiteelement/localbasiscache.hh>
+
+#include<dune/common/exceptions.hh>
+#include<dune/common/fvector.hh>
+#include<dune/geometry/referenceelements.hh>
+#include<dune/geometry/type.hh>
+
+#include<dune/common/power.hh>
 
 namespace Dune {
 namespace Copasi {
@@ -324,8 +326,8 @@ public:
  */
 /******************************************************/
 template<typename FiniteElementMap, int components>
-class L2Q1 :
-  // public Dune::PDELab::NumericalJacobianVolume<L2Q1<FiniteElementMap,components> >,
+class TemporalLocalOperatorDiffusionReaction :
+  // public Dune::PDELab::NumericalJacobianVolume<TemporalLocalOperatorDiffusionReaction<FiniteElementMap,components> >,
   public Dune::PDELab::FullVolumePattern,
   public Dune::PDELab::LocalOperatorDefaultFlags,
   public Dune::PDELab::InstationaryLocalOperatorDefaultMethods<typename FiniteElementMap::Traits::FiniteElementType::Traits::LocalBasisType::Traits::RangeFieldType>
@@ -366,7 +368,7 @@ public:
 
   //! constructor stores the speed of sound
   // Constructor precomputes element independent data
-  L2Q1 (const FiniteElementType& fel)
+  TemporalLocalOperatorDiffusionReaction (const FiniteElementType& fel)
   {
     // get quadrature rule of order q
     Dune::GeometryType gt = fel.type();
