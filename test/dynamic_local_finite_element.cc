@@ -15,6 +15,7 @@
 
 #include <iostream>
 #include <set>
+#include <cassert>
 
 template<class Basis>
 bool test_power_local_basis(const Basis& basis, std::size_t power_size)
@@ -38,8 +39,8 @@ bool test_power_local_basis(const Basis& basis, std::size_t power_size)
   basis.evaluateJacobian(in,jout);
   power_basis.evaluateJacobian(in,power_jout);
 
-  for (int i = 0; i < basis.size(); ++i)
-    for (int j = 0; j < power_size; ++j) 
+  for (std::size_t i = 0; i < basis.size(); ++i)
+    for (std::size_t j = 0; j < power_size; ++j) 
     {
       // output of the blocked basis must be blocked by the size of the original basis
       assert(out[i] == power_out[basis.size()*j+i]);
@@ -96,7 +97,6 @@ int main(int argc, char** argv)
 
     using RF = double;
     using DF = double;
-    constexpr uint dim = 2;
 
     constexpr uint k = 3;
     Dune::Pk2DLocalBasis<DF,RF,k> basis;

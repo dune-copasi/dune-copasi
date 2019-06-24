@@ -7,8 +7,7 @@
 #include <map>
 #include <type_traits>
 #include <utility>
-
-#include <iostream>
+#include <cassert>
 
 namespace Dune::Copasi {
 
@@ -16,8 +15,6 @@ template<class Coefficients>
 class DynamicPowerLocalCoefficients
 {
 public:
-
-  using Traits = typename Coefficients::Traits;
 
   DynamicPowerLocalCoefficients(const Coefficients& coefficients, std::size_t power_size)
     : _size(power_size*coefficients.size())

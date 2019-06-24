@@ -5,6 +5,7 @@
 #include <vector>
 #include <iterator>
 #include <algorithm>
+#include <cassert>
 
 namespace Dune::Copasi {
 
