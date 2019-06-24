@@ -1,5 +1,5 @@
-#ifndef DUNE_COPASI_UTIL_META_HH
-#define DUNE_COPASI_UTIL_META_HH
+#ifndef DUNE_COPASI_CONCEPTS_HH
+#define DUNE_COPASI_CONCEPTS_HH
 
 #include <dune/functions/common/functionconcepts.hh>
 
@@ -80,4 +80,4 @@ static constexpr bool isPDELabCallable()
 
 } // Dune::Copasi::Concept namespace
 
-#endif // DUNE_COPASI_UTIL_META_HH
+#endif // DUNE_COPASI_CONCEPTS_HH

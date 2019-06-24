@@ -183,7 +183,7 @@ int main(int argc, char** argv)
     Dune::Copasi::ModelDiffusionReaction<3,Param> model(grid,model_config);
 
     model.run();
-    
+
     return 0;
   }
   catch (Dune::Exception &e){
