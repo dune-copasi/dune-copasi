@@ -58,7 +58,7 @@ bool test_power_local_coefficients(const Coefficients& coefficients, std::size_t
   assert( coefficients.size()*power_size == power_coefficients.size() );
 
   std::set<Dune::LocalKey> unique_key;
-  for (int i = 0; i < power_coefficients.size(); ++i)
+  for (std::size_t i = 0; i < power_coefficients.size(); ++i)
   {
     auto key = power_coefficients.localKey(i);
     auto t = unique_key.insert(key);
