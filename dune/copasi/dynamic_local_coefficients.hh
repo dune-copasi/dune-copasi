@@ -17,6 +17,8 @@ class DynamicPowerLocalCoefficients
 {
 public:
 
+  using Traits = typename Coefficients::Traits;
+
   DynamicPowerLocalCoefficients(const Coefficients& coefficients, std::size_t power_size)
     : _size(power_size*coefficients.size())
   {
