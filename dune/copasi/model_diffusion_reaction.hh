@@ -209,8 +209,8 @@ private:
   std::shared_ptr<W>                _writer;
   std::shared_ptr<SW>               _sequential_writer;
 
-  std::shared_ptr<GFS>&      _gfs;   //! reference to grid function space pointer
   std::shared_ptr<X>&        _x;     //! reference to coefficients pointer
+  std::shared_ptr<GFS>&      _gfs;   //! reference to grid function space pointer
 };
 
 } // Dune::Copasi namespace
