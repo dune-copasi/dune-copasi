@@ -27,9 +27,9 @@ public:
     // map to store max indices for each sub entity and codim.
     std::map<std::pair<uint,uint>,uint> max_index;
 
-    for (int j = 0; j < power_size; ++j)
+    for (std::size_t j = 0; j < power_size; ++j)
     {
-      for (int i = 0; i < coefficients.size(); ++i)
+      for (std::size_t i = 0; i < coefficients.size(); ++i)
       {
         auto local_key = coefficients.localKey(i);
         uint sub_entity = local_key.subEntity();
