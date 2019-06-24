@@ -4,6 +4,7 @@
 
 #include <dune/copasi/dynamic_local_coefficients.hh>
 #include <dune/copasi/dynamic_local_basis.hh>
+#include <dune/copasi/dynamic_local_finite_element.hh>
 
 #include <dune/localfunctions/lagrange/pk.hh>
 #include <dune/localfunctions/common/localkey.hh>
@@ -83,6 +84,31 @@ bool test_power_local_coefficients(const Coefficients& coefficients, std::size_t
   return false;
 }
 
+template<class Interpolation>
+bool test_power_local_interpolation(const Interpolation& interpolation, std::size_t power_size)
+{
+  Dune::Copasi::DynamicPowerLocalInterpolation<Interpolation> power_interpolation(power_size);
+  
+  // how do I test this?
+
+  return true;
+}
+
+template<class FiniteElement>
+bool test_power_local_finite_element(const FiniteElement& finite_element, std::size_t power_size)
+{
+  bool failed = false;
+
+  // test constructor
+  Dune::Copasi::DynamicPowerLocalFiniteElement<FiniteElement> power_fe(power_size);
+
+  failed |= test_power_local_basis(finite_element.localBasis(),power_size);
+  failed |= test_power_local_coefficients(finite_element.localCoefficients(),power_size);
+  failed |= test_power_local_interpolation(finite_element.localInterpolation(),power_size);
+
+  return failed;
+}
+
 int main(int argc, char** argv)
 {
   bool failed = false;
@@ -98,16 +124,19 @@ int main(int argc, char** argv)
     using RF = double;
     using DF = double;
 
-    constexpr uint k = 3;
-    Dune::Pk2DLocalBasis<DF,RF,k> basis;
-    Dune::Pk2DLocalCoefficients<k> coefficients;
-
+    Dune::Pk2DLocalFiniteElement<DF,RF,1> finite_element_1;
     for (int i = 1; i < 10; ++i) 
-    {
-      failed |= test_power_local_basis<Dune::Pk2DLocalBasis<DF,RF,k>>(basis,3);
-      failed |= test_power_local_coefficients<Dune::Pk2DLocalCoefficients<k>>(coefficients,i);
-    }
+      failed |= test_power_local_finite_element(finite_element_1,i);
     
+    Dune::Pk2DLocalFiniteElement<DF,RF,2> finite_element_2;
+    for (int i = 1; i < 10; ++i) 
+      failed |= test_power_local_finite_element(finite_element_2,i);
+
+    Dune::Pk2DLocalFiniteElement<DF,RF,3> finite_element_3;
+    for (int i = 1; i < 10; ++i) 
+      failed |= test_power_local_finite_element(finite_element_3,i);
+
+
     return failed;
   }
   catch (Dune::Exception &e){

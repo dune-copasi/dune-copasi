@@ -1,7 +1,8 @@
 #ifndef DUNE_COPASI_DYNAMIC_LOCAL_INTERPOLATION_HH
 #define DUNE_COPASI_DYNAMIC_LOCAL_INTERPOLATION_HH
 
-#include <iostream>
+#include <dune/common/fvector.hh>
+#include <dune/common/dynvector.hh>
 
 namespace Dune::Copasi {
 
@@ -38,11 +39,11 @@ public:
     constexpr int range_dim = 1;
 
     // assume F is a dune-common function
-    if constexpr (std::is_same_v<typename F::RangeType,FieldVector<RF,range_dim>)
+    if constexpr (std::is_same_v<typename F::RangeType,FieldVector<RF,range_dim>>)
     {
-      _interpolation.interpolate(base_f,out);
+      _interpolation.interpolate(f,out);
     }
-    else if constexpr (std::is_same_v<typename F::RangeType,DynamicVector<RF>)
+    else if constexpr (std::is_same_v<typename F::RangeType,DynamicVector<RF>>)
     {
       // output iterator
       auto out_it = out.begin();
@@ -54,7 +55,7 @@ public:
 
         // slice the output vector of f (dynamic) into an output vector 
         // (field vector) that the interpolator actually expects
-        base_f = [&](auto x, auto base_y)
+        auto base_f = [&](auto x, auto base_y)
         {
           // evaluate f using a dynamic vector
           DynamicVector<RF> y(range_dim * _power_size);
@@ -68,7 +69,7 @@ public:
           
           // copy sliced dynamic vector into a base output vector (e.g. field vector)
           std::copy(y_copy_begin,y_copy_end,base_y.begin());
-        }
+        };
 
         // evaluate component i
         _interpolation.interpolate(base_f,base_out);
