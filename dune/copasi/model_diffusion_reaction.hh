@@ -1,7 +1,7 @@
 #ifndef DUNE_COPASI_MODEL_DIFFUSION_REACTION_HH
 #define DUNE_COPASI_MODEL_DIFFUSION_REACTION_HH
 
-#include <dune/copasi/util_meta.hh>
+#include <dune/copasi/concepts.hh>
 #include <dune/copasi/model_base.hh>
 #include <dune/copasi/model_state.hh>
 #include <dune/copasi/local_operator.hh>
@@ -15,6 +15,8 @@
 #include <dune/pdelab/newton/newton.hh>
 
 #include <dune/grid/uggrid.hh>
+#include<dune/grid/io/file/vtk/vtkwriter.hh>
+#include<dune/grid/io/file/vtk/vtksequencewriter.hh>
 
 #include <memory>
 
@@ -24,6 +26,7 @@ namespace Dune::Copasi {
  * @brief      Class for diffusion-reaction models.
  *
  * @tparam     components  Number of components
+ * @tparam     Param       Parameterization class
  */
 template<int components, class Param>
 class ModelDiffusionReaction : public ModelBase {
@@ -94,8 +97,11 @@ class ModelDiffusionReaction : public ModelBase {
   //! Nonlinear solver
   using NLS = Dune::PDELab::Newton<GOI,LS,X>;
 
+  //! Time stepping parameter
+  using TSP = Dune::PDELab::TimeSteppingParameterInterface<double>;
+
   //! One step method
-  using OMS = Dune::PDELab::OneStepMethod<RF,GOI,NLS,X,X>;
+  using OSM = Dune::PDELab::OneStepMethod<RF,GOI,NLS,X,X>;
 
   //! Writer
   using W = Dune::VTKWriter<GV>;
@@ -124,7 +130,7 @@ public:
                          const Dune::ParameterTree& config);
 
   /**
-   * @brief      Destroys the mode
+   * @brief      Destroys the model
    */
   ~ModelDiffusionReaction();
 
@@ -166,11 +172,11 @@ public:
    *                            same value everywhere in the domain
    *                          * Field vector: Set each component with the values
    *                            in the field vector everywhere in the domain
-   *                          * [WIP] PDELab callable: A lambda function which
-   *                            that returns a field vector with the components
-   *                            state for every position in the domain
-   *                          * [WIP] PDELab grid function: A function following
-   *                            the PDELab grid function interface
+   *                          * PDELab callable: A lambda function which returns
+   *                            a field vector with the components state for
+   *                            every position in the domain
+   *                          * PDELab grid function: A function following the
+   *                            PDELab grid function interface
    */
   template<class T>
   void set_state(const T& input_state);
@@ -190,6 +196,21 @@ private:
   std::shared_ptr<FEM>              _finite_element_map;
   std::unique_ptr<CC>               _constraints;
   std::shared_ptr<Parameterization> _parameterization;
+  std::shared_ptr<LOP>              _local_operator;
+  std::shared_ptr<TLOP>             _temporal_local_operator;
+  std::shared_ptr<GOS>              _spatial_grid_operator;
+  std::shared_ptr<GOT>              _temporal_grid_operator;
+  std::shared_ptr<GOI>              _grid_operator;
+  std::shared_ptr<LS>               _linear_solver;
+  std::shared_ptr<NLS>              _nonlinear_solver;
+  std::shared_ptr<TSP>              _time_stepping_method;
+  std::shared_ptr<OSM>              _one_step_method;
+
+  std::shared_ptr<W>                _writer;
+  std::shared_ptr<SW>               _sequential_writer;
+
+  std::shared_ptr<GFS>&      _gfs;   //! reference to grid function space pointer
+  std::shared_ptr<X>&        _x;     //! reference to coefficients pointer
 };
 
 } // Dune::Copasi namespace

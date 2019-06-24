@@ -11,6 +11,7 @@ namespace Dune::Copasi {
   
 ModelBase::ModelBase(const Dune::ParameterTree& config)
   : _logger(Logging::Logging::componentLogger(config,"default"))
+  , _adapt_policy(AdaptivityPolicy::None)
   , _begin_time(config.template get<double>("begin_time"))
   , _end_time(config.template get<double>("end_time"))
   , _current_time(config.template get<double>("current_time",0.))
