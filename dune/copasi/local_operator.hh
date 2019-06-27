@@ -50,7 +50,7 @@ class LocalOperatorDiffusionReaction :
 
   // sizes
   enum {dim=LocalBasisType::Traits::dimDomain}; // dimension of domain
-  enum {n=1<<dim};        // number of basis functions per components
+  enum {n=4};        // number of basis functions per components
   enum {m1d=order/2+1};   // number of quadrature points per direction
   enum {m = Dune::StaticPower<m1d,dim>::power }; // number of quadrature points
   enum {components=Param::components}; // number of components in diffusion-reaction system
@@ -103,12 +103,12 @@ public:
     // check size of the basis
     std::cout << "number of basis functions"
               << " wanted " << n
-              << " got " << fel.localBasis().size()
+              << " got " << int(fel.localBasis().size()/components)
               << std::endl;
-    if (fel.localBasis().size()!=n) {
+    if (int(fel.localBasis().size()/components)!=n) {
       std::cout << "mismatch in number of basis functions"
                 << " wanted " << n
-                << " got " << fel.localBasis().size()
+                << " got " << int(fel.localBasis().size()/components)
                 << std::endl;
       exit(1);
     }
@@ -150,14 +150,14 @@ public:
     // extract coefficients
     double xc[components][n];
     double zc[components][n];
-    // for (int k=0; k<components; k++) // loop over components
-    //   {
-    //     auto childk = lfsu.child(k);
-    //     for (int j=0; j<n; j++) // loop of ansatz functions
-    //       xc[k][j] = x(childk,j); // read coeffs
-    //     for (int j=0; j<n; j++) // loop of ansatz functions
-    //       zc[k][j] = z(lfsu.child(k),j); // read coeffs
-    //   }
+    for (int k=0; k<components; k++) // loop over components
+      {
+        for (int j=0; j<n; j++) // loop of ansatz functions
+        {
+          xc[k][j] = x(lfsu,k*n+j);
+          zc[k][j] = z(lfsu,k*n+j);  // read coeffs
+        }
+      }
 
     // the result
     double a[components][n] = {{0.0}};
@@ -214,9 +214,8 @@ public:
       // store result
       for (int k=0; k<components; k++) // loop over components
         {
-          // auto childk = lfsu.child(k);
-          // for (int i=0; i<n; i++)
-          //   r.accumulate(childk,i,a[k][i]);
+          for (int i=0; i<n; i++)
+            r.accumulate(lfsu,k*n+i,a[k][i]);
         }
   }
 
@@ -227,15 +226,14 @@ public:
                         const LFSV& lfsv, M& mat) const
   {
     // select the two components (but assume Galerkin scheme U=V)
-    assert(LFSU::CHILDREN==components);
+    // assert(LFSU::CHILDREN==components);
 
     // extract coefficients
     double xc[components][n];
     for (int k=0; k<components; k++) // loop over components
       {
-        // auto childk = lfsu.child(k);
-        // for (int j=0; j<n; j++) // loop of ansatz functions
-        //   xc[k][j] = x(childk,j); // read coeffs
+        for (int j=0; j<n; j++) // loop of ansatz functions
+          xc[k][j] = x(lfsu,k*n+j); // read coeffs
       }
 
     // local stiffness matrix (independent of component)
@@ -277,21 +275,20 @@ public:
         auto nablaf=param.nablaf(eg.entity(),qp[q],u);
         for (int e=0; e<Param::nonzeroes; e++)
           {
-            // auto childrow = lfsv.child(nablaf[e].row);
-            // auto childcol = lfsu.child(nablaf[e].col);
-            // for (int i=0; i<n; i++)
-            //   for (int j=0; j<n; j++)
-            //     mat.accumulate(childrow,i,childcol,j,phihat[q][i]*nablaf[e].value*phihat[q][j]*factor);
+            auto childrow = nablaf[e].row;
+            auto childcol = nablaf[e].col;
+            for (int i=0; i<n; i++)
+              for (int j=0; j<n; j++)
+                mat.accumulate(lfsv,childrow*n+i,lfsu,childcol*n+j,phihat[q][i]*nablaf[e].value*phihat[q][j]*factor);
           }
       }
 
     // store in result
     for (int k=0; k<components; k++) // loop over components
       {
-        // auto childk = lfsu.child(k);
-        // for (int i=0; i<n; i++)
-        //   for (int j=0; j<n; j++)
-        //     mat.accumulate(childk,i,childk,j,D[k]*A[i][j]);
+        for (int i=0; i<n; i++)
+          for (int j=0; j<n; j++)
+            mat.accumulate(lfsu,k*n+i,lfsu,k*n+j,D[k]*A[i][j]);
       }
   }
 
@@ -350,7 +347,7 @@ class TemporalLocalOperatorDiffusionReaction :
 
   // sizes
   enum {dim=LocalBasisType::Traits::dimDomain}; // dimension of domain
-  enum {n=1<<dim};        // number of basis functions per components
+  enum {n=4};        // number of basis functions per components
   enum {m1d=2};           // number of quadrature points per direction
   enum {m = Dune::StaticPower<m1d,dim>::power }; // number of quadrature points
 
@@ -395,12 +392,12 @@ public:
     // check size of the basis
     std::cout << "number of basis functions"
               << " wanted " << n
-              << " got " << fel.localBasis().size()
+              << " got " << int(fel.localBasis().size()/components)
               << std::endl;
-    if (fel.localBasis().size()!=n) {
+    if (int(fel.localBasis().size()/components)!=n) {
       std::cout << "mismatch in number of basis functions"
                 << " wanted " << n
-                << " got " << fel.localBasis().size()
+                << " got " << int(fel.localBasis().size()/components)
                 << std::endl;
       exit(1);
     }
@@ -427,9 +424,8 @@ public:
     double xc[components][n];
     for (int k=0; k<components; k++) // loop over components
       {
-        // auto childk = lfsu.child(k);
-        // for (int j=0; j<n; j++) // loop of ansatz functions
-        //   xc[k][j] = x(childk,j); // read coeffs
+        for (int j=0; j<n; j++) // loop of ansatz functions
+          xc[k][j] = x(lfsu,k*n+j); // read coeffs
       }
 
     // the result
@@ -461,9 +457,8 @@ public:
       // store result
       for (int k=0; k<components; k++) // loop over components
         {
-          // auto childk = lfsu.child(k);
-          // for (int i=0; i<n; i++)
-          //   r.accumulate(childk,i,a[k][i]);
+          for (int i=0; i<n; i++)
+            r.accumulate(lfsu,k*n+i,a[k][i]);
         }
   }
 
@@ -497,10 +492,9 @@ public:
     // store in result
     for (int k=0; k<components; k++) // loop over components
       {
-        // auto childk = lfsu.child(k);
-        // for (int i=0; i<n; i++)
-        //   for (int j=0; j<n; j++)
-        //     mat.accumulate(childk,i,childk,j,M[i][j]);
+        for (int i=0; i<n; i++)
+          for (int j=0; j<n; j++)
+            mat.accumulate(lfsu,k*n+i,lfsu,k*n+j,M[i][j]);
       }
   }
 

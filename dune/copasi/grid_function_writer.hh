@@ -62,14 +62,15 @@ public:
    * \param gfs The GridFunctionsSpace
    * \param x_  The coefficients vector
    */
-  DiscreteGridFunction (const GFS& gfs, const X& x_, std::size_t index)
+  DiscreteGridFunction (const GFS& gfs, const X& x_, std::size_t id_begin, std::size_t id_end)
     : pgfs(stackobject_to_shared_ptr(gfs))
     , lfs(gfs)
     , lfs_cache(lfs)
     , x_view(x_)
     , xl(gfs.maxLocalSize())
     , yb(gfs.maxLocalSize())
-    , _index(index)
+    , _id_begin(id_begin)
+    , _id_end(id_end)
   {
   }
 
@@ -78,7 +79,7 @@ public:
    * \param gfs shared pointer to the GridFunctionsSpace
    * \param x_  shared pointer to the coefficients vector
    */
-  DiscreteGridFunction (std::shared_ptr<const GFS> gfs, std::shared_ptr<const X> x_, std::size_t index)
+  DiscreteGridFunction (std::shared_ptr<const GFS> gfs, std::shared_ptr<const X> x_, std::size_t id_begin, std::size_t id_end)
     : pgfs(gfs)
     , lfs(*gfs)
     , lfs_cache(lfs)
@@ -86,7 +87,8 @@ public:
     , xl(gfs->maxLocalSize())
     , yb(gfs->maxLocalSize())
     , px(x_) // FIXME: The LocalView should handle a shared_ptr correctly!
-    , _index(index)
+    , _id_begin(id_begin)
+    , _id_end(id_end)
   {
   }
 
@@ -105,8 +107,7 @@ public:
     x_view.unbind();
     FESwitch::basis(lfs.finiteElement()).evaluateFunction(x,yb);
     y = 0;
-    int basis_size = 4;
-    for (unsigned int i=_index*basis_size; i<(_index+1)*basis_size; i++)
+    for (unsigned int i=_id_begin; i<_id_end; i++)
       y.axpy(xl[i],yb[i]);
   }
 
@@ -129,7 +130,7 @@ private:
   mutable std::vector<typename Traits::RangeFieldType> xl;
   mutable std::vector<typename Traits::RangeType> yb;
   std::shared_ptr<const X> px; // FIXME: dummy pointer to make sure we take ownership of X
-  std::size_t _index;
+  const std::size_t _id_begin, _id_end;
 };
 
 

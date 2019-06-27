@@ -183,7 +183,7 @@ int main(int argc, char** argv)
     using Param = Parameterization<double>;
     Dune::Copasi::ModelDiffusionReaction<Param::components,Param> model(grid,model_config);
 
-    // model.run();
+    model.run();
 
     return 0;
   }

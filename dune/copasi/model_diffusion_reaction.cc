@@ -50,8 +50,9 @@ ModelDiffusionReaction<components,Param>::ModelDiffusionReaction(
   // add data field for all components of the space to the VTK writer
   for (int i = 0; i < components; ++i)
   {
-    auto dgf = std::make_shared<const DGF>(_gfs,_x,i);
-    _sequential_writer->addVertexData(dgf,"u_"+std::to_string(i));
+    std::string name = _gfs->name() + "_" + std::to_string(i);
+    auto dgf = std::make_shared<const DGF>(_gfs,_x,i*4,(i+1)*4);
+    _sequential_writer->addVertexData(dgf,name);
   }
   _sequential_writer->write(current_time(),Dune::VTK::appendedraw);
   _sequential_writer->vtkWriter()->clear();
@@ -69,7 +70,7 @@ ModelDiffusionReaction<components,Param>::~ModelDiffusionReaction()
 template<int components, class Param>
 void ModelDiffusionReaction<components,Param>::step()
 {
-  double dt = 0.1;
+  double dt = 0.001;
 
   // do time step
   auto x_new = std::make_shared<X>(*_x);
@@ -79,15 +80,21 @@ void ModelDiffusionReaction<components,Param>::step()
   _x = x_new;
   current_time()+=dt;
 
-  // add data field for all components of the space to the VTK writer
-  // Dune::PDELab::addSolutionToVTKWriter(*_sequential_writer,*_gfs,*_x);
-  // _sequential_writer->write(current_time(),Dune::VTK::appendedraw);
-  // _sequential_writer->vtkWriter()->clear();
+  for (int i = 0; i < components; ++i)
+  {
+    std::string name = _gfs->name() + "_" + std::to_string(i);
+    auto dgf = std::make_shared<const DGF>(_gfs,_x,i*4,(i+1)*4);
+    _sequential_writer->addVertexData(dgf,name);
+  }
+  _sequential_writer->write(current_time(),Dune::VTK::appendedraw);
+  _sequential_writer->vtkWriter()->clear();
 }
 
 template<int components, class Param>
 void ModelDiffusionReaction<components,Param>::suggest_timestep(double dt)
-{}
+{
+  DUNE_THROW(NotImplemented,"");
+}
 
 template<int components, class Param>
 template<class T>
@@ -125,7 +132,6 @@ void ModelDiffusionReaction<components,Param>::set_state(const T& input_state)
   else if constexpr ( Concept::isPDELabGridFunction<T>() )
   {
     _logger.trace("interpolate grid function to model coefficients"_fmt);
-    _logger.trace("grid function type: {}"_fmt,Dune::className<T>());
     Dune::PDELab::interpolate(input_state,*_gfs,*_x);
   }
   // else if constexpr (std::is_same<T,ModelState>::value)
@@ -156,12 +162,7 @@ void ModelDiffusionReaction<components,Param>::operator_setup()
   _logger.trace("create a power grid function space"_fmt);
   _gfs = std::make_shared<GFS>(leaf_grid_function_space);
 
-  // _logger.trace("name each component"_fmt);
-  // for (int i=0; i<components; i++)
-  // {
-  //   _gfs->child(i).name("u_"+std::to_string(i));
-  //   _logger.trace("component name {}: {}"_fmt, i, _gfs->child(i).name());
-  // }
+  _logger.trace("name grid function space"_fmt);
   _gfs->name("u");
 
   _logger.trace("create vector backend"_fmt);
@@ -183,50 +184,50 @@ void ModelDiffusionReaction<components,Param>::operator_setup()
   _logger.info("constrained dofs: {} of {}"_fmt, _constraints->size(), 
                                                  _gfs->globalSize());
 
-  // _logger.trace("create spatial local operator"_fmt);
-  // auto entity_it = _grid_view.template begin<0>();
-  // auto finite_element = _finite_element_map->find(*entity_it);
-  // _local_operator = std::make_shared<LOP>(*_parameterization,finite_element);
+  _logger.trace("create spatial local operator"_fmt);
+  auto entity_it = _grid_view.template begin<0>();
+  auto finite_element = _finite_element_map->find(*entity_it);
+  _local_operator = std::make_shared<LOP>(*_parameterization,finite_element);
 
-  // _logger.trace("create temporal local operator"_fmt);
-  // _temporal_local_operator = std::make_shared<TLOP>(finite_element);
+  _logger.trace("create temporal local operator"_fmt);
+  _temporal_local_operator = std::make_shared<TLOP>(finite_element);
 
-  // MBE mbe((int)pow(3,dim));
+  MBE mbe((int)pow(3,dim));
 
-  // _logger.trace("create spatial grid operator"_fmt);
-  // _spatial_grid_operator = std::make_shared<GOS>(*_gfs,*_constraints,
-  //                                               *_gfs,*_constraints,
-  //                                               *_local_operator,mbe);
+  _logger.trace("create spatial grid operator"_fmt);
+  _spatial_grid_operator = std::make_shared<GOS>(*_gfs,*_constraints,
+                                                *_gfs,*_constraints,
+                                                *_local_operator,mbe);
 
-  // _temporal_grid_operator = std::make_shared<GOT>(*_gfs,*_constraints,
-  //                                                 *_gfs,*_constraints,
-  //                                                 *_temporal_local_operator,
-  //                                                 mbe);
+  _temporal_grid_operator = std::make_shared<GOT>(*_gfs,*_constraints,
+                                                  *_gfs,*_constraints,
+                                                  *_temporal_local_operator,
+                                                  mbe);
 
-  // _logger.trace("create instationary grid operator"_fmt);
-  // _grid_operator = std::make_shared<GOI>(*_spatial_grid_operator,
-  //                                        *_temporal_grid_operator);
+  _logger.trace("create instationary grid operator"_fmt);
+  _grid_operator = std::make_shared<GOI>(*_spatial_grid_operator,
+                                         *_temporal_grid_operator);
 
-  // _logger.trace("create linear solver"_fmt);
-  // _linear_solver = std::make_shared<LS>(5000,false);
+  _logger.trace("create linear solver"_fmt);
+  _linear_solver = std::make_shared<LS>(5000,false);
 
-  // _logger.trace("create nonlinear solver"_fmt);
-  // _nonlinear_solver = std::make_shared<NLS>(*_grid_operator,*_x,
-  //                                           *_linear_solver);
-  // _nonlinear_solver->setReassembleThreshold(0.0);
-  // _nonlinear_solver->setVerbosityLevel(2);
-  // _nonlinear_solver->setReduction(1e-8);
-  // _nonlinear_solver->setMinLinearReduction(1e-10);
-  // _nonlinear_solver->setMaxIterations(25);
-  // _nonlinear_solver->setLineSearchMaxIterations(10);
+  _logger.trace("create nonlinear solver"_fmt);
+  _nonlinear_solver = std::make_shared<NLS>(*_grid_operator,*_x,
+                                            *_linear_solver);
+  _nonlinear_solver->setReassembleThreshold(0.0);
+  _nonlinear_solver->setVerbosityLevel(2);
+  _nonlinear_solver->setReduction(1e-8);
+  _nonlinear_solver->setMinLinearReduction(1e-10);
+  _nonlinear_solver->setMaxIterations(25);
+  _nonlinear_solver->setLineSearchMaxIterations(10);
 
-  // _logger.trace("select and prepare time-stepping scheme"_fmt);
-  // using AlexMethod = Dune::PDELab::Alexander2Parameter<double>;
-  // _time_stepping_method = std::make_shared<AlexMethod>();
-  // _one_step_method = std::make_shared<OSM>(*_time_stepping_method,
-  //                                          *_grid_operator,
-  //                                          *_nonlinear_solver);
-  // _one_step_method->setVerbosityLevel(2);
+  _logger.trace("select and prepare time-stepping scheme"_fmt);
+  using AlexMethod = Dune::PDELab::Alexander2Parameter<double>;
+  _time_stepping_method = std::make_shared<AlexMethod>();
+  _one_step_method = std::make_shared<OSM>(*_time_stepping_method,
+                                           *_grid_operator,
+                                           *_nonlinear_solver);
+  _one_step_method->setVerbosityLevel(2);
 
 }
 

@@ -38,19 +38,12 @@ public:
   {}
 
   DynamicPowerLocalFiniteElement
-  ( const LocalFiniteElement& finite_element, 
-    const BaseLocalBasis& local_basis,
-    const BaseLocalCoefficients& local_coeficcients,
-    const BaseLocalInterpolation& local_interpolation,
+  ( const LocalFiniteElement& finite_element,
     std::size_t power_size
   ) : _finite_element(finite_element)
-    , _basis(local_basis,power_size)
-    , _coefficients(local_coeficcients,power_size)
-    , _interpolation(local_interpolation,power_size)
-  {}
-
-  DynamicPowerLocalFiniteElement (const LocalFiniteElement& finite_element, std::size_t power_size)
-    : DynamicPowerLocalFiniteElement(finite_element,BaseLocalBasis{},BaseLocalCoefficients{},BaseLocalInterpolation{},power_size)
+    , _basis(_finite_element.localBasis(),power_size)
+    , _coefficients(_finite_element.localCoefficients(),power_size)
+    , _interpolation(_finite_element.localInterpolation(),power_size)
   {}
 
   DynamicPowerLocalFiniteElement (std::size_t power_size)
@@ -74,7 +67,7 @@ public:
 
   unsigned int size () const
   {
-    return _basis.size();
+    return _coefficients.size();
   }
 
   GeometryType type () const
