@@ -49,8 +49,12 @@ public:
     , _interpolation(local_interpolation,power_size)
   {}
 
+  DynamicPowerLocalFiniteElement (const LocalFiniteElement& finite_element, std::size_t power_size)
+    : DynamicPowerLocalFiniteElement(finite_element,BaseLocalBasis{},BaseLocalCoefficients{},BaseLocalInterpolation{},power_size)
+  {}
+
   DynamicPowerLocalFiniteElement (std::size_t power_size)
-    : DynamicPowerLocalFiniteElement(LocalFiniteElement{},BaseLocalBasis{},BaseLocalCoefficients{},BaseLocalInterpolation{},power_size)
+    : DynamicPowerLocalFiniteElement(LocalFiniteElement{},power_size)
   {}
 
   const typename Traits::LocalBasisType& localBasis () const

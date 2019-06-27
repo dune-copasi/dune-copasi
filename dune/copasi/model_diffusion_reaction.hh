@@ -5,18 +5,21 @@
 #include <dune/copasi/model_base.hh>
 #include <dune/copasi/model_state.hh>
 #include <dune/copasi/local_operator.hh>
+#include <dune/copasi/grid_function_writer.hh>
+#include <dune/copasi/dynamic_local_finite_element_map.hh>
 
 #include <dune/pdelab/finiteelementmap/qkfem.hh>
 #include <dune/pdelab/constraints/conforming.hh>
 #include <dune/pdelab/gridfunctionspace/gridfunctionspace.hh>
+#include <dune/pdelab/function/discretegridviewfunction.hh>
 #include <dune/pdelab/backend/istl.hh>
 #include <dune/pdelab/gridoperator/gridoperator.hh>
 #include <dune/pdelab/gridoperator/onestep.hh>
 #include <dune/pdelab/newton/newton.hh>
 
 #include <dune/grid/uggrid.hh>
-#include<dune/grid/io/file/vtk/vtkwriter.hh>
-#include<dune/grid/io/file/vtk/vtksequencewriter.hh>
+#include <dune/grid/io/file/vtk/vtkwriter.hh>
+#include <dune/grid/io/file/vtk/vtksequencewriter.hh>
 
 #include <memory>
 
@@ -47,7 +50,7 @@ class ModelDiffusionReaction : public ModelBase {
   using RF = double;
 
   //! Finite element map
-  using FEM = PDELab::QkLocalFiniteElementMap<GV,DF,RF,1>;
+  using FEM = DynamicPowerLocalFiniteElementMap<PDELab::QkLocalFiniteElementMap<GV,DF,RF,1>>;
 
   //! Constraints builder
   using CON = PDELab::ConformingDirichletConstraints;
@@ -65,7 +68,7 @@ class ModelDiffusionReaction : public ModelBase {
   using OrderingTag = PDELab::LexicographicOrderingTag;
 
   //! Grid function space
-  using GFS = PDELab::PowerGridFunctionSpace<LGFS,components,VBE,OrderingTag>;
+  using GFS = LGFS; //PDELab::PowerGridFunctionSpace<LGFS,components,VBE,OrderingTag>;
 
   //! Coefficient vector
   using X = PDELab::Backend::Vector<GFS,RF>;
@@ -107,7 +110,10 @@ class ModelDiffusionReaction : public ModelBase {
   using W = Dune::VTKWriter<GV>;
 
   //! Sequential writer
-  using SW = Dune::VTKSequenceWriter<GV>;
+  using SW = Dune::Copasi::GridFunctionVTKSequenceWriter<GV>;
+
+  //! Discrete grid function
+  using DGF = Dune::Copasi::DiscreteGridFunction<GFS,X>;
 
 public:
 

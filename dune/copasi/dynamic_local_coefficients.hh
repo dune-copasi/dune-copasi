@@ -24,7 +24,7 @@ public:
     // reserve enough space for local keys
     _local_keys.reserve(size());
 
-    // map to store max indices for each sub entity and codim.
+    // map to store max index for each sub entity and codim.
     std::map<std::pair<uint,uint>,uint> max_index;
 
     for (std::size_t j = 0; j < power_size; ++j)

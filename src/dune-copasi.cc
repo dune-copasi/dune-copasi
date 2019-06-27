@@ -122,6 +122,7 @@ public:
       rv[1] = (1.0-r)/0.4*(1.0-r)/0.4;
 
     rv[2] = 0.0;
+    
     return rv;
   }
 };
@@ -180,9 +181,9 @@ int main(int argc, char** argv)
     // instantiate a model
     auto& model_config = config.sub("model");
     using Param = Parameterization<double>;
-    Dune::Copasi::ModelDiffusionReaction<3,Param> model(grid,model_config);
+    Dune::Copasi::ModelDiffusionReaction<Param::components,Param> model(grid,model_config);
 
-    model.run();
+    // model.run();
 
     return 0;
   }

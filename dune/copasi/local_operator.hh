@@ -145,19 +145,19 @@ public:
                               R& r) const
   {
     // select the two components (but assume Galerkin scheme U=V)
-    assert(LFSU::CHILDREN==components);
+    // assert(LFSU::CHILDREN==components);
 
     // extract coefficients
     double xc[components][n];
     double zc[components][n];
-    for (int k=0; k<components; k++) // loop over components
-      {
-        auto childk = lfsu.child(k);
-        for (int j=0; j<n; j++) // loop of ansatz functions
-          xc[k][j] = x(childk,j); // read coeffs
-        for (int j=0; j<n; j++) // loop of ansatz functions
-          zc[k][j] = z(lfsu.child(k),j); // read coeffs
-      }
+    // for (int k=0; k<components; k++) // loop over components
+    //   {
+    //     auto childk = lfsu.child(k);
+    //     for (int j=0; j<n; j++) // loop of ansatz functions
+    //       xc[k][j] = x(childk,j); // read coeffs
+    //     for (int j=0; j<n; j++) // loop of ansatz functions
+    //       zc[k][j] = z(lfsu.child(k),j); // read coeffs
+    //   }
 
     // the result
     double a[components][n] = {{0.0}};
@@ -214,9 +214,9 @@ public:
       // store result
       for (int k=0; k<components; k++) // loop over components
         {
-          auto childk = lfsu.child(k);
-          for (int i=0; i<n; i++)
-            r.accumulate(childk,i,a[k][i]);
+          // auto childk = lfsu.child(k);
+          // for (int i=0; i<n; i++)
+          //   r.accumulate(childk,i,a[k][i]);
         }
   }
 
@@ -233,9 +233,9 @@ public:
     double xc[components][n];
     for (int k=0; k<components; k++) // loop over components
       {
-        auto childk = lfsu.child(k);
-        for (int j=0; j<n; j++) // loop of ansatz functions
-          xc[k][j] = x(childk,j); // read coeffs
+        // auto childk = lfsu.child(k);
+        // for (int j=0; j<n; j++) // loop of ansatz functions
+        //   xc[k][j] = x(childk,j); // read coeffs
       }
 
     // local stiffness matrix (independent of component)
@@ -277,21 +277,21 @@ public:
         auto nablaf=param.nablaf(eg.entity(),qp[q],u);
         for (int e=0; e<Param::nonzeroes; e++)
           {
-            auto childrow = lfsv.child(nablaf[e].row);
-            auto childcol = lfsu.child(nablaf[e].col);
-            for (int i=0; i<n; i++)
-              for (int j=0; j<n; j++)
-                mat.accumulate(childrow,i,childcol,j,phihat[q][i]*nablaf[e].value*phihat[q][j]*factor);
+            // auto childrow = lfsv.child(nablaf[e].row);
+            // auto childcol = lfsu.child(nablaf[e].col);
+            // for (int i=0; i<n; i++)
+            //   for (int j=0; j<n; j++)
+            //     mat.accumulate(childrow,i,childcol,j,phihat[q][i]*nablaf[e].value*phihat[q][j]*factor);
           }
       }
 
     // store in result
     for (int k=0; k<components; k++) // loop over components
       {
-        auto childk = lfsu.child(k);
-        for (int i=0; i<n; i++)
-          for (int j=0; j<n; j++)
-            mat.accumulate(childk,i,childk,j,D[k]*A[i][j]);
+        // auto childk = lfsu.child(k);
+        // for (int i=0; i<n; i++)
+        //   for (int j=0; j<n; j++)
+        //     mat.accumulate(childk,i,childk,j,D[k]*A[i][j]);
       }
   }
 
@@ -421,15 +421,15 @@ public:
                      const LFSV& lfsv, R& r) const
   {
     // select the two components (but assume Galerkin scheme U=V)
-    assert(LFSU::CHILDREN==components);
+    // assert(LFSU::CHILDREN==components);
 
     // extract coefficients
     double xc[components][n];
     for (int k=0; k<components; k++) // loop over components
       {
-        auto childk = lfsu.child(k);
-        for (int j=0; j<n; j++) // loop of ansatz functions
-          xc[k][j] = x(childk,j); // read coeffs
+        // auto childk = lfsu.child(k);
+        // for (int j=0; j<n; j++) // loop of ansatz functions
+        //   xc[k][j] = x(childk,j); // read coeffs
       }
 
     // the result
@@ -461,9 +461,9 @@ public:
       // store result
       for (int k=0; k<components; k++) // loop over components
         {
-          auto childk = lfsu.child(k);
-          for (int i=0; i<n; i++)
-            r.accumulate(childk,i,a[k][i]);
+          // auto childk = lfsu.child(k);
+          // for (int i=0; i<n; i++)
+          //   r.accumulate(childk,i,a[k][i]);
         }
   }
 
@@ -474,7 +474,7 @@ public:
                         const LFSV& lfsv, Mat& mat) const
   {
     // select the two components (but assume Galerkin scheme U=V)
-    assert(LFSU::CHILDREN==components);
+    // assert(LFSU::CHILDREN==components);
 
     // local stiffness matrix (independent of component)
     double M[n][n] = {{0.0}};
@@ -497,10 +497,10 @@ public:
     // store in result
     for (int k=0; k<components; k++) // loop over components
       {
-        auto childk = lfsu.child(k);
-        for (int i=0; i<n; i++)
-          for (int j=0; j<n; j++)
-            mat.accumulate(childk,i,childk,j,M[i][j]);
+        // auto childk = lfsu.child(k);
+        // for (int i=0; i<n; i++)
+        //   for (int j=0; j<n; j++)
+        //     mat.accumulate(childk,i,childk,j,M[i][j]);
       }
   }
 
