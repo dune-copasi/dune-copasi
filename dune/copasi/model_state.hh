@@ -15,8 +15,8 @@ namespace Dune::Copasi {
  * @tparam     X     Coefficients vector
  */
 template<class G, class GFS, class X>
-struct ModelState {
-
+struct ModelState
+{
   //! Grid
   using Grid = G;
 
@@ -26,19 +26,19 @@ struct ModelState {
   //! Coefficients vector
   using Coefficients = X;
 
-  std::shared_ptr<Grid>               grid;
-  std::shared_ptr<GridFunctionSpace>  grid_function_space;
-  std::shared_ptr<Coefficients>       coefficients;
-  double                              time;
+  std::shared_ptr<Grid> grid;
+  std::shared_ptr<GridFunctionSpace> grid_function_space;
+  std::shared_ptr<Coefficients> coefficients;
+  double time;
 
   /**
    * @brief      Write the model state into a file
    *
    * @param[in]  file_name  The file name
    */
-  void write(const std::string &file_name) const
+  void write(const std::string& file_name) const
   {
-    DUNE_THROW(Dune::NotImplemented,"ModelState writer is not implemented");
+    DUNE_THROW(Dune::NotImplemented, "ModelState writer is not implemented");
   }
 
   /**
@@ -46,9 +46,9 @@ struct ModelState {
    *
    * @param[in]  file_name  The file name
    */
-  void read(const std::string &file_name)
+  void read(const std::string& file_name)
   {
-    DUNE_THROW(Dune::NotImplemented,"ModelState reader is not implemented");
+    DUNE_THROW(Dune::NotImplemented, "ModelState reader is not implemented");
   }
 
   /**
@@ -57,11 +57,10 @@ struct ModelState {
   operator ModelState<const G, const GFS, const X>()
   {
     using ConstModelState = ModelState<const G, const GFS, const X>;
-    return ConstModelState{grid,grid_function_space,coefficients,time};
+    return ConstModelState{ grid, grid_function_space, coefficients, time };
   }
-
 };
 
-} // Dune::Copasi namespace
+} // namespace Dune::Copasi
 
 #endif // DUNE_COPASI_MODEL_STATE_HH

@@ -2,24 +2,24 @@
 #define DUNE_COPASI_MODEL_DIFFUSION_REACTION_HH
 
 #include <dune/copasi/concepts.hh>
+#include <dune/copasi/dynamic_local_finite_element_map.hh>
+#include <dune/copasi/grid_function_writer.hh>
+#include <dune/copasi/local_operator.hh>
 #include <dune/copasi/model_base.hh>
 #include <dune/copasi/model_state.hh>
-#include <dune/copasi/local_operator.hh>
-#include <dune/copasi/grid_function_writer.hh>
-#include <dune/copasi/dynamic_local_finite_element_map.hh>
 
-#include <dune/pdelab/finiteelementmap/qkfem.hh>
-#include <dune/pdelab/constraints/conforming.hh>
-#include <dune/pdelab/gridfunctionspace/gridfunctionspace.hh>
-#include <dune/pdelab/function/discretegridviewfunction.hh>
 #include <dune/pdelab/backend/istl.hh>
+#include <dune/pdelab/constraints/conforming.hh>
+#include <dune/pdelab/finiteelementmap/qkfem.hh>
+#include <dune/pdelab/function/discretegridviewfunction.hh>
+#include <dune/pdelab/gridfunctionspace/gridfunctionspace.hh>
 #include <dune/pdelab/gridoperator/gridoperator.hh>
 #include <dune/pdelab/gridoperator/onestep.hh>
 #include <dune/pdelab/newton/newton.hh>
 
-#include <dune/grid/uggrid.hh>
-#include <dune/grid/io/file/vtk/vtkwriter.hh>
 #include <dune/grid/io/file/vtk/vtksequencewriter.hh>
+#include <dune/grid/io/file/vtk/vtkwriter.hh>
+#include <dune/grid/uggrid.hh>
 
 #include <memory>
 
@@ -31,8 +31,8 @@ namespace Dune::Copasi {
  * @tparam     components  Number of components
  * @tparam     Param       Parameterization class
  */
-class ModelDiffusionReaction : public ModelBase {
-
+class ModelDiffusionReaction : public ModelBase
+{
   //! World dimension
   static constexpr int dim = 2;
 
@@ -48,12 +48,12 @@ class ModelDiffusionReaction : public ModelBase {
   //! Range field
   using RF = double;
 
-
   //! Finite element
-  using FE = Dune::QkLocalFiniteElement<DF,RF,dim,1>;
+  using FE = Dune::QkLocalFiniteElement<DF, RF, dim, 1>;
 
   //! Finite element map
-  using FEM = DynamicPowerLocalFiniteElementMap<PDELab::QkLocalFiniteElementMap<GV,DF,RF,1>>;
+  using FEM = DynamicPowerLocalFiniteElementMap<
+    PDELab::QkLocalFiniteElementMap<GV, DF, RF, 1>>;
 
   //! Constraints builder
   using CON = PDELab::ConformingDirichletConstraints;
@@ -62,7 +62,7 @@ class ModelDiffusionReaction : public ModelBase {
   using LVBE = PDELab::ISTL::VectorBackend<>;
 
   //! Leaf grid function space
-  using LGFS = PDELab::GridFunctionSpace<GV,FEM,CON,LVBE>;
+  using LGFS = PDELab::GridFunctionSpace<GV, FEM, CON, LVBE>;
 
   //! Vector backend
   using VBE = LVBE;
@@ -71,43 +71,46 @@ class ModelDiffusionReaction : public ModelBase {
   using OrderingTag = PDELab::LexicographicOrderingTag;
 
   //! Grid function space
-  using GFS = LGFS; //PDELab::PowerGridFunctionSpace<LGFS,components,VBE,OrderingTag>;
+  using GFS =
+    LGFS; // PDELab::PowerGridFunctionSpace<LGFS,components,VBE,OrderingTag>;
 
   //! Coefficient vector
-  using X = PDELab::Backend::Vector<GFS,RF>;
+  using X = PDELab::Backend::Vector<GFS, RF>;
 
   //! Constraints container
   using CC = typename GFS::template ConstraintsContainer<RF>::Type;
 
   //! Local operator
-  using LOP = LocalOperatorDiffusionReaction<GV,FE>;
+  using LOP = LocalOperatorDiffusionReaction<GV, FE>;
 
-  //! Temporal local operator 
-  using TLOP = TemporalLocalOperatorDiffusionReaction<GV,FE>;
+  //! Temporal local operator
+  using TLOP = TemporalLocalOperatorDiffusionReaction<GV, FE>;
 
   //! Matrix backend
   using MBE = Dune::PDELab::ISTL::BCRSMatrixBackend<>;
 
   //! Spatial grid operator
-  using GOS = Dune::PDELab::GridOperator<GFS,GFS,LOP,MBE,RF,RF,RF,CC,CC>;
+  using GOS =
+    Dune::PDELab::GridOperator<GFS, GFS, LOP, MBE, RF, RF, RF, CC, CC>;
 
   //! Temporal grid operator
-  using GOT = Dune::PDELab::GridOperator<GFS,GFS,TLOP,MBE,RF,RF,RF,CC,CC>;
+  using GOT =
+    Dune::PDELab::GridOperator<GFS, GFS, TLOP, MBE, RF, RF, RF, CC, CC>;
 
   //! Instationary grid operator
-  using GOI = Dune::PDELab::OneStepGridOperator<GOS,GOT>;
+  using GOI = Dune::PDELab::OneStepGridOperator<GOS, GOT>;
 
   //! Linear solver backend
   using LS = Dune::PDELab::ISTLBackend_SEQ_BCGS_SSOR;
 
   //! Nonlinear solver
-  using NLS = Dune::PDELab::Newton<GOI,LS,X>;
+  using NLS = Dune::PDELab::Newton<GOI, LS, X>;
 
   //! Time stepping parameter
   using TSP = Dune::PDELab::TimeSteppingParameterInterface<double>;
 
   //! One step method
-  using OSM = Dune::PDELab::OneStepMethod<RF,GOI,NLS,X,X>;
+  using OSM = Dune::PDELab::OneStepMethod<RF, GOI, NLS, X, X>;
 
   //! Writer
   using W = Dune::VTKWriter<GV>;
@@ -116,16 +119,15 @@ class ModelDiffusionReaction : public ModelBase {
   using SW = Dune::Copasi::GridFunctionVTKSequenceWriter<GV>;
 
   //! Discrete grid function
-  using DGF = Dune::Copasi::DiscreteGridFunction<GFS,X>;
+  using DGF = Dune::Copasi::DiscreteGridFunction<GFS, X>;
 
 public:
-
   //! Model state structure
-  using ModelState = Dune::Copasi::ModelState<Grid,GFS,X>;
+  using ModelState = Dune::Copasi::ModelState<Grid, GFS, X>;
 
   //! Constant model state structure
-  using ConstModelState = Dune::Copasi::ModelState<const Grid,const GFS,const X>;
-
+  using ConstModelState =
+    Dune::Copasi::ModelState<const Grid, const GFS, const X>;
 
   /**
    * @brief      Constructs the model
@@ -133,7 +135,7 @@ public:
    * @param[in]  grid    The grid
    * @param[in]  config  The configuration file
    */
-  ModelDiffusionReaction(std::shared_ptr<Grid> grid, 
+  ModelDiffusionReaction(std::shared_ptr<Grid> grid,
                          const Dune::ParameterTree& config);
 
   /**
@@ -156,14 +158,14 @@ public:
   void step();
 
   /**
-   * @brief      Get the model state 
+   * @brief      Get the model state
    *
    * @return     Model state
    */
   ModelState state();
 
   /**
-   * @brief      Get the model state 
+   * @brief      Get the model state
    *
    * @return     Model state
    */
@@ -189,38 +191,37 @@ public:
   void set_state(const T& input_state);
 
 protected:
-
   /**
    * @brief      Setup operator for next time step
    */
   void operator_setup();
 
-  using   ModelBase::_logger;
+  using ModelBase::_logger;
 
 private:
-  std::size_t                       _components;
-  ParameterTree                     _config;
-  GV                                _grid_view;
-  ModelState                        _state;
-  std::shared_ptr<FEM>              _finite_element_map;
-  std::unique_ptr<CC>               _constraints;
-  std::shared_ptr<LOP>              _local_operator;
-  std::shared_ptr<TLOP>             _temporal_local_operator;
-  std::shared_ptr<GOS>              _spatial_grid_operator;
-  std::shared_ptr<GOT>              _temporal_grid_operator;
-  std::shared_ptr<GOI>              _grid_operator;
-  std::shared_ptr<LS>               _linear_solver;
-  std::shared_ptr<NLS>              _nonlinear_solver;
-  std::shared_ptr<TSP>              _time_stepping_method;
-  std::shared_ptr<OSM>              _one_step_method;
+  std::size_t _components;
+  ParameterTree _config;
+  GV _grid_view;
+  ModelState _state;
+  std::shared_ptr<FEM> _finite_element_map;
+  std::unique_ptr<CC> _constraints;
+  std::shared_ptr<LOP> _local_operator;
+  std::shared_ptr<TLOP> _temporal_local_operator;
+  std::shared_ptr<GOS> _spatial_grid_operator;
+  std::shared_ptr<GOT> _temporal_grid_operator;
+  std::shared_ptr<GOI> _grid_operator;
+  std::shared_ptr<LS> _linear_solver;
+  std::shared_ptr<NLS> _nonlinear_solver;
+  std::shared_ptr<TSP> _time_stepping_method;
+  std::shared_ptr<OSM> _one_step_method;
 
-  std::shared_ptr<W>                _writer;
-  std::shared_ptr<SW>               _sequential_writer;
+  std::shared_ptr<W> _writer;
+  std::shared_ptr<SW> _sequential_writer;
 
-  std::shared_ptr<X>&        _x;     //! reference to coefficients pointer
-  std::shared_ptr<GFS>&      _gfs;   //! reference to grid function space pointer
+  std::shared_ptr<X>& _x;     //! reference to coefficients pointer
+  std::shared_ptr<GFS>& _gfs; //! reference to grid function space pointer
 };
 
-} // Dune::Copasi namespace
+} // namespace Dune::Copasi
 
 #endif // DUNE_COPASI_MODEL_DIFFUSION_REACTION_HH

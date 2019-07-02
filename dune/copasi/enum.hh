@@ -8,6 +8,6 @@ enum AdaptivityPolicy
   None
 };
 
-} // Dune::Copasi namespace
+} // namespace Dune::Copasi
 
 #endif // DUNE_COPASI_ENUM_HH

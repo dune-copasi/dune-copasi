@@ -13,10 +13,9 @@ namespace Dune::Copasi {
  * @brief      Class for model base.
  * @todo       Add Dorie to the credits.
  */
-class ModelBase {
-
+class ModelBase
+{
 public:
-
   /**
    * @brief      Constructs the model
    *
@@ -48,14 +47,13 @@ public:
    */
   virtual void mark_grid();
 
-
   /**
    * @brief      Operations before adaptation of the grid.
    */
   virtual void pre_adapt_grid();
 
   /**
-   * @brief      Adapt the grid together it every dependency of the grid 
+   * @brief      Adapt the grid together it every dependency of the grid
    * @details   (e.g. solution vector and grid function spaces).
    */
   virtual void adapt_grid();
@@ -76,15 +74,15 @@ public:
   const double& begin_time() const;
 
   /**
-  * @brief      Method that provides the end time of the model.
-  *
-  * @return     End time of the model.
-  */
+   * @brief      Method that provides the end time of the model.
+   *
+   * @return     End time of the model.
+   */
   double& end_time();
 
   //! @copydoc ModelBase::end_time()
   const double& end_time() const;
-  
+
   /**
    * @brief      Method that provides the current time of the model.
    *
@@ -116,11 +114,11 @@ public:
   virtual void run();
 
 protected:
-  Logging::Logger  _logger;
+  Logging::Logger _logger;
 
 private:
   AdaptivityPolicy _adapt_policy;
-  double           _begin_time, _end_time, _current_time;
+  double _begin_time, _end_time, _current_time;
 };
 
 } // namespace Dune::Copasi

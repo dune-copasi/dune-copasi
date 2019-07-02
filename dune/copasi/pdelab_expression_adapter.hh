@@ -15,16 +15,19 @@
 namespace Dune::Copasi {
 
 template<typename GV, typename RF>
-class ExpressionToGridFunctionAdapter 
-  : public PDELab::GridFunctionBase<PDELab::GridFunctionTraits<GV,RF,-1,DynamicVector<RF>>,
-                                    ExpressionToGridFunctionAdapter<GV,RF> >
+class ExpressionToGridFunctionAdapter
+  : public PDELab::GridFunctionBase<
+      PDELab::GridFunctionTraits<GV, RF, -1, DynamicVector<RF>>,
+      ExpressionToGridFunctionAdapter<GV, RF>>
 {
 public:
-  using Traits = PDELab::GridFunctionTraits<GV,RF,-1,DynamicVector<RF>>;
+  using Traits = PDELab::GridFunctionTraits<GV, RF, -1, DynamicVector<RF>>;
 
   //! construct from grid view
-  ExpressionToGridFunctionAdapter (const GV& grid_view, const ParameterTree& config, const ParameterTree& extra_config = {}) 
-    : _logger(Logging::Logging::componentLogger(config,"default"))
+  ExpressionToGridFunctionAdapter(const GV& grid_view,
+                                  const ParameterTree& config,
+                                  const ParameterTree& extra_config = {})
+    : _logger(Logging::Logging::componentLogger(config, "default"))
     , _gv(grid_view)
     , _size(config.getValueKeys().size())
     , _extra_var(extra_config.getValueKeys().size())
@@ -36,12 +39,11 @@ public:
 
     const auto& keys = config.getValueKeys();
 
-    for (int i = 0; i < keys.size(); ++i)
-    {
+    for (int i = 0; i < keys.size(); ++i) {
       _logger.trace("setting up variable: {}"_fmt, keys[i]);
 
       _logger.trace("initialize parser with constant variables"_fmt);
-      _parser[i].DefineConst("pi",StandardMathematicalConstants<double>::pi());
+      _parser[i].DefineConst("pi", StandardMathematicalConstants<double>::pi());
       _parser[i].DefineConst("dim", dim);
 
       _parser[i].DefineVar("x", &_pos_global[0]);
@@ -50,12 +52,10 @@ public:
         _parser[i].DefineVar("z", &_pos_global[2]);
 
       const auto& extra_keys = extra_config.getValueKeys();
-      for (int j = 0; j < extra_keys.size(); ++j)
-      {
+      for (int j = 0; j < extra_keys.size(); ++j) {
         _logger.trace("define extra variable: {}"_fmt, extra_keys[j]);
         _parser[i].DefineVar(extra_keys[j], &_extra_var[j]);
       }
-
 
       // set up parser expression
       try {
@@ -78,12 +78,12 @@ public:
   }
 
   //! get a reference to the grid view
-  inline const GV& getGridView () const {return _gv;}
+  inline const GV& getGridView() const { return _gv; }
 
   //! evaluate extended function on element
-  inline void evaluate (const typename Traits::ElementType& e,
-                        const typename Traits::DomainType& x,
-                        typename Traits::RangeType& y) const
+  inline void evaluate(const typename Traits::ElementType& e,
+                       const typename Traits::DomainType& x,
+                       typename Traits::RangeType& y) const
   {
     y.resize(_size);
     // update position storage
@@ -93,13 +93,13 @@ public:
     try {
       for (int i = 0; i < _size; ++i)
         y[i] = _parser[i].Eval();
-    }
-    catch (mu::Parser::exception_type& e) {
+    } catch (mu::Parser::exception_type& e) {
       handle_parser_error(e);
     }
   }
 
-  void bind(const typename Traits::ElementType& e, const DynamicVector<RF>& extra_var)
+  void bind(const typename Traits::ElementType& e,
+            const DynamicVector<RF>& extra_var)
   {
     _extra_var = extra_var;
   }
@@ -110,18 +110,18 @@ private:
    *  \param e Exception thrown by the parser
    *  \throw IOError (always throws)
    */
-  void handle_parser_error (const mu::Parser::exception_type& e) const
+  void handle_parser_error(const mu::Parser::exception_type& e) const
   {
     _logger.error("Evaluating analytic initial condition failed:"_fmt);
-    _logger.error("  Parsed expression:   {}"_fmt,e.GetExpr());
-    _logger.error("  Token:               {}"_fmt,e.GetToken());
-    _logger.error("  Error position:      {}"_fmt,e.GetPos());
-    _logger.error("  Error code:          {}"_fmt,int(e.GetCode()));
-    _logger.error("  Error message:       {}"_fmt,e.GetMsg());
+    _logger.error("  Parsed expression:   {}"_fmt, e.GetExpr());
+    _logger.error("  Token:               {}"_fmt, e.GetToken());
+    _logger.error("  Error position:      {}"_fmt, e.GetPos());
+    _logger.error("  Error code:          {}"_fmt, int(e.GetCode()));
+    _logger.error("  Error message:       {}"_fmt, e.GetMsg());
     DUNE_THROW(IOError, "Error evaluating analytic initial condition");
   }
 
-  Logging::Logger  _logger;
+  Logging::Logger _logger;
 
   GV _gv;
   const std::size_t _size;
