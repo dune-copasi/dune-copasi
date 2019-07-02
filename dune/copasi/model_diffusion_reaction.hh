@@ -5,7 +5,6 @@
 #include <dune/copasi/model_base.hh>
 #include <dune/copasi/model_state.hh>
 #include <dune/copasi/local_operator.hh>
-#include <dune/copasi/local_operator_2.hh>
 #include <dune/copasi/grid_function_writer.hh>
 #include <dune/copasi/dynamic_local_finite_element_map.hh>
 
@@ -32,7 +31,6 @@ namespace Dune::Copasi {
  * @tparam     components  Number of components
  * @tparam     Param       Parameterization class
  */
-template<int components, class Param>
 class ModelDiffusionReaction : public ModelBase {
 
   //! World dimension
@@ -51,8 +49,10 @@ class ModelDiffusionReaction : public ModelBase {
   using RF = double;
 
 
-  //! Finite element map
+  //! Finite element
   using FE = Dune::QkLocalFiniteElement<DF,RF,dim,1>;
+
+  //! Finite element map
   using FEM = DynamicPowerLocalFiniteElementMap<PDELab::QkLocalFiniteElementMap<GV,DF,RF,1>>;
 
   //! Constraints builder
@@ -80,17 +80,16 @@ class ModelDiffusionReaction : public ModelBase {
   using CC = typename GFS::template ConstraintsContainer<RF>::Type;
 
   //! Local operator
-  using LOPx = exp::LocalOperatorDiffusionReaction<GV,FE>;
-  using LOP = LocalOperatorDiffusionReaction<Param,FEM,4>;
+  using LOP = LocalOperatorDiffusionReaction<GV,FE>;
 
   //! Temporal local operator 
-  using TLOP = TemporalLocalOperatorDiffusionReaction<FEM,components>;
+  using TLOP = TemporalLocalOperatorDiffusionReaction<GV,FE>;
 
   //! Matrix backend
   using MBE = Dune::PDELab::ISTL::BCRSMatrixBackend<>;
 
   //! Spatial grid operator
-  using GOS = Dune::PDELab::GridOperator<GFS,GFS,LOPx,MBE,RF,RF,RF,CC,CC>;
+  using GOS = Dune::PDELab::GridOperator<GFS,GFS,LOP,MBE,RF,RF,RF,CC,CC>;
 
   //! Temporal grid operator
   using GOT = Dune::PDELab::GridOperator<GFS,GFS,TLOP,MBE,RF,RF,RF,CC,CC>;
@@ -127,8 +126,6 @@ public:
   //! Constant model state structure
   using ConstModelState = Dune::Copasi::ModelState<const Grid,const GFS,const X>;
 
-  //! Model parameterization
-  using Parameterization = Param;
 
   /**
    * @brief      Constructs the model
@@ -201,13 +198,13 @@ protected:
   using   ModelBase::_logger;
 
 private:
+  std::size_t                       _components;
   ParameterTree                     _config;
   GV                                _grid_view;
   ModelState                        _state;
   std::shared_ptr<FEM>              _finite_element_map;
   std::unique_ptr<CC>               _constraints;
-  std::shared_ptr<Parameterization> _parameterization;
-  std::shared_ptr<LOPx>              _local_operator;
+  std::shared_ptr<LOP>              _local_operator;
   std::shared_ptr<TLOP>             _temporal_local_operator;
   std::shared_ptr<GOS>              _spatial_grid_operator;
   std::shared_ptr<GOT>              _temporal_grid_operator;

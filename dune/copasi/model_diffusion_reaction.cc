@@ -12,17 +12,16 @@
 
 namespace Dune::Copasi {
   
-template<int components, class Param>
-ModelDiffusionReaction<components,Param>::ModelDiffusionReaction(
+ModelDiffusionReaction::ModelDiffusionReaction(
   std::shared_ptr<Grid> grid,
   const Dune::ParameterTree& config
 ) : ModelBase(config)
+  , _components(config.sub("reaction").getValueKeys().size())
   , _config(config)
   , _grid_view(grid->leafGridView()) // TODO: change this to a more appropriated view
   , _x(_state.coefficients)
   , _gfs(_state.grid_function_space)
 {
-  _parameterization = std::make_shared<Param>();
   _state.grid = grid;
   operator_setup();
 
@@ -59,14 +58,12 @@ ModelDiffusionReaction<components,Param>::ModelDiffusionReaction(
   _logger.debug("ModelDiffusionReaction constructed"_fmt);
 }
 
-template<int components, class Param>
-ModelDiffusionReaction<components,Param>::~ModelDiffusionReaction()
+ModelDiffusionReaction::~ModelDiffusionReaction()
 {
   _logger.debug("ModelDiffusionReaction destroyed"_fmt); 
 }
 
-template<int components, class Param>
-void ModelDiffusionReaction<components,Param>::step()
+void ModelDiffusionReaction::step()
 {
   double dt = 0.001;
 
@@ -88,27 +85,25 @@ void ModelDiffusionReaction<components,Param>::step()
   _sequential_writer->vtkWriter()->clear();
 }
 
-template<int components, class Param>
-void ModelDiffusionReaction<components,Param>::suggest_timestep(double dt)
+void ModelDiffusionReaction::suggest_timestep(double dt)
 {
   DUNE_THROW(NotImplemented,"");
 }
 
-template<int components, class Param>
 template<class T>
-void ModelDiffusionReaction<components,Param>::set_state(const T& input_state)
+void ModelDiffusionReaction::set_state(const T& input_state)
 {
   if constexpr (std::is_arithmetic<T>::value)
   {
     _logger.trace("convert state to a vector of components"_fmt);
-    Dune::FieldVector<RF,components> component_state( RF{input_state} );
+    DynamicVector<RF> component_state( _components, input_state );
 
     _logger.trace("set state from constant vector of components"_fmt);
     set_state(component_state);
   }
   else if constexpr (std::is_same_v<T,Dune::DynamicVector<RF>>)
   {
-    assert(input_state.size() == components);
+    assert(input_state.size() == _components);
 
     _logger.trace("convert vector of components to a callable"_fmt);
     auto callable = [&](const auto& x)
@@ -138,13 +133,12 @@ void ModelDiffusionReaction<components,Param>::set_state(const T& input_state)
   } 
 }
 
-template<int components, class Param>
-void ModelDiffusionReaction<components,Param>::operator_setup()
+void ModelDiffusionReaction::operator_setup()
 {
   PDELab::QkLocalFiniteElementMap<GV,DF,RF,1> base_fem(_grid_view);
 
   _logger.trace("create a finite element map"_fmt);
-  _finite_element_map = std::make_shared<FEM>(base_fem,components);
+  _finite_element_map = std::make_shared<FEM>(base_fem,_components);
 
   _logger.trace("create (one) leaf grid function space"_fmt);
   LGFS leaf_grid_function_space(_grid_view,_finite_element_map);
@@ -162,7 +156,7 @@ void ModelDiffusionReaction<components,Param>::operator_setup()
     _x = std::make_shared<X>(*_gfs,*(_x->storage()));
 
   auto b0lambda = [&](const auto& i, const auto& x)
-    {return _parameterization->b(i,x);};
+    {return false;};
   auto b0 = Dune::PDELab::makeBoundaryConditionFromCallable(_grid_view,b0lambda);
   // using B = Dune::PDELab::PowerConstraintsParameters<decltype(b0),components>;
   // B b(b0);
@@ -176,14 +170,11 @@ void ModelDiffusionReaction<components,Param>::operator_setup()
 
   _logger.trace("create spatial local operator"_fmt);
   auto entity_it = _grid_view.template begin<0>();
-  // auto finite_element = _finite_element_map->find(*entity_it);
-  // _local_operator = std::make_shared<LOP>(*_parameterization,finite_element);
   FE finite_element;
-  _local_operator = std::make_shared<LOPx>(_grid_view,_config,finite_element);
+  _local_operator = std::make_shared<LOP>(_grid_view,_config,finite_element);
 
   _logger.trace("create temporal local operator"_fmt);
-  // _temporal_local_operator = std::make_shared<TLOP>(finite_element);
-  _temporal_local_operator = std::make_shared<TLOP>(_finite_element_map->find(*entity_it));
+  _temporal_local_operator = std::make_shared<TLOP>(_grid_view,_config,finite_element);
 
   MBE mbe((int)pow(3,dim));
 
