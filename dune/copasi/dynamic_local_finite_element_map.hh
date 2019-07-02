@@ -14,8 +14,6 @@ class DynamicPowerLocalFiniteElementMap
         typename FiniteElementMap::Traits::FiniteElement>>,
       DynamicPowerLocalFiniteElementMap<FiniteElementMap>>
 {
-  // static_assert(std::is_base_of_v<FiniteElementMap,PDELab::SimpleLocalFiniteElementMap<FiniteElementMap>>);
-
   using BaseFiniteElement = typename FiniteElementMap::Traits::FiniteElement;
   using FiniteElement = DynamicPowerLocalFiniteElement<BaseFiniteElement>;
 
@@ -26,17 +24,28 @@ public:
                                     std::size_t power_size)
     : _power_size(power_size)
     , _fem(fem)
-    , _fe(_fem.find(0), power_size)
   {}
 
   DynamicPowerLocalFiniteElementMap(std::size_t power_size)
     : DynamicPowerLocalFiniteElementMap(FiniteElementMap{}, power_size)
   {}
 
+  ~DynamicPowerLocalFiniteElementMap()
+  {
+    delete _fe_cache;
+  }
+
   template<class EntityType>
   const FiniteElement& find(const EntityType& e) const
   {
-    return _fe;
+    auto base_fe = _fem.find(e);
+    // cache the last used base finite element
+    if (_base_fe_cache != &base_fe)
+    {
+      if (_fe_cache) delete _fe_cache;
+      _fe_cache = new FiniteElement(base_fe,_power_size);
+    }
+    return *_fe_cache;
   }
 
   bool fixedSize() const { return _fem.fixedSize(); }
@@ -53,7 +62,8 @@ public:
 private:
   std::size_t _power_size;
   FiniteElementMap _fem;
-  FiniteElement _fe;
+  mutable BaseFiniteElement* _base_fe_cache;
+  mutable FiniteElement* _fe_cache;
 };
 
 } // namespace Dune::Copasi
