@@ -46,7 +46,7 @@ ModelDiffusionReaction::ModelDiffusionReaction(
   _sequential_writer = std::make_shared<SW>(_writer, filename, filename, "");
   // add data field for all components of the space to the VTK writer
   for (int i = 0; i < names.size(); ++i) {
-    auto dgf = std::make_shared<const DGF>(_gfs, _x, i * 4, (i + 1) * 4);
+    auto dgf = std::make_shared<const DGF>(_gfs, _x, i * _dof_per_component, (i + 1) * _dof_per_component);
     _sequential_writer->addVertexData(dgf, names[i]);
   }
   _sequential_writer->write(current_time(), Dune::VTK::appendedraw);
@@ -75,7 +75,7 @@ ModelDiffusionReaction::step()
 
   auto names = _config.sub("initial").getValueKeys();
   for (int i = 0; i < names.size(); ++i) {
-    auto dgf = std::make_shared<const DGF>(_gfs, _x, i * 4, (i + 1) * 4);
+    auto dgf = std::make_shared<const DGF>(_gfs, _x, i * _dof_per_component, (i + 1) * _dof_per_component);
     _sequential_writer->addVertexData(dgf, names[i]);
   }
   _sequential_writer->write(current_time(), Dune::VTK::appendedraw);
@@ -123,7 +123,8 @@ ModelDiffusionReaction::set_state(const T& input_state)
 void
 ModelDiffusionReaction::operator_setup()
 {
-  PDELab::QkLocalFiniteElementMap<GV, DF, RF, 1> base_fem(_grid_view);
+  BaseFEM base_fem(_grid_view);
+  _dof_per_component = base_fem.maxLocalSize(); // todo: fix this
 
   _logger.trace("create a finite element map"_fmt);
   _finite_element_map = std::make_shared<FEM>(base_fem, _components);
@@ -146,8 +147,6 @@ ModelDiffusionReaction::operator_setup()
   auto b0lambda = [&](const auto& i, const auto& x) { return false; };
   auto b0 =
     Dune::PDELab::makeBoundaryConditionFromCallable(_grid_view, b0lambda);
-  // using B =
-  // Dune::PDELab::PowerConstraintsParameters<decltype(b0),components>; B b(b0);
 
   _logger.trace("assemble constraints"_fmt);
   _constraints = std::make_unique<CC>();

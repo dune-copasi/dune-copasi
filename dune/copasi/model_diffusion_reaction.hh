@@ -10,7 +10,8 @@
 
 #include <dune/pdelab/backend/istl.hh>
 #include <dune/pdelab/constraints/conforming.hh>
-#include <dune/pdelab/finiteelementmap/qkfem.hh>
+#include <dune/pdelab/finiteelementmap/pkfem.hh>
+// #include <dune/pdelab/finiteelementmap/qkfem.hh>
 #include <dune/pdelab/function/discretegridviewfunction.hh>
 #include <dune/pdelab/gridfunctionspace/gridfunctionspace.hh>
 #include <dune/pdelab/gridoperator/gridoperator.hh>
@@ -36,6 +37,9 @@ class ModelDiffusionReaction : public ModelBase
   //! World dimension
   static constexpr int dim = 2;
 
+  //! Polynomial order
+  static constexpr int order = 1;
+
   //! Grid type
   using Grid = Dune::UGGrid<dim>;
 
@@ -49,11 +53,13 @@ class ModelDiffusionReaction : public ModelBase
   using RF = double;
 
   //! Finite element
-  using FE = Dune::QkLocalFiniteElement<DF, RF, dim, 1>;
+  using FE = Dune::PkLocalFiniteElement<DF, RF, dim, order>;
+
+  //! Base finite element map
+  using BaseFEM = PDELab::PkLocalFiniteElementMap<GV, DF, RF, order>;
 
   //! Finite element map
-  using FEM = DynamicPowerLocalFiniteElementMap<
-    PDELab::QkLocalFiniteElementMap<GV, DF, RF, 1>>;
+  using FEM = DynamicPowerLocalFiniteElementMap<BaseFEM>;
 
   //! Constraints builder
   using CON = PDELab::ConformingDirichletConstraints;
@@ -71,8 +77,7 @@ class ModelDiffusionReaction : public ModelBase
   using OrderingTag = PDELab::LexicographicOrderingTag;
 
   //! Grid function space
-  using GFS =
-    LGFS; // PDELab::PowerGridFunctionSpace<LGFS,components,VBE,OrderingTag>;
+  using GFS = LGFS;
 
   //! Coefficient vector
   using X = PDELab::Backend::Vector<GFS, RF>;
@@ -200,6 +205,7 @@ protected:
 
 private:
   std::size_t _components;
+  std::size_t _dof_per_component;
   ParameterTree _config;
   GV _grid_view;
   ModelState _state;
