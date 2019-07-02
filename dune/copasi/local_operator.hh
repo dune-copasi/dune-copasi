@@ -287,8 +287,9 @@ public:
     for (int k=0; k<components; k++) // loop over components
       {
         for (int i=0; i<n; i++)
-          for (int j=0; j<n; j++)
+          for (int j=0; j<n; j++){
             mat.accumulate(lfsu,k*n+i,lfsu,k*n+j,D[k]*A[i][j]);
+          }
       }
   }
 

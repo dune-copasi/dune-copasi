@@ -1,5 +1,6 @@
 #include <dune/copasi/model_diffusion_reaction.hh>
 #include <dune/copasi/pdelab_callable_adapter.hh>
+#include <dune/copasi/pdelab_expression_adapter.hh>
 
 #include <dune/pdelab/gridfunctionspace/vtk.hh>
 
@@ -7,7 +8,7 @@
 
 #include <string>
 
-#include<sys/stat.h>
+#include <sys/stat.h>
 
 namespace Dune::Copasi {
   
@@ -16,6 +17,7 @@ ModelDiffusionReaction<components,Param>::ModelDiffusionReaction(
   std::shared_ptr<Grid> grid,
   const Dune::ParameterTree& config
 ) : ModelBase(config)
+  , _config(config)
   , _grid_view(grid->leafGridView()) // TODO: change this to a more appropriated view
   , _x(_state.coefficients)
   , _gfs(_state.grid_function_space)
@@ -24,12 +26,8 @@ ModelDiffusionReaction<components,Param>::ModelDiffusionReaction(
   _state.grid = grid;
   operator_setup();
 
-  auto initial = [&](const auto& e, const auto& x) {
-    Dune::DynamicVector<RF> rv(components);
-    auto g = _parameterization->g(e,x);
-    for (int i=0; i<components; i++) rv[i] = g[i];
-    return rv;
-  };
+  auto& intial_config = _config.sub("initial");
+  ExpressionToGridFunctionAdapter<GV,RF> initial(_grid_view,intial_config);
 
   set_state(initial);
 
@@ -46,13 +44,13 @@ ModelDiffusionReaction<components,Param>::ModelDiffusionReaction(
                   << filename << std::endl;
     }
 
+  auto names = intial_config.getValueKeys();
   _sequential_writer = std::make_shared<SW>(_writer,filename,filename,"");
   // add data field for all components of the space to the VTK writer
-  for (int i = 0; i < components; ++i)
+  for (int i = 0; i < names.size(); ++i)
   {
-    std::string name = _gfs->name() + "_" + std::to_string(i);
     auto dgf = std::make_shared<const DGF>(_gfs,_x,i*4,(i+1)*4);
-    _sequential_writer->addVertexData(dgf,name);
+    _sequential_writer->addVertexData(dgf,names[i]);
   }
   _sequential_writer->write(current_time(),Dune::VTK::appendedraw);
   _sequential_writer->vtkWriter()->clear();
@@ -80,11 +78,11 @@ void ModelDiffusionReaction<components,Param>::step()
   _x = x_new;
   current_time()+=dt;
 
-  for (int i = 0; i < components; ++i)
+  auto names = _config.sub("initial").getValueKeys();
+  for (int i = 0; i < names.size(); ++i)
   {
-    std::string name = _gfs->name() + "_" + std::to_string(i);
     auto dgf = std::make_shared<const DGF>(_gfs,_x,i*4,(i+1)*4);
-    _sequential_writer->addVertexData(dgf,name);
+    _sequential_writer->addVertexData(dgf,names[i]);
   }
   _sequential_writer->write(current_time(),Dune::VTK::appendedraw);
   _sequential_writer->vtkWriter()->clear();
@@ -134,14 +132,6 @@ void ModelDiffusionReaction<components,Param>::set_state(const T& input_state)
     _logger.trace("interpolate grid function to model coefficients"_fmt);
     Dune::PDELab::interpolate(input_state,*_gfs,*_x);
   }
-  // else if constexpr (std::is_same<T,ModelState>::value)
-  // {
-  //   DUNE_THROW(NotImplemented,"...");
-  // }
-  // else if constexpr (std::is_same<T,ConstModelState>::value)
-  // {
-  //   DUNE_THROW(NotImplemented,"...");
-  // }
   else
   {
     static_assert(Dune::AlwaysFalse<T>::value,"Not known input model state");
@@ -186,11 +176,14 @@ void ModelDiffusionReaction<components,Param>::operator_setup()
 
   _logger.trace("create spatial local operator"_fmt);
   auto entity_it = _grid_view.template begin<0>();
-  auto finite_element = _finite_element_map->find(*entity_it);
-  _local_operator = std::make_shared<LOP>(*_parameterization,finite_element);
+  // auto finite_element = _finite_element_map->find(*entity_it);
+  // _local_operator = std::make_shared<LOP>(*_parameterization,finite_element);
+  FE finite_element;
+  _local_operator = std::make_shared<LOPx>(_grid_view,_config,finite_element);
 
   _logger.trace("create temporal local operator"_fmt);
-  _temporal_local_operator = std::make_shared<TLOP>(finite_element);
+  // _temporal_local_operator = std::make_shared<TLOP>(finite_element);
+  _temporal_local_operator = std::make_shared<TLOP>(_finite_element_map->find(*entity_it));
 
   MBE mbe((int)pow(3,dim));
 

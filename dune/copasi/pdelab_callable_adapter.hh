@@ -1,43 +1,48 @@
-#ifndef DUNE_COPASI_PDELAB_ADAPTERS_HH
-#define DUNE_COPASI_PDELAB_ADAPTERS_HH
+#ifndef DUNE_COPASI_GRID_FUNCTION_CALLABLE_ADAPTER_HH
+#define DUNE_COPASI_GRID_FUNCTION_CALLABLE_ADAPTER_HH
 
-#include <utility>
-#include <type_traits>
+#include <dune/copasi/concepts.hh>
 
 #include <dune/pdelab/common/function.hh>
 
 #include <dune/common/fvector.hh>
 #include <dune/common/typetraits.hh>
 
+#include <utility>
+#include <type_traits>
+
 namespace Dune::Copasi {
 
-template<class GV, class R>
-class GridFunctionTraitsFromRange;
 
-template<class GV, class RF, int dim>
-class GridFunctionTraitsFromRange<GV,Dune::FieldVector<RF,dim>> 
-  : public PDELab::GridFunctionTraits<GV,RF,dim,Dune::FieldVector<RF,dim>> {};
+namespace { 
+  // namespaces unique to this translation unit/file
+  
+  template<class GV, class R>
+  class GridFunctionTraitsFromRange;
 
-template<class GV, class RF>
-class GridFunctionTraitsFromRange<GV,Dune::DynamicVector<RF>> 
-  : public PDELab::GridFunctionTraits<GV,RF,-1,Dune::DynamicVector<RF>> {};
+  template<class GV, class RF, int dim>
+  class GridFunctionTraitsFromRange<GV,Dune::FieldVector<RF,dim>> 
+    : public PDELab::GridFunctionTraits<GV,RF,dim,Dune::FieldVector<RF,dim>> {};
 
+  template<class GV, class RF>
+  class GridFunctionTraitsFromRange<GV,Dune::DynamicVector<RF>> 
+    : public PDELab::GridFunctionTraits<GV,RF,-1,Dune::DynamicVector<RF>> {};
+
+}
 
 template<typename GV, typename R, typename F>
 class GlobalCallableToGridFunctionAdapter
   : public Dune::PDELab::GridFunctionBase<GridFunctionTraitsFromRange<GV,R>,
                                           GlobalCallableToGridFunctionAdapter<GV,R,F> >
 {
-  GV gv;
-  F f;
 public:
   typedef GridFunctionTraitsFromRange<GV,R> Traits;
 
   //! construct from grid view
-  GlobalCallableToGridFunctionAdapter (const GV& gv_, const F& f_) : gv(gv_), f(f_) {}
+  GlobalCallableToGridFunctionAdapter (const GV& grid_view, const F& callable) : _gv(grid_view), _f(callable) {}
 
   //! get a reference to the grid view
-  inline const GV& getGridView () const {return gv;}
+  inline const GV& getGridView () const {return _gv;}
 
   //! evaluate extended function on element
   inline void evaluate (const typename Traits::ElementType& e,
@@ -45,8 +50,11 @@ public:
                         typename Traits::RangeType& y) const
   {
     typename Traits::DomainType xg = e.geometry().global(xl);
-    y = f(xg);
+    y = _f(xg);
   }
+private:
+  GV _gv;
+  F _f;
 };
 
 
@@ -56,24 +64,25 @@ class LocalCallableToGridFunctionAdapter
   : public Dune::PDELab::GridFunctionBase<GridFunctionTraitsFromRange<GV,R>,
                                           LocalCallableToGridFunctionAdapter<GV,R,F> >
 {
-  GV gv;
-  F f;
 public:
   typedef GridFunctionTraitsFromRange<GV,R> Traits;
 
   //! construct from grid view
-  LocalCallableToGridFunctionAdapter (const GV& gv_, const F& f_) : gv(gv_), f(f_) {}
+  LocalCallableToGridFunctionAdapter (const GV& grid_view, const F& callable) : _gv(grid_view), _f(callable) {}
 
   //! get a reference to the grid view
-  inline const GV& getGridView () const {return gv;}
+  inline const GV& getGridView () const {return _gv;}
 
   //! evaluate extended function on element
   inline void evaluate (const typename Traits::ElementType& e,
                         const typename Traits::DomainType& xl,
                         typename Traits::RangeType& y) const
   {
-    y = f(e,xl);
+    y = _f(e,xl);
   }
+private:
+  GV _gv;
+  F _f;
 };
 
 
@@ -81,9 +90,7 @@ public:
 template <typename GV, typename F>
 auto makeGridFunctionFromCallable (const GV& gv, const F& f)
   -> typename std::enable_if<
-    AlwaysTrue <
-      decltype(f(std::declval<typename GV::template Codim<0>::Entity::Geometry::GlobalCoordinate>()))
-      >::value,
+    Concept::isPDELabGlobalCallable<GV,F>(),
     GlobalCallableToGridFunctionAdapter<
       GV,
         decltype(f(std::declval<typename GV::template Codim<0>::Entity::Geometry::GlobalCoordinate>())),
@@ -102,12 +109,7 @@ auto makeGridFunctionFromCallable (const GV& gv, const F& f)
 template <typename GV, typename F>
 auto makeGridFunctionFromCallable (const GV& gv, const F& f)
   -> typename std::enable_if<
-    AlwaysTrue <
-      decltype(f(
-                 std::declval<typename GV::template Codim<0>::Entity>(),
-                 std::declval<typename GV::template Codim<0>::Entity::Geometry::LocalCoordinate>()
-                 ))
-      >::value,
+    Concept::isPDELabLocalCallable<GV,F>(),
     LocalCallableToGridFunctionAdapter<
       GV,
       decltype(f(
@@ -129,4 +131,4 @@ auto makeGridFunctionFromCallable (const GV& gv, const F& f)
 
 } // namespace Dune::Copasi
 
-#endif // DUNE_COPASI_PDELAB_ADAPTERS_HH
+#endif // DUNE_COPASI_GRID_FUNCTION_CALLABLE_ADAPTER_HH

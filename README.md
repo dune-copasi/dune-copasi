@@ -7,6 +7,7 @@
 
 | Software | Version/Branch | Comments |
 | ---------| -------------- | -------- |
+| muParser | - |
 | CMake | 3.10.2 |
 | C++ compiler | [C++17](https://en.wikipedia.org/wiki/List_of_compilers#C++_compilers) | 
 | [dune-common](https://gitlab.dune-project.org/core/dune-common) | releases/2.6

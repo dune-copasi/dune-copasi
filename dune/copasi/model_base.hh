@@ -123,6 +123,6 @@ private:
   double           _begin_time, _end_time, _current_time;
 };
 
-} // Dune::Copasi namespace
+} // namespace Dune::Copasi
 
 #endif // DUNE_COPASI_MODEL_BASE_HH
