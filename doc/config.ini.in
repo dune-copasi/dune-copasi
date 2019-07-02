@@ -6,8 +6,7 @@ level = trace
 indent = 2
 
 [grid]
-extensions = 2 2
-initial_level = 3
+file = ${CMAKE_CURRENT_SOURCE_DIR}/grid.msh
 
 [model]
 log.backend = model
@@ -15,23 +14,16 @@ begin_time = 0.
 end_time = 10.
 
 [model.initial]
-# functions valid to muparser
-# order matters!!!!
 u_0 = (x>1.5) ? 1. : (x<1.1 ? 0. : (x-1.1)^2/0.4^2)
 u_1 = (x>1.0) ? 0. : (x<0.6 ? 1. : (x-1.)^2/0.4^2)
 u_2 = 0.
 
-# name variable without (, ), .
 [model.reaction]
-# functions valid to sympy
-# order matters!!!!
 u_0 = +u_0*u_1
 u_1 = +u_0*u_1
 u_2 = -u_0*u_1
 
 [model.jacobian]
-# functions valid to muparser 
-# order matters!!!!
 d(u_0)/d(u_0) = u_1
 d(u_0)/d(u_1) = u_0
 d(u_0)/d(u_2) = 0
@@ -43,8 +35,6 @@ d(u_2)/d(u_1) = -u_0
 d(u_2)/d(u_2) = 0
 
 [model.diffusion]
-# functions valid to sympy
-# order matters!!!!
 u_0 = 1.
 u_1 = 1.
 u_2 = 1.

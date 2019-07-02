@@ -2,10 +2,12 @@
 # include "config.h"
 #endif
 
+#include <dune/copasi/gmsh_reader.hh>
 #include <dune/copasi/model_diffusion_reaction.hh>
 #include <dune/copasi/model_diffusion_reaction.cc>
 
-#include <dune/grid/utility/structuredgridfactory.hh>
+#include <dune/grid/multidomaingrid.hh>
+#include <dune/grid/io/file/gmshreader.hh>
 
 #include <dune/logging/logging.hh>
 
@@ -45,7 +47,9 @@ int main(int argc, char** argv)
 
     // create a grid
     constexpr int dim = 2;
-    using Grid = Dune::UGGrid<dim>;
+    using HostGrid = Dune::UGGrid<dim>;
+    using MDGTraits = Dune::mdgrid::DynamicSubDomainCountTraits<dim,1>;
+    using Grid = Dune::mdgrid::MultiDomainGrid<HostGrid,MDGTraits>;
     using Domain = Dune::FieldVector<double,2>;
 
     auto& grid_config = config.sub("grid");
@@ -54,15 +58,15 @@ int main(int argc, char** argv)
     auto elements = grid_config.get<std::array<uint, 2>>("cells",{10,10});
 
     log.info("Creating a rectangular grid in {}D"_fmt, dim);
-    log.debug("Grid extensions: {}"_fmt, upper_right);
-    log.debug("Grid cells: {}"_fmt, elements);
 
-    Domain origin(.0);
+    auto grid_file = grid_config.get<std::string>("file");
 
-    std::shared_ptr<Grid> grid;
-    grid = Dune::StructuredGridFactory<Grid>::createCubeGrid(origin,
-                                                             upper_right,
-                                                             elements);
+    auto grids = Dune::Copasi::GmshReader<Grid>::read(grid_file);
+
+    Dune::GridFactory<HostGrid> factory;
+    Dune::GmshReader<HostGrid>::read(factory,grid_file, false);
+
+    std::shared_ptr<HostGrid> grid(factory.createGrid());
 
     log.debug("Applying global refinement of level: {}"_fmt, level);
     grid->globalRefine(level);
