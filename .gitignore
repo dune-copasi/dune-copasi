@@ -1,0 +1,6 @@
+# python package
+__pycache__/
+*.py[cod]
+*$py.class
+
+python/dune/copasi/cli/cmake_variables.py

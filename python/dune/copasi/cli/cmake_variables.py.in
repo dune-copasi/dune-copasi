@@ -1,0 +1,3 @@
+# environmental variables when package is setup with CMake
+
+DUNE_COPASI_EXEC = "@CMAKE_BINARY_DIR@/src/dune-copasi-exec"
