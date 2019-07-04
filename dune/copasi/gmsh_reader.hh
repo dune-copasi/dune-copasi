@@ -3,6 +3,7 @@
 
 #include <dune/grid/multidomaingrid.hh>
 #include <dune/grid/io/file/gmshreader.hh>
+#include <dune/grid/common/gridinfo.hh>
 
 #include <type_traits>
 #include <algorithm>
@@ -36,20 +37,22 @@ public:
     if constexpr (std::is_default_constructible_v<MDGTraits>)
       traits = new MDGTraits;
     else
-      traits = new MDGTraits(max_subdomains+1);
+      traits = new MDGTraits(max_subdomains);
 
     Grid* grid = new Grid(*host_grid,*traits);
     delete traits;
 
     grid->startSubDomainMarking();
     uint i = 0;
-    for (const auto& cell : i++, elements(grid->leafGridView())) 
-      grid->addToSubDomain(index_map[i],cell);
+    for (const auto& cell : elements(grid->leafGridView()))
+      grid->addToSubDomain(index_map[i]-1,cell), i++;
     
     grid->preUpdateSubDomains();
     grid->updateSubDomains();
     grid->postUpdateSubDomains();
 
+    for (int i = 0; i < max_subdomains; ++i)
+      gridinfo(grid->subDomain(i));
 
     return std::make_pair(grid,host_grid);
   }

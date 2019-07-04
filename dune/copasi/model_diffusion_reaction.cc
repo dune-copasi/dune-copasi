@@ -12,14 +12,15 @@
 
 namespace Dune::Copasi {
 
-ModelDiffusionReaction::ModelDiffusionReaction(
+template<class Grid, class GridView>
+ModelDiffusionReaction<Grid,GridView>::ModelDiffusionReaction(
   std::shared_ptr<Grid> grid,
+  GV grid_view,
   const Dune::ParameterTree& config)
   : ModelBase(config)
   , _components(config.sub("reaction").getValueKeys().size())
   , _config(config)
-  , _grid_view(grid->leafGridView()) // TODO: change this to a more
-  // appropriated view
+  , _grid_view(grid_view)
   , _x(_state.coefficients)
   , _gfs(_state.grid_function_space)
 {
@@ -32,7 +33,7 @@ ModelDiffusionReaction::ModelDiffusionReaction(
   set_state(initial);
 
   _writer = std::make_shared<W>(_grid_view, Dune::VTK::conforming);
-  std::string filename = config.get("output.filename", "output");
+  std::string filename = config.get("name", "output");
   struct stat st;
 
   if (stat(filename.c_str(), &st) != 0) {
@@ -55,13 +56,15 @@ ModelDiffusionReaction::ModelDiffusionReaction(
   _logger.debug("ModelDiffusionReaction constructed"_fmt);
 }
 
-ModelDiffusionReaction::~ModelDiffusionReaction()
+template<class Grid, class GridView>
+ModelDiffusionReaction<Grid,GridView>::~ModelDiffusionReaction()
 {
   _logger.debug("ModelDiffusionReaction destroyed"_fmt);
 }
 
+template<class Grid, class GridView>
 void
-ModelDiffusionReaction::step()
+ModelDiffusionReaction<Grid,GridView>::step()
 {
   double dt = 0.001;
 
@@ -82,15 +85,17 @@ ModelDiffusionReaction::step()
   _sequential_writer->vtkWriter()->clear();
 }
 
+template<class Grid, class GridView>
 void
-ModelDiffusionReaction::suggest_timestep(double dt)
+ModelDiffusionReaction<Grid,GridView>::suggest_timestep(double dt)
 {
   DUNE_THROW(NotImplemented, "");
 }
 
+template<class Grid, class GridView>
 template<class T>
 void
-ModelDiffusionReaction::set_state(const T& input_state)
+ModelDiffusionReaction<Grid,GridView>::set_state(const T& input_state)
 {
   if constexpr (std::is_arithmetic<T>::value) {
     _logger.trace("convert state to a vector of components"_fmt);
@@ -120,8 +125,9 @@ ModelDiffusionReaction::set_state(const T& input_state)
   }
 }
 
+template<class Grid, class GridView>
 void
-ModelDiffusionReaction::operator_setup()
+ModelDiffusionReaction<Grid,GridView>::operator_setup()
 {
   BaseFEM base_fem(_grid_view);
   _dof_per_component = base_fem.maxLocalSize(); // todo: fix this

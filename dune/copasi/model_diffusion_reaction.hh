@@ -32,6 +32,7 @@ namespace Dune::Copasi {
  * @tparam     components  Number of components
  * @tparam     Param       Parameterization class
  */
+template<class Grid, class GridView>
 class ModelDiffusionReaction : public ModelBase
 {
   //! World dimension
@@ -40,11 +41,8 @@ class ModelDiffusionReaction : public ModelBase
   //! Polynomial order
   static constexpr int order = 1;
 
-  //! Grid type
-  using Grid = Dune::UGGrid<dim>;
-
   //! Grid view
-  using GV = typename Grid::LeafGridView;
+  using GV = GridView;
 
   //! Domain field
   using DF = typename Grid::ctype;
@@ -141,6 +139,7 @@ public:
    * @param[in]  config  The configuration file
    */
   ModelDiffusionReaction(std::shared_ptr<Grid> grid,
+                         GV grid_view,
                          const Dune::ParameterTree& config);
 
   /**

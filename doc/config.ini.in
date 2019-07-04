@@ -8,33 +8,74 @@ indent = 2
 [grid]
 file = ${CMAKE_CURRENT_SOURCE_DIR}/grid.msh
 
-[model]
-log.backend = model
-begin_time = 0.
-end_time = 10.
+[compartements]
+# name a compartment and assign index of physical surfaces in gmsh file
+environment = 0
+cell = 1
+nucleoid = 2
 
-[model.initial]
+######################## Model for environment #################################
+[environment]
+log.backend = model
+name = environment
+begin_time = 0.
+end_time = 0.01
+
+[environment.initial]
 u_0 = (x>1.5) ? 1. : (x<1.1 ? 0. : (x-1.1)^2/0.4^2)
 u_1 = (x>1.0) ? 0. : (x<0.6 ? 1. : (x-1.)^2/0.4^2)
 u_2 = 0.
 
-[model.reaction]
+[environment.reaction]
 u_0 = +u_0*u_1
 u_1 = +u_0*u_1
 u_2 = -u_0*u_1
 
-[model.jacobian]
-d(u_0)/d(u_0) = u_1
-d(u_0)/d(u_1) = u_0
-d(u_0)/d(u_2) = 0
-d(u_1)/d(u_0) = u_1
-d(u_1)/d(u_1) = u_0
-d(u_1)/d(u_2) = 0
-d(u_2)/d(u_0) = -u_1
-d(u_2)/d(u_1) = -u_0
-d(u_2)/d(u_2) = 0
+[environment.diffusion]
+u_0 = 1.
+u_1 = 1.
+u_2 = 1.
 
-[model.diffusion]
+########################### Model for cell #####################################
+[cell]
+log.backend = model
+name = cell
+begin_time = 0.
+end_time = 0.01
+
+[cell.initial]
+u_0 = (x>1.5) ? 1. : (x<1.1 ? 0. : (x-1.1)^2/0.4^2)
+u_1 = (x>1.0) ? 0. : (x<0.6 ? 1. : (x-1.)^2/0.4^2)
+u_2 = 0.
+
+[cell.reaction]
+u_0 = +u_0*u_1
+u_1 = +u_0*u_1
+u_2 = -u_0*u_1
+
+[cell.diffusion]
+u_0 = 1.
+u_1 = 1.
+u_2 = 1.
+
+########################### Model for nucleoid #################################
+[nucleoid]
+log.backend = model
+name = nucleoid
+begin_time = 0.
+end_time = 0.01
+
+[nucleoid.initial]
+u_0 = (x>1.5) ? 1. : (x<1.1 ? 0. : (x-1.1)^2/0.4^2)
+u_1 = (x>1.0) ? 0. : (x<0.6 ? 1. : (x-1.)^2/0.4^2)
+u_2 = 0.
+
+[nucleoid.reaction]
+u_0 = +u_0*u_1
+u_1 = +u_0*u_1
+u_2 = -u_0*u_1
+
+[nucleoid.diffusion]
 u_0 = 1.
 u_1 = 1.
 u_2 = 1.

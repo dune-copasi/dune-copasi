@@ -85,12 +85,12 @@ public:
                                            3)) // TODO: make order variable
     , _diffusion_gf(grid_view, config.sub("diffusion"))
     , _reaction_gf(grid_view, config.sub("reaction"), config.sub("reaction"))
-    , _jacobian_gf(grid_view, config.sub("jacobian"), config.sub("reaction"))
+    , _jacobian_gf(grid_view, config.sub("reaction.jacobian"), config.sub("reaction"))
     , _logger(Logging::Logging::componentLogger(config, "default"))
   {
     assert(_components == config.sub("diffusion").getValueKeys().size());
     assert(std::pow(_components, 2) ==
-           config.sub("jacobian").getValueKeys().size());
+           config.sub("reaction.jacobian").getValueKeys().size());
 
     _logger.trace("cache finite element evaluations on reference element"_fmt);
     std::vector<Range> phi(_basis_size);
@@ -350,8 +350,6 @@ class TemporalLocalOperatorDiffusionReaction
 
   //! basis functions at quadrature points
   std::vector<std::vector<Range>> _phihat;
-  //! basis function gradients at quadrature points
-  std::vector<std::vector<Jacobian>> _gradhat;
 
   Logging::Logger _logger;
 
@@ -373,28 +371,21 @@ public:
     , _logger(Logging::Logging::componentLogger(config, "default"))
   {
     assert(_components == config.sub("diffusion").getValueKeys().size());
-    assert(std::pow(_components, 2) ==
-           config.sub("jacobian").getValueKeys().size());
 
     _logger.trace("cache finite element evaluations on reference element"_fmt);
     std::vector<Range> phi(_basis_size);
-    std::vector<Jacobian> jac(_basis_size);
     for (const auto& point : _rule) {
       const auto& position = point.position();
       _logger.trace("position: {}"_fmt, position);
 
       const auto& local_basis = finite_element.localBasis();
       local_basis.evaluateFunction(position, phi);
-      local_basis.evaluateJacobian(position, jac);
 
-      for (int i = 0; i < _basis_size; ++i) {
+      for (int i = 0; i < _basis_size; ++i)
         _logger.trace(" value[{}]: {}"_fmt, i, phi[i]);
-        _logger.trace(" jacobian[{}]: {}"_fmt, i, jac[i]);
-      }
+      
       _phihat.push_back(phi);
       phi.clear();
-      _gradhat.push_back(jac);
-      jac.clear();
     }
 
     _logger.debug("LocalOperatorDiffusionReaction constructed"_fmt);

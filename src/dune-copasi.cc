@@ -61,21 +61,30 @@ int main(int argc, char** argv)
 
     auto grid_file = grid_config.get<std::string>("file");
 
-    auto grids = Dune::Copasi::GmshReader<Grid>::read(grid_file);
+    auto [grid_ptr,host_grid_ptr] = Dune::Copasi::GmshReader<Grid>::read(grid_file);
 
-    Dune::GridFactory<HostGrid> factory;
-    Dune::GmshReader<HostGrid>::read(factory,grid_file, false);
-
-    std::shared_ptr<HostGrid> grid(factory.createGrid());
+    std::shared_ptr<HostGrid> host_grid(host_grid_ptr);
+    std::shared_ptr<Grid> grid(grid_ptr);
 
     log.debug("Applying global refinement of level: {}"_fmt, level);
-    grid->globalRefine(level);
+    host_grid->globalRefine(level);
 
-    // instantiate a model
-    auto& model_config = config.sub("model");
-    Dune::Copasi::ModelDiffusionReaction model(grid,model_config);
+    const auto& compartements = config.sub("compartements").getValueKeys();
+    for (int i = 0; i < compartements.size(); ++i)
+    {
+      const std::string compartement = compartements[i];
+      auto& model_config = config.sub(compartement);
 
-    model.run();
+      int sub_domain_id = config.sub("compartements").template get<int>(compartement);
+      auto sub_grid_view = grid->subDomain(sub_domain_id).leafGridView();
+      using GridView = decltype(sub_grid_view);
+
+      // instantiate a model
+      Dune::Copasi::ModelDiffusionReaction<Grid,GridView> model(grid,sub_grid_view,model_config);
+
+      model.run();
+    }
+
 
     return 0;
   }
