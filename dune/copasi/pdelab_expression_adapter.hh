@@ -56,7 +56,6 @@ public:
       if constexpr (dim == 3)
         _parser[i].DefineVar("z", &_pos_global[2]);
 
-      
       for (int j = 0; j < extra_keys.size(); ++j) {
         _logger.trace("define extra variable: {}"_fmt, extra_keys[j]);
         _parser[i].DefineVar(extra_keys[j], &_extra_var[j]);
@@ -86,7 +85,8 @@ public:
   inline const GV& getGridView() const { return _gv; }
 
   //! evaluate extended function on element
-  inline void evaluate(const typename Traits::ElementType& e,
+  template<class E>
+  inline void evaluate(const E& e,
                        const typename Traits::DomainType& x,
                        typename Traits::RangeType& y) const
   {
@@ -103,8 +103,8 @@ public:
     }
   }
 
-  void bind(const typename Traits::ElementType& e,
-            const DynamicVector<RF>& extra_var)
+  template<class E>
+  void bind(const E& e, const DynamicVector<RF>& extra_var)
   {
     _extra_var = extra_var;
   }

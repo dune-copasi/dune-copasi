@@ -8,74 +8,75 @@ indent = 2
 [grid]
 file = ${CMAKE_CURRENT_SOURCE_DIR}/grid.msh
 
-[compartements]
+[model]
+begin_time = 0.
+end_time = 0.01
+
+[model.compartements]
 # name a compartment and assign index of physical surfaces in gmsh file
 environment = 0
-cell = 1
-nucleoid = 2
+cell        = 1
+nucleoid    = 2
 
-######################## Model for environment #################################
-[environment]
-log.backend = model
+############################ Model for environment #############################
+[model.environment]
 name = environment
 begin_time = 0.
 end_time = 0.01
 
-[environment.initial]
+[model.environment.initial]
 u_0 = (x>1.5) ? 1. : (x<1.1 ? 0. : (x-1.1)^2/0.4^2)
-u_1 = (x>1.0) ? 0. : (x<0.6 ? 1. : (x-1.)^2/0.4^2)
+u_1 = (x>1.0) ? 0. : (x<0.6 ? 1. : (x-1.0)^2/0.4^2)
 u_2 = 0.
 
-[environment.reaction]
+[model.environment.reaction]
 u_0 = +u_0*u_1
 u_1 = +u_0*u_1
 u_2 = -u_0*u_1
 
-[environment.diffusion]
+[model.environment.diffusion]
 u_0 = 1.
 u_1 = 1.
 u_2 = 1.
 
 ########################### Model for cell #####################################
-[cell]
-log.backend = model
+[model.cell]
 name = cell
 begin_time = 0.
 end_time = 0.01
 
-[cell.initial]
+[model.cell.initial]
 u_0 = (x>1.5) ? 1. : (x<1.1 ? 0. : (x-1.1)^2/0.4^2)
-u_1 = (x>1.0) ? 0. : (x<0.6 ? 1. : (x-1.)^2/0.4^2)
+u_1 = (x>1.0) ? 0. : (x<0.6 ? 1. : (x-1.0)^2/0.4^2)
 u_2 = 0.
 
-[cell.reaction]
+[model.cell.reaction]
 u_0 = +u_0*u_1
 u_1 = +u_0*u_1
 u_2 = -u_0*u_1
 
-[cell.diffusion]
+[model.cell.diffusion]
 u_0 = 1.
 u_1 = 1.
 u_2 = 1.
 
 ########################### Model for nucleoid #################################
-[nucleoid]
-log.backend = model
+[model.nucleoid]
 name = nucleoid
 begin_time = 0.
 end_time = 0.01
 
-[nucleoid.initial]
+[model.nucleoid.initial]
 u_0 = (x>1.5) ? 1. : (x<1.1 ? 0. : (x-1.1)^2/0.4^2)
-u_1 = (x>1.0) ? 0. : (x<0.6 ? 1. : (x-1.)^2/0.4^2)
+u_1 = (x>1.0) ? 0. : (x<0.6 ? 1. : (x-1.0)^2/0.4^2)
 u_2 = 0.
 
-[nucleoid.reaction]
+[model.nucleoid.reaction]
 u_0 = +u_0*u_1
 u_1 = +u_0*u_1
 u_2 = -u_0*u_1
 
-[nucleoid.diffusion]
+[model.nucleoid.diffusion]
 u_0 = 1.
 u_1 = 1.
 u_2 = 1.

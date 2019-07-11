@@ -79,13 +79,15 @@ public:
   LocalOperatorDiffusionReaction(GridView& grid_view,
                                  const ParameterTree& config,
                                  const LocalFiniteElement& finite_element)
-    : _basis_size(finite_element.size())
+    : _basis_size(finite_element.localBasis().size())
     , _components(config.sub("reaction").getValueKeys().size())
     , _rule(QuadratureRules<RF, dim>::rule(finite_element.type(),
                                            3)) // TODO: make order variable
     , _diffusion_gf(grid_view, config.sub("diffusion"))
     , _reaction_gf(grid_view, config.sub("reaction"), config.sub("reaction"))
-    , _jacobian_gf(grid_view, config.sub("reaction.jacobian"), config.sub("reaction"))
+    , _jacobian_gf(grid_view,
+                   config.sub("reaction.jacobian"),
+                   config.sub("reaction"))
     , _logger(Logging::Logging::componentLogger(config, "default"))
   {
     assert(_components == config.sub("diffusion").getValueKeys().size());
@@ -383,7 +385,7 @@ public:
 
       for (int i = 0; i < _basis_size; ++i)
         _logger.trace(" value[{}]: {}"_fmt, i, phi[i]);
-      
+
       _phihat.push_back(phi);
       phi.clear();
     }
@@ -439,9 +441,9 @@ public:
                        Mat& mat) const
   {
     // assume we receive a power local finite element!
-    auto x_coeff = [&](const std::size_t& component, const std::size_t& dof) {
-      return x(lfsu, component * _basis_size + dof);
-    };
+    // auto x_coeff = [&](const std::size_t& component, const std::size_t& dof) {
+    //   return x(lfsu, component * _basis_size + dof);
+    // };
 
     auto accumulate = [&](const std::size_t& component_i,
                           const std::size_t& dof_i,

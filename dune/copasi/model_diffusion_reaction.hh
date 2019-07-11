@@ -11,7 +11,6 @@
 #include <dune/pdelab/backend/istl.hh>
 #include <dune/pdelab/constraints/conforming.hh>
 #include <dune/pdelab/finiteelementmap/pkfem.hh>
-// #include <dune/pdelab/finiteelementmap/qkfem.hh>
 #include <dune/pdelab/function/discretegridviewfunction.hh>
 #include <dune/pdelab/gridfunctionspace/gridfunctionspace.hh>
 #include <dune/pdelab/gridoperator/gridoperator.hh>
@@ -35,6 +34,9 @@ namespace Dune::Copasi {
 template<class Grid, class GridView>
 class ModelDiffusionReaction : public ModelBase
 {
+  // Check templates
+  static_assert(Concept::isGrid<Grid>(), "Provided and invalid grid");
+
   //! World dimension
   static constexpr int dim = 2;
 
@@ -57,7 +59,7 @@ class ModelDiffusionReaction : public ModelBase
   using BaseFEM = PDELab::PkLocalFiniteElementMap<GV, DF, RF, order>;
 
   //! Finite element map
-  using FEM = DynamicPowerLocalFiniteElementMap<BaseFEM>;
+  using FEM = DynamicPowerLocalFiniteElementMap<BaseFEM, GridView>;
 
   //! Constraints builder
   using CON = PDELab::ConformingDirichletConstraints;
@@ -121,16 +123,15 @@ class ModelDiffusionReaction : public ModelBase
   //! Sequential writer
   using SW = Dune::Copasi::GridFunctionVTKSequenceWriter<GV>;
 
-  //! Discrete grid function
-  using DGF = Dune::Copasi::DiscreteGridFunction<GFS, X>;
+  // //! Discrete grid function
+  // using DGF = Dune::Copasi::DiscreteGridFunction<GFS, X>;
 
 public:
   //! Model state structure
-  using ModelState = Dune::Copasi::ModelState<Grid, GFS, X>;
+  using State = Dune::Copasi::ModelState<Grid, GFS, X>;
 
   //! Constant model state structure
-  using ConstModelState =
-    Dune::Copasi::ModelState<const Grid, const GFS, const X>;
+  using ConstState = Dune::Copasi::ModelState<const Grid, const GFS, const X>;
 
   /**
    * @brief      Constructs the model
@@ -166,14 +167,15 @@ public:
    *
    * @return     Model state
    */
-  ModelState state();
+  State state() { return _state; };
 
   /**
    * @brief      Get the model state
    *
    * @return     Model state
    */
-  ConstModelState state() const;
+  ConstState state() const { return _state; };
+  ;
 
   /**
    * @brief      Sets the state of the model
@@ -207,7 +209,7 @@ private:
   std::size_t _dof_per_component;
   ParameterTree _config;
   GV _grid_view;
-  ModelState _state;
+  State _state;
   std::shared_ptr<FEM> _finite_element_map;
   std::unique_ptr<CC> _constraints;
   std::shared_ptr<LOP> _local_operator;

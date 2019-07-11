@@ -49,7 +49,7 @@ public:
     : _interpolation(interpolation)
     , _power_size(power_size)
   {
-    assert(_power_size > 0);
+    assert(_power_size >= 0);
   }
 
   DynamicPowerLocalInterpolation(const Interpolation& interpolation)
@@ -74,6 +74,11 @@ public:
     using RF = double;
     constexpr int range_dim = 1;
 
+    out.clear();
+
+    if (_power_size == 0)
+      return;
+
     // assume F is a dune-common function
     if constexpr (std::is_same_v<typename F::RangeType,
                                  FieldVector<RF, range_dim>>) {
@@ -96,7 +101,7 @@ public:
         _interpolation.interpolate(wrapper, base_out);
 
         // copy result into the output container
-        out.reserve(base_out.size() * _power_size);
+        out.resize(base_out.size() * _power_size);
         std::copy(base_out.begin(), base_out.end(), out_it);
 
         // move output iterator to the next component to interpolate
@@ -108,8 +113,8 @@ public:
   }
 
 private:
-  std::size_t _power_size;
   Interpolation _interpolation;
+  std::size_t _power_size;
 };
 
 } // namespace Dune::Copasi

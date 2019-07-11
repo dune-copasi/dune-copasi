@@ -1,3 +1,6 @@
+#ifndef DUNE_COPASI_MODEL_DIFFUSION_REACTION_CC
+#define DUNE_COPASI_MODEL_DIFFUSION_REACTION_CC
+
 #include <dune/copasi/model_diffusion_reaction.hh>
 #include <dune/copasi/pdelab_callable_adapter.hh>
 #include <dune/copasi/pdelab_expression_adapter.hh>
@@ -13,7 +16,7 @@
 namespace Dune::Copasi {
 
 template<class Grid, class GridView>
-ModelDiffusionReaction<Grid,GridView>::ModelDiffusionReaction(
+ModelDiffusionReaction<Grid, GridView>::ModelDiffusionReaction(
   std::shared_ptr<Grid> grid,
   GV grid_view,
   const Dune::ParameterTree& config)
@@ -46,9 +49,21 @@ ModelDiffusionReaction<Grid,GridView>::ModelDiffusionReaction(
   auto names = intial_config.getValueKeys();
   _sequential_writer = std::make_shared<SW>(_writer, filename, filename, "");
   // add data field for all components of the space to the VTK writer
+
+  using Data =
+    PDELab::vtk::DGFTreeCommonData<GFS, X, PDELab::vtk::DefaultPredicate>;
+  std::shared_ptr<Data> data = std::make_shared<Data>(*_gfs, *_x);
   for (int i = 0; i < names.size(); ++i) {
-    auto dgf = std::make_shared<const DGF>(_gfs, _x, i * _dof_per_component, (i + 1) * _dof_per_component);
-    _sequential_writer->addVertexData(dgf, names[i]);
+    using LFS = PDELab::LocalFunctionSpace<GFS>;
+    LFS lfs(*_gfs);
+    using DGF = Dune::Copasi::DiscreteGridFunction<Data>;
+
+    auto dgf = std::make_shared<const DGF>(lfs,
+                                           data,
+                                           _grid_view,
+                                           i * _dof_per_component,
+                                           (i + 1) * _dof_per_component);
+    // _sequential_writer->addVertexData(dgf, names[i]);
   }
   _sequential_writer->write(current_time(), Dune::VTK::appendedraw);
   _sequential_writer->vtkWriter()->clear();
@@ -57,14 +72,14 @@ ModelDiffusionReaction<Grid,GridView>::ModelDiffusionReaction(
 }
 
 template<class Grid, class GridView>
-ModelDiffusionReaction<Grid,GridView>::~ModelDiffusionReaction()
+ModelDiffusionReaction<Grid, GridView>::~ModelDiffusionReaction()
 {
   _logger.debug("ModelDiffusionReaction destroyed"_fmt);
 }
 
 template<class Grid, class GridView>
 void
-ModelDiffusionReaction<Grid,GridView>::step()
+ModelDiffusionReaction<Grid, GridView>::step()
 {
   double dt = 0.001;
 
@@ -78,8 +93,12 @@ ModelDiffusionReaction<Grid,GridView>::step()
 
   auto names = _config.sub("initial").getValueKeys();
   for (int i = 0; i < names.size(); ++i) {
-    auto dgf = std::make_shared<const DGF>(_gfs, _x, i * _dof_per_component, (i + 1) * _dof_per_component);
-    _sequential_writer->addVertexData(dgf, names[i]);
+    // auto dgf = std::make_shared<const DGF>(_gfs,
+    //                                        _x,
+    //                                        _grid_view,
+    //                                        i * _dof_per_component,
+    //                                        (i + 1) * _dof_per_component);
+    // _sequential_writer->addVertexData(dgf, names[i]);
   }
   _sequential_writer->write(current_time(), Dune::VTK::appendedraw);
   _sequential_writer->vtkWriter()->clear();
@@ -87,7 +106,7 @@ ModelDiffusionReaction<Grid,GridView>::step()
 
 template<class Grid, class GridView>
 void
-ModelDiffusionReaction<Grid,GridView>::suggest_timestep(double dt)
+ModelDiffusionReaction<Grid, GridView>::suggest_timestep(double dt)
 {
   DUNE_THROW(NotImplemented, "");
 }
@@ -95,7 +114,7 @@ ModelDiffusionReaction<Grid,GridView>::suggest_timestep(double dt)
 template<class Grid, class GridView>
 template<class T>
 void
-ModelDiffusionReaction<Grid,GridView>::set_state(const T& input_state)
+ModelDiffusionReaction<Grid, GridView>::set_state(const T& input_state)
 {
   if constexpr (std::is_arithmetic<T>::value) {
     _logger.trace("convert state to a vector of components"_fmt);
@@ -127,13 +146,14 @@ ModelDiffusionReaction<Grid,GridView>::set_state(const T& input_state)
 
 template<class Grid, class GridView>
 void
-ModelDiffusionReaction<Grid,GridView>::operator_setup()
+ModelDiffusionReaction<Grid, GridView>::operator_setup()
 {
   BaseFEM base_fem(_grid_view);
-  _dof_per_component = base_fem.maxLocalSize(); // todo: fix this
+  _dof_per_component = base_fem.maxLocalSize();
 
   _logger.trace("create a finite element map"_fmt);
-  _finite_element_map = std::make_shared<FEM>(base_fem, _components);
+  _finite_element_map =
+    std::make_shared<FEM>(_grid_view, base_fem, _components);
 
   _logger.trace("create (one) leaf grid function space"_fmt);
   LGFS leaf_grid_function_space(_grid_view, _finite_element_map);
@@ -145,11 +165,12 @@ ModelDiffusionReaction<Grid,GridView>::operator_setup()
   _gfs->name("u");
 
   _logger.trace("create vector backend"_fmt);
-  if (not _x)
-    _x = std::make_shared<X>(*_gfs);
-  else
+  if (_x)
     _x = std::make_shared<X>(*_gfs, *(_x->storage()));
+  else if (_components > 0)
+    _x = std::make_shared<X>(*_gfs);
 
+  _logger.trace("read constraints"_fmt);
   auto b0lambda = [&](const auto& i, const auto& x) { return false; };
   auto b0 =
     Dune::PDELab::makeBoundaryConditionFromCallable(_grid_view, b0lambda);
@@ -205,3 +226,5 @@ ModelDiffusionReaction<Grid,GridView>::operator_setup()
 }
 
 } // namespace Dune::Copasi
+
+#endif // DUNE_COPASI_MODEL_DIFFUSION_REACTION_CC

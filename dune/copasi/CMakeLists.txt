@@ -1,8 +1,7 @@
-dune_add_library(dune_copasi
+add_library(dune_copasi STATIC
   model_base.cc)
 
-dune_target_link_libraries(dune_copasi ${DUNE_LIBS})
-target_link_libraries(dune_copasi muparser::muparser)
+target_link_libraries(dune_copasi PUBLIC ${DUNE_LIBS})
 
 #install headers
 install(FILES copasi.hh DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dune/copasi)

@@ -16,10 +16,11 @@ public:
   using Traits = typename Basis::Traits;
 
   DynamicPowerLocalBasis(const Basis& basis, std::size_t power_size)
-    : _basis(basis)
-    , _size(power_size * _basis.size())
+    : _power_size(power_size)
+    , _basis(basis)
+    
   {
-    assert(power_size > 0);
+    assert(_power_size >= 0);
   }
 
   DynamicPowerLocalBasis(const Basis& basis)
@@ -36,7 +37,7 @@ public:
     : DynamicPowerLocalBasis(1)
   {}
 
-  unsigned int size() const { return _size; }
+  unsigned int size() const { return this->_power_size * _basis.size(); }
 
   inline void evaluateFunction(
     const typename Traits::DomainType& in,
@@ -69,12 +70,13 @@ private:
   template<class F, class In, class Out>
   void populate_output(const F& f, const In& in, Out& out) const
   {
-    out.clear();
-    out.reserve(_size);
+    if (_power_size == 0)
+      return;
+
     f(in, out);
 
     assert(out.size() == _basis.size());
-    out.resize(_size);
+    out.resize(_power_size * _basis.size());
 
     auto it = out.begin();
     auto copy_begin = it;
@@ -90,8 +92,8 @@ private:
   }
 
 private:
+  std::size_t _power_size;
   Basis _basis;
-  std::size_t _size;
 };
 
 } // namespace Dune::Copasi

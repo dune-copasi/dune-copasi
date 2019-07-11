@@ -5,6 +5,7 @@
 #include <dune/copasi/gmsh_reader.hh>
 #include <dune/copasi/model_diffusion_reaction.hh>
 #include <dune/copasi/model_diffusion_reaction.cc>
+#include <dune/copasi/model_multidomain_diffusion_reaction.hh>
 
 #include <dune/grid/multidomaingrid.hh>
 #include <dune/grid/io/file/gmshreader.hh>
@@ -55,7 +56,7 @@ int main(int argc, char** argv)
     auto& grid_config = config.sub("grid");
     auto level = grid_config.get<int>("initial_level",0);
     auto upper_right = grid_config.get<Domain>("extensions",{1.,1.});
-    auto elements = grid_config.get<std::array<uint, 2>>("cells",{10,10});
+    auto elements = grid_config.get<std::array<unsigned int, 2>>("cells",{10,10});
 
     log.info("Creating a rectangular grid in {}D"_fmt, dim);
 
@@ -66,25 +67,12 @@ int main(int argc, char** argv)
     std::shared_ptr<HostGrid> host_grid(host_grid_ptr);
     std::shared_ptr<Grid> grid(grid_ptr);
 
-    log.debug("Applying global refinement of level: {}"_fmt, level);
-    host_grid->globalRefine(level);
+    // log.debug("Applying global refinement of level: {}"_fmt, level);
+    // host_grid->globalRefine(level);
 
-    const auto& compartements = config.sub("compartements").getValueKeys();
-    for (int i = 0; i < compartements.size(); ++i)
-    {
-      const std::string compartement = compartements[i];
-      auto& model_config = config.sub(compartement);
-
-      int sub_domain_id = config.sub("compartements").template get<int>(compartement);
-      auto sub_grid_view = grid->subDomain(sub_domain_id).leafGridView();
-      using GridView = decltype(sub_grid_view);
-
-      // instantiate a model
-      Dune::Copasi::ModelDiffusionReaction<Grid,GridView> model(grid,sub_grid_view,model_config);
-
-      model.run();
-    }
-
+    auto& model_config = config.sub("model");
+    Dune::Copasi::ModelMultiDomainDiffusionReaction<Grid> model(grid,model_config);
+    model.run();
 
     return 0;
   }

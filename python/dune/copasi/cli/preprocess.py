@@ -30,7 +30,7 @@ def inject_jacobian(section,config):
   return config
 
 def preprocess_compartement(compartement,config):
-  reaction_key = compartement+'.reaction'
+  reaction_key = 'model.'+compartement+'.reaction'
   config = inject_jacobian(reaction_key,config)
   return config
 
@@ -43,7 +43,7 @@ def preprocess_config(args):
   config.read(args['config'])
   
 
-  for compartement in config['compartements']:
+  for compartement in config['model.compartements']:
     preprocess_compartement(compartement, config)
   
   with open(args['new_config'], 'w') as configfile:
