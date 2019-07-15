@@ -6,8 +6,8 @@
 // #include <dune/pdelab/localoperator/defaultimp.hh>
 #include <dune/pdelab/localoperator/flags.hh>
 #include <dune/pdelab/localoperator/idefault.hh>
-#include <dune/pdelab/localoperator/pattern.hh>
 // #include <dune/pdelab/finiteelement/localbasiscache.hh>
+
 
 #include <dune/geometry/referenceelements.hh>
 #include <dune/geometry/type.hh>
@@ -20,8 +20,7 @@ namespace Dune::Copasi {
 
 template<class GridView, class LocalFiniteElement>
 class LocalOperatorDiffusionReaction
-  : public Dune::PDELab::FullVolumePattern
-  , public Dune::PDELab::LocalOperatorDefaultFlags
+  : public Dune::PDELab::LocalOperatorDefaultFlags
   , public Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>
 {
   //! local basis
@@ -69,6 +68,8 @@ class LocalOperatorDiffusionReaction
 
   Logging::Logger _logger;
 
+  std::set<std::pair<std::size_t, std::size_t>> _component_pattern;
+
 public:
   //! pattern assembly flags
   static constexpr bool doPatternVolume = true;
@@ -115,7 +116,58 @@ public:
       jac.clear();
     }
 
+    auto reaction_config = config.sub("reaction");
+    auto jacobian_config = config.sub("reaction.jacobian");
+
+    auto reaction_keys = reaction_config.getValueKeys();
+    auto jacobian_keys = jacobian_config.getValueKeys();
+
+    std::sort(reaction_keys.begin(), reaction_keys.end());
+    std::sort(jacobian_keys.begin(), jacobian_keys.end());
+
+    std::size_t count = 0;
+    for (std::size_t i = 0; i < _components; i++) {
+      for (std::size_t j = 0; j < _components; j++, count++) {
+        if (i == j) {
+          _component_pattern.insert(std::make_pair(i, j));
+          continue;
+        }
+        std::string jacobian =
+          jacobian_config.template get<std::string>(jacobian_keys[count]);
+
+        bool do_pattern = true;
+        do_pattern &= (jacobian != "0");
+        do_pattern &= (jacobian != "0.0");
+        do_pattern &= (jacobian != ".0");
+        do_pattern &= (jacobian != "0.");
+        if (do_pattern)
+          _component_pattern.insert(std::make_pair(i, j));
+      }
+    }
+
+    for (auto i : _component_pattern) {
+      _logger.trace("pattern <{},{}>"_fmt, i.first, i.second);
+    }
+
     _logger.debug("LocalOperatorDiffusionReaction constructed"_fmt);
+  }
+
+  // define sparsity pattern of operator representation
+  template<typename LFSU, typename LFSV, typename LocalPattern>
+  void pattern_volume(const LFSU& lfsu,
+                      const LFSV& lfsv,
+                      LocalPattern& pattern) const
+  {
+    auto do_link = [&](std::size_t dof_i, std::size_t dof_j) {
+      std::size_t comp_i = dof_i / _components;
+      std::size_t comp_j = dof_j / _components;
+      auto it = _component_pattern.find(std::make_pair(comp_i, comp_j));
+      return (it != _component_pattern.end());
+    };
+    for (size_t i = 0; i < lfsv.size(); ++i)
+      for (size_t j = 0; j < lfsu.size(); ++j)
+        if (do_link(i, j))
+          pattern.addLink(lfsv, i, lfsu, j);
   }
 
   template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
@@ -312,8 +364,7 @@ public:
 
 template<class GridView, class LocalFiniteElement>
 class TemporalLocalOperatorDiffusionReaction
-  : public Dune::PDELab::FullVolumePattern
-  , public Dune::PDELab::LocalOperatorDefaultFlags
+  : public Dune::PDELab::LocalOperatorDefaultFlags
   , public Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>
 {
   //! local basis
@@ -355,6 +406,8 @@ class TemporalLocalOperatorDiffusionReaction
 
   Logging::Logger _logger;
 
+  std::set<std::pair<std::size_t, std::size_t>> _component_pattern;
+
 public:
   //! pattern assembly flags
   static constexpr bool doPatternVolume = true;
@@ -390,7 +443,58 @@ public:
       phi.clear();
     }
 
-    _logger.debug("LocalOperatorDiffusionReaction constructed"_fmt);
+    auto reaction_config = config.sub("reaction");
+    auto jacobian_config = config.sub("reaction.jacobian");
+
+    auto reaction_keys = reaction_config.getValueKeys();
+    auto jacobian_keys = jacobian_config.getValueKeys();
+
+    std::sort(reaction_keys.begin(), reaction_keys.end());
+    std::sort(jacobian_keys.begin(), jacobian_keys.end());
+
+    std::size_t count = 0;
+    for (std::size_t i = 0; i < _components; i++) {
+      for (std::size_t j = 0; j < _components; j++, count++) {
+        if (i == j) {
+          _component_pattern.insert(std::make_pair(i, j));
+          continue;
+        }
+
+        bool do_pattern = true;
+        std::string jacobian =
+          jacobian_config.template get<std::string>(jacobian_keys[count]);
+        do_pattern &= (jacobian.find("0") != std::string::npos);
+        do_pattern &= (jacobian.find("0.0") != std::string::npos);
+        do_pattern &= (jacobian.find(".0") != std::string::npos);
+        do_pattern &= (jacobian.find("0.") != std::string::npos);
+        if (do_pattern)
+          _component_pattern.insert(std::make_pair(i, j));
+      }
+    }
+
+    for (auto i : _component_pattern) {
+      _logger.trace("pattern <{},{}>"_fmt, i.first, i.second);
+    }
+
+    _logger.debug("TemporalLocalOperatorDiffusionReaction constructed"_fmt);
+  }
+
+  // define sparsity pattern of operator representation
+  template<typename LFSU, typename LFSV, typename LocalPattern>
+  void pattern_volume(const LFSU& lfsu,
+                      const LFSV& lfsv,
+                      LocalPattern& pattern) const
+  {
+    auto do_link = [&](std::size_t dof_i, std::size_t dof_j) {
+      std::size_t comp_i = dof_i / _components;
+      std::size_t comp_j = dof_j / _components;
+      auto it = _component_pattern.find(std::make_pair(comp_i, comp_j));
+      return (it != _component_pattern.end());
+    };
+    for (size_t i = 0; i < lfsv.size(); ++i)
+      for (size_t j = 0; j < lfsu.size(); ++j)
+        if (do_link(i, j))
+          pattern.addLink(lfsv, i, lfsu, j);
   }
 
   template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
@@ -441,7 +545,8 @@ public:
                        Mat& mat) const
   {
     // assume we receive a power local finite element!
-    // auto x_coeff = [&](const std::size_t& component, const std::size_t& dof) {
+    // auto x_coeff = [&](const std::size_t& component, const std::size_t& dof)
+    // {
     //   return x(lfsu, component * _basis_size + dof);
     // };
 

@@ -18,7 +18,7 @@ public:
   DynamicPowerLocalBasis(const Basis& basis, std::size_t power_size)
     : _power_size(power_size)
     , _basis(basis)
-    
+
   {
     assert(_power_size >= 0);
   }
@@ -37,7 +37,7 @@ public:
     : DynamicPowerLocalBasis(1)
   {}
 
-  unsigned int size() const { return this->_power_size * _basis.size(); }
+  unsigned int size() const { return _power_size * _basis.size(); }
 
   inline void evaluateFunction(
     const typename Traits::DomainType& in,

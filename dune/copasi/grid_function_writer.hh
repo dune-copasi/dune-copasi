@@ -15,38 +15,31 @@
 
 namespace Dune::Copasi {
 
-
-template<typename Data, typename GV = typename Data::LFS::Traits::GridView,
-                                      typename RF = typename BasisInterfaceSwitch<
-                                       typename FiniteElementInterfaceSwitch<
-                                         typename Data::LFS::Traits::FiniteElement
-                                         >::Basis
-                                       >::RangeField, 
-                                        int dimRange = BasisInterfaceSwitch<
-                                         typename FiniteElementInterfaceSwitch<
-                                           typename Data::LFS::Traits::FiniteElement
-                                           >::Basis
-                                         >::dimRange,
-                                        typename Range = typename BasisInterfaceSwitch<
-                                           typename FiniteElementInterfaceSwitch<
-                                             typename Data::LFS::Traits::FiniteElement
-                                             >::Basis
-                                           >::Range
-                                      >
+template<typename Data,
+         typename GV = typename Data::LFS::Traits::GridView,
+         typename RF =
+           typename BasisInterfaceSwitch<typename FiniteElementInterfaceSwitch<
+             typename Data::LFS::Traits::FiniteElement>::Basis>::RangeField,
+         int dimRange =
+           BasisInterfaceSwitch<typename FiniteElementInterfaceSwitch<
+             typename Data::LFS::Traits::FiniteElement>::Basis>::dimRange,
+         typename Range =
+           typename BasisInterfaceSwitch<typename FiniteElementInterfaceSwitch<
+             typename Data::LFS::Traits::FiniteElement>::Basis>::Range>
 class DiscreteGridFunction
-  : public PDELab::GridFunctionBase<PDELab::GridFunctionTraits<GV,RF,dimRange,Range>,
-                                 DiscreteGridFunction<Data,GV,RF,dimRange,Range>
-                                 >
+  : public PDELab::GridFunctionBase<
+      PDELab::GridFunctionTraits<GV, RF, dimRange, Range>,
+      DiscreteGridFunction<Data, GV, RF, dimRange, Range>>
 {
   typedef PDELab::GridFunctionBase<
-    PDELab::GridFunctionTraits<GV,RF,dimRange,Range>,
-    DiscreteGridFunction<Data,GV,RF,dimRange,Range>
-    > BaseT;
+    PDELab::GridFunctionTraits<GV, RF, dimRange, Range>,
+    DiscreteGridFunction<Data, GV, RF, dimRange, Range>>
+    BaseT;
 
 public:
   typedef typename BaseT::Traits Traits;
 
-  DiscreteGridFunction (const shared_ptr<Data>& data,
+  DiscreteGridFunction(const shared_ptr<Data>& data,
                        GV grid_view,
                        std::size_t id_begin,
                        std::size_t id_end)
@@ -58,60 +51,47 @@ public:
   {}
 
   // Evaluate
-  void evaluate (const typename Traits::ElementType& e,
-                 const typename Traits::DomainType& x,
-                 typename Traits::RangeType& y) const
+  void evaluate(const typename Traits::ElementType& e,
+                const typename Traits::DomainType& x,
+                typename Traits::RangeType& y) const
   {
     y = 0;
 
     using LFS = decltype(_data->_lfs);
 
-    if constexpr (Concept::isSubDomainGrid<typename GV::Grid>())
-    {
+    if constexpr (Concept::isSubDomainGrid<typename GV::Grid>()) {
       _data->bind(_grid_view.grid().multiDomainGrid().multiDomainEntity(e));
 
-      
-      if constexpr (Concept::isTypeTree<LFS>())
-      {
+      if constexpr (Concept::isTypeTree<LFS>()) {
         int subdomain = _grid_view.grid().domain();
         auto lfs_child = _data->_lfs.child(subdomain);
-        typedef FiniteElementInterfaceSwitch<
-          typename decltype(lfs_child)::Traits::FiniteElement
-        > FESwitch;
+        typedef FiniteElementInterfaceSwitch<typename decltype(
+          lfs_child)::Traits::FiniteElement>
+          FESwitch;
 
-        FESwitch::basis(lfs_child.finiteElement()).evaluateFunction(x,_basis);
+        FESwitch::basis(lfs_child.finiteElement()).evaluateFunction(x, _basis);
         for (unsigned int i = _id_begin; i < _id_end; i++)
-          y.axpy(_data->_x_local(lfs_child,i),_basis[i]);
-      }
-      else
-      {
+          y.axpy(_data->_x_local(lfs_child, i), _basis[i]);
+      } else {
         static_assert(AlwaysTrue<GV>::value);
       }
-    }
-    else
-    {
+    } else {
       _data->bind(e);
 
-      typedef FiniteElementInterfaceSwitch<
-        typename LFS::Traits::FiniteElement
-        > FESwitch;
+      typedef FiniteElementInterfaceSwitch<typename LFS::Traits::FiniteElement>
+        FESwitch;
 
-      FESwitch::basis(_data->_lfs.finiteElement()).evaluateFunction(x,_basis);
+      FESwitch::basis(_data->_lfs.finiteElement()).evaluateFunction(x, _basis);
 
       for (unsigned int i = _id_begin; i < _id_end; i++)
-        y.axpy(_data->_x_local(_data->_lfs,i),_basis[i]);
+        y.axpy(_data->_x_local(_data->_lfs, i), _basis[i]);
     }
   }
 
   //! get a reference to the GridView
-  const typename Traits::GridViewType& gridView() const
-  {
-    return _grid_view;
-  }
-
+  const typename Traits::GridViewType& gridView() const { return _grid_view; }
 
 private:
-
   GV _grid_view;
   const shared_ptr<Data> _data;
   mutable std::vector<typename Traits::RangeType> _basis;
@@ -120,11 +100,14 @@ private:
 
 // template<typename Data,
 //          typename GV = typename GFS::Traits::GridViewType,
-//          typename RF = typename BasisInterfaceSwitch<typename FiniteElementInterfaceSwitch<
+//          typename RF = typename BasisInterfaceSwitch<typename
+//          FiniteElementInterfaceSwitch<
 //           typename GFS::Traits::FiniteElementType>::Basis>::RangeField,
-//          int dimRange = BasisInterfaceSwitch<typename FiniteElementInterfaceSwitch<
+//          int dimRange = BasisInterfaceSwitch<typename
+//          FiniteElementInterfaceSwitch<
 //           typename GFS::Traits::FiniteElementType>::Basis>::dimRange,
-//          typename Range = typename BasisInterfaceSwitch<typename FiniteElementInterfaceSwitch<
+//          typename Range = typename BasisInterfaceSwitch<typename
+//          FiniteElementInterfaceSwitch<
 //           typename GFS::Traits::FiniteElementType>::Basis>::Range>
 // class DiscreteGridFunction
 //   : public PDELab::GridFunctionBase<
@@ -191,7 +174,8 @@ private:
 //                        typename Traits::RangeType& y) const
 //   {
 //     typedef FiniteElementInterfaceSwitch<
-//       typename Dune::PDELab::LocalFunctionSpace<GFS>::Traits::FiniteElementType>
+//       typename
+//       Dune::PDELab::LocalFunctionSpace<GFS>::Traits::FiniteElementType>
 //       FESwitch;
 //     if constexpr (Concept::isSubDomainGrid<typename GV::Grid>())
 //       lfs.bind(_grid_view.grid().multiDomainGrid().multiDomainEntity(e));
@@ -301,10 +285,7 @@ public:
   // export constructors of vtk sequence writer
   using Dune::VTKSequenceWriter<GV>::VTKSequenceWriter;
 
-  ~GridFunctionVTKSequenceWriter()
-  {
-    this->clear();
-  }
+  ~GridFunctionVTKSequenceWriter() { this->clear(); }
   /**
    * @brief      Adds a vertex data.
    *

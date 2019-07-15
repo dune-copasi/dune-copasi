@@ -13,6 +13,8 @@
 
 #include <dune/pdelab/gridfunctionspace/powergridfunctionspace.hh>
 
+#include <dune/istl/io.hh>
+
 #include <dune/common/parametertree.hh>
 
 #include <array>
@@ -118,7 +120,8 @@ class ModelMultiDomainDiffusionReaction : public ModelBase
   using SW = Dune::Copasi::GridFunctionVTKSequenceWriter<SubDomainGridView>;
 
   //! Discrete grid function
-  // using DGF = Dune::Copasi::DiscreteGridFunction<typename GFS::template Child<0>::Type, X, SubDomainGridView, RF, -1, DynamicVector<RF>>;
+  // using DGF = Dune::Copasi::DiscreteGridFunction<typename GFS::template
+  // Child<0>::Type, X, SubDomainGridView, RF, -1, DynamicVector<RF>>;
 
   //! Model state structure
   using State = Dune::Copasi::ModelState<Grid, GFS, X>;
@@ -156,12 +159,25 @@ public:
     BaseFEM base_fem(_grid_view);
     _dof_per_component = base_fem.maxLocalSize();
 
+    const auto& compartements = _config.sub("compartements").getValueKeys();
+    _size = std::min(compartements.size(), max_subdomains);
+
     typename GFS::NodeStorage leaf_gfs;
+
     for (int i = 0; i < max_subdomains; ++i) {
+      int components = 0;
+      if (i < _size) {
+        const std::string compartement = compartements[i];
+        auto& model_config = _config.sub(compartement);
+        auto& intial_config = model_config.sub("initial");
+        auto names = intial_config.getValueKeys();
+        components = names.size();
+      }
+      std::cout << components <<std::endl;
       SubDomainGridView sub_grid_view = _grid->subDomain(i).leafGridView();
 
       auto finite_element_map =
-        std::make_shared<FEM>(sub_grid_view, base_fem, 3);
+        std::make_shared<FEM>(sub_grid_view, base_fem, components);
 
       leaf_gfs[i] = std::make_shared<LGFS>(_grid_view, finite_element_map);
     }
@@ -230,9 +246,7 @@ public:
 
     std::array<std::shared_ptr<GridFunction>, max_subdomains> functions;
 
-    const auto& compartements = _config.sub("compartements").getValueKeys();
-    _size = std::min(compartements.size(),max_subdomains);
-    for (int i = 0; i < max_subdomains; ++i) {
+    for (int i = 0; i < _size; ++i) {
       const std::string compartement = compartements[i];
       auto& model_config = _config.sub(compartement);
 
@@ -252,10 +266,12 @@ public:
     PowerGridFunction initial(functions);
     Dune::PDELab::interpolate(initial, *_gfs, *_x);
 
-    using Data = PDELab::vtk::DGFTreeCommonData<GFS,X,PDELab::vtk::DefaultPredicate>;
-    std::shared_ptr<Data> data = std::make_shared<Data>(*_gfs,*_x);
+    using Data =
+      PDELab::vtk::DGFTreeCommonData<GFS, X, PDELab::vtk::DefaultPredicate>;
+    std::shared_ptr<Data> data = std::make_shared<Data>(*_gfs, *_x);
 
     for (int i = 0; i < _size; ++i) {
+      std::cout << "GFS size: " << _gfs->child(i).size() << std::endl;
       const std::string compartement = compartements[i];
       auto& model_config = _config.sub(compartement);
 
@@ -264,7 +280,8 @@ public:
       SubDomainGridView sub_grid_view =
         _grid->subDomain(sub_domain_id).leafGridView();
 
-      std::shared_ptr<W> writer = std::make_shared<W>(sub_grid_view, Dune::VTK::conforming);
+      std::shared_ptr<W> writer =
+        std::make_shared<W>(sub_grid_view, Dune::VTK::conforming);
       std::string filename = model_config.get("name", compartement);
       struct stat st;
 
@@ -287,7 +304,11 @@ public:
       LFS lfs(*_gfs);
 
       for (int j = 0; j < names.size(); ++j) {
-        using DGF = Dune::Copasi::DiscreteGridFunction<Data,SubDomainGridView, RF,1,FieldVector<RF,1>>;
+        using DGF = Dune::Copasi::DiscreteGridFunction<Data,
+                                                       SubDomainGridView,
+                                                       RF,
+                                                       1,
+                                                       FieldVector<RF, 1>>;
         auto dgf = std::make_shared<const DGF>(data,
                                                sub_grid_view,
                                                j * _dof_per_component,
@@ -319,8 +340,9 @@ public:
     _x = x_new;
     current_time() += dt;
 
-    using Data = PDELab::vtk::DGFTreeCommonData<GFS,X,PDELab::vtk::DefaultPredicate>;
-    std::shared_ptr<Data> data = std::make_shared<Data>(*_gfs,*_x);
+    using Data =
+      PDELab::vtk::DGFTreeCommonData<GFS, X, PDELab::vtk::DefaultPredicate>;
+    std::shared_ptr<Data> data = std::make_shared<Data>(*_gfs, *_x);
 
     const auto& compartements = _config.sub("compartements").getValueKeys();
     for (int i = 0; i < _size; ++i) {
@@ -338,7 +360,11 @@ public:
       LFS lfs(*_gfs);
 
       for (int j = 0; j < names.size(); ++j) {
-        using DGF = Dune::Copasi::DiscreteGridFunction<Data,SubDomainGridView, RF,1,FieldVector<RF,1>>;
+        using DGF = Dune::Copasi::DiscreteGridFunction<Data,
+                                                       SubDomainGridView,
+                                                       RF,
+                                                       1,
+                                                       FieldVector<RF, 1>>;
         auto dgf = std::make_shared<const DGF>(data,
                                                sub_grid_view,
                                                j * _dof_per_component,
@@ -351,12 +377,11 @@ public:
   };
 
 private:
-
   ParameterTree _config;
   using ModelBase::_logger;
 
-  std::array<std::shared_ptr<SW>,max_subdomains> _sequential_writer;
-  
+  std::array<std::shared_ptr<SW>, max_subdomains> _sequential_writer;
+
   std::shared_ptr<Grid> _grid;
   // ModelStorage _models;
 
@@ -371,7 +396,6 @@ private:
   std::shared_ptr<NLS> _nonlinear_solver;
   std::shared_ptr<TSP> _time_stepping_method;
   std::shared_ptr<OSM> _one_step_method;
-  
 
   std::shared_ptr<X> _x;
 

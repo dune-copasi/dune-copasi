@@ -82,7 +82,10 @@ public:
     return _power_size * _fem.size(gt);
   }
 
-  bool hasDOFs(int codim) const { return _fem.hasDOFs(codim); }
+  bool hasDOFs(int codim) const
+  {
+    return (_power_size != 0) && _fem.hasDOFs(codim);
+  }
 
   std::size_t maxLocalSize() const { return _power_size * _fem.maxLocalSize(); }
 
