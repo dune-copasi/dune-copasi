@@ -18,6 +18,10 @@ environment = 0
 cell        = 1
 nucleoid    = 2
 
+[model.membrane.environment2cell]
+u_0 = 1e-2
+
+
 ############################ Model for environment #############################
 [model.environment]
 name = environment
@@ -28,27 +32,37 @@ end_time = 0.01
 u_0 = 0.
 u_1 = 0.
 u_2 = 0.
+u_3 = 0
 
 [model.environment.reaction]
 u_0 = +u_0*u_1
 u_1 = +u_0*u_1
 u_2 = -u_0*u_1
+u_3 = -u_0*u_1
 
 [model.environment.reaction.jacobian]
 d(u_0)/d(u_0) = u_1
 d(u_0)/d(u_1) = u_0
 d(u_0)/d(u_2) = 0
+d(u_0)/d(u_3) = 0
 d(u_1)/d(u_0) = u_1
 d(u_1)/d(u_1) = u_0
 d(u_1)/d(u_2) = 0
+d(u_1)/d(u_3) = 0
 d(u_2)/d(u_0) = -u_1
 d(u_2)/d(u_1) = -u_0
 d(u_2)/d(u_2) = 0
+d(u_2)/d(u_3) = 0
+d(u_3)/d(u_0) = -u_1
+d(u_3)/d(u_1) = -u_0
+d(u_3)/d(u_2) = 0
+d(u_3)/d(u_3) = 0
 
 [model.environment.diffusion]
 u_0 = 1.
-u_1 = 1.
-u_2 = 1.
+u_1 = 1E-10
+u_2 = 1E-10
+u_3 = 1E-10
 
 ########################### Model for cell #####################################
 [model.cell]
@@ -78,7 +92,7 @@ d(u_2)/d(u_1) = -u_0
 d(u_2)/d(u_2) = 0
 
 [model.cell.diffusion]
-u_0 = 1E-3
+u_0 = 1.
 u_1 = 1.
 u_2 = 1.
 
@@ -91,25 +105,25 @@ end_time = 0.01
 [model.nucleoid.initial]
 u_0 = 0.
 u_1 = 0.
-u_2 = 0.
+#u_2 = 0.
 
 [model.nucleoid.reaction]
 u_0 = +u_0*u_1
 u_1 = +u_0*u_1
-u_2 = -u_0*u_1
+#u_2 = -u_0*u_1
 
 [model.nucleoid.reaction.jacobian]
 d(u_0)/d(u_0) = u_1
 d(u_0)/d(u_1) = u_0
-d(u_0)/d(u_2) = 0
+#d(u_0)/d(u_2) = 0
 d(u_1)/d(u_0) = u_1
 d(u_1)/d(u_1) = u_0
-d(u_1)/d(u_2) = 0
-d(u_2)/d(u_0) = -u_1
-d(u_2)/d(u_1) = -u_0
-d(u_2)/d(u_2) = 0
+#d(u_1)/d(u_2) = 0
+#d(u_2)/d(u_0) = -u_1
+#d(u_2)/d(u_1) = -u_0
+#d(u_2)/d(u_2) = 0
 
 [model.nucleoid.diffusion]
-u_0 = 1.
+u_0 = 1E-10
 u_1 = 1.
-u_2 = 1.
+#u_2 = 1E-10

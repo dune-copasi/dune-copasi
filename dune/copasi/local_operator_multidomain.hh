@@ -6,17 +6,18 @@
 
 #include <dune/pdelab/localoperator/numericaljacobian.hh>
 
-
 #include <algorithm>
 
 namespace Dune::Copasi {
 
 template<class Grid, class LocalFiniteElement, int max_subdomains>
 class LocalOperatorMultiDomainDiffusionReaction
-  : public Dune::PDELab::FullSkeletonPattern
-  , public Dune::PDELab::LocalOperatorDefaultFlags
+  : public Dune::PDELab::LocalOperatorDefaultFlags
   , public Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>
-  , public Dune::PDELab::NumericalJacobianSkeleton<LocalOperatorMultiDomainDiffusionReaction<Grid,LocalFiniteElement,max_subdomains>>
+  , public Dune::PDELab::NumericalJacobianSkeleton<
+      LocalOperatorMultiDomainDiffusionReaction<Grid,
+                                                LocalFiniteElement,
+                                                max_subdomains>>
 {
   static_assert(Concept::isMultiDomainGrid<Grid>());
 
@@ -45,6 +46,10 @@ class LocalOperatorMultiDomainDiffusionReaction
   using BaseLOP = LocalOperatorDiffusionReaction<GridView, LocalFiniteElement>;
 
   std::array<std::shared_ptr<BaseLOP>, max_subdomains> _local_operator;
+
+  std::array<std::vector<std::string>, max_subdomains> _component_name;
+
+  std::map<std::array<std::size_t, 3>, std::size_t> _component_offset;
 
   //! number of basis per component
   const std::size_t _basis_size;
@@ -86,6 +91,22 @@ public:
       auto lp =
         std::make_shared<BaseLOP>(sub_grid_view, sub_config, finite_element);
       _local_operator[i] = lp;
+
+      _component_name[i] = sub_config.sub("reaction").getValueKeys();
+      std::sort(_component_name[i].begin(), _component_name[i].end());
+    }
+
+    for (std::size_t i = 0; i < std::min(size, max_subdomains); ++i) {
+      for (std::size_t j = 0; j < _component_name[i].size(); j++) {
+        for (std::size_t k = 0; k < std::min(size, max_subdomains); ++k) {
+          for (std::size_t l = 0; l < _component_name[k].size(); l++) {
+            if (_component_name[i][j] == _component_name[k][l]) {
+              std::array<std::size_t, 3> inside_comp{ i, k, j };
+              _component_offset.insert(std::make_pair(inside_comp, l));
+            }
+          }
+        }
+      }
     }
   }
 
@@ -107,8 +128,8 @@ public:
                         LocalPattern& pattern_io,
                         LocalPattern& pattern_oi) const
   {
-    int domain_i(-99), domain_o(-99);
-    for (int k = 0; k < max_subdomains; k++) {
+    std::size_t domain_i(-99), domain_o(-99);
+    for (std::size_t k = 0; k < max_subdomains; k++) {
       if (lfsu_i.child(k).size() > 0)
         domain_i = k;
       if (lfsu_o.child(k).size() > 0)
@@ -123,16 +144,49 @@ public:
     assert(lfsu_i.child(domain_i).size() == lfsv_i.child(domain_i).size());
     assert(lfsu_o.child(domain_o).size() == lfsv_o.child(domain_o).size());
 
-    // TODO: Remove off diagonal on interdomain skeleton
-    for (unsigned int i = 0; i < lfsv_i.child(domain_i).size(); ++i)
-      for (unsigned int j = 0; j < lfsu_o.child(domain_o).size(); ++j)
-        pattern_io.addLink(
-          lfsv_i.child(domain_i), i, lfsu_o.child(domain_o), j);
+    auto comp_size_i = lfsu_i.child(domain_i).size() / _basis_size;
+    auto comp_size_o = lfsu_o.child(domain_o).size() / _basis_size;
 
-    for (unsigned int i = 0; i < lfsv_o.child(domain_o).size(); ++i)
-      for (unsigned int j = 0; j < lfsu_i.child(domain_i).size(); ++j)
-        pattern_oi.addLink(
-          lfsv_o.child(domain_o), i, lfsu_i.child(domain_i), j);
+    for (std::size_t i = 0; i < comp_size_i; ++i) {
+      std::array<std::size_t, 3> inside_comp{ domain_i, domain_o, i };
+      auto it = _component_offset.find(inside_comp);
+      if (it != _component_offset.end()) {
+        for (std::size_t j = 0; j < _basis_size; j++) {
+          for (std::size_t k = 0; k < _basis_size; k++) {
+            auto dof_i = i * _basis_size + j;
+            auto dof_o = it->second * _basis_size + k;
+            pattern_io.addLink(
+              lfsv_i.child(domain_i), dof_i, lfsu_o.child(domain_o), dof_o);
+          }
+        }
+      }
+    }
+
+    for (std::size_t o = 0; o < comp_size_o; ++o) {
+      std::array<std::size_t, 3> outside_comp{ domain_o, domain_i, o };
+      auto it = _component_offset.find(outside_comp);
+      if (it != _component_offset.end()) {
+        for (std::size_t j = 0; j < _basis_size; j++) {
+          for (std::size_t k = 0; k < _basis_size; k++) {
+            auto dof_o = o * _basis_size + j;
+            auto dof_i = it->second * _basis_size + k;
+            pattern_oi.addLink(
+              lfsv_o.child(domain_o), dof_o, lfsu_i.child(domain_i), dof_i);
+          }
+        }
+      }
+    }
+
+    // // TODO: Remove off diagonal on interdomain skeleton
+    // for (unsigned int i = 0; i < lfsv_i.child(domain_i).size(); ++i)
+    //   for (unsigned int j = 0; j < lfsu_o.child(domain_o).size(); ++j)
+    //     pattern_io.addLink(
+    //       lfsv_i.child(domain_i), i, lfsu_o.child(domain_o), j);
+
+    // for (unsigned int i = 0; i < lfsv_o.child(domain_o).size(); ++i)
+    //   for (unsigned int j = 0; j < lfsu_i.child(domain_i).size(); ++j)
+    //     pattern_oi.addLink(
+    //       lfsv_o.child(domain_o), i, lfsu_i.child(domain_i), j);
   }
 
   template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
@@ -228,7 +282,7 @@ public:
     const int dim = IG::Entity::dimension;
     const int order = 3;
 
-    int domain_i(-99), domain_o(-99);
+    std::size_t domain_i(-99), domain_o(-99);
     for (int k = 0; k < max_subdomains; k++) {
       if (lfsu_i.child(k).size() > 0)
         domain_i = k;
@@ -236,7 +290,7 @@ public:
         domain_o = k;
     }
 
-    if ((domain_i == domain_o))
+    if (domain_i == domain_o)
       return;
     if ((domain_i == -99) or (domain_o == -99))
       return;
@@ -254,14 +308,18 @@ public:
     auto geo_in_i = entity_f.geometryInInside();
     auto geo_in_o = entity_f.geometryInOutside();
 
-    const auto& lfsu_basis_i = lfsu_i.child(domain_i).finiteElement().localBasis();
-    const auto& lfsu_basis_o = lfsu_o.child(domain_o).finiteElement().localBasis();
+    const auto& lfsu_basis_i =
+      lfsu_i.child(domain_i).finiteElement().localBasis();
+    const auto& lfsu_basis_o =
+      lfsu_o.child(domain_o).finiteElement().localBasis();
 
-    const auto& lfsv_basis_i = lfsv_i.child(domain_i).finiteElement().localBasis();
-    const auto& lfsv_basis_o = lfsv_o.child(domain_o).finiteElement().localBasis();
+    const auto& lfsv_basis_i =
+      lfsv_i.child(domain_i).finiteElement().localBasis();
+    const auto& lfsv_basis_o =
+      lfsv_o.child(domain_o).finiteElement().localBasis();
 
-    std::size_t components_i = lfsu_basis_i.size()/_basis_size;
-    std::size_t components_o = lfsu_basis_o.size()/_basis_size;
+    std::size_t components_i = lfsu_basis_i.size() / _basis_size;
+    std::size_t components_o = lfsu_basis_o.size() / _basis_size;
 
     auto x_coeff_i = [&](const std::size_t& component, const std::size_t& dof) {
       return x_i(lfsu_i.child(domain_i), component * _basis_size + dof);
@@ -271,22 +329,22 @@ public:
     };
 
     auto accumulate_i = [&](const std::size_t& component,
-                          const std::size_t& dof,
-                          const auto& value) {
-      r_i.accumulate(lfsu_i.child(domain_i), component * _basis_size + dof, value);
+                            const std::size_t& dof,
+                            const auto& value) {
+      r_i.accumulate(
+        lfsu_i.child(domain_i), component * _basis_size + dof, value);
     };
 
     auto accumulate_o = [&](const std::size_t& component,
-                          const std::size_t& dof,
-                          const auto& value) {
-      r_o.accumulate(lfsu_o.child(domain_o), component * _basis_size + dof, value);
+                            const std::size_t& dof,
+                            const auto& value) {
+      r_o.accumulate(
+        lfsu_o.child(domain_o), component * _basis_size + dof, value);
     };
 
     typename IG::Entity::Geometry::JacobianInverseTransposed jac;
 
-
-    for (const auto& it : quadratureRule(geo_f,3))
-    {
+    for (const auto& it : quadratureRule(geo_f, 3)) {
       const auto& position_f = it.position();
       // position of quadrature point in local coordinates of elements
       const auto position_i = geo_in_i.global(position_f);
@@ -299,18 +357,18 @@ public:
       std::vector<Range> phiu_o(lfsu_o.size());
 
       // evaluate basis functions
-      lfsu_basis_i.evaluateFunction(position_i,phiu_i);
-      lfsu_basis_o.evaluateFunction(position_o,phiu_o);
+      lfsu_basis_i.evaluateFunction(position_i, phiu_i);
+      lfsu_basis_o.evaluateFunction(position_o, phiu_o);
 
       // evaluate concentrations at quadrature point
       DynamicVector<RF> u_i(components_i), u_o(components_o);
 
-      int count=0;
+      int count = 0;
       for (std::size_t k = 0; k < components_i; k++) // loop over components
         for (std::size_t j = 0; j < _basis_size; j++, count++)
           u_i[k] += x_coeff_i(k, j) * phiu_i[count];
-      
-      count=0;
+
+      count = 0;
       for (std::size_t k = 0; k < components_o; k++) // loop over components
         for (std::size_t j = 0; j < _basis_size; j++, count++)
           u_o[k] += x_coeff_o(k, j) * phiu_o[count];
@@ -318,15 +376,37 @@ public:
       // integration factor
       auto factor = it.weight() * geo_f.integrationElement(position_f);
 
-      count=0;
+      count = 0;
       for (std::size_t k = 0; k < components_i; k++) // loop over components
-        for (std::size_t j = 0; j < _basis_size; j++, count++)
-            accumulate_i(k, j, factor*(u_i[k]-u_o[k]) * phiu_i[count]);
+      {
+        std::array<std::size_t, 3> inside_comp{ domain_i, domain_o, k };
+        auto it = _component_offset.find(inside_comp);
+        if (it != _component_offset.end()) {
+          for (std::size_t j = 0; j < _basis_size; j++, count++)
+            accumulate_i(
+              k, j, factor * (u_i[k] - u_o[it->second]) * phiu_i[count]);
+        } else {
+          // TODO: set some dirichlet or neuman BC
+          for (std::size_t j = 0; j < _basis_size; j++, count++)
+            accumulate_i(k, j, 0.);
+        }
+      }
 
-      count=0;
+      count = 0;
       for (std::size_t k = 0; k < components_o; k++) // loop over components
-        for (std::size_t j = 0; j < _basis_size; j++, count++)
-            accumulate_o(k, j, -factor*(u_i[k]-u_o[k]) * phiu_o[count]);
+      {
+        std::array<std::size_t, 3> outside_comp{ domain_o, domain_i, k };
+        auto it = _component_offset.find(outside_comp);
+        if (it != _component_offset.end()) {
+          for (std::size_t j = 0; j < _basis_size; j++, count++)
+            accumulate_o(
+              k, j, -factor * (u_i[it->second] - u_o[k]) * phiu_o[count]);
+        } else {
+          // TODO: set some dirichlet or neuman BC
+          for (std::size_t j = 0; j < _basis_size; j++, count++)
+            accumulate_o(k, j, 0.);
+        }
+      }
     }
   }
 };
