@@ -86,9 +86,9 @@ public:
 
   //! evaluate extended function on element
   template<class E>
-  inline void evaluate(const E& e,
-                       const typename Traits::DomainType& x,
-                       typename Traits::RangeType& y) const
+  void evaluate(const E& e,
+                const typename Traits::DomainType& x,
+                typename Traits::RangeType& y) const
   {
     y.resize(_size);
     // update position storage
@@ -104,7 +104,7 @@ public:
   }
 
   template<class E>
-  void bind(const E& e, const DynamicVector<RF>& extra_var)
+  inline void bind(const E& e, const DynamicVector<RF>& extra_var)
   {
     _extra_var = extra_var;
   }
