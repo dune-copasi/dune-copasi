@@ -8,7 +8,6 @@
 #include <dune/pdelab/localoperator/idefault.hh>
 // #include <dune/pdelab/finiteelement/localbasiscache.hh>
 
-
 #include <dune/geometry/referenceelements.hh>
 #include <dune/geometry/type.hh>
 
@@ -159,8 +158,8 @@ public:
                       LocalPattern& pattern) const
   {
     auto do_link = [&](std::size_t dof_i, std::size_t dof_j) {
-      std::size_t comp_i = dof_i / _components;
-      std::size_t comp_j = dof_j / _components;
+      std::size_t comp_i = dof_i / _basis_size;
+      std::size_t comp_j = dof_j / _basis_size;
       auto it = _component_pattern.find(std::make_pair(comp_i, comp_j));
       return (it != _component_pattern.end());
     };
@@ -486,8 +485,8 @@ public:
                       LocalPattern& pattern) const
   {
     auto do_link = [&](std::size_t dof_i, std::size_t dof_j) {
-      std::size_t comp_i = dof_i / _components;
-      std::size_t comp_j = dof_j / _components;
+      std::size_t comp_i = dof_i / _basis_size;
+      std::size_t comp_j = dof_j / _basis_size;
       auto it = _component_pattern.find(std::make_pair(comp_i, comp_j));
       return (it != _component_pattern.end());
     };
