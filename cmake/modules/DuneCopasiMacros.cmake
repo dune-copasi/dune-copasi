@@ -1,4 +1,4 @@
 # File for module specific CMake tests.
 
-# muparser
 find_package (muparser REQUIRED)
+find_package (TIFF REQUIRED)
