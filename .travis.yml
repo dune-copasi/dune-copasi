@@ -17,6 +17,7 @@ jobs:
       script:
         - cd ..
         - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-common.git
+        - git clone https://gitlab.dune-project.org/staging/dune-logging.git
         - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-geometry.git
         - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-grid.git
         - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-istl.git
