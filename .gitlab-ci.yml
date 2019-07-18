@@ -28,19 +28,24 @@ stages:
   script:
     - . /duneci/bin/duneci-init-job
     - duneci-install-module -r https://gitlab.dune-project.org/staging/dune-logging.git
+    - duneci-install-module https://gitlab.dune-project.org/extensions/dune-multidomaingrid.git
   after_script:
     - mv /duneci/modules/dune-logging dune-logging
+    - mv /duneci/modules/dune-multidomaingrid dune-multidomaingrid
   artifacts:
     paths:
       - dune-logging/
+      - dune-multidomaingrid/
 
 .build: &build
   stage: build
   before_script:
     - . /duneci/bin/duneci-init-job
     - mv dune-logging /duneci/modules/dune-logging
+    - mv dune-multidomaingrid /duneci/modules/dune-multidomaingrid
   after_script:
     - mv /duneci/modules/dune-logging dune-logging
+    - mv /duneci/modules/dune-multidomaingrid dune-multidomaingrid
   script:
     - /duneci/modules/dune-common/bin/dunecontrol --opts=/duneci/dune.opts --only=dune-copasi vcsetup
     - /duneci/modules/dune-common/bin/dunecontrol --opts=/duneci/dune.opts --only=dune-copasi configure
@@ -55,6 +60,7 @@ stages:
   before_script:
     - . /duneci/bin/duneci-init-job
     - mv dune-logging /duneci/modules/dune-logging
+    - mv dune-multidomaingrid /duneci/modules/dune-multidomaingrid
     - cd build-cmake
   script: 
     - make build_unit_tests
@@ -65,6 +71,7 @@ stages:
   before_script:
     - . /duneci/bin/duneci-init-job
     - mv dune-logging /duneci/modules/dune-logging
+    - mv /duneci/modules/dune-multidomaingrid dune-multidomaingrid
     - cd build-cmake
   script: 
     - make build_system_tests
