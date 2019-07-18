@@ -1,82 +1,29 @@
-#ifndef DUNE_COPASI_CONCEPTS_HH
-#define DUNE_COPASI_CONCEPTS_HH
+#ifndef DUNE_COPASI_CONCEPTS_GRID_HH
+#define DUNE_COPASI_CONCEPTS_GRID_HH
 
 #include <dune/functions/common/functionconcepts.hh>
 
-#include <dune/pdelab/common/function.hh>
-#include <dune/pdelab/function/callableadapter.hh>
+#include <dune/geometry/type.hh>
 
-#include <utility>
-
+/**
+ * @ingroup Concepts
+ */
 namespace Dune::Copasi::Concept {
 
 using namespace Dune::Concept;
 
-struct PDELabGridFunction
-{
-  template<class GF>
-  auto require(GF&& gf) -> decltype(
-    requireBaseOf<Dune::PDELab::GridFunctionBase<typename GF::Traits, GF>>(gf));
-};
-
-template<class GF>
-static constexpr bool
-isPDELabGridFunction()
-{
-  return models<Concept::PDELabGridFunction, GF>();
-}
-
-template<class GV>
-struct PDELabLocalCallable
-  : Refines<Dune::Functions::Concept::Callable<
-      typename GV::template Codim<0>::Entity,
-      typename GV::template Codim<0>::Entity::Geometry::LocalCoordinate>>
-{
-  using Entity = typename GV::template Codim<0>::Entity;
-  using Domain = typename Entity::Geometry::LocalCoordinate;
-
-  template<class F>
-  auto require(F&& f)
-    -> decltype(f(std::declval<Entity>(), std::declval<Domain>()));
-};
-
-template<class GV, class F>
-static constexpr bool
-isPDELabLocalCallable()
-{
-  return models<Concept::PDELabLocalCallable<GV>, F>();
-}
-
-template<class GV>
-struct PDELabGlobalCallable
-  : Refines<Dune::Functions::Concept::Callable<
-      typename GV::template Codim<0>::Entity::Geometry::GlobalCoordinate>>
-{
-  using Entity = typename GV::template Codim<0>::Entity;
-  using Domain = typename Entity::Geometry::GlobalCoordinate;
-
-  template<class F>
-  auto require(F&& f) -> decltype(f(std::declval<Domain>()));
-};
-
-template<class GV, class F>
-static constexpr bool
-isPDELabGlobalCallable()
-{
-  return models<Concept::PDELabGlobalCallable<GV>, F>();
-}
-
-template<class GV, class F>
-static constexpr bool
-isPDELabCallable()
-{
-  return (isPDELabLocalCallable<GV, F>() or isPDELabGlobalCallable<GV, F>());
-}
-
+/**
+ * @brief   Concept for dune grids
+ * @details Checks whether the type fits the most of the dune interface 
+ *          for grid. Some checks are missing, but they are not important 
+ *          for the concept.
+ */
 struct Grid
 {
   template<class G>
   auto require(G&& g) -> decltype(
+    requireConvertible<int>(G::dimension),
+    requireConvertible<int>(G::dimensionworld),
     requireType<typename G::LeafGridView>(),
     requireType<typename G::LevelGridView>(),
     // Codim missing!
@@ -121,6 +68,13 @@ struct Grid
   );
 };
 
+/**
+ * @brief Check if a type is dune grid
+ * 
+ * @tparam G        The type to check
+ * @return true     if the type is a dune grid
+ * @return false    if the type is not a dune grid
+ */
 template<class G>
 static constexpr bool
 isGrid()
@@ -128,6 +82,13 @@ isGrid()
   return models<Concept::Grid, G>();
 }
 
+/**
+ * @brief   Concept for dune multidomain grids
+ * @details Checks whether the type fits the most of the dune interface 
+ *          for grid and is extended to a multidomain grid. 
+ *          Some checks are missing, but they are not important 
+ *          for the concept.
+ */
 struct MultiDomainGrid : Refines<Dune::Copasi::Concept::Grid>
 {
   template<class G>
@@ -161,6 +122,14 @@ struct MultiDomainGrid : Refines<Dune::Copasi::Concept::Grid>
     requireConvertible<bool>(g.supportLevelIndexSets()));
 };
 
+
+/**
+ * @brief Check if a type is dune multidomain grid
+ * 
+ * @tparam G        The type to check
+ * @return true     if the type is a dune multidomain grid
+ * @return false    if the type is not a dune multidomain grid
+ */
 template<class G>
 static constexpr bool
 isMultiDomainGrid()
@@ -168,6 +137,13 @@ isMultiDomainGrid()
   return models<Concept::MultiDomainGrid, G>();
 }
 
+/**
+ * @brief   Concept for dune subdomain grids of multidomain grids
+ * @details Checks whether the type fits the most of the dune interface 
+ *          for grid and is extended to a subdomain grid. 
+ *          Some checks are missing, but they are not important 
+ *          for the concept.
+ */
 struct SubDomainGrid : Refines<Dune::Copasi::Concept::Grid>
 {
   template<class G>
@@ -181,6 +157,13 @@ struct SubDomainGrid : Refines<Dune::Copasi::Concept::Grid>
   );
 };
 
+/**
+ * @brief Check if a type is dune subdomain grid
+ * 
+ * @tparam G        The type to check
+ * @return true     if the type is a dune subdomain grid
+ * @return false    if the type is not a dune subdomain grid
+ */
 template<class G>
 static constexpr bool
 isSubDomainGrid()
@@ -188,19 +171,6 @@ isSubDomainGrid()
   return models<Concept::SubDomainGrid, G>();
 }
 
-struct TypeTree
-{
-  template<class T>
-  auto require(T&& t) -> decltype(requireType<typename T::NodeTag>());
-};
-
-template<class T>
-static constexpr bool
-isTypeTree()
-{
-  return models<Concept::TypeTree, T>();
-}
-
 } // namespace Dune::Copasi::Concept
 
-#endif // DUNE_COPASI_CONCEPTS_HH
+#endif // DUNE_COPASI_CONCEPTS_GRID_HH

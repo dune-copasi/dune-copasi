@@ -1,7 +1,7 @@
 #ifndef DUNE_COPASI_MODEL_DIFFUSION_REACTION_HH
 #define DUNE_COPASI_MODEL_DIFFUSION_REACTION_HH
 
-#include <dune/copasi/concepts.hh>
+#include <dune/copasi/concepts/grid.hh>
 #include <dune/copasi/dynamic_local_finite_element_map.hh>
 #include <dune/copasi/grid_function_writer.hh>
 #include <dune/copasi/local_operator.hh>

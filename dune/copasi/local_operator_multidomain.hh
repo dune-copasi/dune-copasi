@@ -1,7 +1,7 @@
 #ifndef DUNE_COPASI_LOCAL_OPERATOR_MULTIDOMAIN_DIFFUSION_REACTION_HH
 #define DUNE_COPASI_LOCAL_OPERATOR_MULTIDOMAIN_DIFFUSION_REACTION_HH
 
-#include <dune/copasi/concepts.hh>
+#include <dune/copasi/concepts/grid.hh>
 #include <dune/copasi/local_operator.hh>
 
 #include <dune/pdelab/localoperator/numericaljacobian.hh>

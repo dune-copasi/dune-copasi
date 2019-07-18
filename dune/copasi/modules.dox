@@ -1,0 +1,9 @@
+// These groups should gather information strongly related portions of the code.
+// In them we aim to explain to other developers:
+// - The rationale of the design
+// - How careful someone has to be when modifying it
+// - Specific naming or other conventions upheld in the code
+
+/**
+
+*/

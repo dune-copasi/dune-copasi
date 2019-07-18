@@ -5,7 +5,7 @@
 #define DUNE_COPASI_MAX_SUBDOMAINS 3
 #endif
 
-#include <dune/copasi/concepts.hh>
+#include <dune/copasi/concepts/grid.hh>
 #include <dune/copasi/local_operator_multidomain.hh>
 #include <dune/copasi/model_base.hh>
 #include <dune/copasi/model_diffusion_reaction.cc>
@@ -173,7 +173,7 @@ public:
         auto names = intial_config.getValueKeys();
         components = names.size();
       }
-      std::cout << components <<std::endl;
+      std::cout << components << std::endl;
       SubDomainGridView sub_grid_view = _grid->subDomain(i).leafGridView();
 
       auto finite_element_map =

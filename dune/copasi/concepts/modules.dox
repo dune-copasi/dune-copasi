@@ -1,0 +1,35 @@
+// These groups should gather information strongly related portions of the code.
+// In them we aim to explain to other developers:
+// - The rationale of the design
+// - How careful someone has to be when modifying it
+// - Specific naming or other conventions upheld in the code
+
+/**
+
+@defgroup Concepts Concepts
+@{
+  @brief Functions to assert whether a type fits a concept
+
+  Dune is in general a header only library and heavely templetized. Because 
+  of that, most of the functionalities rely on the shape or interface 
+  of the types passed as template arguments, in C++20 this is called concepts. 
+  Hence, functions in this module assert whether a type fits certain concept.
+
+  Using these concepts is useful for two main reasons: First, it allows the
+  reader of the program to know which are the requirements of the templated 
+  types, which turns to make the code more self-explainable, and second, it
+  helps to address errors produced by changes on upstream libraries. Another
+  benefit is that it may reduce the size of the error when arguments are 
+  passed incompletely.
+
+  Its use is rather simple. For instance, to check that the type 
+  ``Dune::UGGrid<2>`` fits the concept ``MultiDomainGrid`` one should call 
+  the function ``Dune::Copasi::Concept::isMultiDomainGrid``:
+  @code{.cpp}
+    using Grid = UGGrid<2>;
+    constexpr bool result = Dune::Copasi::Concept::isMultiDomainGrid<Grid>();
+  @endcode 
+
+@}
+
+*/

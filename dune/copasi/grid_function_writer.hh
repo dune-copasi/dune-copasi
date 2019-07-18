@@ -1,6 +1,9 @@
 #ifndef DUNE_COPASI_GRID_FUNCTION_WRITER_HH
 #define DUNE_COPASI_GRID_FUNCTION_WRITER_HH
 
+#include <dune/copasi/concepts/grid.hh>
+#include <dune/copasi/concepts/typetree.hh>
+
 #include <dune/pdelab/gridfunctionspace/gridfunctionspaceutilities.hh>
 
 #include <dune/grid/io/file/vtk/subsamplingvtkwriter.hh>
@@ -62,7 +65,7 @@ public:
     if constexpr (Concept::isSubDomainGrid<typename GV::Grid>()) {
       _data->bind(_grid_view.grid().multiDomainGrid().multiDomainEntity(e));
 
-      if constexpr (Concept::isTypeTree<LFS>()) {
+      if constexpr (Concept::isTypeTreeNode<LFS>()) {
         int subdomain = _grid_view.grid().domain();
         auto lfs_child = _data->_lfs.child(subdomain);
         typedef FiniteElementInterfaceSwitch<typename decltype(

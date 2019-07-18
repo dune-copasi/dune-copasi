@@ -1,7 +1,7 @@
 #ifndef DUNE_COPASI_GRID_FUNCTION_CALLABLE_ADAPTER_HH
 #define DUNE_COPASI_GRID_FUNCTION_CALLABLE_ADAPTER_HH
 
-#include <dune/copasi/concepts.hh>
+#include <dune/copasi/concepts/pdelab.hh>
 
 #include <dune/pdelab/common/function.hh>
 

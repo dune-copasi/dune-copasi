@@ -6,6 +6,7 @@
 #include <dune/copasi/pdelab_expression_adapter.hh>
 
 #include <dune/pdelab/gridfunctionspace/vtk.hh>
+#include <dune/pdelab/function/callableadapter.hh>
 
 #include <dune/common/dynvector.hh>
 
