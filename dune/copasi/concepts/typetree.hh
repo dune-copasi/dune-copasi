@@ -14,14 +14,12 @@ using namespace Dune::Concept;
 struct TypeTreeNode
 {
   template<class T>
-  auto require(T&& t) -> decltype(
-    requireConvertible<bool>(T::isLeaf),
-    requireConvertible<bool>(T::isPower),
-    requireConvertible<bool>(T::isComposite),
-    requireConvertible<std::size_t>(T::CHILDREN),
-    requireType<typename T::NodeTag>(),
-    requireConvertible<std::size_t>(T::degree())
-  );
+  auto require(T&& t) -> decltype(requireConvertible<bool>(T::isLeaf),
+                                  requireConvertible<bool>(T::isPower),
+                                  requireConvertible<bool>(T::isComposite),
+                                  requireConvertible<std::size_t>(T::CHILDREN),
+                                  requireType<typename T::NodeTag>(),
+                                  requireConvertible<std::size_t>(T::degree()));
 };
 
 /**

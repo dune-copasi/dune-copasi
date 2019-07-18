@@ -14,8 +14,8 @@ using namespace Dune::Concept;
 
 /**
  * @brief   Concept for dune grids
- * @details Checks whether the type fits the most of the dune interface 
- *          for grid. Some checks are missing, but they are not important 
+ * @details Checks whether the type fits the most of the dune interface
+ *          for grid. Some checks are missing, but they are not important
  *          for the concept.
  */
 struct Grid
@@ -70,7 +70,7 @@ struct Grid
 
 /**
  * @brief Check if a type is dune grid
- * 
+ *
  * @tparam G        The type to check
  * @return true     if the type is a dune grid
  * @return false    if the type is not a dune grid
@@ -84,9 +84,9 @@ isGrid()
 
 /**
  * @brief   Concept for dune multidomain grids
- * @details Checks whether the type fits the most of the dune interface 
- *          for grid and is extended to a multidomain grid. 
- *          Some checks are missing, but they are not important 
+ * @details Checks whether the type fits the most of the dune interface
+ *          for grid and is extended to a multidomain grid.
+ *          Some checks are missing, but they are not important
  *          for the concept.
  */
 struct MultiDomainGrid : Refines<Dune::Copasi::Concept::Grid>
@@ -122,10 +122,9 @@ struct MultiDomainGrid : Refines<Dune::Copasi::Concept::Grid>
     requireConvertible<bool>(g.supportLevelIndexSets()));
 };
 
-
 /**
  * @brief Check if a type is dune multidomain grid
- * 
+ *
  * @tparam G        The type to check
  * @return true     if the type is a dune multidomain grid
  * @return false    if the type is not a dune multidomain grid
@@ -139,9 +138,9 @@ isMultiDomainGrid()
 
 /**
  * @brief   Concept for dune subdomain grids of multidomain grids
- * @details Checks whether the type fits the most of the dune interface 
- *          for grid and is extended to a subdomain grid. 
- *          Some checks are missing, but they are not important 
+ * @details Checks whether the type fits the most of the dune interface
+ *          for grid and is extended to a subdomain grid.
+ *          Some checks are missing, but they are not important
  *          for the concept.
  */
 struct SubDomainGrid : Refines<Dune::Copasi::Concept::Grid>
@@ -159,7 +158,7 @@ struct SubDomainGrid : Refines<Dune::Copasi::Concept::Grid>
 
 /**
  * @brief Check if a type is dune subdomain grid
- * 
+ *
  * @tparam G        The type to check
  * @return true     if the type is a dune subdomain grid
  * @return false    if the type is not a dune subdomain grid
