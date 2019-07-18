@@ -28,7 +28,7 @@ stages:
   script:
     - . /duneci/bin/duneci-init-job
     - duneci-install-module -r https://gitlab.dune-project.org/staging/dune-logging.git
-    - duneci-install-module https://gitlab.dune-project.org/extensions/dune-multidomaingrid.git
+    - duneci-install-module -b releases/2.6 https://gitlab.dune-project.org/extensions/dune-multidomaingrid.git
   after_script:
     - mv /duneci/modules/dune-logging dune-logging
     - mv /duneci/modules/dune-multidomaingrid dune-multidomaingrid
