@@ -28,3 +28,6 @@ INPUT                 += @top_srcdir@/dune/
 # the \image command).
 
 # IMAGE_PATH            += @top_srcdir@/dune/copasi/pics
+
+# Include documents with other extesions
+FILE_PATTERNS += *.dox
