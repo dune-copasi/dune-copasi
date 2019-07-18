@@ -26,9 +26,7 @@ jobs:
         - git clone -b releases/2.6 https://gitlab.dune-project.org/pdelab/dune-pdelab
         - git clone -b releases/2.6 https://gitlab.dune-project.org/extensions/dune-multidomaingrid
         - ./dune-common/bin/dunecontrol --builddir=$PWD/build-clang-debug --module=dune-pdelab configure "${CMAKE_GENERATOR[@]}"
-        - ./dune-common/bin/dunecontrol --builddir=$PWD/build-clang-debug --module=dune-multidomaingrid configure "${CMAKE_GENERATOR[@]}"
         - ./dune-common/bin/dunecontrol --builddir=$PWD/build-clang-debug --module=dune-pdelab make
-        - ./dune-common/bin/dunecontrol --builddir=$PWD/build-clang-debug --module=dune-multidomaingrid make
     - stage: build
       script:
         - ./dune-common/bin/dunecontrol --builddir=$PWD/build-clang-debug --module=dune-copasi configure "${CMAKE_GENERATOR[@]}"
