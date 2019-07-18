@@ -2,6 +2,7 @@
 
 variables:
   OMP_NUM_THREADS: 1
+  DUNECI_BRANCH_AUTO: 0
 
 stages:
   - setup
