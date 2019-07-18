@@ -16,15 +16,15 @@ jobs:
     - stage: configure
       script:
         - cd ..
-        - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-common
-        - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-geometry
-        - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-grid
-        - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-istl
-        - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-localfunctions
-        - git clone -b releases/2.6 https://gitlab.dune-project.org/staging/dune-functions
-        - git clone -b releases/2.6 https://gitlab.dune-project.org/staging/dune-typetree
-        - git clone -b releases/2.6 https://gitlab.dune-project.org/pdelab/dune-pdelab
-        - git clone -b releases/2.6 https://gitlab.dune-project.org/extensions/dune-multidomaingrid
+        - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-common.git
+        - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-geometry.git
+        - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-grid.git
+        - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-istl.git
+        - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-localfunctions.git
+        - git clone -b releases/2.6 https://gitlab.dune-project.org/staging/dune-functions.git
+        - git clone -b releases/2.6 https://gitlab.dune-project.org/staging/dune-typetree.git
+        - git clone -b releases/2.6 https://gitlab.dune-project.org/pdelab/dune-pdelab.git
+        - git clone -b releases/2.6 https://gitlab.dune-project.org/extensions/dune-multidomaingrid.git
         - ./dune-common/bin/dunecontrol --builddir=$PWD/build-clang-debug --module=dune-pdelab configure "${CMAKE_GENERATOR[@]}"
         - ./dune-common/bin/dunecontrol --builddir=$PWD/build-clang-debug --module=dune-pdelab make
     - stage: build
