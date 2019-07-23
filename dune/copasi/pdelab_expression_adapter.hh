@@ -44,7 +44,7 @@ public:
     std::sort(keys.begin(), keys.end());
     std::sort(extra_keys.begin(), extra_keys.end());
 
-    for (int i = 0; i < keys.size(); ++i) {
+    for (std::size_t i = 0; i < keys.size(); ++i) {
       _logger.trace("setting up variable: {}"_fmt, keys[i]);
 
       _logger.trace("initialize parser with constant variables"_fmt);
@@ -56,7 +56,7 @@ public:
       if constexpr (dim == 3)
         _parser[i].DefineVar("z", &_pos_global[2]);
 
-      for (int j = 0; j < extra_keys.size(); ++j) {
+      for (std::size_t j = 0; j < extra_keys.size(); ++j) {
         _logger.trace("define extra variable: {}"_fmt, extra_keys[j]);
         _parser[i].DefineVar(extra_keys[j], &_extra_var[j]);
       }
@@ -96,7 +96,7 @@ public:
 
     // evaluate the expression (with new position)
     try {
-      for (int i = 0; i < _size; ++i)
+      for (std::size_t i = 0; i < _size; ++i)
         y[i] = _parser[i].Eval();
     } catch (mu::Parser::exception_type& e) {
       handle_parser_error(e);

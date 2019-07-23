@@ -105,7 +105,7 @@ public:
       local_basis.evaluateFunction(position, phi);
       local_basis.evaluateJacobian(position, jac);
 
-      for (int i = 0; i < _basis_size; ++i) {
+      for (std::size_t i = 0; i < _basis_size; ++i) {
         _logger.trace(" value[{}]: {}"_fmt, i, phi[i]);
         _logger.trace(" jacobian[{}]: {}"_fmt, i, jac[i]);
       }
@@ -163,8 +163,8 @@ public:
       auto it = _component_pattern.find(std::make_pair(comp_i, comp_j));
       return (it != _component_pattern.end());
     };
-    for (size_t i = 0; i < lfsv.size(); ++i)
-      for (size_t j = 0; j < lfsu.size(); ++j)
+    for (std::size_t i = 0; i < lfsv.size(); ++i)
+      for (std::size_t j = 0; j < lfsu.size(); ++j)
         if (do_link(i, j))
           pattern.addLink(lfsv, i, lfsu, j);
   }
@@ -224,8 +224,8 @@ public:
       // compute gradients of basis functions in transformed element
       // (independent of component)
       DynamicVector<FieldVector<RF, dim>> grad(_basis_size);
-      for (int i = 0; i < dim; i++)                     // rows of S
-        for (int k = 0; k < dim; k++)                   // columns of S
+      for (std::size_t i = 0; i < dim; i++)             // rows of S
+        for (std::size_t k = 0; k < dim; k++)           // columns of S
           for (std::size_t j = 0; j < _basis_size; j++) // columns of _gradhat
             grad[j][i] += S[i][k] * _gradhat[q][j][0][k];
 
@@ -234,17 +234,19 @@ public:
       {
         // compute gradient u_h
         FieldVector<RF, dim> graduh(.0);
-        for (int d = 0; d < dim; d++)           // rows of grad
-          for (int j = 0; j < _basis_size; j++) // columns of grad
+        for (std::size_t d = 0; d < dim; d++)           // rows of grad
+          for (std::size_t j = 0; j < _basis_size; j++) // columns of grad
             graduh[d] += grad[j][d] * z_coeff(k, j);
 
         // scalar products
-        for (int d = 0; d < dim; d++)           // rows of grad
-          for (int i = 0; i < _basis_size; i++) // loop over test functions
+        for (std::size_t d = 0; d < dim; d++) // rows of grad
+          for (std::size_t i = 0; i < _basis_size;
+               i++) // loop over test functions
             accumulate(k, i, diffusion[k] * grad[i][d] * graduh[d] * factor);
 
         // reaction term
-        for (int i = 0; i < _basis_size; i++) // loop over test functions
+        for (std::size_t i = 0; i < _basis_size;
+             i++) // loop over test functions
           accumulate(k, i, reaction[k] * _phihat[q][i] * factor);
       }
     }
@@ -312,24 +314,24 @@ public:
       // compute gradients of basis functions in transformed element
       // (independent of component)
       DynamicVector<FieldVector<RF, dim>> grad(_basis_size);
-      for (int i = 0; i < dim; i++)             // rows of S
-        for (int k = 0; k < dim; k++)           // columns of S
-          for (int j = 0; j < _basis_size; j++) // columns of _gradhat
+      for (std::size_t i = 0; i < dim; i++)             // rows of S
+        for (std::size_t k = 0; k < dim; k++)           // columns of S
+          for (std::size_t j = 0; j < _basis_size; j++) // columns of _gradhat
             grad[j][i] += S[i][k] * _gradhat[q][j][0][k];
 
       // compute grad^T * grad
-      for (int k = 0; k < _components; k++)
-        for (int i = 0; i < _basis_size; i++)
-          for (int d = 0; d < dim; d++)
-            for (int j = 0; j < _basis_size; j++)
+      for (std::size_t k = 0; k < _components; k++)
+        for (std::size_t i = 0; i < _basis_size; i++)
+          for (std::size_t d = 0; d < dim; d++)
+            for (std::size_t j = 0; j < _basis_size; j++)
               accumulate(
                 k, i, k, j, diffusion[k] * grad[i][d] * grad[j][d] * factor);
 
       int count = 0;
-      for (int k = 0; k < _components; k++)
-        for (int l = 0; l < _components; l++, count++)
-          for (int i = 0; i < _basis_size; i++)
-            for (int j = 0; j < _basis_size; j++)
+      for (std::size_t k = 0; k < _components; k++)
+        for (std::size_t l = 0; l < _components; l++, count++)
+          for (std::size_t i = 0; i < _basis_size; i++)
+            for (std::size_t j = 0; j < _basis_size; j++)
               accumulate(k,
                          i,
                          l,
@@ -435,7 +437,7 @@ public:
       const auto& local_basis = finite_element.localBasis();
       local_basis.evaluateFunction(position, phi);
 
-      for (int i = 0; i < _basis_size; ++i)
+      for (std::size_t i = 0; i < _basis_size; ++i)
         _logger.trace(" value[{}]: {}"_fmt, i, phi[i]);
 
       _phihat.push_back(phi);
@@ -490,8 +492,8 @@ public:
       auto it = _component_pattern.find(std::make_pair(comp_i, comp_j));
       return (it != _component_pattern.end());
     };
-    for (size_t i = 0; i < lfsv.size(); ++i)
-      for (size_t j = 0; j < lfsu.size(); ++j)
+    for (std::size_t i = 0; i < lfsv.size(); ++i)
+      for (std::size_t j = 0; j < lfsu.size(); ++j)
         if (do_link(i, j))
           pattern.addLink(lfsv, i, lfsu, j);
   }
@@ -522,15 +524,17 @@ public:
       RF factor = _rule[q].weight() * geo.integrationElement(position);
 
       // contribution for each component
-      for (int k = 0; k < _components; k++) // loop over components
+      for (std::size_t k = 0; k < _components; k++) // loop over components
       {
         // compute value of component
         double u = 0.0;
-        for (int j = 0; j < _basis_size; j++) // loop over ansatz functions
+        for (std::size_t j = 0; j < _basis_size;
+             j++) // loop over ansatz functions
           u += x_coeff(k, j) * _phihat[q][j];
 
         // reaction term
-        for (int i = 0; i < _basis_size; i++) // loop over test functions
+        for (std::size_t i = 0; i < _basis_size;
+             i++) // loop over test functions
           accumulate(k, i, u * _phihat[q][i] * factor);
       }
     }
@@ -571,9 +575,9 @@ public:
       RF factor = _rule[q].weight() * geo.integrationElement(position);
 
       // integrate mass matrix
-      for (int k = 0; k < _components; k++)
-        for (int i = 0; i < _basis_size; i++)
-          for (int j = 0; j < _basis_size; j++)
+      for (std::size_t k = 0; k < _components; k++)
+        for (std::size_t i = 0; i < _basis_size; i++)
+          for (std::size_t j = 0; j < _basis_size; j++)
             accumulate(k, i, k, j, _phihat[q][i] * _phihat[q][j] * factor);
     }
   }

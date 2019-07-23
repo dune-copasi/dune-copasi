@@ -22,19 +22,25 @@ public:
 
   DynamicPowerLocalFiniteElementMap(GridView grid_view,
                                     FiniteElementMap fem,
-                                    std::size_t power_size)
+                                    std::size_t power_size,
+                                    BaseFiniteElement base_finite_element)
     : _grid_view(grid_view)
     , _power_size(power_size)
     , _fem(fem)
     , _fe_cache(NULL)
-    , _fe_null(BaseFiniteElement{},
-               0) // Only works for default constructible base finite elements!
+    , _fe_null(base_finite_element, 0)
   {}
 
-  DynamicPowerLocalFiniteElementMap(GridView grid_view, std::size_t power_size)
+  template<
+    typename =
+      std::enable_if_t<std::is_default_constructible_v<BaseFiniteElement>, int>>
+  DynamicPowerLocalFiniteElementMap(GridView grid_view,
+                                    FiniteElementMap fem,
+                                    std::size_t power_size)
     : DynamicPowerLocalFiniteElementMap(grid_view,
-                                        FiniteElementMap{},
-                                        power_size)
+                                        fem,
+                                        power_size,
+                                        BaseFiniteElement{})
   {}
 
   ~DynamicPowerLocalFiniteElementMap() { delete _fe_cache; }
@@ -44,7 +50,6 @@ public:
   {
     if constexpr (Concept::isSubDomainGrid<typename GridView::Grid>()) {
       using SubDomainGrid = typename GridView::Grid;
-      using HostGrid = typename SubDomainGrid::HostGrid;
       using MultiDomainGrid = typename SubDomainGrid::MultiDomainGrid;
 
       constexpr int codim = EntityType::codimension;

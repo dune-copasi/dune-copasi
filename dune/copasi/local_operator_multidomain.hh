@@ -10,7 +10,7 @@
 
 namespace Dune::Copasi {
 
-template<class Grid, class LocalFiniteElement, int max_subdomains>
+template<class Grid, class LocalFiniteElement, std::size_t max_subdomains>
 class LocalOperatorMultiDomainDiffusionReaction
   : public Dune::PDELab::LocalOperatorDefaultFlags
   , public Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>
@@ -42,6 +42,8 @@ class LocalOperatorMultiDomainDiffusionReaction
   //! world dimension
   static constexpr int dim = LocalBasis::Traits::dimDomain;
 
+  static constexpr std::size_t unused_domain = ~std::size_t(0);
+
   using GridView = typename Grid::SubDomainGrid::LeafGridView;
   using BaseLOP = LocalOperatorDiffusionReaction<GridView, LocalFiniteElement>;
 
@@ -59,7 +61,7 @@ public:
   static constexpr bool doPatternVolume = true;
 
   //! pattern assembly flags
-  static constexpr bool doPatternSkeleton = true;
+  static constexpr bool doPatternSkeleton = false;
 
   //! visit skeleton from the two sides
   static constexpr bool doSkeletonTwoSided = true;
@@ -68,7 +70,7 @@ public:
   static constexpr bool doAlphaVolume = true;
 
   //! residual assembly flags
-  static constexpr bool doAlphaSkeleton = true;
+  static constexpr bool doAlphaSkeleton = false;
 
   LocalOperatorMultiDomainDiffusionReaction(
     std::shared_ptr<const Grid> grid,
@@ -77,11 +79,10 @@ public:
     : _basis_size(finite_element.localBasis().size())
   {
     const auto& compartements = config.sub("compartements").getValueKeys();
-    int size = compartements.size();
+    std::size_t size = compartements.size();
     // warning if size > max_subdomains
-    for (int i = 0; i < std::min(size, max_subdomains); ++i) {
+    for (std::size_t i = 0; i < std::min(size, max_subdomains); ++i) {
       const std::string compartement = compartements[i];
-      auto& model_config = config.sub(compartement);
 
       int sub_domain_id =
         config.sub("compartements").template get<int>(compartement);
@@ -116,7 +117,7 @@ public:
                       const LFSV& lfsv,
                       LocalPattern& pattern) const
   {
-    for (int i = 0; i < max_subdomains; ++i)
+    for (std::size_t i = 0; i < max_subdomains; ++i)
       _local_operator[i]->pattern_volume(lfsu.child(i), lfsv.child(i), pattern);
   }
 
@@ -128,7 +129,7 @@ public:
                         LocalPattern& pattern_io,
                         LocalPattern& pattern_oi) const
   {
-    std::size_t domain_i(-99), domain_o(-99);
+    std::size_t domain_i(unused_domain), domain_o(unused_domain);
     for (std::size_t k = 0; k < max_subdomains; k++) {
       if (lfsu_i.child(k).size() > 0)
         domain_i = k;
@@ -138,7 +139,7 @@ public:
 
     if (domain_i == domain_o)
       return;
-    if ((domain_i == -99) or (domain_o == -99))
+    if ((domain_i == unused_domain) or (domain_o == unused_domain))
       return;
 
     assert(lfsu_i.child(domain_i).size() == lfsv_i.child(domain_i).size());
@@ -176,17 +177,6 @@ public:
         }
       }
     }
-
-    // // TODO: Remove off diagonal on interdomain skeleton
-    // for (unsigned int i = 0; i < lfsv_i.child(domain_i).size(); ++i)
-    //   for (unsigned int j = 0; j < lfsu_o.child(domain_o).size(); ++j)
-    //     pattern_io.addLink(
-    //       lfsv_i.child(domain_i), i, lfsu_o.child(domain_o), j);
-
-    // for (unsigned int i = 0; i < lfsv_o.child(domain_o).size(); ++i)
-    //   for (unsigned int j = 0; j < lfsu_i.child(domain_i).size(); ++j)
-    //     pattern_oi.addLink(
-    //       lfsv_o.child(domain_o), i, lfsu_i.child(domain_i), j);
   }
 
   template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
@@ -197,7 +187,7 @@ public:
                              const LFSV& lfsv,
                              R& r) const
   {
-    for (int i = 0; i < max_subdomains; ++i) {
+    for (std::size_t i = 0; i < max_subdomains; ++i) {
       if (lfsu.child(i).size() > 0) {
         auto sub_lfsu = lfsu.child(i);
         auto sub_lfsv = lfsv.child(i);
@@ -217,7 +207,7 @@ public:
                        const LFSV& lfsv,
                        M& mat) const
   {
-    for (int i = 0; i < max_subdomains; ++i) {
+    for (std::size_t i = 0; i < max_subdomains; ++i) {
       if (lfsu.child(i).size() > 0) {
         auto sub_lfsu = lfsu.child(i);
         auto sub_lfsv = lfsv.child(i);
@@ -236,7 +226,7 @@ public:
                     R& r) const
   {
     // auto subdomain = eg.subDomain();
-    for (int i = 0; i < max_subdomains; ++i) {
+    for (std::size_t i = 0; i < max_subdomains; ++i) {
       if (lfsu.child(i).size() > 0) {
         auto sub_lfsu = lfsu.child(i);
         auto sub_lfsv = lfsv.child(i);
@@ -255,7 +245,7 @@ public:
                              const LFSV& lfsv,
                              R& r) const
   {
-    for (int i = 0; i < max_subdomains; ++i) {
+    for (std::size_t i = 0; i < max_subdomains; ++i) {
       if (lfsu.child(i).size() > 0) {
         auto sub_lfsu = lfsu.child(i);
         auto sub_lfsv = lfsv.child(i);
@@ -267,7 +257,6 @@ public:
   }
 
   // skeleton integral depending on test and ansatz functions
-  // each face is only visited ONCE!
   template<typename IG, typename LFSU, typename X, typename LFSV, typename R>
   void alpha_skeleton(const IG& ig,
                       const LFSU& lfsu_i,
@@ -282,8 +271,8 @@ public:
     const int dim = IG::Entity::dimension;
     const int order = 3;
 
-    std::size_t domain_i(-99), domain_o(-99);
-    for (int k = 0; k < max_subdomains; k++) {
+    std::size_t domain_i(unused_domain), domain_o(unused_domain);
+    for (std::size_t k = 0; k < max_subdomains; k++) {
       if (lfsu_i.child(k).size() > 0)
         domain_i = k;
       if (lfsu_o.child(k).size() > 0)
@@ -292,7 +281,7 @@ public:
 
     if (domain_i == domain_o)
       return;
-    if ((domain_i == -99) or (domain_o == -99))
+    if ((domain_i == unused_domain) or (domain_o == unused_domain))
       return;
 
     assert(lfsu_i.child(domain_i).size() == lfsv_i.child(domain_i).size());
@@ -386,7 +375,6 @@ public:
             accumulate_i(
               k, j, factor * (u_i[k] - u_o[it->second]) * phiu_i[count]);
         } else {
-          // TODO: set some dirichlet or neuman BC
           for (std::size_t j = 0; j < _basis_size; j++, count++)
             accumulate_i(k, j, 0.);
         }
@@ -402,7 +390,6 @@ public:
             accumulate_o(
               k, j, -factor * (u_i[it->second] - u_o[k]) * phiu_o[count]);
         } else {
-          // TODO: set some dirichlet or neuman BC
           for (std::size_t j = 0; j < _basis_size; j++, count++)
             accumulate_o(k, j, 0.);
         }
@@ -411,7 +398,7 @@ public:
   }
 };
 
-template<class Grid, class LocalFiniteElement, int max_subdomains>
+template<class Grid, class LocalFiniteElement, std::size_t max_subdomains>
 class TemporalLocalOperatorMultiDomainDiffusionReaction
   : public Dune::PDELab::LocalOperatorDefaultFlags
   , public Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>
@@ -437,11 +424,10 @@ public:
     const LocalFiniteElement& finite_element)
   {
     const auto& compartements = config.sub("compartements").getValueKeys();
-    int size = compartements.size();
-    // warning if size > max_subdomains
-    for (int i = 0; i < std::min(size, max_subdomains); ++i) {
+    std::size_t size = compartements.size();
+
+    for (std::size_t i = 0; i < std::min(size, max_subdomains); ++i) {
       const std::string compartement = compartements[i];
-      auto& model_config = config.sub(compartement);
 
       int sub_domain_id =
         config.sub("compartements").template get<int>(compartement);
@@ -459,7 +445,7 @@ public:
                       const LFSV& lfsv,
                       LocalPattern& pattern) const
   {
-    for (int i = 0; i < max_subdomains; ++i)
+    for (std::size_t i = 0; i < max_subdomains; ++i)
       _local_operator[i]->pattern_volume(lfsu.child(i), lfsv.child(i), pattern);
   }
 
@@ -470,7 +456,7 @@ public:
                     const LFSV& lfsv,
                     R& r) const
   {
-    for (int i = 0; i < max_subdomains; ++i) {
+    for (std::size_t i = 0; i < max_subdomains; ++i) {
       if (lfsu.child(i).size() > 0) {
         auto sub_lfsu = lfsu.child(i);
         auto sub_lfsv = lfsv.child(i);
@@ -488,7 +474,7 @@ public:
                        const LFSV& lfsv,
                        Mat& mat) const
   {
-    for (int i = 0; i < max_subdomains; ++i) {
+    for (std::size_t i = 0; i < max_subdomains; ++i) {
       if (lfsu.child(i).size() > 0) {
         auto sub_lfsu = lfsu.child(i);
         auto sub_lfsv = lfsv.child(i);
@@ -507,7 +493,7 @@ public:
                              const LFSV& lfsv,
                              R& r) const
   {
-    for (int i = 0; i < max_subdomains; ++i) {
+    for (std::size_t i = 0; i < max_subdomains; ++i) {
       if (lfsu.child(i).size() > 0) {
         auto sub_lfsu = lfsu.child(i);
         auto sub_lfsv = lfsv.child(i);
@@ -526,7 +512,7 @@ public:
                              const LFSV& lfsv,
                              R& r) const
   {
-    for (int i = 0; i < max_subdomains; ++i) {
+    for (std::size_t i = 0; i < max_subdomains; ++i) {
       if (lfsu.child(i).size() > 0) {
         auto sub_lfsu = lfsu.child(i);
         auto sub_lfsv = lfsv.child(i);

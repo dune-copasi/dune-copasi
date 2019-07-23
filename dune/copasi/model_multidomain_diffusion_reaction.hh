@@ -164,7 +164,7 @@ public:
 
     typename GFS::NodeStorage leaf_gfs;
 
-    for (int i = 0; i < max_subdomains; ++i) {
+    for (std::size_t i = 0; i < max_subdomains; ++i) {
       int components = 0;
       if (i < _size) {
         const std::string compartement = compartements[i];
@@ -202,7 +202,6 @@ public:
                  _constraints->size(),
                  _gfs->globalSize());
 
-    auto entity_it = _grid_view.template begin<0>();
     FE finite_element;
     assert(finite_element.size() > 0);
     _local_operator = std::make_shared<LOP>(_grid, _config, finite_element);
@@ -246,16 +245,10 @@ public:
 
     std::array<std::shared_ptr<GridFunction>, max_subdomains> functions;
 
-    for (int i = 0; i < _size; ++i) {
+    for (std::size_t i = 0; i < _size; ++i) {
       const std::string compartement = compartements[i];
-      auto& model_config = _config.sub(compartement);
-
-      int sub_domain_id =
-        _config.sub("compartements").template get<int>(compartement);
-      SubDomainGridView sub_grid_view =
-        _grid->subDomain(sub_domain_id).leafGridView();
-
       auto& intial_config = _config.sub(compartement + ".initial");
+
       functions[i] =
         std::make_shared<ExpressionToGridFunctionAdapter<GridView, RF>>(
           _grid_view, intial_config);
@@ -270,7 +263,7 @@ public:
       PDELab::vtk::DGFTreeCommonData<GFS, X, PDELab::vtk::DefaultPredicate>;
     std::shared_ptr<Data> data = std::make_shared<Data>(*_gfs, *_x);
 
-    for (int i = 0; i < _size; ++i) {
+    for (std::size_t i = 0; i < _size; ++i) {
       std::cout << "GFS size: " << _gfs->child(i).size() << std::endl;
       const std::string compartement = compartements[i];
       auto& model_config = _config.sub(compartement);
@@ -303,7 +296,7 @@ public:
       using LFS = PDELab::LocalFunctionSpace<GFS>;
       LFS lfs(*_gfs);
 
-      for (int j = 0; j < names.size(); ++j) {
+      for (std::size_t j = 0; j < names.size(); ++j) {
         using DGF = Dune::Copasi::DiscreteGridFunction<Data,
                                                        SubDomainGridView,
                                                        RF,
@@ -345,7 +338,7 @@ public:
     std::shared_ptr<Data> data = std::make_shared<Data>(*_gfs, *_x);
 
     const auto& compartements = _config.sub("compartements").getValueKeys();
-    for (int i = 0; i < _size; ++i) {
+    for (std::size_t i = 0; i < _size; ++i) {
       const std::string compartement = compartements[i];
       auto& model_config = _config.sub(compartement);
       auto& intial_config = model_config.sub("initial");
@@ -359,7 +352,7 @@ public:
       using LFS = PDELab::LocalFunctionSpace<GFS>;
       LFS lfs(*_gfs);
 
-      for (int j = 0; j < names.size(); ++j) {
+      for (std::size_t j = 0; j < names.size(); ++j) {
         using DGF = Dune::Copasi::DiscreteGridFunction<Data,
                                                        SubDomainGridView,
                                                        RF,

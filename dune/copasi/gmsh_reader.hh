@@ -19,9 +19,9 @@ class GmshReader<Dune::mdgrid::MultiDomainGrid<HostGrid, MDGTraits>>
 public:
   using Grid = Dune::mdgrid::MultiDomainGrid<HostGrid, MDGTraits>;
 
-  static std::pair<Grid*, HostGrid*> read(const std::string& fileName,
-                                          bool verbose = true,
-                                          bool insertBoundarySegments = true)
+  static auto read(const std::string& fileName,
+                   bool verbose = true,
+                   bool insertBoundarySegments = true)
   {
     // make a grid factory
     Dune::GridFactory<HostGrid> factory;
@@ -32,7 +32,7 @@ public:
 
     auto index_map = parser.elementIndexMap();
 
-    HostGrid* host_grid = factory.createGrid();
+    std::shared_ptr<HostGrid> host_grid = factory.createGrid();
 
     int max_subdomains = *std::max_element(index_map.begin(), index_map.end());
     MDGTraits* traits;
@@ -41,7 +41,7 @@ public:
     else
       traits = new MDGTraits(max_subdomains);
 
-    Grid* grid = new Grid(*host_grid, *traits);
+    std::shared_ptr<Grid> grid = std::make_shared<Grid>(*host_grid, *traits);
     delete traits;
 
     grid->startSubDomainMarking();

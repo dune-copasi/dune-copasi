@@ -51,12 +51,12 @@ int main(int argc, char** argv)
     using HostGrid = Dune::UGGrid<dim>;
     using MDGTraits = Dune::mdgrid::DynamicSubDomainCountTraits<dim,1>;
     using Grid = Dune::mdgrid::MultiDomainGrid<HostGrid,MDGTraits>;
-    using Domain = Dune::FieldVector<double,2>;
+    // using Domain = Dune::FieldVector<double,2>;
 
     auto& grid_config = config.sub("grid");
-    auto level = grid_config.get<int>("initial_level",0);
-    auto upper_right = grid_config.get<Domain>("extensions",{1.,1.});
-    auto elements = grid_config.get<std::array<unsigned int, 2>>("cells",{10,10});
+    // auto level = grid_config.get<int>("initial_level",0);
+    // auto upper_right = grid_config.get<Domain>("extensions",{1.,1.});
+    // auto elements = grid_config.get<std::array<unsigned int, 2>>("cells",{10,10});
 
     log.info("Creating a rectangular grid in {}D"_fmt, dim);
 
@@ -64,14 +64,11 @@ int main(int argc, char** argv)
 
     auto [grid_ptr,host_grid_ptr] = Dune::Copasi::GmshReader<Grid>::read(grid_file);
 
-    std::shared_ptr<HostGrid> host_grid(host_grid_ptr);
-    std::shared_ptr<Grid> grid(grid_ptr);
-
     // log.debug("Applying global refinement of level: {}"_fmt, level);
     // host_grid->globalRefine(level);
 
     auto& model_config = config.sub("model");
-    Dune::Copasi::ModelMultiDomainDiffusionReaction<Grid> model(grid,model_config);
+    Dune::Copasi::ModelMultiDomainDiffusionReaction<Grid> model(grid_ptr,model_config);
     model.run();
 
     return 0;

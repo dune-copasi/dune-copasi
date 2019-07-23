@@ -10,6 +10,8 @@ template<class F, class RF>
 class LocalInterpolationWrapper
 {
 public:
+  using Traits = typename F::Traits;
+
   LocalInterpolationWrapper(const F& f, std::size_t power_size)
     : _f(f)
     , _power_size(power_size)
@@ -72,43 +74,37 @@ public:
   void interpolate(const F& f, std::vector<C>& out) const
   {
     using RF = double;
-    constexpr int range_dim = 1;
+    // constexpr int range_dim = 1;
 
     out.clear();
 
     if (_power_size == 0)
       return;
 
-    // assume F is a dune-common function
-    if constexpr (std::is_same_v<typename F::RangeType,
-                                 FieldVector<RF, range_dim>>) {
-      _interpolation.interpolate(f, out);
-    } else if constexpr (std::is_same_v<typename F::RangeType,
-                                        DynamicVector<RF>>) {
-      // output iterator
-      auto out_it = out.begin();
+    static_assert(std::is_same_v<typename F::RangeType,
+                                        DynamicVector<RF>>);
 
-      // slice the output vector of f (dynamic) into an output vector
-      // (field vector) that the interpolator actually expects
-      LocalInterpolationWrapper<F, RF> wrapper(f, _power_size);
+    // output iterator
+    auto out_it = out.begin();
 
-      for (int i = 0; i < _power_size; ++i) {
-        std::vector<C> base_out;
+    // slice the output vector of f (dynamic) into an output vector
+    // (field vector) that the interpolator actually expects
+    LocalInterpolationWrapper<F, RF> wrapper(f, _power_size);
 
-        wrapper.bind(i);
+    for (std::size_t i = 0; i < _power_size; ++i) {
+      std::vector<C> base_out;
 
-        // evaluate component i
-        _interpolation.interpolate(wrapper, base_out);
+      wrapper.bind(i);
 
-        // copy result into the output container
-        out.resize(base_out.size() * _power_size);
-        std::copy(base_out.begin(), base_out.end(), out_it);
+      // evaluate component i
+      _interpolation.interpolate(wrapper, base_out);
 
-        // move output iterator to the next component to interpolate
-        std::advance(out_it, base_out.size());
-      }
-    } else {
-      static_assert(AlwaysTrue<F>::value, "Not known type");
+      // copy result into the output container
+      out.resize(base_out.size() * _power_size);
+      std::copy(base_out.begin(), base_out.end(), out_it);
+
+      // move output iterator to the next component to interpolate
+      std::advance(out_it, base_out.size());
     }
   }
 

@@ -101,120 +101,6 @@ private:
   const std::size_t _id_begin, _id_end;
 };
 
-// template<typename Data,
-//          typename GV = typename GFS::Traits::GridViewType,
-//          typename RF = typename BasisInterfaceSwitch<typename
-//          FiniteElementInterfaceSwitch<
-//           typename GFS::Traits::FiniteElementType>::Basis>::RangeField,
-//          int dimRange = BasisInterfaceSwitch<typename
-//          FiniteElementInterfaceSwitch<
-//           typename GFS::Traits::FiniteElementType>::Basis>::dimRange,
-//          typename Range = typename BasisInterfaceSwitch<typename
-//          FiniteElementInterfaceSwitch<
-//           typename GFS::Traits::FiniteElementType>::Basis>::Range>
-// class DiscreteGridFunction
-//   : public PDELab::GridFunctionBase<
-//       PDELab::GridFunctionTraits<
-//         GV,
-//         RF,
-//         dimRange,
-//         Range>,
-//       DiscreteGridFunction<Data,GV,RF,dimRange,Range>>
-// {
-//   typedef PDELab::GridFunctionBase<
-//     PDELab::GridFunctionTraits<GV,RF,dimRange,Range>,
-//     DiscreteGridFunction<Data,GV,RF,dimRange,Range>>
-//     BaseT;
-
-// public:
-//   typedef typename BaseT::Traits Traits;
-
-//   /** \brief Construct a DiscreteGridFunction
-//    *
-//    * \param gfs The GridFunctionsSpace
-//    * \param x_  The coefficients vector
-//    */
-//   DiscreteGridFunction(const Data& data,
-//                        GV grid_view,
-//                        std::size_t id_begin,
-//                        std::size_t id_end)
-//     : _grid_view(grid_view)
-//     , pgfs(stackobject_to_shared_ptr(gfs))
-//     , lfs(gfs)
-//     , lfs_cache(lfs)
-//     , x_view(x_)
-//     , xl(gfs.maxLocalSize())
-//     , yb(gfs.maxLocalSize())
-//     , _id_begin(id_begin)
-//     , _id_end(id_end)
-//   {}
-
-//   /** \brief Construct a DiscreteGridFunction
-//    *
-//    * \param gfs shared pointer to the GridFunctionsSpace
-//    * \param x_  shared pointer to the coefficients vector
-//    */
-//   DiscreteGridFunction(std::shared_ptr<const GFS> gfs,
-//                        std::shared_ptr<const X> x_,
-//                        GV grid_view,
-//                        std::size_t id_begin,
-//                        std::size_t id_end)
-//     : _grid_view(grid_view)
-//     , pgfs(gfs)
-//     , lfs(*gfs)
-//     , lfs_cache(lfs)
-//     , x_view(*x_)
-//     , xl(gfs->maxLocalSize())
-//     , yb(gfs->maxLocalSize())
-//     , px(x_) // FIXME: The LocalView should handle a shared_ptr correctly!
-//     , _id_begin(id_begin)
-//     , _id_end(id_end)
-//   {}
-
-//   // Evaluate
-//   inline void evaluate(const typename Traits::ElementType& e,
-//                        const typename Traits::DomainType& x,
-//                        typename Traits::RangeType& y) const
-//   {
-//     typedef FiniteElementInterfaceSwitch<
-//       typename
-//       Dune::PDELab::LocalFunctionSpace<GFS>::Traits::FiniteElementType>
-//       FESwitch;
-//     if constexpr (Concept::isSubDomainGrid<typename GV::Grid>())
-//       lfs.bind(_grid_view.grid().multiDomainGrid().multiDomainEntity(e));
-//     else
-//       lfs.bind(e);
-
-//     lfs_cache.update();
-//     x_view.bind(lfs_cache);
-//     x_view.read(xl);
-//     x_view.unbind();
-//     FESwitch::basis(lfs.finiteElement()).evaluateFunction(x, yb);
-//     y = 0;
-//     for (unsigned int i = _id_begin; i < _id_end; i++)
-//       y.axpy(xl[i], yb[i]);
-//   }
-
-//   //! get a reference to the GridView
-//   inline const typename Traits::GridViewType& getGridView() const
-//   {
-//     return _grid_view;
-//   }
-
-// private:
-
-//   GV _grid_view;
-//   std::shared_ptr<GFS const> pgfs;
-//   mutable LFS lfs;
-//   mutable LFSCache lfs_cache;
-//   mutable XView x_view;
-//   mutable std::vector<typename Traits::RangeFieldType> xl;
-//   mutable std::vector<typename Traits::RangeType> yb;
-//   std::shared_ptr<const X>
-//     px; // FIXME: dummy pointer to make sure we take ownership of X
-//   const std::size_t _id_begin, _id_end;
-// };
-
 /**
  * @brief      Converts PDELab grid function to match a dune-function.
  * @note       This adapter differs from the one provided in PDELab in that this
@@ -303,9 +189,6 @@ public:
     static_assert(std::is_same<typename GF::Traits::GridViewType, GV>::value,
                   "GridFunctionVTKSequenceWriter only works with only one "
                   "GridView type.");
-
-    using Range = typename GF::Traits::RangeType;
-    using RF = typename GF::Traits::RangeFieldType;
 
     VTKGridFunctionAdapter<GF> vtk_gf(gf_ptr);
 
