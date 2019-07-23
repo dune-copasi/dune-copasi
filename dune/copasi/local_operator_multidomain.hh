@@ -61,7 +61,7 @@ public:
   static constexpr bool doPatternVolume = true;
 
   //! pattern assembly flags
-  static constexpr bool doPatternSkeleton = false;
+  static constexpr bool doPatternSkeleton = true;
 
   //! visit skeleton from the two sides
   static constexpr bool doSkeletonTwoSided = true;
@@ -70,7 +70,7 @@ public:
   static constexpr bool doAlphaVolume = true;
 
   //! residual assembly flags
-  static constexpr bool doAlphaSkeleton = false;
+  static constexpr bool doAlphaSkeleton = true;
 
   LocalOperatorMultiDomainDiffusionReaction(
     std::shared_ptr<const Grid> grid,
@@ -268,9 +268,6 @@ public:
                       R& r_i,
                       R& r_o) const
   {
-    const int dim = IG::Entity::dimension;
-    const int order = 3;
-
     std::size_t domain_i(unused_domain), domain_o(unused_domain);
     for (std::size_t k = 0; k < max_subdomains; k++) {
       if (lfsu_i.child(k).size() > 0)
@@ -288,12 +285,8 @@ public:
     assert(lfsu_o.child(domain_o).size() == lfsv_o.child(domain_o).size());
 
     const auto& entity_f = ig.intersection();
-    const auto& entity_i = ig.inside();
-    const auto& entity_o = ig.outside();
 
     auto geo_f = entity_f.geometry();
-    auto geo_i = entity_i.geometry();
-    auto geo_o = entity_o.geometry();
     auto geo_in_i = entity_f.geometryInInside();
     auto geo_in_o = entity_f.geometryInOutside();
 
@@ -301,11 +294,6 @@ public:
       lfsu_i.child(domain_i).finiteElement().localBasis();
     const auto& lfsu_basis_o =
       lfsu_o.child(domain_o).finiteElement().localBasis();
-
-    const auto& lfsv_basis_i =
-      lfsv_i.child(domain_i).finiteElement().localBasis();
-    const auto& lfsv_basis_o =
-      lfsv_o.child(domain_o).finiteElement().localBasis();
 
     std::size_t components_i = lfsu_basis_i.size() / _basis_size;
     std::size_t components_o = lfsu_basis_o.size() / _basis_size;
@@ -338,9 +326,6 @@ public:
       // position of quadrature point in local coordinates of elements
       const auto position_i = geo_in_i.global(position_f);
       const auto position_o = geo_in_o.global(position_f);
-
-      // face normal vector
-      const auto normal_f = entity_f.unitOuterNormal(position_f);
 
       std::vector<Range> phiu_i(lfsu_i.size());
       std::vector<Range> phiu_o(lfsu_o.size());
