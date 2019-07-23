@@ -1,46 +1,12 @@
 #ifndef DUNE_COPASI_DYNAMIC_LOCAL_INTERPOLATION_HH
 #define DUNE_COPASI_DYNAMIC_LOCAL_INTERPOLATION_HH
 
+#include <dune/localfunctions/common/localinterpolation.hh>
+
 #include <dune/common/dynvector.hh>
 #include <dune/common/fvector.hh>
 
 namespace Dune::Copasi {
-
-template<class F, class RF>
-class LocalInterpolationWrapper
-{
-public:
-  using Traits = typename F::Traits;
-
-  LocalInterpolationWrapper(const F& f, std::size_t power_size)
-    : _f(f)
-    , _power_size(power_size)
-  {}
-
-  void bind(std::size_t i) { _i = i; }
-
-  template<class Domain, int dim>
-  void evaluate(const Domain& x, FieldVector<RF, dim>& base_y) const
-  {
-    // evaluate f using a dynamic vector
-    DynamicVector<RF> y(dim * _power_size);
-    _f.evaluate(x, y);
-
-    auto y_copy_begin = y.begin();
-    std::advance(y_copy_begin, _i * dim);
-
-    auto y_copy_end = y_copy_begin;
-    std::advance(y_copy_end, dim);
-
-    // copy sliced dynamic vector into a base output vector (e.g. field vector)
-    std::copy(y_copy_begin, y_copy_end, base_y.begin());
-  }
-
-private:
-  const F& _f;
-  const std::size_t _power_size;
-  std::size_t _i;
-};
 
 template<class Interpolation>
 class DynamicPowerLocalInterpolation
@@ -73,31 +39,32 @@ public:
   template<typename F, typename C>
   void interpolate(const F& f, std::vector<C>& out) const
   {
-    using RF = double;
-    // constexpr int range_dim = 1;
-
     out.clear();
 
     if (_power_size == 0)
       return;
 
     static_assert(std::is_same_v<typename F::RangeType,
-                                        DynamicVector<RF>>);
+                                        DynamicVector<double>>);
 
     // output iterator
     auto out_it = out.begin();
 
-    // slice the output vector of f (dynamic) into an output vector
-    // (field vector) that the interpolator actually expects
-    LocalInterpolationWrapper<F, RF> wrapper(f, _power_size);
+    // convert f in callable
+    auto&& callable = Impl::makeFunctionWithCallOperator<typename F::DomainType>(f);
 
     for (std::size_t i = 0; i < _power_size; ++i) {
+
       std::vector<C> base_out;
 
-      wrapper.bind(i);
+      // specializate callable for component i
+      auto callable_i = [&](typename F::DomainType x)
+      {
+        return callable(x)[i];
+      };
 
       // evaluate component i
-      _interpolation.interpolate(wrapper, base_out);
+      _interpolation.interpolate(callable_i, base_out);
 
       // copy result into the output container
       out.resize(base_out.size() * _power_size);
