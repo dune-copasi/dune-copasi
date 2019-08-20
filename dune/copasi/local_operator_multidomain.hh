@@ -10,14 +10,12 @@
 
 namespace Dune::Copasi {
 
-template<class Grid, class LocalFiniteElement, std::size_t max_subdomains>
+template<class Grid, class LocalFiniteElement>
 class LocalOperatorMultiDomainDiffusionReaction
   : public Dune::PDELab::LocalOperatorDefaultFlags
   , public Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>
   , public Dune::PDELab::NumericalJacobianSkeleton<
-      LocalOperatorMultiDomainDiffusionReaction<Grid,
-                                                LocalFiniteElement,
-                                                max_subdomains>>
+      LocalOperatorMultiDomainDiffusionReaction<Grid,LocalFiniteElement>>
 {
   static_assert(Concept::isMultiDomainGrid<Grid>());
 
@@ -47,27 +45,31 @@ class LocalOperatorMultiDomainDiffusionReaction
   using GridView = typename Grid::SubDomainGrid::LeafGridView;
   using BaseLOP = LocalOperatorDiffusionReaction<GridView, LocalFiniteElement>;
 
-  std::array<std::shared_ptr<BaseLOP>, max_subdomains> _local_operator;
-
-  std::array<std::vector<std::string>, max_subdomains> _component_name;
-
-  std::map<std::array<std::size_t, 3>, std::size_t> _component_offset;
-
   //! number of basis per component
   const std::size_t _basis_size;
 
-public:
-  //! pattern assembly flags
-  static constexpr bool doPatternVolume = true;
+  const std::size_t _size;
 
-  //! pattern assembly flags
-  static constexpr bool doPatternSkeleton = true;
+  std::vector<std::shared_ptr<BaseLOP>> _local_operator;
+
+  std::vector<std::vector<std::string>> _component_name;
+
+  std::map<std::array<std::size_t, 3>, std::size_t> _component_offset;
+
+
+public:
 
   //! visit skeleton from the two sides
   static constexpr bool doSkeletonTwoSided = true;
 
+  //! pattern assembly flags
+  static constexpr bool doPatternVolume = BaseLOP::doPatternVolume;
+
+  //! pattern assembly flags
+  static constexpr bool doPatternSkeleton = true;
+
   //! residual assembly flags
-  static constexpr bool doAlphaVolume = true;
+  static constexpr bool doAlphaVolume = BaseLOP::doAlphaVolume;
 
   //! residual assembly flags
   static constexpr bool doAlphaSkeleton = true;
@@ -77,11 +79,13 @@ public:
     const ParameterTree& config,
     const LocalFiniteElement& finite_element)
     : _basis_size(finite_element.localBasis().size())
+    , _size(config.sub("compartements").getValueKeys().size())
+    , _local_operator(_size)
+    , _component_name(_size)
   {
     const auto& compartements = config.sub("compartements").getValueKeys();
-    std::size_t size = compartements.size();
-    // warning if size > max_subdomains
-    for (std::size_t i = 0; i < std::min(size, max_subdomains); ++i) {
+    // warning if size > _size
+    for (std::size_t i = 0; i < _size; ++i) {
       const std::string compartement = compartements[i];
 
       int sub_domain_id =
@@ -97,9 +101,9 @@ public:
       std::sort(_component_name[i].begin(), _component_name[i].end());
     }
 
-    for (std::size_t i = 0; i < std::min(size, max_subdomains); ++i) {
+    for (std::size_t i = 0; i < _size; ++i) {
       for (std::size_t j = 0; j < _component_name[i].size(); j++) {
-        for (std::size_t k = 0; k < std::min(size, max_subdomains); ++k) {
+        for (std::size_t k = 0; k < _size; ++k) {
           for (std::size_t l = 0; l < _component_name[k].size(); l++) {
             if (_component_name[i][j] == _component_name[k][l]) {
               std::array<std::size_t, 3> inside_comp{ i, k, j };
@@ -117,7 +121,7 @@ public:
                       const LFSV& lfsv,
                       LocalPattern& pattern) const
   {
-    for (std::size_t i = 0; i < max_subdomains; ++i)
+    for (std::size_t i = 0; i < lfsu.degree(); ++i)
       _local_operator[i]->pattern_volume(lfsu.child(i), lfsv.child(i), pattern);
   }
 
@@ -130,7 +134,7 @@ public:
                         LocalPattern& pattern_oi) const
   {
     std::size_t domain_i(unused_domain), domain_o(unused_domain);
-    for (std::size_t k = 0; k < max_subdomains; k++) {
+    for (std::size_t k = 0; k < _size; k++) {
       if (lfsu_i.child(k).size() > 0)
         domain_i = k;
       if (lfsu_o.child(k).size() > 0)
@@ -142,39 +146,38 @@ public:
     if ((domain_i == unused_domain) or (domain_o == unused_domain))
       return;
 
-    assert(lfsu_i.child(domain_i).size() == lfsv_i.child(domain_i).size());
-    assert(lfsu_o.child(domain_o).size() == lfsv_o.child(domain_o).size());
+    assert(lfsu_i.degree() == _size);
+    assert(lfsu_i.child(domain_i).degree() == lfsv_i.child(domain_i).degree());
+    assert(lfsu_o.child(domain_o).degree() == lfsv_o.child(domain_o).degree());
 
-    auto comp_size_i = lfsu_i.child(domain_i).size() / _basis_size;
-    auto comp_size_o = lfsu_o.child(domain_o).size() / _basis_size;
+    auto comp_size_i = lfsu_i.child(domain_i).degree();
+    auto comp_size_o = lfsu_o.child(domain_o).degree();
 
-    for (std::size_t i = 0; i < comp_size_i; ++i) {
-      std::array<std::size_t, 3> inside_comp{ domain_i, domain_o, i };
+    for (std::size_t comp_i = 0; comp_i < comp_size_i; ++comp_i) {
+      std::array<std::size_t, 3> inside_comp{ domain_i, domain_o, comp_i };
       auto it = _component_offset.find(inside_comp);
       if (it != _component_offset.end()) {
-        for (std::size_t j = 0; j < _basis_size; j++) {
-          for (std::size_t k = 0; k < _basis_size; k++) {
-            auto dof_i = i * _basis_size + j;
-            auto dof_o = it->second * _basis_size + k;
-            pattern_io.addLink(
-              lfsv_i.child(domain_i), dof_i, lfsu_o.child(domain_o), dof_o);
+        auto comp_o = it->second;
+        auto lfsv_ci = lfsv_i.child(domain_i).child(comp_i);
+        auto lfsu_co = lfsu_o.child(domain_o).child(comp_o);
+        for (std::size_t dof_i = 0; dof_i < lfsv_ci.size(); dof_i++)
+          for (std::size_t dof_o = 0; dof_o < lfsu_co.size(); dof_o++)
+          {
+            pattern_io.addLink(lfsv_ci, dof_i, lfsu_co, dof_o);
           }
-        }
       }
     }
 
-    for (std::size_t o = 0; o < comp_size_o; ++o) {
-      std::array<std::size_t, 3> outside_comp{ domain_o, domain_i, o };
+    for (std::size_t comp_o = 0; comp_o < comp_size_o; ++comp_o) {
+      std::array<std::size_t, 3> outside_comp{ domain_o, domain_i, comp_o };
       auto it = _component_offset.find(outside_comp);
       if (it != _component_offset.end()) {
-        for (std::size_t j = 0; j < _basis_size; j++) {
-          for (std::size_t k = 0; k < _basis_size; k++) {
-            auto dof_o = o * _basis_size + j;
-            auto dof_i = it->second * _basis_size + k;
-            pattern_oi.addLink(
-              lfsv_o.child(domain_o), dof_o, lfsu_i.child(domain_i), dof_i);
-          }
-        }
+        auto comp_i = it->second;
+        auto lfsv_co = lfsv_o.child(domain_o).child(comp_o);
+        auto lfsu_ci = lfsu_i.child(domain_i).child(comp_i);
+        for (std::size_t dof_o = 0; dof_o < lfsv_co.size(); dof_o++)
+          for (std::size_t dof_i = 0; dof_i < lfsu_ci.size(); dof_i++)
+            pattern_oi.addLink(lfsv_co, dof_o, lfsu_ci, dof_i);
       }
     }
   }
@@ -187,7 +190,7 @@ public:
                              const LFSV& lfsv,
                              R& r) const
   {
-    for (std::size_t i = 0; i < max_subdomains; ++i) {
+    for (std::size_t i = 0; i < _size; ++i) {
       if (lfsu.child(i).size() > 0) {
         auto sub_lfsu = lfsu.child(i);
         auto sub_lfsv = lfsv.child(i);
@@ -207,7 +210,7 @@ public:
                        const LFSV& lfsv,
                        M& mat) const
   {
-    for (std::size_t i = 0; i < max_subdomains; ++i) {
+    for (std::size_t i = 0; i < _size; ++i) {
       if (lfsu.child(i).size() > 0) {
         auto sub_lfsu = lfsu.child(i);
         auto sub_lfsv = lfsv.child(i);
@@ -226,7 +229,7 @@ public:
                     R& r) const
   {
     // auto subdomain = eg.subDomain();
-    for (std::size_t i = 0; i < max_subdomains; ++i) {
+    for (std::size_t i = 0; i < _size; ++i) {
       if (lfsu.child(i).size() > 0) {
         auto sub_lfsu = lfsu.child(i);
         auto sub_lfsv = lfsv.child(i);
@@ -245,7 +248,7 @@ public:
                              const LFSV& lfsv,
                              R& r) const
   {
-    for (std::size_t i = 0; i < max_subdomains; ++i) {
+    for (std::size_t i = 0; i < _size; ++i) {
       if (lfsu.child(i).size() > 0) {
         auto sub_lfsu = lfsu.child(i);
         auto sub_lfsv = lfsv.child(i);
@@ -269,7 +272,7 @@ public:
                       R& r_o) const
   {
     std::size_t domain_i(unused_domain), domain_o(unused_domain);
-    for (std::size_t k = 0; k < max_subdomains; k++) {
+    for (std::size_t k = 0; k < _size; k++) {
       if (lfsu_i.child(k).size() > 0)
         domain_i = k;
       if (lfsu_o.child(k).size() > 0)
@@ -281,6 +284,7 @@ public:
     if ((domain_i == unused_domain) or (domain_o == unused_domain))
       return;
 
+    assert(lfsu_i.degree() == _size);
     assert(lfsu_i.child(domain_i).size() == lfsv_i.child(domain_i).size());
     assert(lfsu_o.child(domain_o).size() == lfsv_o.child(domain_o).size());
 
@@ -290,33 +294,34 @@ public:
     auto geo_in_i = entity_f.geometryInInside();
     auto geo_in_o = entity_f.geometryInOutside();
 
-    const auto& lfsu_basis_i =
-      lfsu_i.child(domain_i).finiteElement().localBasis();
-    const auto& lfsu_basis_o =
-      lfsu_o.child(domain_o).finiteElement().localBasis();
+    const auto& lfsu_di = lfsu_i.child(domain_i);
+    const auto& lfsu_do = lfsu_o.child(domain_o);
 
-    std::size_t components_i = lfsu_basis_i.size() / _basis_size;
-    std::size_t components_o = lfsu_basis_o.size() / _basis_size;
+    std::size_t components_i = lfsu_di.degree();
+    std::size_t components_o = lfsu_do.degree();
+
+    auto lfsu_basis_i = lfsu_di.child(0).finiteElement().localBasis();
+    auto lfsu_basis_o = lfsu_do.child(0).finiteElement().localBasis();
 
     auto x_coeff_i = [&](const std::size_t& component, const std::size_t& dof) {
-      return x_i(lfsu_i.child(domain_i), component * _basis_size + dof);
+      return x_i(lfsu_di.child(component), dof);
     };
     auto x_coeff_o = [&](const std::size_t& component, const std::size_t& dof) {
-      return x_o(lfsu_o.child(domain_o), component * _basis_size + dof);
+      return x_o(lfsu_do.child(component), dof);
     };
 
     auto accumulate_i = [&](const std::size_t& component,
                             const std::size_t& dof,
                             const auto& value) {
       r_i.accumulate(
-        lfsu_i.child(domain_i), component * _basis_size + dof, value);
+        lfsu_di.child(component), dof, value);
     };
 
     auto accumulate_o = [&](const std::size_t& component,
                             const std::size_t& dof,
                             const auto& value) {
       r_o.accumulate(
-        lfsu_o.child(domain_o), component * _basis_size + dof, value);
+        lfsu_do.child(component), dof, value);
     };
 
     typename IG::Entity::Geometry::JacobianInverseTransposed jac;
@@ -337,53 +342,43 @@ public:
       // evaluate concentrations at quadrature point
       DynamicVector<RF> u_i(components_i), u_o(components_o);
 
-      int count = 0;
       for (std::size_t k = 0; k < components_i; k++) // loop over components
-        for (std::size_t j = 0; j < _basis_size; j++, count++)
-          u_i[k] += x_coeff_i(k, j) * phiu_i[count];
+        for (std::size_t j = 0; j < lfsu_di.child(k).size(); j++)
+          u_i[k] += x_coeff_i(k, j) * phiu_i[j];
 
-      count = 0;
       for (std::size_t k = 0; k < components_o; k++) // loop over components
-        for (std::size_t j = 0; j < _basis_size; j++, count++)
-          u_o[k] += x_coeff_o(k, j) * phiu_o[count];
+        for (std::size_t j = 0; j < lfsu_do.child(k).size(); j++)
+          u_o[k] += x_coeff_o(k, j) * phiu_o[j];
 
       // integration factor
       auto factor = it.weight() * geo_f.integrationElement(position_f);
 
-      count = 0;
       for (std::size_t k = 0; k < components_i; k++) // loop over components
       {
         std::array<std::size_t, 3> inside_comp{ domain_i, domain_o, k };
         auto it = _component_offset.find(inside_comp);
         if (it != _component_offset.end()) {
-          for (std::size_t j = 0; j < _basis_size; j++, count++)
+          for (std::size_t j = 0; j < lfsu_di.child(k).size(); j++)
             accumulate_i(
-              k, j, factor * (u_i[k] - u_o[it->second]) * phiu_i[count]);
-        } else {
-          for (std::size_t j = 0; j < _basis_size; j++, count++)
-            accumulate_i(k, j, 0.);
+              k, j, factor * (u_i[k] - u_o[it->second]) * phiu_i[j]);
         }
       }
 
-      count = 0;
       for (std::size_t k = 0; k < components_o; k++) // loop over components
       {
         std::array<std::size_t, 3> outside_comp{ domain_o, domain_i, k };
         auto it = _component_offset.find(outside_comp);
         if (it != _component_offset.end()) {
-          for (std::size_t j = 0; j < _basis_size; j++, count++)
+          for (std::size_t j = 0; j < lfsu_do.child(k).size(); j++)
             accumulate_o(
-              k, j, -factor * (u_i[it->second] - u_o[k]) * phiu_o[count]);
-        } else {
-          for (std::size_t j = 0; j < _basis_size; j++, count++)
-            accumulate_o(k, j, 0.);
+              k, j, -factor * (u_i[it->second] - u_o[k]) * phiu_o[j]);
         }
       }
     }
   }
 };
 
-template<class Grid, class LocalFiniteElement, std::size_t max_subdomains>
+template<class Grid, class LocalFiniteElement>
 class TemporalLocalOperatorMultiDomainDiffusionReaction
   : public Dune::PDELab::LocalOperatorDefaultFlags
   , public Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>
@@ -394,7 +389,10 @@ class TemporalLocalOperatorMultiDomainDiffusionReaction
   using BaseLOP =
     TemporalLocalOperatorDiffusionReaction<GridView, LocalFiniteElement>;
 
-  std::array<std::shared_ptr<BaseLOP>, max_subdomains> _local_operator;
+  std::size_t _size;
+
+  std::vector<std::shared_ptr<BaseLOP>> _local_operator;
+
 
 public:
   //! pattern assembly flags
@@ -407,11 +405,12 @@ public:
     std::shared_ptr<const Grid> grid,
     const ParameterTree& config,
     const LocalFiniteElement& finite_element)
+  : _size(config.sub("compartements").getValueKeys().size())
+  , _local_operator(_size)
   {
     const auto& compartements = config.sub("compartements").getValueKeys();
-    std::size_t size = compartements.size();
 
-    for (std::size_t i = 0; i < std::min(size, max_subdomains); ++i) {
+    for (std::size_t i = 0; i < _size; ++i) {
       const std::string compartement = compartements[i];
 
       int sub_domain_id =
@@ -430,7 +429,7 @@ public:
                       const LFSV& lfsv,
                       LocalPattern& pattern) const
   {
-    for (std::size_t i = 0; i < max_subdomains; ++i)
+    for (std::size_t i = 0; i < _size; ++i)
       _local_operator[i]->pattern_volume(lfsu.child(i), lfsv.child(i), pattern);
   }
 
@@ -441,7 +440,7 @@ public:
                     const LFSV& lfsv,
                     R& r) const
   {
-    for (std::size_t i = 0; i < max_subdomains; ++i) {
+    for (std::size_t i = 0; i < _size; ++i) {
       if (lfsu.child(i).size() > 0) {
         auto sub_lfsu = lfsu.child(i);
         auto sub_lfsv = lfsv.child(i);
@@ -459,7 +458,7 @@ public:
                        const LFSV& lfsv,
                        Mat& mat) const
   {
-    for (std::size_t i = 0; i < max_subdomains; ++i) {
+    for (std::size_t i = 0; i < _size; ++i) {
       if (lfsu.child(i).size() > 0) {
         auto sub_lfsu = lfsu.child(i);
         auto sub_lfsv = lfsv.child(i);
@@ -478,7 +477,7 @@ public:
                              const LFSV& lfsv,
                              R& r) const
   {
-    for (std::size_t i = 0; i < max_subdomains; ++i) {
+    for (std::size_t i = 0; i < _size; ++i) {
       if (lfsu.child(i).size() > 0) {
         auto sub_lfsu = lfsu.child(i);
         auto sub_lfsv = lfsv.child(i);
@@ -497,7 +496,7 @@ public:
                              const LFSV& lfsv,
                              R& r) const
   {
-    for (std::size_t i = 0; i < max_subdomains; ++i) {
+    for (std::size_t i = 0; i < _size; ++i) {
       if (lfsu.child(i).size() > 0) {
         auto sub_lfsu = lfsu.child(i);
         auto sub_lfsv = lfsv.child(i);
