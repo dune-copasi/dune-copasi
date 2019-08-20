@@ -1,5 +1,5 @@
-#ifndef DUNE_COPASI_DYNAMIC_LOCAL_FINITE_ELEMENT_MAP_HH
-#define DUNE_COPASI_DYNAMIC_LOCAL_FINITE_ELEMENT_MAP_HH
+#ifndef DUNE_COPASI_MULTIDOMAIN_LOCAL_FINITE_ELEMENT_MAP_HH
+#define DUNE_COPASI_MULTIDOMAIN_LOCAL_FINITE_ELEMENT_MAP_HH
 
 #include <dune/pdelab/finiteelementmap/finiteelementmap.hh>
 
@@ -8,11 +8,11 @@
 namespace Dune::Copasi {
 
 template<class FiniteElementMap, class GridView>
-class DynamicPowerLocalFiniteElementMap
+class MultiDomainLocalFiniteElementMap
   : public PDELab::LocalFiniteElementMapInterface<
       PDELab::LocalFiniteElementMapTraits<DynamicPowerLocalFiniteElement<
         typename FiniteElementMap::Traits::FiniteElement>>,
-      DynamicPowerLocalFiniteElementMap<FiniteElementMap, GridView>>
+      MultiDomainLocalFiniteElementMap<FiniteElementMap, GridView>>
 {
   using BaseFiniteElement = typename FiniteElementMap::Traits::FiniteElement;
   using FiniteElement = DynamicPowerLocalFiniteElement<BaseFiniteElement>;
@@ -20,10 +20,10 @@ class DynamicPowerLocalFiniteElementMap
 public:
   static const int dimension = FiniteElementMap::dimension;
 
-  DynamicPowerLocalFiniteElementMap(GridView grid_view,
+  MultiDomainLocalFiniteElementMap(GridView grid_view,
                                     FiniteElementMap fem,
-                                    std::size_t power_size,
-                                    BaseFiniteElement base_finite_element)
+                                    BaseFiniteElement base_finite_element,
+                                    std::size_t power_size = 1)
     : _grid_view(grid_view)
     , _power_size(power_size)
     , _fem(fem)
@@ -34,16 +34,16 @@ public:
   template<
     typename =
       std::enable_if_t<std::is_default_constructible_v<BaseFiniteElement>, int>>
-  DynamicPowerLocalFiniteElementMap(GridView grid_view,
+  MultiDomainLocalFiniteElementMap(GridView grid_view,
                                     FiniteElementMap fem,
-                                    std::size_t power_size)
-    : DynamicPowerLocalFiniteElementMap(grid_view,
+                                    std::size_t power_size = 1)
+    : MultiDomainLocalFiniteElementMap(grid_view,
                                         fem,
-                                        power_size,
-                                        BaseFiniteElement{})
+                                        BaseFiniteElement{},
+                                        power_size)
   {}
 
-  ~DynamicPowerLocalFiniteElementMap() { delete _fe_cache; }
+  ~MultiDomainLocalFiniteElementMap() { delete _fe_cache; }
 
   template<class EntityType>
   const FiniteElement& find(const EntityType& e) const
@@ -105,4 +105,4 @@ private:
 
 } // namespace Dune::Copasi
 
-#endif // DUNE_COPASI_DYNAMIC_LOCAL_FINITE_ELEMENT_MAP_HH
+#endif // DUNE_COPASI_MULTIDOMAIN_LOCAL_FINITE_ELEMENT_MAP_HH
