@@ -25,7 +25,6 @@ dune_enable_all_packages()
  # Always activate tests for now
  set(DUNE_COPASI_TESTS ON)
 
-add_subdirectory(python)
 add_subdirectory(src)
 add_subdirectory(dune)
 add_subdirectory(doc)
