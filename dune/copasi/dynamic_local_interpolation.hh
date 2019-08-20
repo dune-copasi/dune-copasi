@@ -44,35 +44,43 @@ public:
     if (_power_size == 0)
       return;
 
-    static_assert(std::is_same_v<typename F::RangeType,
-                                        DynamicVector<double>>);
+    if constexpr (std::is_same_v<typename F::RangeType,
+                                        FieldVector<double,1>>)
+    {
+       _interpolation.interpolate(f, out);
+    }  
+    else if constexpr (std::is_same_v<typename F::RangeType,
+                                        DynamicVector<double>>) 
+    {
+      // output iterator
+      auto out_it = out.begin();
 
-    // output iterator
-    auto out_it = out.begin();
+      // convert f in callable
+      auto&& callable = Impl::makeFunctionWithCallOperator<typename F::DomainType>(f);
 
-    // convert f in callable
-    auto&& callable = Impl::makeFunctionWithCallOperator<typename F::DomainType>(f);
+      for (std::size_t i = 0; i < _power_size; ++i) {
 
-    for (std::size_t i = 0; i < _power_size; ++i) {
+        std::vector<C> base_out;
 
-      std::vector<C> base_out;
+        // specializate callable for component i
+        auto callable_i = [&](typename F::DomainType x)
+        {
+          return callable(x)[i];
+        };
 
-      // specializate callable for component i
-      auto callable_i = [&](typename F::DomainType x)
-      {
-        return callable(x)[i];
-      };
+        // evaluate component i
+        _interpolation.interpolate(callable_i, base_out);
 
-      // evaluate component i
-      _interpolation.interpolate(callable_i, base_out);
+        // copy result into the output container
+        out.resize(base_out.size() * _power_size);
+        std::copy(base_out.begin(), base_out.end(), out_it);
 
-      // copy result into the output container
-      out.resize(base_out.size() * _power_size);
-      std::copy(base_out.begin(), base_out.end(), out_it);
-
-      // move output iterator to the next component to interpolate
-      std::advance(out_it, base_out.size());
+        // move output iterator to the next component to interpolate
+        std::advance(out_it, base_out.size());
+      }
     }
+    else 
+      static_assert(AlwaysTrue<C>::value);
   }
 
 private:
