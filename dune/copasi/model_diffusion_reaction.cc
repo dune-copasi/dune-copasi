@@ -49,25 +49,12 @@ ModelDiffusionReaction<Grid, GridView>::ModelDiffusionReaction(
 
   auto names = intial_config.getValueKeys();
   _sequential_writer = std::make_shared<SW>(_writer, filename, filename, "");
-  // add data field for all components of the space to the VTK writer
 
-  using Data =
-    PDELab::vtk::DGFTreeCommonData<GFS, X, PDELab::vtk::DefaultPredicate>;
-  std::shared_ptr<Data> data = std::make_shared<Data>(*_gfs, *_x);
-  for (int i = 0; i < names.size(); ++i) {
-    using LFS = PDELab::LocalFunctionSpace<GFS>;
-    LFS lfs(*_gfs);
-    using DGF = Dune::Copasi::DiscreteGridFunction<Data>;
 
-    auto dgf = std::make_shared<const DGF>(lfs,
-                                           data,
-                                           _grid_view,
-                                           i * _dof_per_component,
-                                           (i + 1) * _dof_per_component);
-    // _sequential_writer->addVertexData(dgf, names[i]);
-  }
+  PDELab::addSolutionToVTKWriter(*_sequential_writer,*_gfs,*_x);
   _sequential_writer->write(current_time(), Dune::VTK::appendedraw);
   _sequential_writer->vtkWriter()->clear();
+
 
   _logger.debug("ModelDiffusionReaction constructed"_fmt);
 }
@@ -92,15 +79,19 @@ ModelDiffusionReaction<Grid, GridView>::step()
   _x = x_new;
   current_time() += dt;
 
-  auto names = _config.sub("initial").getValueKeys();
-  for (int i = 0; i < names.size(); ++i) {
-    // auto dgf = std::make_shared<const DGF>(_gfs,
-    //                                        _x,
-    //                                        _grid_view,
-    //                                        i * _dof_per_component,
-    //                                        (i + 1) * _dof_per_component);
-    // _sequential_writer->addVertexData(dgf, names[i]);
-  }
+  // auto names = _config.sub("initial").getValueKeys();
+  // for (int i = 0; i < names.size(); ++i) {
+  //   // auto dgf = std::make_shared<const DGF>(_gfs,
+  //   //                                        _x,
+  //   //                                        _grid_view,
+  //   //                                        i * _dof_per_component,
+  //   //                                        (i + 1) * _dof_per_component);
+  //   // _sequential_writer->addVertexData(dgf, names[i]);
+  // }
+  // _sequential_writer->write(current_time(), Dune::VTK::appendedraw);
+  // _sequential_writer->vtkWriter()->clear();
+
+  PDELab::addSolutionToVTKWriter(*_sequential_writer,*_gfs,*_x);
   _sequential_writer->write(current_time(), Dune::VTK::appendedraw);
   _sequential_writer->vtkWriter()->clear();
 }
