@@ -18,11 +18,11 @@ namespace Dune::Copasi {
 template<typename GV, typename RF>
 class ExpressionToGridFunctionAdapter
   : public PDELab::GridFunctionBase<
-      PDELab::GridFunctionTraits<GV, RF, 1, FieldVector<RF,1>>,
+      PDELab::GridFunctionTraits<GV, RF, 1, FieldVector<RF, 1>>,
       ExpressionToGridFunctionAdapter<GV, RF>>
 {
 public:
-  using Traits = PDELab::GridFunctionTraits<GV, RF, 1, FieldVector<RF,1>>;
+  using Traits = PDELab::GridFunctionTraits<GV, RF, 1, FieldVector<RF, 1>>;
 
   //! construct from grid view
   ExpressionToGridFunctionAdapter(const GV& grid_view,
@@ -34,8 +34,8 @@ public:
   {
 
     constexpr int dim = Traits::dimDomain;
-    
-    std::sort(other_variables.begin(),other_variables.end());
+
+    std::sort(other_variables.begin(), other_variables.end());
 
     _logger.trace("initialize parser with constant variables"_fmt);
     _parser.DefineConst("pi", StandardMathematicalConstants<double>::pi());
@@ -48,8 +48,7 @@ public:
 
     // set up parser expression
     try {
-      for (size_t i = 0; i < other_variables.size(); i++)
-      {
+      for (size_t i = 0; i < other_variables.size(); i++) {
         _logger.trace("define extra variable: {}"_fmt, other_variables[i]);
         _parser.DefineVar(other_variables[i], &_other_value[i]);
       }
@@ -74,16 +73,14 @@ public:
 
   //! evaluate extended function on element
   template<class E, class D, class R>
-  void evaluate(const E& e,
-                const D& x,
-                R& y) const
+  void evaluate(const E& e, const D& x, R& y) const
   {
     // update position storage
     _pos_global = e.geometry().global(x);
 
     // evaluate the expression (with new position)
     try {
-        y = _parser.Eval();
+      y = _parser.Eval();
     } catch (mu::Parser::exception_type& e) {
       handle_parser_error(e);
     }

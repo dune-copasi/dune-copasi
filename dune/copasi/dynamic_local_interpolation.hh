@@ -45,26 +45,23 @@ public:
       return;
 
     if constexpr (std::is_same_v<typename F::RangeType,
-                                        FieldVector<double,1>>)
-    {
-       _interpolation.interpolate(f, out);
-    }  
-    else if constexpr (std::is_same_v<typename F::RangeType,
-                                        DynamicVector<double>>) 
-    {
+                                 FieldVector<double, 1>>) {
+      _interpolation.interpolate(f, out);
+    } else if constexpr (std::is_same_v<typename F::RangeType,
+                                        DynamicVector<double>>) {
       // output iterator
       auto out_it = out.begin();
 
       // convert f in callable
-      auto&& callable = Impl::makeFunctionWithCallOperator<typename F::DomainType>(f);
+      auto&& callable =
+        Impl::makeFunctionWithCallOperator<typename F::DomainType>(f);
 
       for (std::size_t i = 0; i < _power_size; ++i) {
 
         std::vector<C> base_out;
 
         // specializate callable for component i
-        auto callable_i = [&](typename F::DomainType x)
-        {
+        auto callable_i = [&](typename F::DomainType x) {
           return callable(x)[i];
         };
 
@@ -78,8 +75,7 @@ public:
         // move output iterator to the next component to interpolate
         std::advance(out_it, base_out.size());
       }
-    }
-    else 
+    } else
       static_assert(AlwaysTrue<C>::value);
   }
 

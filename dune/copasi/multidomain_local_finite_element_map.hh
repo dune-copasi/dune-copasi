@@ -21,9 +21,9 @@ public:
   static const int dimension = FiniteElementMap::dimension;
 
   MultiDomainLocalFiniteElementMap(GridView grid_view,
-                                    FiniteElementMap fem,
-                                    BaseFiniteElement base_finite_element,
-                                    std::size_t power_size = 1)
+                                   FiniteElementMap fem,
+                                   BaseFiniteElement base_finite_element,
+                                   std::size_t power_size = 1)
     : _grid_view(grid_view)
     , _power_size(power_size)
     , _fem(fem)
@@ -35,12 +35,12 @@ public:
     typename =
       std::enable_if_t<std::is_default_constructible_v<BaseFiniteElement>, int>>
   MultiDomainLocalFiniteElementMap(GridView grid_view,
-                                    FiniteElementMap fem,
-                                    std::size_t power_size = 1)
+                                   FiniteElementMap fem,
+                                   std::size_t power_size = 1)
     : MultiDomainLocalFiniteElementMap(grid_view,
-                                        fem,
-                                        BaseFiniteElement{},
-                                        power_size)
+                                       fem,
+                                       BaseFiniteElement{},
+                                       power_size)
   {}
 
   ~MultiDomainLocalFiniteElementMap() { delete _fe_cache; }

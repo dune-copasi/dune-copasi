@@ -15,7 +15,7 @@ class LocalOperatorMultiDomainDiffusionReaction
   : public Dune::PDELab::LocalOperatorDefaultFlags
   , public Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>
   , public Dune::PDELab::NumericalJacobianSkeleton<
-      LocalOperatorMultiDomainDiffusionReaction<Grid,LocalFiniteElement>>
+      LocalOperatorMultiDomainDiffusionReaction<Grid, LocalFiniteElement>>
 {
   static_assert(Concept::isMultiDomainGrid<Grid>());
 
@@ -56,9 +56,7 @@ class LocalOperatorMultiDomainDiffusionReaction
 
   std::map<std::array<std::size_t, 3>, std::size_t> _component_offset;
 
-
 public:
-
   //! visit skeleton from the two sides
   static constexpr bool doSkeletonTwoSided = true;
 
@@ -161,8 +159,7 @@ public:
         auto lfsv_ci = lfsv_i.child(domain_i).child(comp_i);
         auto lfsu_co = lfsu_o.child(domain_o).child(comp_o);
         for (std::size_t dof_i = 0; dof_i < lfsv_ci.size(); dof_i++)
-          for (std::size_t dof_o = 0; dof_o < lfsu_co.size(); dof_o++)
-          {
+          for (std::size_t dof_o = 0; dof_o < lfsu_co.size(); dof_o++) {
             pattern_io.addLink(lfsv_ci, dof_i, lfsu_co, dof_o);
           }
       }
@@ -313,15 +310,13 @@ public:
     auto accumulate_i = [&](const std::size_t& component,
                             const std::size_t& dof,
                             const auto& value) {
-      r_i.accumulate(
-        lfsu_di.child(component), dof, value);
+      r_i.accumulate(lfsu_di.child(component), dof, value);
     };
 
     auto accumulate_o = [&](const std::size_t& component,
                             const std::size_t& dof,
                             const auto& value) {
-      r_o.accumulate(
-        lfsu_do.child(component), dof, value);
+      r_o.accumulate(lfsu_do.child(component), dof, value);
     };
 
     typename IG::Entity::Geometry::JacobianInverseTransposed jac;
@@ -359,8 +354,7 @@ public:
         auto it = _component_offset.find(inside_comp);
         if (it != _component_offset.end()) {
           for (std::size_t j = 0; j < lfsu_di.child(k).size(); j++)
-            accumulate_i(
-              k, j, factor * (u_i[k] - u_o[it->second]) * phiu_i[j]);
+            accumulate_i(k, j, factor * (u_i[k] - u_o[it->second]) * phiu_i[j]);
         }
       }
 
@@ -393,7 +387,6 @@ class TemporalLocalOperatorMultiDomainDiffusionReaction
 
   std::vector<std::shared_ptr<BaseLOP>> _local_operator;
 
-
 public:
   //! pattern assembly flags
   static constexpr bool doPatternVolume = true;
@@ -405,8 +398,8 @@ public:
     std::shared_ptr<const Grid> grid,
     const ParameterTree& config,
     const LocalFiniteElement& finite_element)
-  : _size(config.sub("compartements").getValueKeys().size())
-  , _local_operator(_size)
+    : _size(config.sub("compartements").getValueKeys().size())
+    , _local_operator(_size)
   {
     const auto& compartements = config.sub("compartements").getValueKeys();
 
