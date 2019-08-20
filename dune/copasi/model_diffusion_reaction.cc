@@ -79,18 +79,6 @@ ModelDiffusionReaction<Grid, GridView>::step()
   _x = x_new;
   current_time() += dt;
 
-  // auto names = _config.sub("initial").getValueKeys();
-  // for (int i = 0; i < names.size(); ++i) {
-  //   // auto dgf = std::make_shared<const DGF>(_gfs,
-  //   //                                        _x,
-  //   //                                        _grid_view,
-  //   //                                        i * _dof_per_component,
-  //   //                                        (i + 1) * _dof_per_component);
-  //   // _sequential_writer->addVertexData(dgf, names[i]);
-  // }
-  // _sequential_writer->write(current_time(), Dune::VTK::appendedraw);
-  // _sequential_writer->vtkWriter()->clear();
-
   PDELab::addSolutionToVTKWriter(*_sequential_writer,*_gfs,*_x);
   _sequential_writer->write(current_time(), Dune::VTK::appendedraw);
   _sequential_writer->vtkWriter()->clear();
