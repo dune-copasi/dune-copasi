@@ -2,7 +2,7 @@
 #define DUNE_COPASI_MODEL_DIFFUSION_REACTION_HH
 
 #include <dune/copasi/concepts/grid.hh>
-#include <dune/copasi/dynamic_local_finite_element_map.hh>
+#include <dune/copasi/multidomain_local_finite_element_map.hh>
 #include <dune/copasi/grid_function_writer.hh>
 #include <dune/copasi/local_operator.hh>
 #include <dune/copasi/model_base.hh>
@@ -59,7 +59,7 @@ class ModelDiffusionReaction : public ModelBase
   using BaseFEM = PDELab::PkLocalFiniteElementMap<GV, DF, RF, order>;
 
   //! Finite element map
-  using FEM = DynamicPowerLocalFiniteElementMap<BaseFEM, GridView>;
+  using FEM = MultiDomainLocalFiniteElementMap<BaseFEM, GridView>;
 
   //! Constraints builder
   using CON = PDELab::ConformingDirichletConstraints;
