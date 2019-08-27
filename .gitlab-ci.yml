@@ -11,12 +11,11 @@ stages:
 .general_definitions: &general_definitions
   before_script:
     # Load toolchain
+    - echo "Toolchain:"
     - cat $TOOLCHAIN
-    - source $TOOLCHAIN
-    - c++ --version
     # Define helper functions
-    - dune_configure() { $CI_BUILDS_DIR/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 configure "Ninja" ; }
-    - dune_make() { $CI_BUILDS_DIR/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 make ; }
+    - dune_configure() { $CI_BUILDS_DIR/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --opts=/duneci/dune.opts --module=$1 configure "Ninja" ; }
+    - dune_make() { $CI_BUILDS_DIR/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --opts=/duneci/dune.opts --module=$1 make ; }
     - dune_all() { dune_configure $1; dune_make $1 ; }
   tags:
     - "cores:4"
@@ -31,14 +30,14 @@ stages:
   image: registry.dune-project.org/docker/ci/debian:10
   variables:
     CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
-    TOOLCHAIN: /duneci/toolchains/gcc-8-17
+    TOOLCHAIN: "gcc-8-17"
 
 .debian_clang: &debian_clang
   <<: *general_definitions
   image: registry.dune-project.org/docker/ci/debian:10
   variables:
     CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
-    TOOLCHAIN: /duneci/toolchains/clang-7-libcpp-17
+    TOOLCHAIN: "clang-7-libcpp-17"
 
 
 .ubuntu_gcc: &ubuntu_gcc
@@ -46,14 +45,14 @@ stages:
   image: registry.dune-project.org/docker/ci/ubuntu:18.04
   variables:
     CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
-    TOOLCHAIN: /duneci/toolchains/gcc-7-17
+    TOOLCHAIN: "gcc-7-17"
 
 .ubuntu_clang: &ubuntu_clang
   <<: *general_definitions
   image: registry.dune-project.org/docker/ci/ubuntu:18.04
   variables:
     CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
-    TOOLCHAIN: /duneci/toolchains/clang-6-17
+    TOOLCHAIN: "clang-6-17"
 # Stages
 .setup: &setup
   stage: setup
