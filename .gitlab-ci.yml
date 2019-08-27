@@ -16,7 +16,6 @@ stages:
     - rm dune-copasi.pc.in
     # Load toolchain
     - echo "Toolchain:"
-    - cat $TOOLCHAIN
     # Define helper functions
     - dune_configure() { $CI_BUILDS_DIR/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --opts=/duneci/dune.opts --module=$1 configure "Ninja" ; }
     - dune_make() { $CI_BUILDS_DIR/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --opts=/duneci/dune.opts --module=$1 make ; }
