@@ -10,12 +10,10 @@ stages:
 
 .general_definitions: &general_definitions
   before_script:
-    - ls
+    # create source directory if donesn't exist
     - mkdir -p source
-    - ls source
     # clear dune-copasi folder if existing
     - mkdir -p source/dune-copasi & rm -rf source/dune-copasi/*
-    - ls source
     # move repository sources into a subfolder 'dune-copasi' to match othe dune modules
     - ls | grep -v 'source\|build' | xargs mv -t source/dune-copasi
     # define helper functions
@@ -91,14 +89,14 @@ stages:
   script: 
     - cd build/dune-copasi
     - make build_unit_tests
-    - ctest -j2 -L "unit"
+    - ctest -j2 -V -L "unit"
 
 .system_test: &system_test
   stage: system_test
   script: 
     - cd build/dune-copasi
     - make build_system_tests
-    - ctest -j2 -L "system"
+    - ctest -j2 -V -L "system"
 
 # debian gcc
 setup:debian_gcc:
