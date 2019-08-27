@@ -14,8 +14,6 @@ stages:
     - mkdir -p dune-copasi & ls | grep -v 'dune-\|build' | xargs mv -t dune-copasi
     # remove remaining file
     - rm dune-copasi.pc.in
-    # Load toolchain
-    - echo "Toolchain:"
     # Define helper functions
     - dune_configure() { $CI_BUILDS_DIR/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --opts=/duneci/dune.opts --module=$1 configure "Ninja" ; }
     - dune_make() { $CI_BUILDS_DIR/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --opts=/duneci/dune.opts --module=$1 make ; }
