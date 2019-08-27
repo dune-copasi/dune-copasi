@@ -10,6 +10,10 @@ stages:
 
 .general_definitions: &general_definitions
   before_script:
+    # move repository sources into a subfolder 'dune-copasi' to match othe dune modules
+    - mkdir -p dune-copasi & ls | grep -v 'dune-\|build' | xargs mv -t dune-copasi
+    # remove remaining file
+    - rm dune-copasi.pc.in
     # Load toolchain
     - echo "Toolchain:"
     - cat $TOOLCHAIN
@@ -57,8 +61,6 @@ stages:
 .setup: &setup
   stage: setup
   script:
-    # move everything into a subfolder dune-copasi
-    - mkdir dune-copasi & ls | grep -v dune-copasi | xargs mv -t dune-copasi
     # clone needed repositories
     - git clone -b support/dune-copasi https://gitlab.dune-project.org/santiago.ospina/dune-common
     - git clone --recursive https://gitlab.dune-project.org/staging/dune-logging
