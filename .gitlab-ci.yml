@@ -10,11 +10,13 @@ stages:
 
 .general_definitions: &general_definitions
   before_script:
+    # clear dune-copasi folder if existing
+    - rm -rf dune-copasi/ & mkdir dune-copasi
     # move repository sources into a subfolder 'dune-copasi' to match othe dune modules
-    - mkdir -p dune-copasi & ls | grep -v 'dune-\|build' | xargs mv -t dune-copasi
-    # remove remaining file
-    - rm dune-copasi.pc.in
-    # Define helper functions
+    - ls | grep -v 'dune-\|build' | xargs mv -t dune-copasi
+    # move remaining file
+    - mv dune-copasi.pc.in dune-copasi/
+    # define helper functions
     - dune_configure() { $CI_BUILDS_DIR/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 configure -G"Ninja" ; }
     - dune_make() { $CI_BUILDS_DIR/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 make ; }
     - dune_all() { dune_configure $1; dune_make $1 ; }
@@ -54,6 +56,7 @@ stages:
   variables:
     CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
     # TOOLCHAIN: "clang-6-17"
+
 # Stages
 .setup: &setup
   stage: setup
