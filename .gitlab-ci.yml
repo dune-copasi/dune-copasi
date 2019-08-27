@@ -28,11 +28,6 @@ stages:
   <<: *general_definitions
   image: registry.dune-project.org/docker/ci/ubuntu:18.04
 
-# .debian_clang: &debian_clang
-#   image: debian:bionic
-#   tags:
-#     - "cores:2"
-
 # Stages
 .setup: &setup
   stage: setup
@@ -48,7 +43,7 @@ stages:
     - git clone https://gitlab.dune-project.org/core/dune-istl
     - git clone https://gitlab.dune-project.org/core/dune-localfunctions
     - git clone -b support/dune-copasi https://gitlab.dune-project.org/santiago.ospina/dune-typetree
-    - git clone https://gitlab.dune-project.org/staging/dune-function
+    - git clone https://gitlab.dune-project.org/staging/dune-functions
     - git clone -b support/dune-copasi https://gitlab.dune-project.org/santiago.ospina/dune-pdelab
     - git clone -b support/dune-copasi https://gitlab.dune-project.org/santiago.ospina/dune-multidomaingrid
     # make required dune modules
