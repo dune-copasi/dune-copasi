@@ -26,7 +26,7 @@ stages:
   stage: setup
   script:
     - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-common
-    - git clone -r https://gitlab.dune-project.org/staging/dune-logging
+    - git clone --recursive https://gitlab.dune-project.org/staging/dune-logging
     - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-geometry
     - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-grid
     - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-istl
