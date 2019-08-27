@@ -17,7 +17,7 @@ stages:
     - dune_make() { $CI_BUILDS_DIR/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 make ; }
     - dune_all() { dune_configure $1; dune_make $1 ; }
   tags:
-    - "cores:2"
+    - "cores:4"
   artifacts:
     paths:
       - dune-*
