@@ -12,7 +12,7 @@ stages:
   before_script:
     - mkdir -p soruce
     # clear dune-copasi folder if existing
-    - rm -rf source/dune-copasi & mkdir -p source/dune-copasi
+    - rm -rf source/dune-copasi/ & mkdir source/dune-copasi
     # move repository sources into a subfolder 'dune-copasi' to match othe dune modules
     - ls | grep -v 'source\|build' | xargs mv -t source/dune-copasi
     # define helper functions
