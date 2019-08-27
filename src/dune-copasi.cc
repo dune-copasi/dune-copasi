@@ -6,6 +6,7 @@
 #include <dune/copasi/model_diffusion_reaction.hh>
 #include <dune/copasi/model_diffusion_reaction.cc>
 #include <dune/copasi/model_multidomain_diffusion_reaction.hh>
+#include <dune/copasi/model_multidomain_diffusion_reaction.cc>
 
 #include <dune/grid/multidomaingrid.hh>
 #include <dune/grid/io/file/gmshreader.hh>
@@ -62,14 +63,26 @@ int main(int argc, char** argv)
 
     auto grid_file = grid_config.get<std::string>("file");
 
-    auto [grid_ptr,host_grid_ptr] = Dune::Copasi::GmshReader<Grid>::read(grid_file);
+    auto [grid_ptr,host_grid_ptr] = Dune::Copasi::GmshReader<Grid>::read(grid_file,config);
 
     // log.debug("Applying global refinement of level: {}"_fmt, level);
     // host_grid->globalRefine(level);
 
-    auto& model_config = config.sub("model");
-    Dune::Copasi::ModelMultiDomainDiffusionReaction<Grid> model(grid_ptr,model_config);
-    model.run();
+    {
+      auto& model_config = config.sub("model");
+      const auto& compartements = model_config.sub("compartments").getValueKeys();
+      auto& compartement_config = model_config.sub(compartements[0]);
+      Dune::Copasi::ModelDiffusionReaction<Grid> model(grid_ptr,compartement_config);
+      model.step();
+      model.step();
+    }
+    
+    {
+      auto& model_config = config.sub("model");
+      Dune::Copasi::ModelMultiDomainDiffusionReaction<Grid> model(grid_ptr,model_config);
+      model.step();
+      model.step();
+    }
 
     return 0;
   }

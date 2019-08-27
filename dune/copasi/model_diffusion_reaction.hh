@@ -1,6 +1,7 @@
 #ifndef DUNE_COPASI_MODEL_DIFFUSION_REACTION_HH
 #define DUNE_COPASI_MODEL_DIFFUSION_REACTION_HH
 
+#include <dune/copasi/coefficient_mapper.hh>
 #include <dune/copasi/concepts/grid.hh>
 #include <dune/copasi/grid_function_writer.hh>
 #include <dune/copasi/local_operator.hh>
@@ -12,6 +13,7 @@
 #include <dune/pdelab/constraints/conforming.hh>
 #include <dune/pdelab/finiteelementmap/pkfem.hh>
 #include <dune/pdelab/function/discretegridviewfunction.hh>
+#include <dune/pdelab/gridfunctionspace/dynamicpowergridfunctionspace.hh>
 #include <dune/pdelab/gridfunctionspace/gridfunctionspace.hh>
 #include <dune/pdelab/gridoperator/gridoperator.hh>
 #include <dune/pdelab/gridoperator/onestep.hh>
@@ -31,20 +33,27 @@ namespace Dune::Copasi {
  * @tparam     components  Number of components
  * @tparam     Param       Parameterization class
  */
-template<class Grid, class GridView>
+template<class Grid,
+         class GridView = typename Grid::Traits::LeafGridView,
+         int FEMorder = 1,
+         class OrderingTag = PDELab::EntityBlockedOrderingTag>
 class ModelDiffusionReaction : public ModelBase
 {
+public:
   // Check templates
-  static_assert(Concept::isGrid<Grid>(), "Provided and invalid grid");
+  static_assert(Concept::isGrid<Grid>(), "Provided an invalid grid");
 
   //! World dimension
   static constexpr int dim = 2;
 
   //! Polynomial order
-  static constexpr int order = 1;
+  static constexpr int order = FEMorder;
 
   //! Grid view
   using GV = GridView;
+
+  //! Host grid view
+  using HGV = typename Grid::LeafGridView;
 
   //! Domain field
   using DF = typename Grid::ctype;
@@ -56,10 +65,10 @@ class ModelDiffusionReaction : public ModelBase
   using FE = Dune::PkLocalFiniteElement<DF, RF, dim, order>;
 
   //! Base finite element map
-  using BaseFEM = PDELab::PkLocalFiniteElementMap<GV, DF, RF, order>;
+  using BaseFEM = PDELab::PkLocalFiniteElementMap<HGV, DF, RF, order>;
 
   //! Finite element map
-  using FEM = MultiDomainLocalFiniteElementMap<BaseFEM, GridView>;
+  using FEM = MultiDomainLocalFiniteElementMap<BaseFEM, GV>;
 
   //! Constraints builder
   using CON = PDELab::ConformingDirichletConstraints;
@@ -68,28 +77,36 @@ class ModelDiffusionReaction : public ModelBase
   using LVBE = PDELab::ISTL::VectorBackend<>;
 
   //! Leaf grid function space
-  using LGFS = PDELab::GridFunctionSpace<GV, FEM, CON, LVBE>;
+  using LGFS = PDELab::GridFunctionSpace<HGV, FEM, CON, LVBE>;
 
   //! Vector backend
   using VBE = LVBE;
 
-  //! Ordering tag
-  using OrderingTag = PDELab::LexicographicOrderingTag;
-
   //! Grid function space
-  using GFS = LGFS;
+  using GFS = PDELab::DynamicPowerGridFunctionSpace<LGFS, VBE, OrderingTag>;
 
   //! Coefficient vector
   using X = PDELab::Backend::Vector<GFS, RF>;
 
+public:
+  //! Model state structure
+  using State = Dune::Copasi::ModelState<Grid, GFS, X>;
+
+  //! Constant model state structure
+  using ConstState = Dune::Copasi::ConstModelState<Grid, GFS, X>;
+
+private:
   //! Constraints container
   using CC = typename GFS::template ConstraintsContainer<RF>::Type;
 
+  //! Coefficients mapper
+  using CM = Dune::Copasi::ModelCoefficientMapper<ConstState>;
+
   //! Local operator
-  using LOP = LocalOperatorDiffusionReaction<GV, FE>;
+  using LOP = LocalOperatorDiffusionReaction<GV, FE, CM>;
 
   //! Temporal local operator
-  using TLOP = TemporalLocalOperatorDiffusionReaction<GV, FE>;
+  using TLOP = TemporalLocalOperatorDiffusionReaction<GV, FE, CM>;
 
   //! Matrix backend
   using MBE = Dune::PDELab::ISTL::BCRSMatrixBackend<>;
@@ -121,18 +138,9 @@ class ModelDiffusionReaction : public ModelBase
   using W = Dune::VTKWriter<GV>;
 
   //! Sequential writer
-  using SW = Dune::Copasi::GridFunctionVTKSequenceWriter<GV>;
-
-  // //! Discrete grid function
-  // using DGF = Dune::Copasi::DiscreteGridFunction<GFS, X>;
+  using SW = Dune::VTKSequenceWriter<GV>;
 
 public:
-  //! Model state structure
-  using State = Dune::Copasi::ModelState<Grid, GFS, X>;
-
-  //! Constant model state structure
-  using ConstState = Dune::Copasi::ModelState<const Grid, const GFS, const X>;
-
   /**
    * @brief      Constructs the model
    *
@@ -140,8 +148,25 @@ public:
    * @param[in]  config  The configuration file
    */
   ModelDiffusionReaction(std::shared_ptr<Grid> grid,
+                         const Dune::ParameterTree& config,
                          GV grid_view,
-                         const Dune::ParameterTree& config);
+                         ModelSetupPolicy setup_policy = ModelSetupPolicy::All);
+
+  /**
+   * @brief      Constructs the model
+   *
+   * @param[in]  grid    The grid
+   * @param[in]  config  The configuration file
+   */
+  template<class T = int,
+           class = std::enable_if_t<
+             std::is_same_v<GridView, typename Grid::Traits::LeafGridView>,
+             T>>
+  ModelDiffusionReaction(std::shared_ptr<Grid> grid,
+                         const Dune::ParameterTree& config,
+                         ModelSetupPolicy setup_policy = ModelSetupPolicy::All)
+    : ModelDiffusionReaction(grid, config, grid->leafGridView(), setup_policy)
+  {}
 
   /**
    * @brief      Destroys the model
@@ -167,15 +192,25 @@ public:
    *
    * @return     Model state
    */
-  State state() { return _state; };
+  std::vector<State> states() { return _states; }
 
   /**
    * @brief      Get the model state
    *
    * @return     Model state
    */
-  ConstState state() const { return _state; };
-  ;
+  std::vector<ConstState> const_states() const
+  {
+    std::vector<ConstState> const_states(_states.begin(), _states.end());
+    return const_states;
+  }
+
+  /**
+   * @brief      Get the model state
+   *
+   * @return     Model state
+   */
+  std::vector<ConstState> states() const { return const_states(); }
 
   /**
    * @brief      Sets the state of the model
@@ -197,36 +232,47 @@ public:
   void set_state(const T& input_state);
 
 protected:
+  auto setup_component_grid_function_space(std::string) const;
+  auto setup_domain_grid_function_space(std::vector<std::string>) const;
+  void setup_grid_function_space();
+  void setup_coefficient_vectors();
+  void setup_constraints();
+  auto setup_local_operator(std::size_t) const;
+  void setup_local_operators();
+  void setup_grid_operators();
+  void setup_solvers();
+  void setup_vtk_writer();
+
   /**
-   * @brief      Setup operator for next time step
+   * @brief      Setup for next time step
    */
-  void operator_setup();
+  void setup(ModelSetupPolicy setup_policy = ModelSetupPolicy::All);
 
   using ModelBase::_logger;
+  Logging::Logger _solver_logger;
 
 private:
   std::size_t _components;
-  std::size_t _dof_per_component;
   ParameterTree _config;
   GV _grid_view;
-  State _state;
-  std::shared_ptr<FEM> _finite_element_map;
+  std::vector<State> _states;
+  std::multimap<std::size_t, std::string> _operator_splitting;
+
+  std::shared_ptr<Grid> _grid;
+
   std::unique_ptr<CC> _constraints;
-  std::shared_ptr<LOP> _local_operator;
-  std::shared_ptr<TLOP> _temporal_local_operator;
-  std::shared_ptr<GOS> _spatial_grid_operator;
-  std::shared_ptr<GOT> _temporal_grid_operator;
-  std::shared_ptr<GOI> _grid_operator;
-  std::shared_ptr<LS> _linear_solver;
-  std::shared_ptr<NLS> _nonlinear_solver;
-  std::shared_ptr<TSP> _time_stepping_method;
-  std::shared_ptr<OSM> _one_step_method;
+  std::vector<std::shared_ptr<LOP>> _local_operators;
+  std::vector<std::shared_ptr<TLOP>> _temporal_local_operators;
+  std::vector<std::shared_ptr<GOS>> _spatial_grid_operators;
+  std::vector<std::shared_ptr<GOT>> _temporal_grid_operators;
+  std::vector<std::shared_ptr<GOI>> _grid_operators;
+  std::vector<std::shared_ptr<LS>> _linear_solvers;
+  std::vector<std::shared_ptr<NLS>> _nonlinear_solvers;
+  std::vector<std::shared_ptr<TSP>> _time_stepping_methods;
+  std::vector<std::shared_ptr<OSM>> _one_step_methods;
 
   std::shared_ptr<W> _writer;
   std::shared_ptr<SW> _sequential_writer;
-
-  std::shared_ptr<X>& _x;     //! reference to coefficients pointer
-  std::shared_ptr<GFS>& _gfs; //! reference to grid function space pointer
 };
 
 } // namespace Dune::Copasi
