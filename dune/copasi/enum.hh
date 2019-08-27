@@ -3,7 +3,20 @@
 
 namespace Dune::Copasi {
 
-enum AdaptivityPolicy
+enum class ModelSetupPolicy
+{
+  None,
+  GridFunctionSpace,
+  CoefficientVector,
+  Constraints,
+  LocalOperator,
+  GridOperator,
+  Solver,
+  Writer,
+  All
+};
+
+enum class AdaptivityPolicy
 {
   None
 };
