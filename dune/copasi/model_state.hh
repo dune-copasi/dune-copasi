@@ -7,6 +7,46 @@
 
 namespace Dune::Copasi {
 
+template<class G, class GFS, class X>
+struct ModelState;
+
+template<class G, class GFS, class X>
+struct ConstModelState
+{
+  //! Grid
+  using Grid = G;
+
+  //! Grid function space
+  using GridFunctionSpace = GFS;
+
+  //! Coefficients vector
+  using Coefficients = X;
+
+  std::shared_ptr<const Grid> grid;
+  std::shared_ptr<const GridFunctionSpace> grid_function_space;
+  std::shared_ptr<const Coefficients> coefficients;
+  const double time;
+
+  // ConstModelState() = default;
+
+  ConstModelState(const ModelState<G, GFS, X>& model_state)
+    : grid(model_state.grid)
+    , grid_function_space(model_state.grid_function_space)
+    , coefficients(model_state.coefficients)
+    , time(model_state.time)
+  {}
+
+  /**
+   * @brief      Write the model state into a file
+   *
+   * @param[in]  file_name  The file name
+   */
+  void write(const std::string& file_name) const
+  {
+    DUNE_THROW(Dune::NotImplemented, "ModelState writer is not implemented");
+  }
+};
+
 /**
  * @brief      Model state container
  *
@@ -31,6 +71,8 @@ struct ModelState
   std::shared_ptr<Coefficients> coefficients;
   double time;
 
+  // ModelState() = default;
+
   /**
    * @brief      Write the model state into a file
    *
@@ -38,7 +80,8 @@ struct ModelState
    */
   void write(const std::string& file_name) const
   {
-    DUNE_THROW(Dune::NotImplemented, "ModelState writer is not implemented");
+    ConstModelState<G, GFS, X> const_state(*this);
+    const_state.write(file_name);
   }
 
   /**
@@ -54,10 +97,11 @@ struct ModelState
   /**
    * @brief      implicit conversion to constant state
    */
-  operator ModelState<const G, const GFS, const X>()
+  operator ConstModelState<G, GFS, X>()
   {
-    using ConstModelState = ModelState<const G, const GFS, const X>;
-    return ConstModelState{ grid, grid_function_space, coefficients, time };
+    return ConstModelState<G, GFS, X>{
+      grid, grid_function_space, coefficients, time
+    };
   }
 };
 
