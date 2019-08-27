@@ -1,86 +1,266 @@
-[logging]
-default.level = trace
-
-[logging.backend.model]
-level = trace
-indent = 2
-
 [grid]
 file = ${CMAKE_CURRENT_SOURCE_DIR}/grid.msh
 
 [model]
-begin_time = 0.
-end_time = 0.01
+# compartment_decomposition = true
+# operator_splitting = true # only possible if 'compartment_decomposition = true'
 
-[model.compartements]
+# global time discretization
+begin_time = 0.
+end_time = 1
+time_step = 0.1
+
+[model.compartments]
 # name a compartment and assign index of physical surfaces in gmsh file
 environment = 0
 cell        = 1
 nucleoid    = 2
 
-[model.membrane.environment2cell]
-u_0 = 1e-2
+# settings for global operator (only for 'compartment_decomposition = false')
+#[model.operator]
+#timestep_method = alex2
+#linear_solver = bcgs
+#preconditioner = ssor
+#nonlinear_solver = newton
 
 
-############################ Model for environment #############################
+############################ Model for environment ############################
 [model.environment]
-name = environment
+# only for compartment_decomposition
 begin_time = 0.
-end_time = 0.01
+end_time = 1
+time_step = 0.1
+
+[model.environment.operator]
+# set an operator index for each variable 
+# if 'operator_splitting = false' all indices must be 0
+u_0 = 2
+u_1 = 1
+u_2 = 0
+
+# settings for each operator (only for 'compartment_decomposition = true')
+#[model.environment.operator.0]
+#timestep_method = alex2
+#linear_solver = bcgs
+#preconditioner = ssor
+#nonlinear_solver = newton
+
+#[model.environment.operator.1]
+
+#[model.environment.operator.2]
 
 [model.environment.initial]
-u_0 = 0.
-u_1 = 0.
+u_0 = (x>1.5) ? 1. : (x<1.1 ? 0. : (x-1.1)^2/0.4^2)
+u_1 = (x>1.0) ? 0. : (x<0.6 ? 1. : (x-1.0)^2/0.4^2)
 u_2 = 0.
-u_3 = 0
 
 [model.environment.reaction]
 u_0 = +u_0*u_1
 u_1 = +u_0*u_1
 u_2 = -u_0*u_1
-u_3 = -u_0*u_1
 
 [model.environment.reaction.jacobian]
 d(u_0)/d(u_0) = u_1
 d(u_0)/d(u_1) = u_0
 d(u_0)/d(u_2) = 0
-d(u_0)/d(u_3) = 0
 d(u_1)/d(u_0) = u_1
 d(u_1)/d(u_1) = u_0
 d(u_1)/d(u_2) = 0
-d(u_1)/d(u_3) = 0
 d(u_2)/d(u_0) = -u_1
 d(u_2)/d(u_1) = -u_0
 d(u_2)/d(u_2) = 0
-d(u_2)/d(u_3) = 0
-d(u_3)/d(u_0) = -u_1
-d(u_3)/d(u_1) = -u_0
-d(u_3)/d(u_2) = 0
-d(u_3)/d(u_3) = 0
 
 [model.environment.diffusion]
 u_0 = 1.
-u_1 = 1E-10
-u_2 = 1E-10
-u_3 = 1E-10
+u_1 = 1.
+u_2 = 1.
 
-########################### Model for cell #####################################
+[model.environment.writer]
+file_name = environment
+
+########################### Model for cell ####################################
 [model.cell]
-name = cell
-begin_time = 0.
-end_time = 0.01
+begin_time = 0
+end_time = 1
+time_step = 0.1
+
+[model.cell.operator]
+# set an operator index for each variable
+u_0 = 0
+u_1 = 0
+u_2 = 0
+u_3 = 0
+u_4 = 0
+u_5 = 0
+u_6 = 0
+u_7 = 0
+u_8 = 0
+u_9 = 0
 
 [model.cell.initial]
+u_0 = 0.1
+u_1 = 0.918544
+u_2 = 0.918544
+u_3 = 0.235579
+u_4 = 0.196261
+u_5 = 0.0456381
+u_6 = 0.196261
+u_7 = 0.0456381
+u_8 = 0.1
+u_9 = 0.611666
+
+[model.cell.reaction]
+u_0 = -0.01*u_0 + 0.9*u_2 - 8.0*u_0/(2.0 + u_0) + 1.0*u_4/(2.0 + u_4)
+u_1 = -0.01*u_1 - 0.7*u_1/(0.2 + u_1) + 0.6561*(0.6561 + u_9^4.0)^(-1)
+u_2 = -0.01*u_2 - 0.7*u_2/(0.2 + u_2) + 0.6561*(0.6561 + u_9^4.0)^(-1)
+u_3 = 0.9*u_1 - 0.01*u_3 - 8.0*u_3/(2.0 + u_3) + 1.0*u_6/(2.0 + u_6)
+u_4 = -0.01*u_4 + 8.0*u_0/(2.0 + u_0) - 9.0*u_4/(2.0 + u_4) + 1.0*u_5/(2.0 + u_5)
+u_5 = -0.01*u_5 + 0.6*u_8 + 8.0*u_4/(2.0 + u_4) - 1.2*u_5*u_7 - 4.0*u_5/(0.2 + u_5) - 1.0*u_5/(2.0 + u_5)
+u_6 = -0.01*u_6 + 8.0*u_3/(2.0 + u_3) - 9.0*u_6/(2.0 + u_6) + 1.0*u_7/(2.0 + u_7)
+u_7 = -0.01*u_7 + 0.6*u_8 - 1.2*u_5*u_7 + 8.0*u_6/(2.0 + u_6) - 4.0*u_7/(0.2 + u_7) - 1.0*u_7/(2.0 + u_7)
+u_8 = -1.21*u_8 + 0.2*u_9 + 1.2*u_5*u_7
+u_9 = 0.6*u_8 - 0.21*u_9
+
+[model.cell.reaction.jacobian]
+d(u_0)/d(u_0) = -0.01 + 8.0*u_0/(2.0 + u_0)^2 - 8.0*(2.0 + u_0)^(-1)
+d(u_0)/d(u_1) = 0
+d(u_0)/d(u_2) = 0.9
+d(u_0)/d(u_3) = 0
+d(u_0)/d(u_4) = 0.0 - 1.0*u_4/(2.0 + u_4)^2 + 1.0*(2.0 + u_4)^(-1)
+d(u_0)/d(u_5) = 0
+d(u_0)/d(u_6) = 0
+d(u_0)/d(u_7) = 0
+d(u_0)/d(u_8) = 0
+d(u_0)/d(u_9) = 0
+d(u_1)/d(u_0) = 0.0
+d(u_1)/d(u_1) = -0.01 + 0.7*u_1/(0.2 + u_1)^2 - 0.7*(0.2 + u_1)^(-1)
+d(u_1)/d(u_2) = 0.0
+d(u_1)/d(u_3) = 0.0
+d(u_1)/d(u_4) = 0.0
+d(u_1)/d(u_5) = 0.0
+d(u_1)/d(u_6) = 0.0
+d(u_1)/d(u_7) = 0.0
+d(u_1)/d(u_8) = 0.0
+d(u_1)/d(u_9) = -2.6244*u_9^3.0/(0.6561 + u_9^4.0)^2
+d(u_2)/d(u_0) = 0.0
+d(u_2)/d(u_1) = 0.0
+d(u_2)/d(u_2) = -0.01 + 0.7*u_2/(0.2 + u_2)^2 - 0.7*(0.2 + u_2)^(-1)
+d(u_2)/d(u_3) = 0.0
+d(u_2)/d(u_4) = 0.0
+d(u_2)/d(u_5) = 0.0
+d(u_2)/d(u_6) = 0.0
+d(u_2)/d(u_7) = 0.0
+d(u_2)/d(u_8) = 0.0
+d(u_2)/d(u_9) = -2.6244*u_9^3.0/(0.6561 + u_9^4.0)^2
+d(u_3)/d(u_0) = 0
+d(u_3)/d(u_1) = 0.9
+d(u_3)/d(u_2) = 0
+d(u_3)/d(u_3) = -0.01 + 8.0*u_3/(2.0 + u_3)^2 - 8.0*(2.0 + u_3)^(-1)
+d(u_3)/d(u_4) = 0
+d(u_3)/d(u_5) = 0
+d(u_3)/d(u_6) = 0.0 - 1.0*u_6/(2.0 + u_6)^2 + 1.0*(2.0 + u_6)^(-1)
+d(u_3)/d(u_7) = 0
+d(u_3)/d(u_8) = 0
+d(u_3)/d(u_9) = 0
+d(u_4)/d(u_0) = 0.0 - 8.0*u_0/(2.0 + u_0)^2 + 8.0*(2.0 + u_0)^(-1)
+d(u_4)/d(u_1) = 0
+d(u_4)/d(u_2) = 0
+d(u_4)/d(u_3) = 0
+d(u_4)/d(u_4) = -0.01 + 9.0*u_4/(2.0 + u_4)^2 - 9.0*(2.0 + u_4)^(-1)
+d(u_4)/d(u_5) = 0.0 - 1.0*u_5/(2.0 + u_5)^2 + 1.0*(2.0 + u_5)^(-1)
+d(u_4)/d(u_6) = 0
+d(u_4)/d(u_7) = 0
+d(u_4)/d(u_8) = 0
+d(u_4)/d(u_9) = 0
+d(u_5)/d(u_0) = 0
+d(u_5)/d(u_1) = 0
+d(u_5)/d(u_2) = 0
+d(u_5)/d(u_3) = 0
+d(u_5)/d(u_4) = 0.0 - 8.0*u_4/(2.0 + u_4)^2 + 8.0*(2.0 + u_4)^(-1)
+d(u_5)/d(u_5) = -0.01 - 1.2*u_7 + 4.0*u_5/(0.2 + u_5)^2 + 1.0*u_5/(2.0 + u_5)^2 - 4.0*(0.2 + u_5)^(-1) - 1.0*(2.0 + u_5)^(-1)
+d(u_5)/d(u_6) = 0
+d(u_5)/d(u_7) = -1.2*u_5
+d(u_5)/d(u_8) = 0.6
+d(u_5)/d(u_9) = 0
+d(u_6)/d(u_0) = 0
+d(u_6)/d(u_1) = 0
+d(u_6)/d(u_2) = 0
+d(u_6)/d(u_3) = 0.0 - 8.0*u_3/(2.0 + u_3)^2 + 8.0*(2.0 + u_3)^(-1)
+d(u_6)/d(u_4) = 0
+d(u_6)/d(u_5) = 0
+d(u_6)/d(u_6) = -0.01 + 9.0*u_6/(2.0 + u_6)^2 - 9.0*(2.0 + u_6)^(-1)
+d(u_6)/d(u_7) = 0.0 - 1.0*u_7/(2.0 + u_7)^2 + 1.0*(2.0 + u_7)^(-1)
+d(u_6)/d(u_8) = 0
+d(u_6)/d(u_9) = 0
+d(u_7)/d(u_0) = 0
+d(u_7)/d(u_1) = 0
+d(u_7)/d(u_2) = 0
+d(u_7)/d(u_3) = 0
+d(u_7)/d(u_4) = 0
+d(u_7)/d(u_5) = -1.2*u_7
+d(u_7)/d(u_6) = 0.0 - 8.0*u_6/(2.0 + u_6)^2 + 8.0*(2.0 + u_6)^(-1)
+d(u_7)/d(u_7) = -0.01 - 1.2*u_5 + 4.0*u_7/(0.2 + u_7)^2 + 1.0*u_7/(2.0 + u_7)^2 - 4.0*(0.2 + u_7)^(-1) - 1.0*(2.0 + u_7)^(-1)
+d(u_7)/d(u_8) = 0.6
+d(u_7)/d(u_9) = 0
+d(u_8)/d(u_0) = 0
+d(u_8)/d(u_1) = 0
+d(u_8)/d(u_2) = 0
+d(u_8)/d(u_3) = 0
+d(u_8)/d(u_4) = 0
+d(u_8)/d(u_5) = 1.2*u_7
+d(u_8)/d(u_6) = 0
+d(u_8)/d(u_7) = 1.2*u_5
+d(u_8)/d(u_8) = -1.21
+d(u_8)/d(u_9) = 0.2
+d(u_9)/d(u_0) = 0
+d(u_9)/d(u_1) = 0
+d(u_9)/d(u_2) = 0
+d(u_9)/d(u_3) = 0
+d(u_9)/d(u_4) = 0
+d(u_9)/d(u_5) = 0
+d(u_9)/d(u_6) = 0
+d(u_9)/d(u_7) = 0
+d(u_9)/d(u_8) = 0.6
+d(u_9)/d(u_9) = -0.21
+
+[model.cell.diffusion]
+u_0 = 1
+u_1 = 1
+u_2 = 1
+u_3 = 1
+u_4 = 1
+u_5 = 1
+u_6 = 1
+u_7 = 1
+u_8 = 1
+u_9 = 1
+
+[model.cell.writer]
+file_name = cell
+
+########################### Model for nucleoid ################################
+[model.nucleoid]
+begin_time = 0.
+end_time = 1
+time_step = 0.1
+
+[model.nucleoid.operator]
+# set an operator index for each variable
+u_0 = 0
+u_1 = 0
+u_2 = 0
+
+[model.nucleoid.initial]
 u_0 = (x>1.5) ? 1. : (x<1.1 ? 0. : (x-1.1)^2/0.4^2)
 u_1 = (x>1.0) ? 0. : (x<0.6 ? 1. : (x-1.0)^2/0.4^2)
 u_2 = 0.
 
-[model.cell.reaction]
+[model.nucleoid.reaction]
 u_0 = +u_0*u_1
 u_1 = +u_0*u_1
 u_2 = -u_0*u_1
 
-[model.cell.reaction.jacobian]
+[model.nucleoid.reaction.jacobian]
 d(u_0)/d(u_0) = u_1
 d(u_0)/d(u_1) = u_0
 d(u_0)/d(u_2) = 0
@@ -91,39 +271,28 @@ d(u_2)/d(u_0) = -u_1
 d(u_2)/d(u_1) = -u_0
 d(u_2)/d(u_2) = 0
 
-[model.cell.diffusion]
+[model.nucleoid.diffusion]
 u_0 = 1.
 u_1 = 1.
 u_2 = 1.
 
-########################### Model for nucleoid #################################
-[model.nucleoid]
-name = nucleoid
-begin_time = 0.
-end_time = 0.01
+[model.nucleoid.writer]
+file_name = nucleoid
 
-[model.nucleoid.initial]
-u_0 = 0.
-u_1 = 0.
-#u_2 = 0.
 
-[model.nucleoid.reaction]
-u_0 = +u_0*u_1
-u_1 = +u_0*u_1
-#u_2 = -u_0*u_1
+############################ Logging settings #################################
+# levels = off, critical, error, waring, notice, info, debug, trace, all
 
-[model.nucleoid.reaction.jacobian]
-d(u_0)/d(u_0) = u_1
-d(u_0)/d(u_1) = u_0
-#d(u_0)/d(u_2) = 0
-d(u_1)/d(u_0) = u_1
-d(u_1)/d(u_1) = u_0
-#d(u_1)/d(u_2) = 0
-#d(u_2)/d(u_0) = -u_1
-#d(u_2)/d(u_1) = -u_0
-#d(u_2)/d(u_2) = 0
+[logging]
+default.level = trace
 
-[model.nucleoid.diffusion]
-u_0 = 1E-10
-u_1 = 1.
-#u_2 = 1E-10
+[logging.sinks.stdout]
+pattern = [{reldays:0>2}-{reltime:8%T}] [{backend}] {msg}
+
+[logging.backend.model]
+level = trace
+indent = 2
+
+[logging.backend.solver]
+level = trace
+indent = 4
