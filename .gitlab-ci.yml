@@ -11,13 +11,13 @@ stages:
 # OS setup
 .debian_gcc: &debian_gcc
   image: registry.dune-project.org/docker/ci/debian:10
-  before_script:
-    - dune_configure() { $CI_BUILDS_DIR/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 configure "Ninja" ; }
-    - dune_make() { $CI_BUILDS_DIR/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 make -j2 ; }
-    - dune_all() { dune_configure $1; dune_make $1 ; }
   variables:
-    # TODO: Fix this harcoded path
     CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
+  before_script:
+    # Define helper functions
+    - dune_configure() { $CI_BUILDS_DIR/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 configure "Ninja" ; }
+    - dune_make() { $CI_BUILDS_DIR/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 make ; }
+    - dune_all() { dune_configure $1; dune_make $1 ; }
   tags:
     - "cores:2"
 
@@ -31,27 +31,29 @@ stages:
 .setup: &setup
   stage: setup
   script:
-      # move everything into a subfolder dune-copasi
+    # move everything into a subfolder dune-copasi
     - mkdir dune-copasi & ls | grep -v dune-copasi | xargs mv -t dune-copasi
+    # clone needed repositories
     - git clone -b support/dune-copasi https://gitlab.dune-project.org/santiago.ospina/dune-common
-    - dune_all dune-common
     - git clone --recursive https://gitlab.dune-project.org/staging/dune-logging
-    - dune_all dune-logging
     - git clone https://gitlab.dune-project.org/core/dune-geometry
-    - dune_all dune-geometry
     - git clone https://gitlab.dune-project.org/core/dune-grid
-    - dune_all dune-grid
     - git clone https://gitlab.dune-project.org/core/dune-istl
-    - dune_all dune-istl
     - git clone https://gitlab.dune-project.org/core/dune-localfunctions
-    - dune_all dune-localfunctions
-    - git clone https://gitlab.dune-project.org/staging/dune-functions
-    - dune_all dune-functions
     - git clone -b support/dune-copasi https://gitlab.dune-project.org/santiago.ospina/dune-typetree
-    - dune_all dune-typetree
+    - git clone https://gitlab.dune-project.org/staging/dune-function
     - git clone -b support/dune-copasi https://gitlab.dune-project.org/santiago.ospina/dune-pdelab
-    - dune_all dune-pdelab
     - git clone -b support/dune-copasi https://gitlab.dune-project.org/santiago.ospina/dune-multidomaingrid
+    # make required dune modules
+    - dune_all dune-common
+    - dune_all dune-logging
+    - dune_all dune-geometry
+    - dune_all dune-grid
+    - dune_all dune-istl
+    - dune_all dune-localfunctions
+    - dune_all dune-typetree
+    - dune_all dune-functions
+    - dune_all dune-pdelab
     - dune_all dune-multidomaingrid
   artifacts:
     paths:
