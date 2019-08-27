@@ -15,7 +15,7 @@ stages:
     # remove remaining file
     - rm dune-copasi.pc.in
     # Define helper functions
-    - dune_configure() { $CI_BUILDS_DIR/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --opts=/duneci/dune.opts --module=$1 configure "Ninja" ; }
+    - dune_configure() { $CI_BUILDS_DIR/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --opts=/duneci/dune.opts --module=$1 configure -G"Ninja" ; }
     - dune_make() { $CI_BUILDS_DIR/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --opts=/duneci/dune.opts --module=$1 make ; }
     - dune_all() { dune_configure $1; dune_make $1 ; }
   tags:
