@@ -91,12 +91,14 @@ public:
       GridView sub_grid_view = grid->subDomain(sub_domain_id).leafGridView();
 
       auto sub_config = config.sub(compartements[i]);
-      auto lp =
-        std::make_shared<BaseLOP>(sub_grid_view, sub_config, finite_element);
-      _local_operator[i] = lp;
-
       _component_name[i] = sub_config.sub("reaction").getValueKeys();
       std::sort(_component_name[i].begin(), _component_name[i].end());
+
+      std::vector<std::size_t> components(_component_name.size());
+      std::iota(std::next(components.begin()), components.end(), 1);
+      auto lp = std::make_shared<BaseLOP>(
+        sub_grid_view, sub_config, finite_element, components);
+      _local_operator[i] = lp;
     }
 
     for (std::size_t i = 0; i < _size; ++i) {
@@ -411,8 +413,12 @@ public:
       GridView sub_grid_view = grid->subDomain(sub_domain_id).leafGridView();
 
       auto sub_config = config.sub(compartements[i]);
-      _local_operator[i] =
-        std::make_shared<BaseLOP>(sub_grid_view, sub_config, finite_element);
+      std::size_t comp_size = sub_config.sub("reaction").getValueKeys().size();
+      std::vector<std::size_t> components(comp_size);
+      std::iota(std::next(components.begin()), components.end(), 1);
+
+      _local_operator[i] = std::make_shared<BaseLOP>(
+        sub_grid_view, sub_config, finite_element, components);
     }
   }
 
