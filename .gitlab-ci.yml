@@ -8,9 +8,7 @@ stages:
   # - system_test
   # - deploy
 
-# OS setup
-.debian_gcc: &debian_gcc
-  image: registry.dune-project.org/docker/ci/debian:10
+.general_definitions: &general_definitions
   variables:
     CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
   before_script:
@@ -21,6 +19,14 @@ stages:
   tags:
     - "cores:2"
 
+# OS setup
+.debian_gcc: &debian_gcc
+  <<: *general_definitions
+  image: registry.dune-project.org/docker/ci/debian:10
+
+  .ubuntu_gcc: &ubuntu_gcc
+  <<: *general_definitions
+  image: registry.dune-project.org/docker/ci/ubuntu:18.04
 
 # .debian_clang: &debian_clang
 #   image: debian:bionic
@@ -38,6 +44,7 @@ stages:
     - git clone --recursive https://gitlab.dune-project.org/staging/dune-logging
     - git clone https://gitlab.dune-project.org/core/dune-geometry
     - git clone https://gitlab.dune-project.org/core/dune-grid
+    - git clone https://gitlab.dune-project.org/staging/dune-uggrid
     - git clone https://gitlab.dune-project.org/core/dune-istl
     - git clone https://gitlab.dune-project.org/core/dune-localfunctions
     - git clone -b support/dune-copasi https://gitlab.dune-project.org/santiago.ospina/dune-typetree
@@ -45,14 +52,7 @@ stages:
     - git clone -b support/dune-copasi https://gitlab.dune-project.org/santiago.ospina/dune-pdelab
     - git clone -b support/dune-copasi https://gitlab.dune-project.org/santiago.ospina/dune-multidomaingrid
     # make required dune modules
-    - dune_all dune-common
     - dune_all dune-logging
-    - dune_all dune-geometry
-    - dune_all dune-grid
-    - dune_all dune-istl
-    - dune_all dune-localfunctions
-    - dune_all dune-typetree
-    - dune_all dune-functions
     - dune_all dune-pdelab
     - dune_all dune-multidomaingrid
   artifacts:
