@@ -10,9 +10,12 @@ stages:
 
 .general_definitions: &general_definitions
   before_script:
+    - ls
     - mkdir -p source
+    - ls source
     # clear dune-copasi folder if existing
     - rm -rf source/dune-copasi & mkdir -p source/dune-copasi
+    - ls source
     # move repository sources into a subfolder 'dune-copasi' to match othe dune modules
     - ls | grep -v 'source\|build' | xargs mv -t source/dune-copasi
     # define helper functions
