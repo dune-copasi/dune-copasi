@@ -12,7 +12,7 @@ stages:
 
 # OS setup
 .debian_gcc: &debian_gcc
-  image: rdo/docker/ci/dune:2.6-debian-10-gcc-8-17
+  image: registry.dune-project.org/docker/ci/dune:2.6-debian-10-gcc-8-17
   tags:
     - "cores:2"
 
