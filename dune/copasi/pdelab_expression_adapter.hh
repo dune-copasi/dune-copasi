@@ -28,7 +28,7 @@ public:
   ExpressionToGridFunctionAdapter(const GV& grid_view,
                                   const std::string& equation,
                                   std::vector<std::string> other_variables = {})
-    : _logger(Logging::Logging::componentLogger({}, "default"))
+    : _logger(Logging::Logging::componentLogger({}, "model"))
     , _gv(grid_view)
     , _other_value(other_variables.size())
   {
@@ -65,7 +65,7 @@ public:
 
   ~ExpressionToGridFunctionAdapter()
   {
-    _logger.debug("ExpressionToGridFunctionAdapter destructed"_fmt);
+    _logger.debug("ExpressionToGridFunctionAdapter deconstructed"_fmt);
   }
 
   //! get a reference to the grid view
