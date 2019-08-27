@@ -11,13 +11,13 @@ stages:
   # - deploy
 
 # OS setup
-.ubuntu_gcc: &ubuntu_gcc
-  image: ubuntu:18.04
+.debian_gcc: &debian_gcc
+  image: rdo/docker/ci/dune:2.6-debian-10-gcc-8-17
   tags:
     - "cores:2"
 
 # .debian_clang: &debian_clang
-#   image: ubuntu:bionic
+#   image: debian:bionic
 #   tags:
 #     - "cores:2"
 
@@ -82,23 +82,23 @@ stages:
 
 # gcc
 setup:gcc:
-  <<: *ubuntu_gcc
+  <<: *debian_gcc
   <<: *setup
 
 # build:gcc:
-#   <<: *ubuntu_gcc
+#   <<: *debian_gcc
 #   <<: *build
 #   dependencies:
 #     - setup:gcc
 
 # unit_test:gcc:
-#   <<: *ubuntu_gcc
+#   <<: *debian_gcc
 #   <<: *unit_test
 #   dependencies:
 #     - build:gcc
 
 # system_test:gcc:
-#   <<: *ubuntu_gcc
+#   <<: *debian_gcc
 #   <<: *system_test
 #   dependencies:
 #     - build:gcc
