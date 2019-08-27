@@ -1,125 +1,127 @@
 ---
 
 variables:
-  OMP_NUM_THREADS: 1
-  DUNECI_BRANCH_AUTO: 0
+  GIT_CLONE_PATH: $CI_BUILDS_DIR/dune-copasi
 
 stages:
   - setup
-  - build
-  - unit_test
-  - system_test
-  - deploy
+  # - build
+  # - unit_test
+  # - system_test
+  # - deploy
 
 # OS setup
-.debian_gcc: &debian_gcc
-  image: registry.dune-project.org/docker/ci/dune-pdelab:2.6
+.ubuntu_gcc: &ubuntu_gcc
+  image: ubuntu:bionic
   tags:
     - "cores:2"
 
-.debian_clang: &debian_clang
-  image: registry.dune-project.org/docker/ci/dune-pdelab:2.6
-  variables: {DUNECI_OPTS: /duneci/opts.clang}
-  tags:
-    - "cores:2"
+# .debian_clang: &debian_clang
+#   image: ubuntu:bionic
+#   tags:
+#     - "cores:2"
 
 # Stages
 .setup: &setup
   stage: setup
   script:
-    - . /duneci/bin/duneci-init-job
-    - duneci-install-module -r https://gitlab.dune-project.org/staging/dune-logging.git
-    - duneci-install-module --branch releases/2.6 https://gitlab.dune-project.org/extensions/dune-multidomaingrid.git
-  after_script:
-    - mv /duneci/modules/dune-logging dune-logging
-    - mv /duneci/modules/dune-multidomaingrid dune-multidomaingrid
+    - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-common
+    - git clone -r https://gitlab.dune-project.org/staging/dune-logging
+    - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-geometry
+    - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-grid
+    - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-istl
+    - git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-localfunctions
+    - git clone -b releases/2.6 https://gitlab.dune-project.org/staging/dune-functions
+    - git clone -b releases/2.6 https://gitlab.dune-project.org/staging/dune-typetree
+    - git clone -b releases/2.6 https://gitlab.dune-project.org/pdelab/dune-pdelab
+    - git clone -b releases/2.6 https://gitlab.dune-project.org/extensions/dune-multidomaingrid
+    
   artifacts:
     paths:
-      - dune-logging/
-      - dune-multidomaingrid/
+      - dune-*/
 
-.build: &build
-  stage: build
-  before_script:
-    - . /duneci/bin/duneci-init-job
-    - mv dune-logging /duneci/modules/dune-logging
-    - mv dune-multidomaingrid /duneci/modules/dune-multidomaingrid
-  after_script:
-    - mv /duneci/modules/dune-logging dune-logging
-    - mv /duneci/modules/dune-multidomaingrid dune-multidomaingrid
-  script:
-    - /duneci/modules/dune-common/bin/dunecontrol --opts=/duneci/dune.opts --only=dune-copasi vcsetup
-    - /duneci/modules/dune-common/bin/dunecontrol --opts=/duneci/dune.opts --only=dune-copasi configure
-    - /duneci/modules/dune-common/bin/dunecontrol --opts=/duneci/dune.opts --only=dune-copasi make -j2 all
-  artifacts:
-    paths:
-      - dune-logging/
-      - build-cmake/
+# .build: &build
+#   stage: build
+#   before_script:
+#     - . /duneci/bin/duneci-init-job
+#     - mv dune-logging /duneci/modules/dune-logging
+#     - mv dune-multidomaingrid /duneci/modules/dune-multidomaingrid
+#   after_script:
+#     - mv /duneci/modules/dune-logging dune-logging
+#     - mv /duneci/modules/dune-multidomaingrid dune-multidomaingrid
+#   script:
+#     - /duneci/modules/dune-common/bin/dunecontrol --opts=/duneci/dune.opts --only=dune-copasi vcsetup
+#     - /duneci/modules/dune-common/bin/dunecontrol --opts=/duneci/dune.opts --only=dune-copasi configure
+#     - /duneci/modules/dune-common/bin/dunecontrol --opts=/duneci/dune.opts --only=dune-copasi make -j2 all
+#   artifacts:
+#     paths:
+#       - dune-logging/
+#       - build-cmake/
 
-.unit_test: &unit_test
-  stage: unit_test
-  before_script:
-    - . /duneci/bin/duneci-init-job
-    - mv dune-logging /duneci/modules/dune-logging
-    - mv dune-multidomaingrid /duneci/modules/dune-multidomaingrid
-    - cd build-cmake
-  script: 
-    - make build_unit_tests
-    - ctest -j2 -L "unit" 
+# .unit_test: &unit_test
+#   stage: unit_test
+#   before_script:
+#     - . /duneci/bin/duneci-init-job
+#     - mv dune-logging /duneci/modules/dune-logging
+#     - mv dune-multidomaingrid /duneci/modules/dune-multidomaingrid
+#     - cd build-cmake
+#   script: 
+#     - make build_unit_tests
+#     - ctest -j2 -L "unit" 
 
-.system_test: &system_test
-  stage: system_test
-  before_script:
-    - . /duneci/bin/duneci-init-job
-    - mv dune-logging /duneci/modules/dune-logging
-    - mv /duneci/modules/dune-multidomaingrid dune-multidomaingrid
-    - cd build-cmake
-  script: 
-    - make build_system_tests
-    - ctest -j2 -L "system"
+# .system_test: &system_test
+#   stage: system_test
+#   before_script:
+#     - . /duneci/bin/duneci-init-job
+#     - mv dune-logging /duneci/modules/dune-logging
+#     - mv /duneci/modules/dune-multidomaingrid dune-multidomaingrid
+#     - cd build-cmake
+#   script: 
+#     - make build_system_tests
+#     - ctest -j2 -L "system"
 
 # gcc
 setup:gcc:
-  <<: *debian_gcc
+  <<: *ubuntu_gcc
   <<: *setup
 
-build:gcc:
-  <<: *debian_gcc
-  <<: *build
-  dependencies:
-    - setup:gcc
+# build:gcc:
+#   <<: *ubuntu_gcc
+#   <<: *build
+#   dependencies:
+#     - setup:gcc
 
-unit_test:gcc:
-  <<: *debian_gcc
-  <<: *unit_test
-  dependencies:
-    - build:gcc
+# unit_test:gcc:
+#   <<: *ubuntu_gcc
+#   <<: *unit_test
+#   dependencies:
+#     - build:gcc
 
-system_test:gcc:
-  <<: *debian_gcc
-  <<: *system_test
-  dependencies:
-    - build:gcc
+# system_test:gcc:
+#   <<: *ubuntu_gcc
+#   <<: *system_test
+#   dependencies:
+#     - build:gcc
 
-# clang
-setup:clang:
-  <<: *debian_clang
-  <<: *setup
+# # clang
+# setup:clang:
+#   <<: *debian_clang
+#   <<: *setup
 
-build:clang:
-  <<: *debian_clang
-  <<: *build
-  dependencies:
-    - setup:clang
+# build:clang:
+#   <<: *debian_clang
+#   <<: *build
+#   dependencies:
+#     - setup:clang
 
-unit_test:clang:
-  <<: *debian_clang
-  <<: *unit_test
-  dependencies:
-    - build:clang
+# unit_test:clang:
+#   <<: *debian_clang
+#   <<: *unit_test
+#   dependencies:
+#     - build:clang
 
-system_test:clang:
-  <<: *debian_clang
-  <<: *system_test
-  dependencies:
-    - build:clang
+# system_test:clang:
+#   <<: *debian_clang
+#   <<: *system_test
+#   dependencies:
+#     - build:clang
