@@ -16,8 +16,8 @@ stages:
     - dune_make() { $CI_BUILDS_DIR/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 make -j2 ; }
     - dune_all() { dune_configure $1; dune_make $1 ; }
   variables:
-    CI_BUILDS_DIR: duneci/
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/dune-copasi
+    # TODO: Fix this harcoded path
+    CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
   tags:
     - "cores:2"
 
@@ -31,10 +31,8 @@ stages:
 .setup: &setup
   stage: setup
   script:
-    - pwd
-    - ls
-    - ls | grep -v dune-copasi | xargs mv -t dune-copasi
-    - ls
+      # move everything into a subfolder dune-copasi
+    - mkdir dune-copasi & ls | grep -v dune-copasi | xargs mv -t dune-copasi
     - git clone -b support/dune-copasi https://gitlab.dune-project.org/santiago.ospina/dune-common
     - dune_all dune-common
     - git clone --recursive https://gitlab.dune-project.org/staging/dune-logging
