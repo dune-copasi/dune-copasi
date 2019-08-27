@@ -11,7 +11,9 @@ stages:
 .general_definitions: &general_definitions
   before_script:
     # Load toolchain
+    - cat $TOOLCHAIN
     - source $TOOLCHAIN
+    - c++ --version
     # Define helper functions
     - dune_configure() { $CI_BUILDS_DIR/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 configure "Ninja" ; }
     - dune_make() { $CI_BUILDS_DIR/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 make ; }
