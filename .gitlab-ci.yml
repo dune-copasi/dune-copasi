@@ -20,11 +20,11 @@ stages:
     - "cores:2"
 
 # OS setup
-.debian_gcc: &debian_gcc
+.debian: &debian
   <<: *general_definitions
   image: registry.dune-project.org/docker/ci/debian:10
 
-  .ubuntu_gcc: &ubuntu_gcc
+.ubuntu: &ubuntu
   <<: *general_definitions
   image: registry.dune-project.org/docker/ci/ubuntu:18.04
 
@@ -101,27 +101,27 @@ stages:
 #     - ctest -j2 -L "system"
 
 # gcc
-setup:gcc:
-  <<: *debian_gcc
+setup:debian:
+  <<: *debian
   <<: *setup
 
-# build:gcc:
-#   <<: *debian_gcc
+# build:debian:
+#   <<: *debian
 #   <<: *build
 #   dependencies:
-#     - setup:gcc
+#     - setup:debian
 
-# unit_test:gcc:
-#   <<: *debian_gcc
+# unit_test:debian:
+#   <<: *debian
 #   <<: *unit_test
 #   dependencies:
-#     - build:gcc
+#     - build:debian
 
-# system_test:gcc:
-#   <<: *debian_gcc
+# system_test:debian:
+#   <<: *debian
 #   <<: *system_test
 #   dependencies:
-#     - build:gcc
+#     - build:debian
 
 # # clang
 # setup:clang:
