@@ -102,7 +102,7 @@ setup:ubuntu:
   <<: *ubuntu
   <<: *setup  
 
-build:debian:
+build:ubuntu:
   <<: *ubuntu
   <<: *build
   dependencies:
