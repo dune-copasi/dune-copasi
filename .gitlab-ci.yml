@@ -3,9 +3,9 @@
 
 stages:
   - setup
-  # - build
-  # - unit_test
-  # - system_test
+  - build
+  - unit_test
+  - system_test
   # - deploy
 
 .general_definitions: &general_definitions
