@@ -12,7 +12,7 @@ stages:
 
 # OS setup
 .ubuntu_gcc: &ubuntu_gcc
-  image: ubuntu:bionic
+  image: ubuntu:18.04
   tags:
     - "cores:2"
 
