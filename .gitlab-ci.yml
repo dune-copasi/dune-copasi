@@ -88,6 +88,7 @@ stages:
   stage: unit_test
   script: 
     - cd build/dune-copasi
+    - make help
     - make build_unit_tests
     - ctest -j2 -V -L "unit"
 
@@ -95,6 +96,7 @@ stages:
   stage: system_test
   script: 
     - cd build/dune-copasi
+    - make help
     - make build_system_tests
     - ctest -j2 -V -L "system"
 
