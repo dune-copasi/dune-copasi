@@ -18,6 +18,10 @@ stages:
     - dune_all() { dune_configure $1; dune_make $1 ; }
   tags:
     - "cores:2"
+  artifacts:
+    paths:
+      - dune-*
+      - build
 
 # OS setup
 .debian: &debian
@@ -50,93 +54,68 @@ stages:
     - dune_all dune-logging
     - dune_all dune-pdelab
     - dune_all dune-multidomaingrid
-  artifacts:
-    paths:
-      - dune-*
-      - build
 
-# .build: &build
-#   stage: build
-#   before_script:
-#     - . /duneci/bin/duneci-init-job
-#     - mv dune-logging /duneci/modules/dune-logging
-#     - mv dune-multidomaingrid /duneci/modules/dune-multidomaingrid
-#   after_script:
-#     - mv /duneci/modules/dune-logging dune-logging
-#     - mv /duneci/modules/dune-multidomaingrid dune-multidomaingrid
-#   script:
-#     - /duneci/modules/dune-common/bin/dunecontrol --opts=/duneci/dune.opts --only=dune-copasi vcsetup
-#     - /duneci/modules/dune-common/bin/dunecontrol --opts=/duneci/dune.opts --only=dune-copasi configure
-#     - /duneci/modules/dune-common/bin/dunecontrol --opts=/duneci/dune.opts --only=dune-copasi make -j2 all
-#   artifacts:
-#     paths:
-#       - dune-logging/
-#       - build-cmake/
+.build: &build
+  stage: build
+  script:
+    - dune_all dune-copasi
 
-# .unit_test: &unit_test
-#   stage: unit_test
-#   before_script:
-#     - . /duneci/bin/duneci-init-job
-#     - mv dune-logging /duneci/modules/dune-logging
-#     - mv dune-multidomaingrid /duneci/modules/dune-multidomaingrid
-#     - cd build-cmake
-#   script: 
-#     - make build_unit_tests
-#     - ctest -j2 -L "unit" 
+.unit_test: &unit_test
+  stage: unit_test
+  script: 
+    - cd build/dune-copasi
+    - make build_unit_tests
+    - ctest -j2 -L "unit"
 
-# .system_test: &system_test
-#   stage: system_test
-#   before_script:
-#     - . /duneci/bin/duneci-init-job
-#     - mv dune-logging /duneci/modules/dune-logging
-#     - mv /duneci/modules/dune-multidomaingrid dune-multidomaingrid
-#     - cd build-cmake
-#   script: 
-#     - make build_system_tests
-#     - ctest -j2 -L "system"
+.system_test: &system_test
+  stage: system_test
+  script: 
+    - cd build/dune-copasi
+    - make build_system_tests
+    - ctest -j2 -L "system"
 
-# gcc
+# debian
 setup:debian:
   <<: *debian
   <<: *setup
 
-# build:debian:
-#   <<: *debian
-#   <<: *build
-#   dependencies:
-#     - setup:debian
+build:debian:
+  <<: *debian
+  <<: *build
+  dependencies:
+    - setup:debian
 
-# unit_test:debian:
-#   <<: *debian
-#   <<: *unit_test
-#   dependencies:
-#     - build:debian
+unit_test:debian:
+  <<: *debian
+  <<: *unit_test
+  dependencies:
+    - build:debian
 
-# system_test:debian:
-#   <<: *debian
-#   <<: *system_test
-#   dependencies:
-#     - build:debian
+system_test:debian:
+  <<: *debian
+  <<: *system_test
+  dependencies:
+    - build:debian
 
-# # clang
-# setup:clang:
-#   <<: *debian_clang
-#   <<: *setup
+# ubuntu
+setup:ubuntu:
+  <<: *ubuntu
+  <<: *setup  
 
-# build:clang:
-#   <<: *debian_clang
-#   <<: *build
-#   dependencies:
-#     - setup:clang
+build:debian:
+  <<: *ubuntu
+  <<: *build
+  dependencies:
+    - setup:ubuntu
 
-# unit_test:clang:
-#   <<: *debian_clang
-#   <<: *unit_test
-#   dependencies:
-#     - build:clang
+unit_test:ubuntu:
+  <<: *ubuntu
+  <<: *unit_test
+  dependencies:
+    - build:ubuntu
 
-# system_test:clang:
-#   <<: *debian_clang
-#   <<: *system_test
-#   dependencies:
-#     - build:clang
+system_test:ubuntu:
+  <<: *ubuntu
+  <<: *system_test
+  dependencies:
+    - build:ubuntu
