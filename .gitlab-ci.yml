@@ -12,16 +12,9 @@ stages:
 .debian_gcc: &debian_gcc
   image: registry.dune-project.org/docker/ci/dune:2.6-debian-10-gcc-8-17
   before_script:
-    - dune_configure() {
-    -    $CI_BUILDS_DIR/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 configure "Ninja"
-    - }
-    - dune_make() {
-    -    $CI_BUILDS_DIR/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 make -j2
-    - }
-    - dune_all() {
-    -    dune_configure $1
-    -    dune_make $1
-    - }
+    - dune_configure() { $CI_BUILDS_DIR/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 configure "Ninja" }
+    - dune_make() { $CI_BUILDS_DIR/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 make -j2 }
+    - dune_all() { dune_configure $1; dune_make $1 }
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/dune-copasi
   tags:
