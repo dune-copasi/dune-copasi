@@ -5,6 +5,8 @@
 #include <dune/grid/io/file/gmshreader.hh>
 #include <dune/grid/multidomaingrid.hh>
 
+#include <dune/logging/logging.hh>
+
 #include <algorithm>
 #include <type_traits>
 
@@ -20,9 +22,17 @@ public:
   using Grid = Dune::mdgrid::MultiDomainGrid<HostGrid, MDGTraits>;
 
   static auto read(const std::string& fileName,
-                   bool verbose = true,
+                   ParameterTree config,
                    bool insertBoundarySegments = true)
   {
+    Logging::Logger _logger =
+      Logging::Logging::componentLogger(config, "default");
+    const bool cout_redirected = Dune::Logging::Logging::isCoutRedirected();
+    const bool verbose = _logger.level() > Logging::LogLevel::info;
+
+    if (not cout_redirected)
+      Dune::Logging::Logging::redirectCout(_logger.name());
+
     // make a grid factory
     Dune::GridFactory<HostGrid> factory;
 
@@ -55,9 +65,13 @@ public:
     grid->updateSubDomains();
     grid->postUpdateSubDomains();
 
-    for (int i = 0; i < max_subdomains; ++i) {
-      gridinfo(grid->subDomain(i));
-    }
+    if (_logger.level() > Logging::LogLevel::trace)
+      for (int i = 0; i < max_subdomains; ++i)
+        gridinfo(grid->subDomain(i));
+
+    if (not cout_redirected)
+      Dune::Logging::Logging::restoreCout();
+
     return std::make_pair(grid, host_grid);
   }
 };
