@@ -1,7 +1,5 @@
 ---
 
-variables:
-  GIT_CLONE_PATH: $CI_BUILDS_DIR/dune-copasi
 
 stages:
   - setup
@@ -13,8 +11,22 @@ stages:
 # OS setup
 .debian_gcc: &debian_gcc
   image: registry.dune-project.org/docker/ci/dune:2.6-debian-10-gcc-8-17
+  before_script:
+    - dune_configure() {
+    -    $CI_BUILDS_DIR/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 configure "Ninja"
+    - }
+    - dune_make() {
+    -    $CI_BUILDS_DIR/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 make -j2
+    - }
+    - dune_all() {
+    -    dune_configure $1
+    -    dune_make $1
+    - }
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/dune-copasi
   tags:
     - "cores:2"
+
 
 # .debian_clang: &debian_clang
 #   image: debian:bionic
@@ -25,19 +37,31 @@ stages:
 .setup: &setup
   stage: setup
   script:
+    - ls
     - git clone -b support/dune-copasi https://gitlab.dune-project.org/santiago.ospina/dune-common
+    - dune_all dune-common
     - git clone --recursive https://gitlab.dune-project.org/staging/dune-logging
+    - dune_all dune-logging
     - git clone https://gitlab.dune-project.org/core/dune-geometry
+    - dune_all dune-geometry
     - git clone https://gitlab.dune-project.org/core/dune-grid
+    - dune_all dune-grid
     - git clone https://gitlab.dune-project.org/core/dune-istl
+    - dune_all dune-istl
     - git clone https://gitlab.dune-project.org/core/dune-localfunctions
+    - dune_all dune-localfunctions
     - git clone https://gitlab.dune-project.org/staging/dune-functions
+    - dune_all dune-functions
     - git clone -b support/dune-copasi https://gitlab.dune-project.org/santiago.ospina/dune-typetree
+    - dune_all dune-typetree
     - git clone -b support/dune-copasi https://gitlab.dune-project.org/santiago.ospina/dune-pdelab
+    - dune_all dune-pdelab
     - git clone -b support/dune-copasi https://gitlab.dune-project.org/santiago.ospina/dune-multidomaingrid
+    - dune_all dune-multidomaingrid
   artifacts:
     paths:
       - dune-*
+      - build
 
 # .build: &build
 #   stage: build
