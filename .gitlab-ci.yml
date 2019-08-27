@@ -10,7 +10,7 @@ stages:
 
 # OS setup
 .debian_gcc: &debian_gcc
-  image: registry.dune-project.org/docker/ci/dune:2.6-debian-10-gcc-8-17
+  image: registry.dune-project.org/docker/ci/debian:10
   before_script:
     - dune_configure() { $CI_BUILDS_DIR/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 configure "Ninja" ; }
     - dune_make() { $CI_BUILDS_DIR/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 make -j2 ; }
