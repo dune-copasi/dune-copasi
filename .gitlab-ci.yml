@@ -9,9 +9,9 @@ stages:
   # - deploy
 
 .general_definitions: &general_definitions
-  variables:
-    CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
   before_script:
+    # Load toolchain
+    - source $TOOLCHAIN
     # Define helper functions
     - dune_configure() { $CI_BUILDS_DIR/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 configure "Ninja" ; }
     - dune_make() { $CI_BUILDS_DIR/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 make ; }
@@ -24,14 +24,34 @@ stages:
       - build
 
 # OS setup
-.debian: &debian
+.debian_gcc: &debian_gcc
   <<: *general_definitions
   image: registry.dune-project.org/docker/ci/debian:10
+  variables:
+    CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
+    TOOLCHAIN: /duneci/toolchains/gcc-8-17
 
-.ubuntu: &ubuntu
+.debian_clang: &debian_clang
+  <<: *general_definitions
+  image: registry.dune-project.org/docker/ci/debian:10
+  variables:
+    CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
+    TOOLCHAIN: /duneci/toolchains/clang-7-libcpp-17
+
+
+.ubuntu_gcc: &ubuntu_gcc
   <<: *general_definitions
   image: registry.dune-project.org/docker/ci/ubuntu:18.04
+  variables:
+    CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
+    TOOLCHAIN: /duneci/toolchains/gcc-7-17
 
+.ubuntu_clang: &ubuntu_clang
+  <<: *general_definitions
+  image: registry.dune-project.org/docker/ci/ubuntu:18.04
+  variables:
+    CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
+    TOOLCHAIN: /duneci/toolchains/clang-6-17
 # Stages
 .setup: &setup
   stage: setup
@@ -74,48 +94,94 @@ stages:
     - make build_system_tests
     - ctest -j2 -L "system"
 
-# debian
-setup:debian:
-  <<: *debian
+# debian gcc
+setup:debian_gcc:
+  <<: *debian_gcc
   <<: *setup
 
-build:debian:
-  <<: *debian
+build:debian_gcc:
+  <<: *debian_gcc
   <<: *build
   dependencies:
-    - setup:debian
+    - setup:debian_gcc
 
-unit_test:debian:
-  <<: *debian
+unit_test:debian_gcc:
+  <<: *debian_gcc
   <<: *unit_test
   dependencies:
-    - build:debian
+    - build:debian_gcc
 
-system_test:debian:
-  <<: *debian
+system_test:debian_gcc:
+  <<: *debian_gcc
   <<: *system_test
   dependencies:
-    - build:debian
+    - build:debian_gcc
 
-# ubuntu
-setup:ubuntu:
-  <<: *ubuntu
+# ubuntu gcc
+setup:ubuntu_gcc:
+  <<: *ubuntu_gcc
   <<: *setup  
 
-build:ubuntu:
-  <<: *ubuntu
+build:ubuntu_gcc:
+  <<: *ubuntu_gcc
   <<: *build
   dependencies:
-    - setup:ubuntu
+    - setup:ubuntu_gcc
 
-unit_test:ubuntu:
-  <<: *ubuntu
+unit_test:ubuntu_gcc:
+  <<: *ubuntu_gcc
   <<: *unit_test
   dependencies:
-    - build:ubuntu
+    - build:ubuntu_gcc
 
-system_test:ubuntu:
-  <<: *ubuntu
+system_test:ubuntu_gcc:
+  <<: *ubuntu_gcc
   <<: *system_test
   dependencies:
-    - build:ubuntu
+    - build:ubuntu_gcc
+
+# debian clang
+setup:debian_clang:
+  <<: *debian_clang
+  <<: *setup
+
+build:debian_clang:
+  <<: *debian_clang
+  <<: *build
+  dependencies:
+    - setup:debian_clang
+
+unit_test:debian_clang:
+  <<: *debian_clang
+  <<: *unit_test
+  dependencies:
+    - build:debian_clang
+
+system_test:debian_clang:
+  <<: *debian_clang
+  <<: *system_test
+  dependencies:
+    - build:debian_clang
+
+# ubuntu clang
+setup:ubuntu_clang:
+  <<: *ubuntu_clang
+  <<: *setup  
+
+build:ubuntu_clang:
+  <<: *ubuntu_clang
+  <<: *build
+  dependencies:
+    - setup:ubuntu_clang
+
+unit_test:ubuntu_clang:
+  <<: *ubuntu_clang
+  <<: *unit_test
+  dependencies:
+    - build:ubuntu_clang
+
+system_test:ubuntu_clang:
+  <<: *ubuntu_clang
+  <<: *system_test
+  dependencies:
+    - build:ubuntu_clang
