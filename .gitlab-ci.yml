@@ -25,16 +25,16 @@ stages:
 .setup: &setup
   stage: setup
   script:
-    - git clone -b support/dun-copasi ssh://git@gitlab.dune-project.org:22022/santiago.ospina/dune-common.git
+    - git clone -b support/dune-copasi https://git@gitlab.dune-project.org:22022/santiago.ospina/dune-common
     - git clone --recursive https://gitlab.dune-project.org/staging/dune-logging
     - git clone https://gitlab.dune-project.org/core/dune-geometry
     - git clone https://gitlab.dune-project.org/core/dune-grid
     - git clone https://gitlab.dune-project.org/core/dune-istl
     - git clone https://gitlab.dune-project.org/core/dune-localfunctions
     - git clone https://gitlab.dune-project.org/staging/dune-functions
-    - git clone -b support/dun-copasi ssh://git@gitlab.dune-project.org:22022/santiago.ospina/dune-typetree.git
-    - git clone -b support/dun-copasi ssh://git@gitlab.dune-project.org:22022/santiago.ospina/dune-pdelab.git
-    - git clone -b support/dun-copasi ssh://git@gitlab.dune-project.org:22022/santiago.ospina/dune-multidomaingrid.git
+    - git clone -b support/dune-copasi https://git@gitlab.dune-project.org:22022/santiago.ospina/dune-typetree
+    - git clone -b support/dune-copasi https://git@gitlab.dune-project.org:22022/santiago.ospina/dune-pdelab
+    - git clone -b support/dune-copasi https://git@gitlab.dune-project.org:22022/santiago.ospina/dune-multidomaingrid
   artifacts:
     paths:
       - dune-*
