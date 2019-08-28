@@ -6,7 +6,7 @@
 #include <dune/copasi/dynamic_local_basis.hh>
 #include <dune/copasi/dynamic_local_finite_element.hh>
 
-#include <dune/localfunctions/lagrange/pk.hh>
+#include <dune/localfunctions/lagrange.hh>
 #include <dune/localfunctions/common/localkey.hh>
 
 #include <dune/logging/logging.hh>
