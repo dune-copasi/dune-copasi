@@ -19,7 +19,7 @@ stages:
     # define helper functions
     - dune_configure() { $CI_BUILDS_DIR/source/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 configure ; }
     - dune_make() { $CI_BUILDS_DIR/source/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 make $2; }
-    - dune_all() { dune_configure $1; dune_make $1 ; }
+    - dune_all() { $CI_BUILDS_DIR/source/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 all ; }
   tags:
     - "cores:4"
   artifacts:
@@ -35,11 +35,11 @@ stages:
     CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
     # TOOLCHAIN: "gcc-8-17"
 
-.debian_clang: &debian_clang
-  <<: *general_definitions
-  image: registry.dune-project.org/docker/ci/debian:10
-  variables:
-    CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
+# .debian_clang: &debian_clang
+#   <<: *general_definitions
+#   image: registry.dune-project.org/docker/ci/debian:10
+#   variables:
+#     CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
     # TOOLCHAIN: "clang-7-libcpp-17"
 
 
@@ -50,11 +50,11 @@ stages:
     CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
     # TOOLCHAIN: "gcc-7-17"
 
-.ubuntu_clang: &ubuntu_clang
-  <<: *general_definitions
-  image: registry.dune-project.org/docker/ci/ubuntu:18.04
-  variables:
-    CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
+# .ubuntu_clang: &ubuntu_clang
+#   <<: *general_definitions
+#   image: registry.dune-project.org/docker/ci/ubuntu:18.04
+#   variables:
+#     CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
     # TOOLCHAIN: "clang-6-17"
 
 # Stages
@@ -108,17 +108,23 @@ build:debian_gcc:
   <<: *build
   dependencies:
     - setup:debian_gcc
+  needs:
+    - setup:debian_gcc
 
 unit_test:debian_gcc:
   <<: *debian_gcc
   <<: *unit_test
   dependencies:
     - build:debian_gcc
+  needs:
+    - build:debian_gcc
 
 system_test:debian_gcc:
   <<: *debian_gcc
   <<: *system_test
   dependencies:
+    - build:debian_gcc
+  needs:
     - build:debian_gcc
 
 # ubuntu gcc
@@ -131,11 +137,15 @@ build:ubuntu_gcc:
   <<: *build
   dependencies:
     - setup:ubuntu_gcc
+  needs:
+    - setup:ubuntu_gcc
 
 unit_test:ubuntu_gcc:
   <<: *ubuntu_gcc
   <<: *unit_test
   dependencies:
+    - build:ubuntu_gcc
+  needs:
     - build:ubuntu_gcc
 
 system_test:ubuntu_gcc:
@@ -143,49 +153,5 @@ system_test:ubuntu_gcc:
   <<: *system_test
   dependencies:
     - build:ubuntu_gcc
-
-# # debian clang
-# setup:debian_clang:
-#   <<: *debian_clang
-#   <<: *setup
-
-# build:debian_clang:
-#   <<: *debian_clang
-#   <<: *build
-#   dependencies:
-#     - setup:debian_clang
-
-# unit_test:debian_clang:
-#   <<: *debian_clang
-#   <<: *unit_test
-#   dependencies:
-#     - build:debian_clang
-
-# system_test:debian_clang:
-#   <<: *debian_clang
-#   <<: *system_test
-#   dependencies:
-#     - build:debian_clang
-
-# # ubuntu clang
-# setup:ubuntu_clang:
-#   <<: *ubuntu_clang
-#   <<: *setup  
-
-# build:ubuntu_clang:
-#   <<: *ubuntu_clang
-#   <<: *build
-#   dependencies:
-#     - setup:ubuntu_clang
-
-# unit_test:ubuntu_clang:
-#   <<: *ubuntu_clang
-#   <<: *unit_test
-#   dependencies:
-#     - build:ubuntu_clang
-
-# system_test:ubuntu_clang:
-#   <<: *ubuntu_clang
-#   <<: *system_test
-#   dependencies:
-#     - build:ubuntu_clang
+  needs:
+    - build:ubuntu_gcc
