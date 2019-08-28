@@ -16,9 +16,9 @@ stages:
     # move repository sources into a subfolder 'dune-copasi' to match othe dune modules
     - ls | grep -v 'source\|build' | xargs mv -t source/dune-copasi
     # define helper functions
-    - dune_configure() { $CI_BUILDS_DIR/source/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 configure ; }
+    - dune_configure() { $CI_BUILDS_DIR/source/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 configure -G"Ninja"; }
     - dune_make() { $CI_BUILDS_DIR/source/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 make $2; }
-    - dune_all() { $CI_BUILDS_DIR/source/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 all ; }
+    - dune_all() { dune_configure $1 ; dune_make $1 ; }
   tags:
     - "cores:4"
   artifacts:
