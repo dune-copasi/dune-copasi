@@ -1,6 +1,5 @@
 ---
 
-
 stages:
   - setup
   - build
@@ -108,24 +107,21 @@ build:debian_gcc:
   <<: *build
   dependencies:
     - setup:debian_gcc
-  needs:
-    - setup:debian_gcc
+  needs: ["setup:debian_gcc"]
 
 unit_test:debian_gcc:
   <<: *debian_gcc
   <<: *unit_test
   dependencies:
     - build:debian_gcc
-  needs:
-    - build:debian_gcc
+  needs: ["build:debian_gcc"]
 
 system_test:debian_gcc:
   <<: *debian_gcc
   <<: *system_test
   dependencies:
     - build:debian_gcc
-  needs:
-    - build:debian_gcc
+  needs: ["build:debian_gcc"]
 
 # ubuntu gcc
 setup:ubuntu_gcc:
@@ -137,21 +133,18 @@ build:ubuntu_gcc:
   <<: *build
   dependencies:
     - setup:ubuntu_gcc
-  needs:
-    - setup:ubuntu_gcc
+  needs: ["setup:ubuntu_gcc"]
 
 unit_test:ubuntu_gcc:
   <<: *ubuntu_gcc
   <<: *unit_test
   dependencies:
     - build:ubuntu_gcc
-  needs:
-    - build:ubuntu_gcc
+  needs: ["build:ubuntu_gcc"]
 
 system_test:ubuntu_gcc:
   <<: *ubuntu_gcc
   <<: *system_test
   dependencies:
     - build:ubuntu_gcc
-  needs:
-    - build:ubuntu_gcc
+  needs: ["build:ubuntu_gcc"]
