@@ -1,7 +1,7 @@
 enable_testing()
 
-dune_add_test(NAME            "test_local_finite_element"  
-              SOURCES         "dynamic_local_finite_element.cc"
+dune_add_test(NAME            "test_dynamic_local_finite_element"  
+              SOURCES         "test_dynamic_local_finite_element.cc"
               LABELS          "unit")
 
 dune_add_test(NAME            "test_concepts_pdelab"  
