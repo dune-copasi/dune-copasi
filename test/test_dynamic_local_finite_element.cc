@@ -182,7 +182,8 @@ test_power_local_interpolation(const F& f,
   std::vector<double> power_coeff;
   if (power_size == 1) {
     power_interpolation.interpolate(f, power_coeff);
-    failed |= not std::equal(coeff.begin(), coeff.end(), power_coeff.begin());
+    for (std::size_t j = 0; j < coeff.size(); j++)
+    failed |= Dune::FloatCmp::ne(coeff[j] , power_coeff[i]);
   }
 
   std::vector<double> scales(power_size);
