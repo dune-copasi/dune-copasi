@@ -17,7 +17,7 @@ stages:
     - ls | grep -v 'source\|build' | xargs mv -t source/dune-copasi
     # define helper functions
     - dune_configure() { $CI_BUILDS_DIR/source/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 configure -G"Ninja"; }
-    - dune_make() { $CI_BUILDS_DIR/source/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 make $2; }
+    - dune_make() { $CI_BUILDS_DIR/source/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 make; }
     - dune_all() { dune_configure $1 ; dune_make $1 ; }
   tags:
     - "cores:4"
@@ -87,14 +87,14 @@ stages:
   stage: unit_test
   script: 
     - cd build/dune-copasi
-    - dune_make dune-copasi --target build_unit_tests
+    - ninja --target build_unit_tests
     - ctest -j2 -V -L "unit"
 
 .system_test: &system_test
   stage: system_test
   script: 
     - cd build/dune-copasi
-    - dune_make dune-copasi --target build_system_tests
+    - ninja build_system_tests
     - ctest -j2 -V -L "system"
 
 # debian gcc
