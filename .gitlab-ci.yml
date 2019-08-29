@@ -87,7 +87,7 @@ stages:
   stage: unit_test
   script: 
     - cd build/dune-copasi
-    - ninja --target build_unit_tests
+    - ninja build_unit_tests
     - ctest -j2 -V -L "unit"
 
 .system_test: &system_test
