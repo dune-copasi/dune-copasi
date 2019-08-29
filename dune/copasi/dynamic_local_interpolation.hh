@@ -5,6 +5,8 @@
 
 #include <dune/common/dynvector.hh>
 #include <dune/common/fvector.hh>
+#include <dune/common/classname.hh>
+#include <iostream>
 
 namespace Dune::Copasi {
 
@@ -41,16 +43,14 @@ public:
   {
     out.clear();
 
+    static_assert(IsIndexable<typename F::RangeType>::value);
+    constexpr bool dynamic_vector = IsIndexable<decltype(std::declval<typename F::RangeType>()[0])>::value;
+
     if (_power_size == 0)
       return;
-
-    if constexpr (std::is_same_v<typename F::RangeType,
-                                 FieldVector<double, 1>>) {
+    if constexpr (not dynamic_vector) {
       _interpolation.interpolate(f, out);
-    } else if constexpr (std::is_same_v<typename F::RangeType,
-                                        DynamicVector<double>>) {
-      // output iterator
-      auto out_it = out.begin();
+    } else {
 
       // convert f in callable
       auto&& callable =
@@ -68,15 +68,19 @@ public:
         // evaluate component i
         _interpolation.interpolate(callable_i, base_out);
 
-        // copy result into the output container
-        out.resize(base_out.size() * _power_size);
-        std::copy(base_out.begin(), base_out.end(), out_it);
+        // resize out vector to the correct size
+        if (i == 0) out.resize(base_out.size() * _power_size);
+        
+        // output iterator
+        auto out_it = out.begin();
+        
+        // move output iterator to the current component to interpolate
+        std::advance(out_it, i*base_out.size());
 
-        // move output iterator to the next component to interpolate
-        std::advance(out_it, base_out.size());
+        // copy result into the output container
+        std::copy(base_out.begin(), base_out.end(), out_it);
       }
-    } else
-      static_assert(AlwaysTrue<C>::value);
+    }
   }
 
 private:

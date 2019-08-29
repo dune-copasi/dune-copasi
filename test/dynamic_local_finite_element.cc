@@ -11,10 +11,11 @@
 
 #include <dune/logging/logging.hh>
 
+#include <dune/common/float_cmp.hh>
+#include <dune/common/dynvector.hh>
 #include <dune/common/exceptions.hh>
 #include <dune/common/parallel/mpihelper.hh>
 
-#include <iostream>
 #include <set>
 #include <cassert>
 
@@ -84,14 +85,95 @@ bool test_power_local_coefficients(const Coefficients& coefficients, std::size_t
   return false;
 }
 
-template<class Interpolation>
-bool test_power_local_interpolation(const Interpolation& interpolation, std::size_t power_size)
+
+// This class defines a local finite element function.
+// It is determined by a local finite element and
+// representing the local basis and a coefficient vector.
+// This provides the evaluate method needed by the interpolate()
+// method.
+template<class FE>
+class FEFunction :
+  public Dune::Function<typename FE::Traits::LocalBasisType::Traits::DomainType, typename FE::Traits::LocalBasisType::Traits::RangeType>
+{
+  using Domain = typename FE::Traits::LocalBasisType::Traits::DomainType;
+  using Range = typename FE::Traits::LocalBasisType::Traits::RangeType;
+
+  const FE& fe;
+
+public:
+  using CT = typename FE::Traits::LocalBasisType::Traits::RangeFieldType;
+
+  std::vector<CT> coeff;
+
+  FEFunction(const FE& fe_) : fe(fe_) { resetCoefficients(); }
+
+  void resetCoefficients() {
+    coeff.resize(fe.localBasis().size());
+    for(std::size_t i=0; i<coeff.size(); ++i)
+      coeff[i] = 0;
+  }
+
+  void setRandom(double max) {
+    coeff.resize(fe.localBasis().size());
+    for(std::size_t i=0; i<coeff.size(); ++i)
+      coeff[i] = ((1.0*std::rand()) / RAND_MAX - 0.5)*2.0*max;
+  }
+
+  void evaluate (const Domain& x, Range& y) const {
+    std::vector<Range> yy;
+    fe.localBasis().evaluateFunction(x, yy);
+
+    y = 0.0;
+    for (std::size_t i=0; i<yy.size(); ++i)
+      y.axpy(coeff[i], yy[i]);
+  }
+};
+
+template<class F>
+class DynamicFEFunction :
+  public Dune::Function<typename F::DomainType, Dune::DynamicVector<typename F::RangeType>>
+{
+  using Domain = typename F::DomainType;
+  using Range = Dune::DynamicVector<typename F::RangeType>;
+public:
+  const F& _f;
+  std::vector<double> _scales;
+  DynamicFEFunction(const F& f, const std::vector<double>& scales)
+    : _f(f)
+    , _scales(scales)
+  {}
+
+  void evaluate (const Domain& x, Range& y) const {
+    y.resize(_scales.size());
+    typename F::RangeType y_base;
+    _f.evaluate(x,y_base);
+    for (std::size_t i = 0; i < _scales.size(); i++)
+      y[i] = y_base * _scales[i];
+  }
+};
+
+template<class F, class Interpolation>
+bool test_power_local_interpolation(const F& f, const Interpolation& interpolation, std::size_t power_size)
 {
   Dune::Copasi::DynamicPowerLocalInterpolation<Interpolation> power_interpolation(power_size);
-  
-  // how do I test this?
 
-  return true;
+  std::vector<double> coeff;
+  interpolation.interpolate(f,coeff);
+
+  std::vector<double> power_coeff;
+  std::vector<double> scales(power_size);
+  std::iota(scales.begin(),scales.end(),0);
+  DynamicFEFunction<F> dyn_f(f,scales);
+
+  power_interpolation.interpolate(dyn_f,power_coeff);
+
+  bool failed = false;
+
+  for (std::size_t i = 0; i < power_size; i++)
+    for (std::size_t j = 0; j < coeff.size(); j++)
+      failed |= Dune::FloatCmp::ne(coeff[j]*scales[i], power_coeff[coeff.size()*i+j]);
+  
+  return failed;
 }
 
 template<class FiniteElement>
@@ -104,7 +186,9 @@ bool test_power_local_finite_element(const FiniteElement& finite_element, std::s
 
   failed |= test_power_local_basis(finite_element.localBasis(),power_size);
   failed |= test_power_local_coefficients(finite_element.localCoefficients(),power_size);
-  failed |= test_power_local_interpolation(finite_element.localInterpolation(),power_size);
+  FEFunction<FiniteElement> f(finite_element);
+  f.setRandom(1.);
+  failed |= test_power_local_interpolation(f,finite_element.localInterpolation(),power_size);
 
   return failed;
 }
