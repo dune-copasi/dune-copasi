@@ -135,13 +135,13 @@ public:
   void step() override;
 
 protected:
-  void setup_grid_function_space();
-  void setup_coefficient_vector();
-  void setup_constraints();
-  void setup_local_operators();
-  void setup_grid_operators();
-  void setup_solvers();
-  void setup_vtk_writer();
+  void setup_grid_function_spaces();
+  // void setup_coefficient_vector();
+  // void setup_constraints();
+  // void setup_local_operators();
+  // void setup_grid_operators();
+  // void setup_solvers();
+  // void setup_vtk_writer();
 
 private:
   using ModelBase::_logger;
@@ -152,21 +152,19 @@ private:
 
   std::vector<std::shared_ptr<SW>> _sequential_writer;
 
+  std::vector<State> _states;
   std::shared_ptr<Grid> _grid;
 
-  std::shared_ptr<GFS> _gfs;
   std::unique_ptr<CC> _constraints;
-  std::shared_ptr<LOP> _local_operator;
-  std::shared_ptr<TLOP> _temporal_local_operator;
-  std::shared_ptr<GOS> _spatial_grid_operator;
-  std::shared_ptr<GOT> _temporal_grid_operator;
-  std::shared_ptr<GOI> _grid_operator;
-  std::shared_ptr<LS> _linear_solver;
-  std::shared_ptr<NLS> _nonlinear_solver;
-  std::shared_ptr<TSP> _time_stepping_method;
-  std::shared_ptr<OSM> _one_step_method;
-
-  std::shared_ptr<X> _x;
+  std::vector<std::shared_ptr<LOP>> _local_operators;
+  std::vector<std::shared_ptr<TLOP>> _temporal_local_operators;
+  std::vector<std::shared_ptr<GOS>> _spatial_grid_operators;
+  std::vector<std::shared_ptr<GOT>> _temporal_grid_operators;
+  std::vector<std::shared_ptr<GOI>> _grid_operators;
+  std::vector<std::shared_ptr<LS>> _linear_solvers;
+  std::vector<std::shared_ptr<NLS>> _nonlinear_solvers;
+  std::vector<std::shared_ptr<TSP>> _time_stepping_methods;
+  std::vector<std::shared_ptr<OSM>> _one_step_methods;
 
   std::size_t _domains;
   std::size_t _dof_per_component;

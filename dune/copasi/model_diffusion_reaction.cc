@@ -222,14 +222,12 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
   std::sort(comp_names.begin(), comp_names.end());
 
   _operator_splitting.clear();
-  std::size_t max_op_i = 0;
   for (auto&& var : comp_names) {
-    std::size_t i = operator_splitting_config.get(var, 0);
+    std::size_t i = operator_splitting_config.template get<std::size_t>(var);
     _operator_splitting.insert(std::make_pair(i, var));
-    max_op_i = std::max(max_op_i, i + 1);
   }
 
-  _states.resize(max_op_i);
+  _states.clear();
 
   for (std::size_t i = 0; i < _states.size(); i++) {
     auto op_range = _operator_splitting.equal_range(i);
@@ -327,8 +325,8 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
 {
   _logger.trace("setup local operators"_fmt);
 
-  _local_operators.resize(_states.size());
-  _temporal_local_operators.resize(_states.size());
+  _local_operators.clear();
+  _temporal_local_operators.clear();
 
   for (std::size_t i = 0; i < _states.size(); i++) {
     auto operators = setup_local_operator(i);
@@ -343,9 +341,9 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
   setup_grid_operators()
 {
   _logger.debug("setup grid operators"_fmt);
-  _spatial_grid_operators.resize(_states.size());
-  _temporal_grid_operators.resize(_states.size());
-  _grid_operators.resize(_states.size());
+  _spatial_grid_operators.clear();
+  _temporal_grid_operators.clear();
+  _grid_operators.clear();
 
   for (std::size_t i = 0; i < _states.size(); i++) {
     auto& gfs = _states[i].grid_function_space;
@@ -373,10 +371,10 @@ void
 ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::setup_solvers()
 {
   _logger.debug("setup solvers"_fmt);
-  _linear_solvers.resize(_states.size());
-  _nonlinear_solvers.resize(_states.size());
-  _time_stepping_methods.resize(_states.size());
-  _one_step_methods.resize(_states.size());
+  _linear_solvers.clear();
+  _nonlinear_solvers.clear();
+  _time_stepping_methods.clear();
+  _one_step_methods.clear();
 
   for (std::size_t i = 0; i < _states.size(); i++) {
     auto& x = _states[i].coefficients;

@@ -47,10 +47,10 @@ struct ModelCoefficientMapper
   using SolutionVector =
     Dune::PDELab::LocalVector<SolutionElement, Dune::PDELab::TrialSpaceTag>;
 
-  std::vector<std::shared_ptr<LFS>> _lfs;
-  std::vector<std::shared_ptr<LFSCache>> _lfs_cache;
-  std::vector<std::shared_ptr<XView>> _x_view;
-  std::vector<std::shared_ptr<SolutionVector>> _x;
+  std::map<std::size_t,std::shared_ptr<LFS>> _lfs;
+  std::map<std::size_t,std::shared_ptr<LFSCache>> _lfs_cache;
+  std::map<std::size_t,std::shared_ptr<XView>> _x_view;
+  std::map<std::size_t,std::shared_ptr<SolutionVector>> _x;
 
   ModelCoefficientMapper(const std::vector<std::size_t>& map_operator,
                          std::size_t this_op)
@@ -63,25 +63,20 @@ struct ModelCoefficientMapper
                                                comp_child[map_operator[i]]++ };
   }
 
-  void update(const std::vector<ModelState>& states)
+  void update(const std::map<std::size_t,ModelState>& states)
   {
     _x.clear();
     _x_view.clear();
     _lfs_cache.clear();
     _lfs.clear();
 
-    _lfs.resize(states.size());
-    _lfs_cache.resize(states.size());
-    _x_view.resize(states.size());
-    _x.resize(states.size());
-
     for (std::size_t i = 0; i < states.size(); i++) {
       if (_this_op == i)
         continue;
-      _lfs[i] = std::make_shared<LFS>(states[i].grid_function_space);
+      _lfs[i] = std::make_shared<LFS>(states.at(i).grid_function_space);
       _lfs_cache[i] = std::make_shared<LFSCache>(*_lfs[i]);
-      _x_view[i] = std::make_shared<XView>(*(states[i].coefficients));
-      auto max_local_size = states[i].grid_function_space->maxLocalSize();
+      _x_view[i] = std::make_shared<XView>(*(states.at(i).coefficients));
+      auto max_local_size = states.at(i).grid_function_space->maxLocalSize();
       _x[i] = std::make_shared<SolutionVector>(max_local_size);
     }
   }
@@ -95,7 +90,11 @@ struct ModelCoefficientMapper
     if (map[0] == _this_op)
       return x_view_local(map[1], dof);
     else
-      return (*_x[map[0]])(_lfs[map[0]]->child(map[1]), dof);
+    {
+      const auto& x_view_global = *_x.at(map[0]);
+      const auto& lfs = _lfs.at(map[0])->child(map[1]);
+      return x_view_global(lfs, dof);
+    }
   }
 
   template<class E>

@@ -192,16 +192,16 @@ public:
    *
    * @return     Model state
    */
-  std::vector<State> states() { return _states; }
+  std::map<std::size_t,State> states() { return _states; }
 
   /**
    * @brief      Get the model state
    *
    * @return     Model state
    */
-  std::vector<ConstState> const_states() const
+  std::map<std::size_t,ConstState> const_states() const
   {
-    std::vector<ConstState> const_states(_states.begin(), _states.end());
+    std::map<std::size_t,ConstState> const_states(_states.begin(), _states.end());
     return const_states;
   }
 
@@ -210,7 +210,7 @@ public:
    *
    * @return     Model state
    */
-  std::vector<ConstState> states() const { return const_states(); }
+  std::map<std::size_t,ConstState> states() const { return const_states(); }
 
   /**
    * @brief      Sets the state of the model
@@ -255,21 +255,21 @@ private:
   std::size_t _components;
   ParameterTree _config;
   GV _grid_view;
-  std::vector<State> _states;
+  std::map<std::size_t,State> _states;
   std::multimap<std::size_t, std::string> _operator_splitting;
 
   std::shared_ptr<Grid> _grid;
 
   std::unique_ptr<CC> _constraints;
-  std::vector<std::shared_ptr<LOP>> _local_operators;
-  std::vector<std::shared_ptr<TLOP>> _temporal_local_operators;
-  std::vector<std::shared_ptr<GOS>> _spatial_grid_operators;
-  std::vector<std::shared_ptr<GOT>> _temporal_grid_operators;
-  std::vector<std::shared_ptr<GOI>> _grid_operators;
-  std::vector<std::shared_ptr<LS>> _linear_solvers;
-  std::vector<std::shared_ptr<NLS>> _nonlinear_solvers;
-  std::vector<std::shared_ptr<TSP>> _time_stepping_methods;
-  std::vector<std::shared_ptr<OSM>> _one_step_methods;
+  std::map<std::size_t,std::shared_ptr<LOP>> _local_operators;
+  std::map<std::size_t,std::shared_ptr<TLOP>> _temporal_local_operators;
+  std::map<std::size_t,std::shared_ptr<GOS>> _spatial_grid_operators;
+  std::map<std::size_t,std::shared_ptr<GOT>> _temporal_grid_operators;
+  std::map<std::size_t,std::shared_ptr<GOI>> _grid_operators;
+  std::map<std::size_t,std::shared_ptr<LS>> _linear_solvers;
+  std::map<std::size_t,std::shared_ptr<NLS>> _nonlinear_solvers;
+  std::map<std::size_t,std::shared_ptr<TSP>> _time_stepping_methods;
+  std::map<std::size_t,std::shared_ptr<OSM>> _one_step_methods;
 
   std::shared_ptr<W> _writer;
   std::shared_ptr<SW> _sequential_writer;
