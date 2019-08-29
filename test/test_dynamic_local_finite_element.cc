@@ -174,17 +174,22 @@ test_power_local_interpolation(const F& f,
   Dune::Copasi::DynamicPowerLocalInterpolation<Interpolation>
     power_interpolation(power_size);
 
+  bool failed = false;
+
   std::vector<double> coeff;
   interpolation.interpolate(f, coeff);
 
   std::vector<double> power_coeff;
+  if (power_size == 1) {
+    power_interpolation.interpolate(f, power_coeff);
+    failed |= not std::equal(coeff.begin(), coeff.end(), power_coeff.begin());
+  }
+
   std::vector<double> scales(power_size);
   std::iota(scales.begin(), scales.end(), 0);
   DynamicFEFunction<F> dyn_f(f, scales);
 
   power_interpolation.interpolate(dyn_f, power_coeff);
-
-  bool failed = false;
 
   for (std::size_t i = 0; i < power_size; i++)
     for (std::size_t j = 0; j < coeff.size(); j++)
