@@ -10,7 +10,7 @@ stages:
 .general_definitions: &general_definitions
   before_script:
     # Set cmake flags
-    - echo 'CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_SETUP=1 -DDUNE_PYTHON_VIRTUALENV_PATH=/duneci/modules/dune-python-venv"' >> /duneci/cmake-flags/enable_virtualenv
+    - echo 'CMAKE_FLAGS+=" -CMAKE_GENERATOR="Ninja" -DDUNE_PYTHON_VIRTUALENV_SETUP=1 -DDUNE_PYTHON_VIRTUALENV_PATH=/duneci/modules/dune-python-venv"' >> /duneci/cmake-flags/dune_copasi.opts
     # create source directory if donesn't exist
     - mkdir -p source
     # clear dune-copasi folder if existing
@@ -18,7 +18,7 @@ stages:
     # move repository sources into a subfolder 'dune-copasi' to match othe dune modules
     - ls | grep -v 'source\|build' | xargs mv -t source/dune-copasi
     # define helper functions
-    - dune_configure() { $CI_BUILDS_DIR/source/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --opts=/duneci/dune.opts --module=$1 configure -G"Ninja"; }
+    - dune_configure() { $CI_BUILDS_DIR/source/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --opts=/duneci/dune.opts --module=$1 configure; }
     - dune_make() { $CI_BUILDS_DIR/source/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --opts=/duneci/dune.opts --module=$1 make; }
     - dune_all() { dune_configure $1 ; dune_make $1 ; }
   tags:
@@ -34,28 +34,28 @@ stages:
   image: registry.dune-project.org/docker/ci/debian:10
   variables:
     CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
-    TOOLCHAIN: "gcc-8-17"
+    DUNECI_TOOLCHAIN: "gcc-8-17"
 
 .debian_clang: &debian_clang
   <<: *general_definitions
   image: registry.dune-project.org/docker/ci/debian:10
   variables:
     CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
-    TOOLCHAIN: "clang-7-libcpp-17"
+    DUNECI_TOOLCHAIN: "clang-7-libcpp-17"
 
 .ubuntu_gcc: &ubuntu_gcc
   <<: *general_definitions
   image: registry.dune-project.org/docker/ci/ubuntu:18.04
   variables:
     CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
-    TOOLCHAIN: "gcc-7-17"
+    DUNECI_TOOLCHAIN: "gcc-7-17"
 
 .ubuntu_clang: &ubuntu_clang
   <<: *general_definitions
   image: registry.dune-project.org/docker/ci/ubuntu:18.04
   variables:
     CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
-    TOOLCHAIN: "clang-6-17"
+    DUNECI_TOOLCHAIN: "clang-6-17"
 
 # Stages
 .setup: &setup
