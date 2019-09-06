@@ -44,20 +44,14 @@ int main(int argc, char** argv)
     auto log = Dune::Logging::Logging::logger(config);
     log.notice("Starting dune-copasi"_fmt);
 
-
-    // test the current code... 
-
     // create a grid
     constexpr int dim = 2;
     using HostGrid = Dune::UGGrid<dim>;
     using MDGTraits = Dune::mdgrid::DynamicSubDomainCountTraits<dim,1>;
     using Grid = Dune::mdgrid::MultiDomainGrid<HostGrid,MDGTraits>;
-    // using Domain = Dune::FieldVector<double,2>;
 
     auto& grid_config = config.sub("grid");
-    // auto level = grid_config.get<int>("initial_level",0);
-    // auto upper_right = grid_config.get<Domain>("extensions",{1.,1.});
-    // auto elements = grid_config.get<std::array<unsigned int, 2>>("cells",{10,10});
+    auto level = grid_config.get<int>("initial_level",0);
 
     log.info("Creating a rectangular grid in {}D"_fmt, dim);
 
@@ -65,24 +59,12 @@ int main(int argc, char** argv)
 
     auto [grid_ptr,host_grid_ptr] = Dune::Copasi::GmshReader<Grid>::read(grid_file,config);
 
-    // log.debug("Applying global refinement of level: {}"_fmt, level);
-    // host_grid->globalRefine(level);
+    log.debug("Applying global refinement of level: {}"_fmt, level);
+    grid_ptr->globalRefine(level);
 
-    {
-      auto& model_config = config.sub("model");
-      const auto& compartements = model_config.sub("compartments").getValueKeys();
-      auto& compartement_config = model_config.sub(compartements[0]);
-      Dune::Copasi::ModelDiffusionReaction<Grid> model(grid_ptr,compartement_config);
-      model.step();
-      model.step();
-    }
-    
-    {
-      auto& model_config = config.sub("model");
-      Dune::Copasi::ModelMultiDomainDiffusionReaction<Grid> model(grid_ptr,model_config);
-      model.step();
-      model.step();
-    }
+    auto& model_config = config.sub("model");
+    Dune::Copasi::ModelMultiDomainDiffusionReaction<Grid> model(grid_ptr,model_config);
+    model.run();
 
     return 0;
   }
