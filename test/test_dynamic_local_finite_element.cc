@@ -72,7 +72,8 @@ test_power_local_coefficients(const Coefficients& coefficients,
     assert(t.second);
   }
 
-  // check that local keys are order
+  // check that local keys are ordered
+  if (unique_key.size() == 0) return false;
   auto it = std::next(unique_key.begin());
   while (it != unique_key.end()) {
     const auto& a = *std::prev(it);
@@ -183,7 +184,7 @@ test_power_local_interpolation(const F& f,
   if (power_size == 1) {
     power_interpolation.interpolate(f, power_coeff);
     for (std::size_t j = 0; j < coeff.size(); j++)
-    failed |= Dune::FloatCmp::ne(coeff[j] , power_coeff[j]);
+      failed |= Dune::FloatCmp::ne(coeff[j], power_coeff[j]);
   }
 
   std::vector<double> scales(power_size);
@@ -239,15 +240,15 @@ main(int argc, char** argv)
     using DF = double;
 
     Dune::Pk2DLocalFiniteElement<DF, RF, 1> finite_element_1;
-    for (int i = 1; i < 10; ++i)
+    for (int i = 0; i < 10; ++i)
       failed |= test_power_local_finite_element(finite_element_1, i);
 
     Dune::Pk2DLocalFiniteElement<DF, RF, 2> finite_element_2;
-    for (int i = 1; i < 10; ++i)
+    for (int i = 0; i < 10; ++i)
       failed |= test_power_local_finite_element(finite_element_2, i);
 
     Dune::Pk2DLocalFiniteElement<DF, RF, 3> finite_element_3;
-    for (int i = 1; i < 10; ++i)
+    for (int i = 0; i < 10; ++i)
       failed |= test_power_local_finite_element(finite_element_3, i);
 
     return failed;

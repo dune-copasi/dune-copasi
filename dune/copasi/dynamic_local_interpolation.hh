@@ -3,9 +3,9 @@
 
 #include <dune/localfunctions/common/localinterpolation.hh>
 
+#include <dune/common/classname.hh>
 #include <dune/common/dynvector.hh>
 #include <dune/common/fvector.hh>
-#include <dune/common/classname.hh>
 #include <iostream>
 
 namespace Dune::Copasi {
@@ -44,7 +44,8 @@ public:
     out.clear();
 
     static_assert(IsIndexable<typename F::RangeType>::value);
-    constexpr bool dynamic_vector = IsIndexable<decltype(std::declval<typename F::RangeType>()[0])>::value;
+    constexpr bool dynamic_vector =
+      IsIndexable<decltype(std::declval<typename F::RangeType>()[0])>::value;
 
     if (_power_size == 0)
       return;
@@ -69,13 +70,14 @@ public:
         _interpolation.interpolate(callable_i, base_out);
 
         // resize out vector to the correct size
-        if (i == 0) out.resize(base_out.size() * _power_size);
-        
+        if (i == 0)
+          out.resize(base_out.size() * _power_size);
+
         // output iterator
         auto out_it = out.begin();
-        
+
         // move output iterator to the current component to interpolate
-        std::advance(out_it, i*base_out.size());
+        std::advance(out_it, i * base_out.size());
 
         // copy result into the output container
         std::copy(base_out.begin(), base_out.end(), out_it);
