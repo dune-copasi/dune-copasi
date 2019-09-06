@@ -10,7 +10,7 @@ stages:
 .general_definitions: &general_definitions
   before_script:
     # Set cmake flags
-    - echo 'CMAKE_FLAGS+=" -CMAKE_GENERATOR="Ninja" -DDUNE_PYTHON_VIRTUALENV_SETUP=1 -DDUNE_PYTHON_VIRTUALENV_PATH=/duneci/modules/dune-python-venv"' >> /duneci/cmake-flags/dune_copasi.opts
+    - echo 'CMAKE_FLAGS+=" -DCMAKE_GENERATOR="Ninja" -DDUNE_PYTHON_VIRTUALENV_SETUP=1 -DDUNE_PYTHON_VIRTUALENV_PATH=/duneci/modules/dune-python-venv"' >> /duneci/cmake-flags/dune_copasi.opts
     # create source directory if donesn't exist
     - mkdir -p source
     # clear dune-copasi folder if existing
