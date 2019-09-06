@@ -10,9 +10,7 @@ stages:
 .general_definitions: &general_definitions
   before_script:
     # Set cmake flags
-    # - " -DCMAKE_C_COMPILER=${C_COMPILER}"
-    # - " -DCMAKE_CXX_COMPILER=${CXX_COMPILER}"
-    - echo 'CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_SETUP=1 -DDUNE_PYTHON_VIRTUALENV_PATH=${CI_BUILDS_DIR}/build/dune-python-venv"' >> /duneci/cmake-flags/enable_virtualenv
+    - echo 'CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_SETUP=1 -DDUNE_PYTHON_VIRTUALENV_PATH=/duneci/modules/dune-python-venv"' >> /duneci/cmake-flags/enable_virtualenv
     # create source directory if donesn't exist
     - mkdir -p source
     # clear dune-copasi folder if existing
@@ -36,33 +34,28 @@ stages:
   image: registry.dune-project.org/docker/ci/debian:10
   variables:
     CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
-    C_COMPILER: gcc
-    CXX_COMPILER: c++
+    TOOLCHAIN: "gcc-8-17"
 
 .debian_clang: &debian_clang
   <<: *general_definitions
   image: registry.dune-project.org/docker/ci/debian:10
   variables:
     CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
-    C_COMPILER: clang-7
-    CXX_COMPILER: clang++-7
-
+    TOOLCHAIN: "clang-7-libcpp-17"
 
 .ubuntu_gcc: &ubuntu_gcc
   <<: *general_definitions
   image: registry.dune-project.org/docker/ci/ubuntu:18.04
   variables:
     CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
-    C_COMPILER: gcc
-    CXX_COMPILER: c++
+    TOOLCHAIN: "gcc-7-17"
 
 .ubuntu_clang: &ubuntu_clang
   <<: *general_definitions
   image: registry.dune-project.org/docker/ci/ubuntu:18.04
   variables:
     CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
-    C_COMPILER: clang
-    CXX_COMPILER: clang++
+    TOOLCHAIN: "clang-6-17"
 
 # Stages
 .setup: &setup
