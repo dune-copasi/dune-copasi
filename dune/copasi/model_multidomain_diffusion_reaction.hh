@@ -6,6 +6,7 @@
 #include <dune/copasi/model_base.hh>
 #include <dune/copasi/model_diffusion_reaction.cc>
 #include <dune/copasi/model_diffusion_reaction.hh>
+#include <dune/copasi/multidomain_entity_transformation.hh>
 
 #include <dune/pdelab/backend/istl.hh>
 #include <dune/pdelab/backend/istl/novlpistlsolverbackend.hh>
@@ -78,8 +79,17 @@ class ModelMultiDomainDiffusionReaction : public ModelBase
   //! Constraints container
   using CC = typename GFS::template ConstraintsContainer<RF>::Type;
 
+  //! Model state structure
+  using State = Dune::Copasi::ModelState<Grid, GFS, X>;
+
+  //! Constant model state structure
+  using ConstState = Dune::Copasi::ConstModelState<Grid, GFS, X>;
+
+  //! Coefficients mapper
+  using CM = Dune::Copasi::MultiDomainModelCoefficientMapper<ConstState>;
+
   //! Local operator
-  using LOP = LocalOperatorMultiDomainDiffusionReaction<Grid, FE>;
+  using LOP = LocalOperatorMultiDomainDiffusionReaction<Grid, FE, CM>;
 
   //! Temporal local operator
   using TLOP = TemporalLocalOperatorMultiDomainDiffusionReaction<Grid, FE>;
@@ -116,11 +126,22 @@ class ModelMultiDomainDiffusionReaction : public ModelBase
   //! Sequential writer
   using SW = Dune::VTKSequenceWriter<SubDomainGridView>;
 
-  //! Model state structure
-  using State = Dune::Copasi::ModelState<Grid, GFS, X>;
+  //! Entity transformation between grids
+  using EntityTransformation =
+    Dune::Copasi::MultiDomainEntityTransformation<Grid>;
 
-  //! Constant model state structure
-  using ConstState = Dune::Copasi::ConstModelState<Grid, GFS, X>;
+  using DataHandler =
+    PDELab::vtk::DGFTreeCommonData<GFS,
+                                   X,
+                                   PDELab::vtk::DefaultPredicate,
+                                   SubDomainGridView,
+                                   EntityTransformation>;
+
+  using ComponentLFS =
+    typename PDELab::LocalFunctionSpace<GFS>::ChildType::ChildType;
+
+  using ComponentGridFunction = PDELab::vtk::
+    DGFTreeLeafFunction<ComponentLFS, DataHandler, SubDomainGridView>;
 
 public:
   ModelMultiDomainDiffusionReaction(std::shared_ptr<Grid> grid,
@@ -128,20 +149,61 @@ public:
 
   ~ModelMultiDomainDiffusionReaction();
 
+  /**
+   * @brief      Get the model state
+   *
+   * @return     Model state
+   */
+  std::map<std::size_t, State> states() { return _states; }
+
+  /**
+   * @brief      Get the model state
+   *
+   * @return     Model state
+   */
+  std::map<std::size_t, ConstState> const_states() const
+  {
+    return const_states(_states);
+  }
+
+  std::map<std::size_t, ConstState> const_states(
+    const std::map<std::size_t, State>& states) const
+  {
+    std::map<std::size_t, ConstState> const_states(states.begin(),
+                                                   states.end());
+    return const_states;
+  }
+
+  /**
+   * @brief      Get the model state
+   *
+   * @return     Model state
+   */
+  std::map<std::size_t, ConstState> states() const { return const_states(); }
+
   void setup(ModelSetupPolicy setup_policy = ModelSetupPolicy::All);
 
   void suggest_timestep(double dt) override;
 
   void step() override;
 
+  auto get_grid_function(const std::map<std::size_t, State>&,
+                         std::size_t,
+                         std::size_t) const;
+
 protected:
   void setup_grid_function_spaces();
-  // void setup_coefficient_vector();
-  // void setup_constraints();
-  // void setup_local_operators();
-  // void setup_grid_operators();
-  // void setup_solvers();
-  // void setup_vtk_writer();
+  void setup_coefficient_vectors();
+  void setup_constraints();
+  auto setup_local_operator(std::size_t) const;
+  void setup_local_operators();
+  void setup_grid_operators();
+  void setup_solvers();
+  void setup_vtk_writer();
+  void write_states() const;
+
+  void update_data_handler();
+  auto get_data_handler(std::map<std::size_t, State>) const;
 
 private:
   using ModelBase::_logger;
@@ -152,19 +214,21 @@ private:
 
   std::vector<std::shared_ptr<SW>> _sequential_writer;
 
-  std::vector<State> _states;
+  std::map<std::size_t, State> _states;
   std::shared_ptr<Grid> _grid;
 
-  std::unique_ptr<CC> _constraints;
-  std::vector<std::shared_ptr<LOP>> _local_operators;
-  std::vector<std::shared_ptr<TLOP>> _temporal_local_operators;
-  std::vector<std::shared_ptr<GOS>> _spatial_grid_operators;
-  std::vector<std::shared_ptr<GOT>> _temporal_grid_operators;
-  std::vector<std::shared_ptr<GOI>> _grid_operators;
-  std::vector<std::shared_ptr<LS>> _linear_solvers;
-  std::vector<std::shared_ptr<NLS>> _nonlinear_solvers;
-  std::vector<std::shared_ptr<TSP>> _time_stepping_methods;
-  std::vector<std::shared_ptr<OSM>> _one_step_methods;
+  std::vector<std::map<std::size_t, std::shared_ptr<DataHandler>>> _data;
+
+  std::map<std::size_t, std::unique_ptr<CC>> _constraints;
+  std::map<std::size_t, std::shared_ptr<LOP>> _local_operators;
+  std::map<std::size_t, std::shared_ptr<TLOP>> _temporal_local_operators;
+  std::map<std::size_t, std::shared_ptr<GOS>> _spatial_grid_operators;
+  std::map<std::size_t, std::shared_ptr<GOT>> _temporal_grid_operators;
+  std::map<std::size_t, std::shared_ptr<GOI>> _grid_operators;
+  std::map<std::size_t, std::shared_ptr<LS>> _linear_solvers;
+  std::map<std::size_t, std::shared_ptr<NLS>> _nonlinear_solvers;
+  std::map<std::size_t, std::shared_ptr<TSP>> _time_stepping_methods;
+  std::map<std::size_t, std::shared_ptr<OSM>> _one_step_methods;
 
   std::size_t _domains;
   std::size_t _dof_per_component;

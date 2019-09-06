@@ -41,32 +41,7 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
     // ExpressionToGridFunctionAdapter<GV, RF> initial(_grid_view,
     // intial_config); set_state(initial);
 
-    for (std::size_t i = 0; i < _states.size(); i++) {
-      auto& x = _states[i].coefficients;
-      auto& gfs = _states[i].grid_function_space;
-
-      auto etity_transformation = [&](auto e) {
-        if constexpr (Concept::isMultiDomainGrid<Grid>() and
-                      Concept::isSubDomainGrid<typename GridView::Grid>())
-          return _grid->multiDomainEntity(e);
-        else
-          return e;
-      };
-      using ET = decltype(etity_transformation);
-
-      using Predicate = PDELab::vtk::DefaultPredicate;
-      using Data =
-        PDELab::vtk::DGFTreeCommonData<GFS, X, Predicate, GridView, ET>;
-      std::shared_ptr<Data> data =
-        std::make_shared<Data>(*gfs, *x, _grid_view, etity_transformation);
-      PDELab::vtk::OutputCollector<SW, Data> collector(*_sequential_writer,
-                                                       data);
-      for (std::size_t k = 0; k < data->_lfs.degree(); k++)
-        collector.addSolution(data->_lfs.child(k),
-                              PDELab::vtk::defaultNameScheme());
-    }
-    _sequential_writer->write(current_time(), Dune::VTK::appendedraw);
-    _sequential_writer->vtkWriter()->clear();
+    write_states();
   }
 
   _logger.debug("ModelDiffusionReaction constructed"_fmt);
@@ -90,38 +65,16 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::step()
     Dune::Logging::Logging::redirectCout(_solver_logger.name(),
                                          Dune::Logging::LogLevel::detail);
 
-
   // do time step
-  for (std::size_t i = 0; i < _states.size(); i++) {
-    _local_operators[i]->update(const_states());
-    _temporal_local_operators[i]->update(const_states());
+  for (auto& [op, state] : _states) {
+    _local_operators[op]->update(const_states());
 
-    auto& x = _states[i].coefficients;
-    auto& gfs = _states[i].grid_function_space;
+    auto& x = state.coefficients;
     auto x_new = std::make_shared<X>(*x);
-    _one_step_methods[i]->apply(current_time(), dt, *x, *x_new);
+    _one_step_methods[op]->apply(current_time(), dt, *x, *x_new);
 
     // accept time step
     x = x_new;
-
-    auto etity_transformation = [&](auto e) {
-      if constexpr (Concept::isMultiDomainGrid<Grid>() and
-                    Concept::isSubDomainGrid<typename GridView::Grid>())
-        return _grid->multiDomainEntity(e);
-      else
-        return e;
-    };
-    using ET = decltype(etity_transformation);
-
-    using Predicate = PDELab::vtk::DefaultPredicate;
-    using Data =
-      PDELab::vtk::DGFTreeCommonData<GFS, X, Predicate, GridView, ET>;
-    std::shared_ptr<Data> data =
-      std::make_shared<Data>(*gfs, *x, _grid_view, etity_transformation);
-    PDELab::vtk::OutputCollector<SW, Data> collector(*_sequential_writer, data);
-    for (std::size_t k = 0; k < data->_lfs.degree(); k++)
-      collector.addSolution(data->_lfs.child(k),
-                            PDELab::vtk::defaultNameScheme());
   }
 
   if (not cout_redirected)
@@ -129,8 +82,7 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::step()
 
   current_time() += dt;
 
-  _sequential_writer->write(current_time(), Dune::VTK::appendedraw);
-  _sequential_writer->vtkWriter()->clear();
+  write_states();
 }
 
 template<class Grid, class GridView, int FEMorder, class OrderingTag>
@@ -221,16 +173,19 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
   auto comp_names = operator_splitting_config.getValueKeys();
   std::sort(comp_names.begin(), comp_names.end());
 
+  _states.clear();
+  // map operator -> variable_name
   _operator_splitting.clear();
   for (auto&& var : comp_names) {
-    std::size_t i = operator_splitting_config.template get<std::size_t>(var);
-    _operator_splitting.insert(std::make_pair(i, var));
+    std::size_t op = operator_splitting_config.template get<std::size_t>(var);
+    _operator_splitting.insert(std::make_pair(op, var));
+    _states[op] = {}; // initializate map with empty states
+    _states[op].grid = _grid;
   }
 
-  _states.clear();
-
-  for (std::size_t i = 0; i < _states.size(); i++) {
-    auto op_range = _operator_splitting.equal_range(i);
+  for (auto& [op, state] : _states) {
+    _logger.trace("setup grid function space for operator {}"_fmt, op);
+    auto op_range = _operator_splitting.equal_range(op);
     std::size_t op_size = std::distance(op_range.first, op_range.second);
     assert(op_size > 0);
     std::vector<std::string> op_comp_names(op_size);
@@ -238,9 +193,8 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
                    op_range.second,
                    op_comp_names.begin(),
                    [](const auto& i) { return i.second; });
-    _states[i].grid_function_space =
+    _states[op].grid_function_space =
       setup_domain_grid_function_space(op_comp_names);
-    _states[i].grid = _grid;
   }
 }
 
@@ -250,9 +204,9 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
   setup_coefficient_vectors()
 {
   _logger.debug("setup coefficient vector"_fmt);
-  for (std::size_t i = 0; i < _states.size(); i++) {
-    auto& x = _states[i].coefficients;
-    auto& gfs = _states[i].grid_function_space;
+  for (auto& [op, state] : _states) {
+    auto& x = _states[op].coefficients;
+    auto& gfs = _states[op].grid_function_space;
     if (x)
       x = std::make_shared<X>(*gfs, *(x->storage()));
     else
@@ -272,13 +226,13 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
     Dune::PDELab::makeBoundaryConditionFromCallable(_grid_view, b0lambda);
 
   _logger.trace("assemble constraints"_fmt);
-  _constraints = std::make_unique<CC>();
-  for (std::size_t i = 0; i < _states.size(); i++) {
-    auto& gfs = _states[i].grid_function_space;
-    Dune::PDELab::constraints(b0, *gfs, *_constraints);
+  for (auto& [op, state] : _states) {
+    _constraints[op] = std::make_unique<CC>();
+    auto& gfs = _states[op].grid_function_space;
+    Dune::PDELab::constraints(b0, *gfs, *_constraints[op]);
 
     _logger.info("constrained dofs: {} of {}"_fmt,
-                 _constraints->size(),
+                 _constraints[op]->size(),
                  gfs->globalSize());
   }
 }
@@ -293,27 +247,12 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
   _logger.trace("create spatial local operator {}"_fmt, i);
   FE finite_element;
 
-  std::vector<std::size_t> gfs_components, map_operator;
-  auto& operator_splitting_config = _config.sub("operator");
-  auto comp_names = operator_splitting_config.getValueKeys();
-  std::sort(comp_names.begin(), comp_names.end());
+  auto local_operator =
+    std::make_shared<LOP>(_grid_view, _config, finite_element, i);
 
-  for (std::size_t j = 0; j < comp_names.size(); j++) {
-    std::size_t k =
-      operator_splitting_config.template get<std::size_t>(comp_names[j]);
-    map_operator.push_back(k);
-    if (k == i)
-      gfs_components.push_back(j);
-  }
-
-  CM coefficient_mapper(map_operator, i);
-
-  auto local_operator = std::make_shared<LOP>(
-    _grid_view, _config, finite_element, gfs_components, coefficient_mapper);
-
-  _logger.trace("create temporal local operator"_fmt);
-  auto temporal_local_operator = std::make_shared<TLOP>(
-    _grid_view, _config, finite_element, gfs_components, coefficient_mapper);
+  _logger.trace("create temporal local operator {}"_fmt, i);
+  auto temporal_local_operator =
+    std::make_shared<TLOP>(_grid_view, _config, finite_element, i);
 
   return std::make_pair(local_operator, temporal_local_operator);
 }
@@ -328,10 +267,10 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
   _local_operators.clear();
   _temporal_local_operators.clear();
 
-  for (std::size_t i = 0; i < _states.size(); i++) {
-    auto operators = setup_local_operator(i);
-    _local_operators[i] = operators.first;
-    _temporal_local_operators[i] = operators.second;
+  for (auto& [op, state] : _states) {
+    auto operators = setup_local_operator(op);
+    _local_operators[op] = operators.first;
+    _temporal_local_operators[op] = operators.second;
   }
 }
 
@@ -345,24 +284,24 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
   _temporal_grid_operators.clear();
   _grid_operators.clear();
 
-  for (std::size_t i = 0; i < _states.size(); i++) {
-    auto& gfs = _states[i].grid_function_space;
-    auto& lop = _local_operators[i];
-    auto& tlop = _temporal_local_operators[i];
+  for (auto& [op, state] : _states) {
+    auto& gfs = _states[op].grid_function_space;
+    auto& lop = _local_operators[op];
+    auto& tlop = _temporal_local_operators[op];
 
     MBE mbe((int)pow(3, dim));
 
-    _logger.trace("create spatial grid operator {}"_fmt, i);
-    _spatial_grid_operators[i] = std::make_shared<GOS>(
-      *gfs, *_constraints, *gfs, *_constraints, *lop, mbe);
+    _logger.trace("create spatial grid operator {}"_fmt, op);
+    _spatial_grid_operators[op] = std::make_shared<GOS>(
+      *gfs, *_constraints[op], *gfs, *_constraints[op], *lop, mbe);
 
-    _logger.trace("create temporal grid operator {}"_fmt, i);
-    _temporal_grid_operators[i] = std::make_shared<GOT>(
-      *gfs, *_constraints, *gfs, *_constraints, *tlop, mbe);
+    _logger.trace("create temporal grid operator {}"_fmt, op);
+    _temporal_grid_operators[op] = std::make_shared<GOT>(
+      *gfs, *_constraints[op], *gfs, *_constraints[op], *tlop, mbe);
 
-    _logger.trace("create instationary grid operator {}"_fmt, i);
-    _grid_operators[i] = std::make_shared<GOI>(*_spatial_grid_operators[i],
-                                               *_temporal_grid_operators[i]);
+    _logger.trace("create instationary grid operator {}"_fmt, op);
+    _grid_operators[op] = std::make_shared<GOI>(*_spatial_grid_operators[op],
+                                                *_temporal_grid_operators[op]);
   }
 }
 
@@ -376,27 +315,28 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::setup_solvers()
   _time_stepping_methods.clear();
   _one_step_methods.clear();
 
-  for (std::size_t i = 0; i < _states.size(); i++) {
-    auto& x = _states[i].coefficients;
+  for (auto& [op, state] : _states) {
+    auto& x = state.coefficients;
     _logger.trace("create linear solver"_fmt);
-    _linear_solvers[i] = std::make_shared<LS>(5000, false);
+    _linear_solvers[op] = std::make_shared<LS>(*_grid_operators[op]);
 
     _logger.trace("create nonlinear solver"_fmt);
-    _nonlinear_solvers[i] =
-      std::make_shared<NLS>(*_grid_operators[i], *x, *_linear_solvers[i]);
-    _nonlinear_solvers[i]->setReassembleThreshold(0.0);
-    _nonlinear_solvers[i]->setVerbosityLevel(2);
-    _nonlinear_solvers[i]->setReduction(1e-8);
-    _nonlinear_solvers[i]->setMinLinearReduction(1e-10);
-    _nonlinear_solvers[i]->setMaxIterations(25);
-    _nonlinear_solvers[i]->setLineSearchMaxIterations(10);
+    _nonlinear_solvers[op] =
+      std::make_shared<NLS>(*_grid_operators[op], *x, *_linear_solvers[op]);
+    _nonlinear_solvers[op]->setReassembleThreshold(0.0);
+    _nonlinear_solvers[op]->setVerbosityLevel(2);
+    _nonlinear_solvers[op]->setReduction(1e-8);
+    _nonlinear_solvers[op]->setMinLinearReduction(1e-10);
+    _nonlinear_solvers[op]->setMaxIterations(25);
+    _nonlinear_solvers[op]->setLineSearchMaxIterations(10);
 
     _logger.trace("select and prepare time-stepping scheme"_fmt);
     using AlexMethod = Dune::PDELab::Alexander2Parameter<double>;
-    _time_stepping_methods[i] = std::make_shared<AlexMethod>();
-    _one_step_methods[i] = std::make_shared<OSM>(
-      *_time_stepping_methods[i], *_grid_operators[i], *_nonlinear_solvers[i]);
-    _one_step_methods[i]->setVerbosityLevel(2);
+    _time_stepping_methods[op] = std::make_shared<AlexMethod>();
+    _one_step_methods[op] = std::make_shared<OSM>(*_time_stepping_methods[op],
+                                                  *_grid_operators[op],
+                                                  *_nonlinear_solvers[op]);
+    _one_step_methods[op]->setVerbosityLevel(2);
   }
 }
 
@@ -428,8 +368,6 @@ void
 ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::setup(
   ModelSetupPolicy setup_policy)
 {
-  _logger.trace("setup operator started"_fmt);
-
   if (setup_policy >= ModelSetupPolicy::GridFunctionSpace)
     setup_grid_function_space();
   if (setup_policy >= ModelSetupPolicy::CoefficientVector)
@@ -444,6 +382,38 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::setup(
     setup_solvers();
   if (setup_policy >= ModelSetupPolicy::Writer)
     setup_vtk_writer();
+}
+
+template<class Grid, class GridView, int FEMorder, class OrderingTag>
+void
+ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::write_states()
+  const
+{
+  for (auto& [op, state] : _states) {
+    auto& x = state.coefficients;
+    auto& gfs = state.grid_function_space;
+
+    auto etity_transformation = [&](auto e) {
+      if constexpr (Concept::isMultiDomainGrid<Grid>() and
+                    Concept::isSubDomainGrid<typename GridView::Grid>())
+        return _grid->multiDomainEntity(e);
+      else
+        return e;
+    };
+    using ET = decltype(etity_transformation);
+
+    using Predicate = PDELab::vtk::DefaultPredicate;
+    using Data =
+      PDELab::vtk::DGFTreeCommonData<GFS, X, Predicate, GridView, ET>;
+    std::shared_ptr<Data> data =
+      std::make_shared<Data>(*gfs, *x, _grid_view, etity_transformation);
+    PDELab::vtk::OutputCollector<SW, Data> collector(*_sequential_writer, data);
+    for (std::size_t k = 0; k < data->_lfs.degree(); k++)
+      collector.addSolution(data->_lfs.child(k),
+                            PDELab::vtk::defaultNameScheme());
+  }
+  _sequential_writer->write(current_time(), Dune::VTK::appendedraw);
+  _sequential_writer->vtkWriter()->clear();
 }
 
 } // namespace Dune::Copasi
