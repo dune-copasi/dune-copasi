@@ -9,6 +9,10 @@ stages:
 
 .general_definitions: &general_definitions
   before_script:
+    # Set cmake flags
+    - CMAKE_FLAGS="  -DDUNE_PYTHON_VIRTUALENV_SETUP=True"
+    - CMAKE_FLAGS+=" -DCMAKE_C_COMPILER=${C_COMPILER}"
+    - CMAKE_FLAGS+=" -DCMAKE_CXX_COMPILER=${CXX_COMPILER}"
     # create source directory if donesn't exist
     - mkdir -p source
     # clear dune-copasi folder if existing
@@ -31,8 +35,9 @@ stages:
   <<: *general_definitions
   image: registry.dune-project.org/docker/ci/debian:10
   variables:
-    CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
-    # TOOLCHAIN: "gcc-8-17"
+    - CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
+    - C_COMPILER: gcc
+    - CXX_COMPILER: c++
 
 # .debian_clang: &debian_clang
 #   <<: *general_definitions
@@ -88,7 +93,9 @@ stages:
 .unit_test: &unit_test
   stage: unit_test
   script: 
+    - CMAKE_FLAGS+=" -DCMAKE_BUILD_TYPE=Debug"
     - cd build/dune-copasi
+    - cmake .
     - ninja build_unit_tests
     - ctest -j4 -L "unit"
 
