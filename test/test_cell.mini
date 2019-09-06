@@ -32,13 +32,13 @@ time_step = {_time_step}
 u = {_op_u0}
 
 [model.cell.initial]
-u = 0.5
+u = 1
 
 [model.cell.reaction]
-u = 0
+u = u
 
 [model.cell.reaction.jacobian]
-du_du = 0
+du_du = 1
 
 [model.cell.diffusion]
 u = 1.
@@ -57,17 +57,17 @@ u = {_op_u1}
 v = {_op_v1}
 
 [model.nucleoid.initial]
-u = 1
-v = 0.
+u = 0.5
+v = 1
 
 [model.nucleoid.reaction]
-u = 0
-v = 0
+u = -u*v
+v = u
 
 [model.nucleoid.reaction.jacobian]
-du_du = 0
-du_dv = 0
-dv_du = 0
+du_du = -v
+du_dv = -u
+dv_du = 1
 dv_dv = 0
 
 [model.nucleoid.diffusion]
@@ -82,7 +82,7 @@ file_name = {__name}_nucleoid
 name = {__name}_cell/{__name}_cell-00004 {__name}_nucleoid/{__name}_nucleoid-00004
 reference = reference/cell-00004 reference/nucleoid-00004
 extension = vtu vtu
-relative = 1e-2
+relative = 2e-2
 absolute = 1e-9
 
 ############################ Logging settings #################################
