@@ -27,6 +27,7 @@ stages:
     paths:
       - source
       - build
+    expire_in: 30 minutes
 
 # OS setup
 .debian_gcc: &debian_gcc
@@ -95,12 +96,20 @@ stages:
     - cd build/dune-copasi
     - ninja build_unit_tests
     - ctest -j4 -L "unit"
+  artifacts:
+    paths:
+      - build/dune-copasi/test
+    expire_in: 1 day
 
 .system_test: &system_test
   stage: system_test
   script: 
     - cd build/dune-copasi
     - ctest -j4 -L "DUNE_SYSTEMTEST"
+  artifacts:
+    paths:
+      - build/dune-copasi/test
+    expire_in: 1 day
 
 # debian gcc
 setup:debian_gcc:
