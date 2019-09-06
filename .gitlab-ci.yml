@@ -35,9 +35,9 @@ stages:
   <<: *general_definitions
   image: registry.dune-project.org/docker/ci/debian:10
   variables:
-    - CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
-    - C_COMPILER: gcc
-    - CXX_COMPILER: c++
+    CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
+    C_COMPILER: gcc
+    CXX_COMPILER: c++
 
 # .debian_clang: &debian_clang
 #   <<: *general_definitions
