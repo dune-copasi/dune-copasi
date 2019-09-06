@@ -42,6 +42,7 @@ stages:
   variables:
     CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
     DUNECI_TOOLCHAIN: "clang-7-libcpp-17"
+  allow_failure: true
 
 .ubuntu_gcc: &ubuntu_gcc
   <<: *general_definitions
