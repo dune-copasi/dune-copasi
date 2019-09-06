@@ -1,6 +1,6 @@
-add_library(dune_copasi STATIC model_base.cc)
+add_library(dune_copasi_lib STATIC model_base.cc)
 
-target_link_libraries(dune_copasi PUBLIC ${DUNE_LIBS})
+target_link_libraries(dune_copasi_lib PUBLIC ${DUNE_LIBS})
 
 #install headers
 install(FILES copasi.hh DESTINATION
