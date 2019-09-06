@@ -10,9 +10,10 @@ stages:
 .general_definitions: &general_definitions
   before_script:
     # Set cmake flags
-    - CMAKE_FLAGS="  -DDUNE_PYTHON_VIRTUALENV_SETUP=True"
-    - CMAKE_FLAGS+=" -DCMAKE_C_COMPILER=${C_COMPILER}"
+    - CMAKE_FLAGS="  -DCMAKE_C_COMPILER=${C_COMPILER}"
     - CMAKE_FLAGS+=" -DCMAKE_CXX_COMPILER=${CXX_COMPILER}"
+    - CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_SETUP=True"
+    - CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_PATH=${CI_BUILDS_DIR}/build/dune-python-venv"
     # create source directory if donesn't exist
     - mkdir -p source
     # clear dune-copasi folder if existing
@@ -83,10 +84,10 @@ stages:
     - git clone -b support/dune-copasi https://gitlab.dune-project.org/santiago.ospina/dune-pdelab
     - git clone -b support/dune-copasi https://gitlab.dune-project.org/santiago.ospina/dune-multidomaingrid
     # make required dune modules
+    - dune_all dune-testtools
     - dune_all dune-logging
     - dune_all dune-pdelab
     - dune_all dune-multidomaingrid
-    - dune_all dune-testtools
 
 .build: &build
   stage: build
