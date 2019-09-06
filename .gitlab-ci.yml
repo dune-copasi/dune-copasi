@@ -89,9 +89,9 @@ stages:
 .unit_test: &unit_test
   stage: unit_test
   script: 
-    - CMAKE_FLAGS+=" -DCMAKE_BUILD_TYPE=Debug"
+    - echo 'CMAKE_FLAGS+=" -DCMAKE_BUILD_TYPE=Debug"' >> /duneci/cmake-flags/dune_copasi.opts
+    - dune_configure dune-copasi
     - cd build/dune-copasi
-    - cmake .
     - ninja build_unit_tests
     - ctest -j4 -L "unit"
 
