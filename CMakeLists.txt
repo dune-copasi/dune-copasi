@@ -22,15 +22,10 @@ dune_project()
 
 dune_enable_all_packages()
 
- # Always activate tests for now
- set(DUNE_COPASI_TESTS ON)
-
 add_subdirectory(src)
 add_subdirectory(dune)
 add_subdirectory(doc)
-if(DUNE_COPASI_TESTS)
-  add_subdirectory(test) 
-endif()
+add_subdirectory(test)
 add_subdirectory(cmake/modules)
 
 # finalize the dune project, e.g. generating config.h etc.
