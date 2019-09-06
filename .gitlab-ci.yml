@@ -10,10 +10,9 @@ stages:
 .general_definitions: &general_definitions
   before_script:
     # Set cmake flags
-    - CMAKE_FLAGS="  -DCMAKE_C_COMPILER=${C_COMPILER}"
-    - CMAKE_FLAGS+=" -DCMAKE_CXX_COMPILER=${CXX_COMPILER}"
-    - CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_SETUP=True"
-    - CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_PATH=${CI_BUILDS_DIR}/build/dune-python-venv"
+    # - " -DCMAKE_C_COMPILER=${C_COMPILER}"
+    # - " -DCMAKE_CXX_COMPILER=${CXX_COMPILER}"
+    - echo 'CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_SETUP=1 -DDUNE_PYTHON_VIRTUALENV_PATH=${CI_BUILDS_DIR}/build/dune-python-venv"' >> /duneci/cmake-flags/enable_virtualenv
     # create source directory if donesn't exist
     - mkdir -p source
     # clear dune-copasi folder if existing
@@ -21,8 +20,8 @@ stages:
     # move repository sources into a subfolder 'dune-copasi' to match othe dune modules
     - ls | grep -v 'source\|build' | xargs mv -t source/dune-copasi
     # define helper functions
-    - dune_configure() { CMAKE_FLAGS=$CMAKE_FLAGS $CI_BUILDS_DIR/source/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 configure -G"Ninja"; }
-    - dune_make() { CMAKE_FLAGS=$CMAKE_FLAGS $CI_BUILDS_DIR/source/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --module=$1 make; }
+    - dune_configure() { $CI_BUILDS_DIR/source/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --opts=/duneci/dune.opts --module=$1 configure -G"Ninja"; }
+    - dune_make() { $CI_BUILDS_DIR/source/dune-common/bin/dunecontrol --builddir=$CI_BUILDS_DIR/build --opts=/duneci/dune.opts --module=$1 make; }
     - dune_all() { dune_configure $1 ; dune_make $1 ; }
   tags:
     - "cores:4"
