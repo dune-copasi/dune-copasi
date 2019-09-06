@@ -44,8 +44,8 @@ stages:
   image: registry.dune-project.org/docker/ci/debian:10
   variables:
     CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
-    C_COMPILER: clang
-    CXX_COMPILER: clang++
+    C_COMPILER: clang-7
+    CXX_COMPILER: clang++-7
 
 
 .ubuntu_gcc: &ubuntu_gcc
