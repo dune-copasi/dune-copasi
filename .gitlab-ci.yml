@@ -39,12 +39,13 @@ stages:
     C_COMPILER: gcc
     CXX_COMPILER: c++
 
-# .debian_clang: &debian_clang
-#   <<: *general_definitions
-#   image: registry.dune-project.org/docker/ci/debian:10
-#   variables:
-#     CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
-    # TOOLCHAIN: "clang-7-libcpp-17"
+.debian_clang: &debian_clang
+  <<: *general_definitions
+  image: registry.dune-project.org/docker/ci/debian:10
+  variables:
+    CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
+    C_COMPILER: clang
+    CXX_COMPILER: clang++
 
 
 .ubuntu_gcc: &ubuntu_gcc
@@ -52,14 +53,16 @@ stages:
   image: registry.dune-project.org/docker/ci/ubuntu:18.04
   variables:
     CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
-    # TOOLCHAIN: "gcc-7-17"
+    C_COMPILER: gcc
+    CXX_COMPILER: c++
 
-# .ubuntu_clang: &ubuntu_clang
-#   <<: *general_definitions
-#   image: registry.dune-project.org/docker/ci/ubuntu:18.04
-#   variables:
-#     CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
-    # TOOLCHAIN: "clang-6-17"
+.ubuntu_clang: &ubuntu_clang
+  <<: *general_definitions
+  image: registry.dune-project.org/docker/ci/ubuntu:18.04
+  variables:
+    CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
+    C_COMPILER: clang
+    CXX_COMPILER: clang++
 
 # Stages
 .setup: &setup
@@ -150,3 +153,49 @@ system_test:ubuntu_gcc:
   <<: *system_test
   dependencies:
     - build:ubuntu_gcc
+
+# debian clang
+setup:debian_clang:
+  <<: *debian_clang
+  <<: *setup
+
+build:debian_clang:
+  <<: *debian_clang
+  <<: *build
+  dependencies:
+    - setup:debian_clang
+
+unit_test:debian_clang:
+  <<: *debian_clang
+  <<: *unit_test
+  dependencies:
+    - build:debian_clang
+
+system_test:debian_clang:
+  <<: *debian_clang
+  <<: *system_test
+  dependencies:
+    - build:debian_clang
+
+# ubuntu clang
+setup:ubuntu_clang:
+  <<: *ubuntu_clang
+  <<: *setup  
+
+build:ubuntu_clang:
+  <<: *ubuntu_clang
+  <<: *build
+  dependencies:
+    - setup:ubuntu_clang
+
+unit_test:ubuntu_clang:
+  <<: *ubuntu_clang
+  <<: *unit_test
+  dependencies:
+    - build:ubuntu_clang
+
+system_test:ubuntu_clang:
+  <<: *ubuntu_clang
+  <<: *system_test
+  dependencies:
+    - build:ubuntu_clang    
