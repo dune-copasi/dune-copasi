@@ -10,7 +10,7 @@
 namespace Dune::Copasi {
 
 ModelBase::ModelBase(const Dune::ParameterTree& config)
-  : _logger(Logging::Logging::componentLogger(config, "default"))
+  : _logger(Logging::Logging::componentLogger(config, "model"))
   , _adapt_policy(AdaptivityPolicy::None)
   , _begin_time(config.template get<double>("begin_time"))
   , _end_time(config.template get<double>("end_time"))
@@ -21,7 +21,7 @@ ModelBase::ModelBase(const Dune::ParameterTree& config)
 
 ModelBase::~ModelBase()
 {
-  _logger.debug("ModelBase destroyed"_fmt);
+  _logger.debug("ModelBase deconstructed"_fmt);
 }
 
 void

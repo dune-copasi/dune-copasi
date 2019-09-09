@@ -10,17 +10,17 @@
 | muParser | - |
 | CMake | 3.10.2 |
 | C++ compiler | [C++17](https://en.wikipedia.org/wiki/List_of_compilers#C++_compilers) | 
-| [dune-common](https://gitlab.dune-project.org/core/dune-common) | releases/2.6
+| [dune-common](https://gitlab.dune-project.org/santiago.ospina/dune-common) | support/dune-copasi
 | [dune-logging](https://gitlab.dune-project.org/staging/dune-logging) | master
-| [dune-geometry](https://gitlab.dune-project.org/core/dune-geometry) | releases/2.6
-| [dune-grid](https://gitlab.dune-project.org/core/dune-grid) | releases/2.6
-| [dune-istl](https://gitlab.dune-project.org/core/dune-istl) | releases/2.6
-| [dune-localfunctions](https://gitlab.dune-project.org/core/dune-localfunctions) | releases/2.6
-| [dune-functions](https://gitlab.dune-project.org/staging/dune-functions) | releases/2.6
-| [dune-typetree](https://gitlab.dune-project.org/staging/dune-typetree) | releases/2.6
-| [dune-pdelab](https://gitlab.dune-project.org/pdelab/dune-pdelab) | releases/2.6
-
-<!-- TODO: Add UGGrid dependency. Still to decide if it will be permanent -->
+| [dune-geometry](https://gitlab.dune-project.org/core/dune-geometry) | master
+| [dune-grid](https://gitlab.dune-project.org/core/dune-grid) | master
+| [dune-uggrid](https://gitlab.dune-project.org/staging/dune-uggrid) | master
+| [dune-istl](https://gitlab.dune-project.org/core/dune-istl) | master
+| [dune-localfunctions](https://gitlab.dune-project.org/core/dune-localfunctions) | master
+| [dune-functions](https://gitlab.dune-project.org/staging/dune-functions) | master
+| [dune-typetree](https://gitlab.dune-project.org/santiago.ospina/dune-typetree) | support/dune-copasi
+| [dune-pdelab](https://gitlab.dune-project.org/santiago.ospina/dune-pdelab) | support/dune-copasi
+| [dune-multidomaingrid](https://gitlab.dune-project.org/santiago.ospina/dune-multidomaingrid) | support/dune-copasi
 
 <!-- 
 Preparing the Sources

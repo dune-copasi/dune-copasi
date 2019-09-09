@@ -1,5 +1,5 @@
 #ifdef HAVE_CONFIG_H
-# include "config.h"
+#include "config.h"
 #endif
 
 #include <dune/copasi/concepts/typetree.hh>
@@ -9,9 +9,10 @@
 #include <cassert>
 #include <complex>
 
-int main(int argc, char** argv)
+int
+main(int argc, char** argv)
 {
-  try{
+  try {
     bool passed = true;
 
     using namespace Dune::Copasi::Concept;
@@ -19,18 +20,16 @@ int main(int argc, char** argv)
     using Node = Dune::TypeTree::LeafNode;
     passed &= isTypeTreeNode<Node>();
 
-    using PowerNode = Dune::TypeTree::PowerNode<Node,5>;
+    using PowerNode = Dune::TypeTree::PowerNode<Node, 5>;
     passed &= isTypeTreeNode<PowerNode>();
 
-    using CompositeNode = Dune::TypeTree::CompositeNode<Node,PowerNode>;
+    using CompositeNode = Dune::TypeTree::CompositeNode<Node, PowerNode>;
     passed &= isTypeTreeNode<CompositeNode>();
 
     return not passed;
-  }
-  catch (Dune::Exception &e){
+  } catch (Dune::Exception& e) {
     std::cerr << "Dune reported error: " << e << std::endl;
-  }
-  catch (...){
+  } catch (...) {
     std::cerr << "Unknown exception thrown!" << std::endl;
   }
 }

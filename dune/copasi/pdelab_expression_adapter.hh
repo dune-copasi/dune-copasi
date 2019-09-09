@@ -18,59 +18,46 @@ namespace Dune::Copasi {
 template<typename GV, typename RF>
 class ExpressionToGridFunctionAdapter
   : public PDELab::GridFunctionBase<
-      PDELab::GridFunctionTraits<GV, RF, -1, DynamicVector<RF>>,
+      PDELab::GridFunctionTraits<GV, RF, 1, FieldVector<RF, 1>>,
       ExpressionToGridFunctionAdapter<GV, RF>>
 {
 public:
-  using Traits = PDELab::GridFunctionTraits<GV, RF, -1, DynamicVector<RF>>;
+  using Traits = PDELab::GridFunctionTraits<GV, RF, 1, FieldVector<RF, 1>>;
 
   //! construct from grid view
   ExpressionToGridFunctionAdapter(const GV& grid_view,
-                                  const ParameterTree& config,
-                                  const ParameterTree& extra_config = {})
-    : _logger(Logging::Logging::componentLogger(config, "default"))
+                                  const std::string& equation,
+                                  std::vector<std::string> other_variables = {})
+    : _logger(Logging::Logging::componentLogger({}, "model"))
     , _gv(grid_view)
-    , _size(config.getValueKeys().size())
-    , _extra_var(extra_config.getValueKeys().size())
-    , _parser(_size)
+    , _other_value(other_variables.size())
   {
-    assert(_size > 0);
 
     constexpr int dim = Traits::dimDomain;
 
-    auto keys = config.getValueKeys();
-    auto extra_keys = extra_config.getValueKeys();
+    std::sort(other_variables.begin(), other_variables.end());
 
-    std::sort(keys.begin(), keys.end());
-    std::sort(extra_keys.begin(), extra_keys.end());
+    _logger.trace("initialize parser with constant variables"_fmt);
+    _parser.DefineConst("pi", StandardMathematicalConstants<double>::pi());
+    _parser.DefineConst("dim", dim);
 
-    for (std::size_t i = 0; i < keys.size(); ++i) {
-      _logger.trace("setting up variable: {}"_fmt, keys[i]);
+    _parser.DefineVar("x", &_pos_global[0]);
+    _parser.DefineVar("y", &_pos_global[1]);
+    if constexpr (dim == 3)
+      _parser.DefineVar("z", &_pos_global[2]);
 
-      _logger.trace("initialize parser with constant variables"_fmt);
-      _parser[i].DefineConst("pi", StandardMathematicalConstants<double>::pi());
-      _parser[i].DefineConst("dim", dim);
-
-      _parser[i].DefineVar("x", &_pos_global[0]);
-      _parser[i].DefineVar("y", &_pos_global[1]);
-      if constexpr (dim == 3)
-        _parser[i].DefineVar("z", &_pos_global[2]);
-
-      for (std::size_t j = 0; j < extra_keys.size(); ++j) {
-        _logger.trace("define extra variable: {}"_fmt, extra_keys[j]);
-        _parser[i].DefineVar(extra_keys[j], &_extra_var[j]);
+    // set up parser expression
+    try {
+      for (size_t i = 0; i < other_variables.size(); i++) {
+        _logger.trace("define extra variable: {}"_fmt, other_variables[i]);
+        _parser.DefineVar(other_variables[i], &_other_value[i]);
       }
-
-      // set up parser expression
-      try {
-        std::string equation = config.template get<std::string>(keys[i]);
-        _logger.trace("compile expression: {}"_fmt, equation);
-        _parser[i].SetExpr(equation);
-        // try to evaluate once
-        _parser[i].Eval();
-      } catch (mu::Parser::exception_type& e) {
-        handle_parser_error(e);
-      }
+      _logger.trace("compile expression: {}"_fmt, equation);
+      _parser.SetExpr(equation);
+      // try to evaluate once
+      _parser.Eval();
+    } catch (mu::Parser::exception_type& e) {
+      handle_parser_error(e);
     }
 
     _logger.debug("ExpressionToGridFunctionAdapter constructed"_fmt);
@@ -78,35 +65,31 @@ public:
 
   ~ExpressionToGridFunctionAdapter()
   {
-    _logger.debug("ExpressionToGridFunctionAdapter destructed"_fmt);
+    _logger.debug("ExpressionToGridFunctionAdapter deconstructed"_fmt);
   }
 
   //! get a reference to the grid view
   inline const GV& getGridView() const { return _gv; }
 
   //! evaluate extended function on element
-  template<class E>
-  void evaluate(const E& e,
-                const typename Traits::DomainType& x,
-                typename Traits::RangeType& y) const
+  template<class E, class D, class R>
+  void evaluate(const E& e, const D& x, R& y) const
   {
-    y.resize(_size);
     // update position storage
     _pos_global = e.geometry().global(x);
 
     // evaluate the expression (with new position)
     try {
-      for (std::size_t i = 0; i < _size; ++i)
-        y[i] = _parser[i].Eval();
+      y = _parser.Eval();
     } catch (mu::Parser::exception_type& e) {
       handle_parser_error(e);
     }
   }
 
-  template<class E>
-  inline void bind(const E& e, const DynamicVector<RF>& extra_var)
+  inline void update(const DynamicVector<RF>& other_value)
   {
-    _extra_var = extra_var;
+    assert(_other_value.size() == other_value.size());
+    _other_value = other_value;
   }
 
 private:
@@ -129,15 +112,14 @@ private:
   Logging::Logger _logger;
 
   GV _gv;
-  const std::size_t _size;
 
   /// Cache for the evaluation position
   mutable typename Traits::DomainType _pos_global;
 
-  DynamicVector<RF> _extra_var;
+  DynamicVector<RF> _other_value;
 
   /// The parser instance
-  std::vector<mu::Parser> _parser;
+  mu::Parser _parser;
 };
 
 } // namespace Dune::Copasi

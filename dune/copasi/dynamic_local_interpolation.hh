@@ -3,8 +3,10 @@
 
 #include <dune/localfunctions/common/localinterpolation.hh>
 
+#include <dune/common/classname.hh>
 #include <dune/common/dynvector.hh>
 #include <dune/common/fvector.hh>
+#include <iostream>
 
 namespace Dune::Copasi {
 
@@ -41,37 +43,45 @@ public:
   {
     out.clear();
 
+    static_assert(IsIndexable<typename F::RangeType>::value);
+    constexpr bool dynamic_vector =
+      IsIndexable<decltype(std::declval<typename F::RangeType>()[0])>::value;
+
     if (_power_size == 0)
       return;
+    if constexpr (not dynamic_vector) {
+      _interpolation.interpolate(f, out);
+    } else {
 
-    static_assert(std::is_same_v<typename F::RangeType,
-                                        DynamicVector<double>>);
+      // convert f in callable
+      auto&& callable =
+        Impl::makeFunctionWithCallOperator<typename F::DomainType>(f);
 
-    // output iterator
-    auto out_it = out.begin();
+      for (std::size_t i = 0; i < _power_size; ++i) {
 
-    // convert f in callable
-    auto&& callable = Impl::makeFunctionWithCallOperator<typename F::DomainType>(f);
+        std::vector<C> base_out;
 
-    for (std::size_t i = 0; i < _power_size; ++i) {
+        // specializate callable for component i
+        auto callable_i = [&](typename F::DomainType x) {
+          return callable(x)[i];
+        };
 
-      std::vector<C> base_out;
+        // evaluate component i
+        _interpolation.interpolate(callable_i, base_out);
 
-      // specializate callable for component i
-      auto callable_i = [&](typename F::DomainType x)
-      {
-        return callable(x)[i];
-      };
+        // resize out vector to the correct size
+        if (i == 0)
+          out.resize(base_out.size() * _power_size);
 
-      // evaluate component i
-      _interpolation.interpolate(callable_i, base_out);
+        // output iterator
+        auto out_it = out.begin();
 
-      // copy result into the output container
-      out.resize(base_out.size() * _power_size);
-      std::copy(base_out.begin(), base_out.end(), out_it);
+        // move output iterator to the current component to interpolate
+        std::advance(out_it, i * base_out.size());
 
-      // move output iterator to the next component to interpolate
-      std::advance(out_it, base_out.size());
+        // copy result into the output container
+        std::copy(base_out.begin(), base_out.end(), out_it);
+      }
     }
   }
 
