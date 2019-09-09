@@ -6,8 +6,8 @@ _name_sufix = {_op_u0}{_op_u1}{_op_v1}
 __name = test_cell_{_name_sufix}
 
 _begin_time = 0.
-_end_time = 0.2
-_time_step = 0.05
+_end_time = 0.01
+_time_step = 2e-3
 
 [grid]
 file = grids/test_cell.msh
@@ -32,13 +32,13 @@ time_step = {_time_step}
 u = {_op_u0}
 
 [model.cell.initial]
-u = 1
+u = 10
 
 [model.cell.reaction]
-u = u
+u = -5*u
 
 [model.cell.reaction.jacobian]
-du_du = 1
+du_du = -5
 
 [model.cell.diffusion]
 u = 1.
@@ -57,17 +57,17 @@ u = {_op_u1}
 v = {_op_v1}
 
 [model.nucleoid.initial]
-u = 0.5
-v = 1
+u = 5
+v = 10
 
 [model.nucleoid.reaction]
 u = -u*v
-v = u
+v = -10*u
 
 [model.nucleoid.reaction.jacobian]
 du_du = -v
 du_dv = -u
-dv_du = 1
+dv_du = -10
 dv_dv = 0
 
 [model.nucleoid.diffusion]
@@ -79,8 +79,8 @@ file_name = {__name}_nucleoid
 
 ######################### Compare with reference vtk ######################### 
 [wrapper.vtkcompare]
-name = {__name}_cell/{__name}_cell-00004 {__name}_nucleoid/{__name}_nucleoid-00004
-reference = reference/cell-00004 reference/nucleoid-00004
+name = {__name}_cell/{__name}_cell-00005 {__name}_nucleoid/{__name}_nucleoid-00005
+reference = reference/cell-00005 reference/nucleoid-00005
 extension = vtu vtu
 relative = 2e-2
 absolute = 1e-9
