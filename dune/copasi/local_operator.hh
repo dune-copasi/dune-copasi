@@ -7,6 +7,7 @@
 #include <dune/pdelab/localoperator/flags.hh>
 #include <dune/pdelab/localoperator/idefault.hh>
 #include <dune/pdelab/localoperator/pattern.hh>
+#include <dune/pdelab/localoperator/numericaljacobian.hh>
 
 #include <dune/geometry/referenceelements.hh>
 #include <dune/geometry/type.hh>
@@ -277,7 +278,7 @@ public:
         for (std::size_t j = 0; j < _basis_size; j++) // ansatz func. loop
           u[k] += _coefficient_mapper(x_coeff_local, k, j) * _phihat[q][j];
 
-      // get diffusion coefficient
+      // get reaction term
       DynamicVector<RF> reaction(_lfs_components.size());
       for (std::size_t k = 0; k < _lfs_components.size(); k++) {
         _reaction_gf[k]->update(u);
@@ -307,7 +308,7 @@ public:
 
         // reaction term
         for (std::size_t i = 0; i < _basis_size; i++) // test func. loop
-          accumulate(k, i, reaction[k] * _phihat[q][i] * factor);
+          accumulate(k, i, -reaction[k] * _phihat[q][i] * factor);
       }
     }
   }
@@ -434,6 +435,7 @@ class TemporalLocalOperatorDiffusionReaction
   : public Dune::PDELab::LocalOperatorDefaultFlags
   , public Dune::PDELab::FullVolumePattern
   , public Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>
+  , public Dune::PDELab::NumericalJacobianVolume<TemporalLocalOperatorDiffusionReaction<GV,LFE>>
 {
   //! grid view
   using GridView = GV;
@@ -568,46 +570,45 @@ public:
         for (std::size_t j = 0; j < _basis_size; j++) // ansatz func. loop
           u += x_coeff_local(k, j) * _phihat[q][j];
 
-        // reaction term
         for (std::size_t i = 0; i < _basis_size; i++) // test func. loop
           accumulate(k, i, u * _phihat[q][i] * factor);
       }
     }
   }
 
-  template<typename EG, typename LFSU, typename X, typename LFSV, typename Mat>
-  void jacobian_volume(const EG& eg,
-                       const LFSU& lfsu,
-                       const X& x,
-                       const LFSV& lfsv,
-                       Mat& mat) const
-  {
-    auto accumulate = [&](const std::size_t& component_i,
-                          const std::size_t& dof_i,
-                          const std::size_t& component_j,
-                          const std::size_t& dof_j,
-                          const auto& value) {
-      mat.accumulate(
-        lfsv.child(component_i), dof_i, lfsu.child(component_j), dof_j, value);
-    };
+  // template<typename EG, typename LFSU, typename X, typename LFSV, typename Mat>
+  // void jacobian_volume(const EG& eg,
+  //                      const LFSU& lfsu,
+  //                      const X& x,
+  //                      const LFSV& lfsv,
+  //                      Mat& mat) const
+  // {
+  //   auto accumulate = [&](const std::size_t& component_i,
+  //                         const std::size_t& dof_i,
+  //                         const std::size_t& component_j,
+  //                         const std::size_t& dof_j,
+  //                         const auto& value) {
+  //     mat.accumulate(
+  //       lfsv.child(component_i), dof_i, lfsu.child(component_j), dof_j, value);
+  //   };
 
-    // get geometry
-    const auto geo = eg.geometry();
+  //   // get geometry
+  //   const auto geo = eg.geometry();
 
-    // loop over quadrature points
-    for (std::size_t q = 0; q < _rule.size(); q++) {
-      const auto& position = _rule[q].position();
-      // get Jacobian and determinant
-      RF factor = _rule[q].weight() * geo.integrationElement(position);
+  //   // loop over quadrature points
+  //   for (std::size_t q = 0; q < _rule.size(); q++) {
+  //     const auto& position = _rule[q].position();
+  //     // get Jacobian and determinant
+  //     RF factor = _rule[q].weight() * geo.integrationElement(position);
 
-      // integrate mass matrix
-      for (std::size_t k = 0; k < _lfs_components.size();
-           k++) // loop over components
-        for (std::size_t i = 0; i < _basis_size; i++)
-          for (std::size_t j = 0; j < _basis_size; j++)
-            accumulate(k, i, k, j, _phihat[q][i] * _phihat[q][j] * factor);
-    }
-  }
+  //     // integrate mass matrix
+  //     for (std::size_t k = 0; k < _lfs_components.size();
+  //          k++) // loop over components
+  //       for (std::size_t i = 0; i < _basis_size; i++)
+  //         for (std::size_t j = 0; j < _basis_size; j++)
+  //           accumulate(k, i, k, j, _phihat[q][i] * _phihat[q][j] * factor);
+  //   }
+  // }
 
   template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
   void jacobian_apply_volume(const EG& eg,
