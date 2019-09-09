@@ -402,7 +402,7 @@ ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::step()
       }
     }
     op_iter++;
-  } while (max_error >= 1e-9 and _states.size() > 1);
+  } while (max_error >= 1e-14 and _states.size() > 1);
 
   // TODO: integrate each component and calculate error after iteration
 
