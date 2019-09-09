@@ -77,17 +77,15 @@ stages:
     - git clone https://gitlab.dune-project.org/core/dune-localfunctions
     - git clone -b support/dune-copasi https://gitlab.dune-project.org/santiago.ospina/dune-typetree
     - git clone https://gitlab.dune-project.org/staging/dune-functions
-    - git clone -b feature/allow-multidomain-vtk-compare-to-have-same-thresholds https://gitlab.dune-project.org/quality/dune-testtools
+    # - git clone -b feature/allow-multidomain-vtk-compare-to-have-same-thresholds https://gitlab.dune-project.org/quality/dune-testtools
     - git clone -b support/dune-copasi https://gitlab.dune-project.org/santiago.ospina/dune-pdelab
     - git clone -b support/dune-copasi https://gitlab.dune-project.org/santiago.ospina/dune-multidomaingrid
     # make required dune modules
-    - dune_all dune-testtools
+    # - dune_all dune-testtools
     - dune_all dune-logging
     - dune_all dune-pdelab
     - dune_all dune-multidomaingrid
-  tags:
-    - "perftool"
-    
+
 .build: &build
   stage: build
   script:
