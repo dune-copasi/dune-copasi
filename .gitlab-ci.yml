@@ -26,7 +26,6 @@ stages:
     - dune_all() { dune_configure $1 ; dune_make $1 ; }
   tags:
     - "cores:4"
-    - "perftool"
   artifacts:
     paths:
       - source
@@ -86,7 +85,9 @@ stages:
     - dune_all dune-logging
     - dune_all dune-pdelab
     - dune_all dune-multidomaingrid
-
+  tags:
+    - "perftool"
+    
 .build: &build
   stage: build
   script:
