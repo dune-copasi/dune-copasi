@@ -83,7 +83,7 @@ stages:
 .build: &build
   stage: build
   script:
-    - $PDW
+    - echo $PDW
     - dunecontrol --opts=/duneci/dune.opts --only=dune-copasi all
   artifacts:
     paths:
@@ -119,8 +119,8 @@ stages:
     - docker build -f docker/dune-copasi.dockerfile
         --build-arg BASE_IMAGE=${DUNE_COPASI_BASE_IMAGE}
         --build-arg BRANCH=${CI_COMMIT_REF_NAME}
-        -t ${CI_REGISTRY}/copasi/dune-copasi/dependencies/${DUNECI_OS}-${DUNECI_TOOLCHAIN}:${CI_COMMIT_REF_NAME} .
-    - docker push ${CI_REGISTRY}/copasi/dune-copasi/dependencies/${DUNECI_OS}-${DUNECI_TOOLCHAIN}:${CI_COMMIT_REF_NAME}
+        -t ${CI_REGISTRY}/copasi/dune-copasi/dune-copasi/dune-copasi:${DUNECI_OS}-${DUNECI_TOOLCHAIN}-${CI_COMMIT_REF_NAME} .
+    - docker push ${CI_REGISTRY}/copasi/dune-copasi/dune-copasi/dune-copasi:${DUNECI_OS}-${DUNECI_TOOLCHAIN}-${CI_COMMIT_REF_NAME}
     - docker logout $CI_REGISTRY
   # only:
   #   - master
