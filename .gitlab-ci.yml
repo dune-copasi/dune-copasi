@@ -29,6 +29,7 @@ stages:
     - DUNECI_OS="debian"
     - DUNECI_BASE_IMAGE=${CI_REGISTRY}/docker/ci/debian:10
     - DUNE_COPASI_BASE_IMAGE=${CI_REGISTRY}/copasi/dune-copasi/dependencies/${DUNECI_OS}-${DUNECI_TOOLCHAIN}:latest
+    - DUNECONTROL=./${DUNE_CONTROL_PATH}/dune-common/bin/dunecontrol
   tags:
     - "dind"
 
@@ -40,6 +41,7 @@ stages:
     - DUNECI_OS="debian"
     - DUNECI_BASE_IMAGE=${CI_REGISTRY}/docker/ci/debian:10
     - DUNE_COPASI_BASE_IMAGE=${CI_REGISTRY}/copasi/dune-copasi/dependencies/${DUNECI_OS}-${DUNECI_TOOLCHAIN}:latest
+    - DUNECONTROL=./${DUNE_CONTROL_PATH}/dune-common/bin/dunecontrol
   allow_failure: true
   tags:
     - "dind"
@@ -52,6 +54,7 @@ stages:
     - DUNECI_OS="ubuntu"
     - DUNECI_BASE_IMAGE=${CI_REGISTRY}/docker/ci/ubuntu:18.04
     - DUNE_COPASI_BASE_IMAGE=${CI_REGISTRY}/copasi/dune-copasi/dependencies/${DUNECI_OS}-${DUNECI_TOOLCHAIN}:latest
+    - DUNECONTROL=./${DUNE_CONTROL_PATH}/dune-common/bin/dunecontrol
   tags:
     - "dind"
 
@@ -63,6 +66,7 @@ stages:
     - DUNECI_OS="ubuntu"
     - DUNECI_BASE_IMAGE=${CI_REGISTRY}/docker/ci/ubuntu:18.04
     - DUNE_COPASI_BASE_IMAGE=${CI_REGISTRY}/copasi/dune-copasi/dependencies/${DUNECI_OS}-${DUNECI_TOOLCHAIN}:latest
+    - DUNECONTROL=./${DUNE_CONTROL_PATH}/dune-common/bin/dunecontrol
   tags:
     - "dind"
 
