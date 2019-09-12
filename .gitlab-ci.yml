@@ -29,7 +29,6 @@ stages:
     - DUNECI_OS="debian"
     - DUNECI_BASE_IMAGE=${CI_REGISTRY}/docker/ci/debian:10
     - DUNE_COPASI_BASE_IMAGE=${CI_REGISTRY}/copasi/dune-copasi/dependencies/${DUNECI_OS}-${DUNECI_TOOLCHAIN}:latest
-    - DUNECONTROL=./${DUNE_CONTROL_PATH}/dune-common/bin/dunecontrol
   tags:
     - "dind"
 
@@ -41,7 +40,6 @@ stages:
     - DUNECI_OS="debian"
     - DUNECI_BASE_IMAGE=${CI_REGISTRY}/docker/ci/debian:10
     - DUNE_COPASI_BASE_IMAGE=${CI_REGISTRY}/copasi/dune-copasi/dependencies/${DUNECI_OS}-${DUNECI_TOOLCHAIN}:latest
-    - DUNECONTROL=./${DUNE_CONTROL_PATH}/dune-common/bin/dunecontrol
   allow_failure: true
   tags:
     - "dind"
@@ -54,7 +52,6 @@ stages:
     - DUNECI_OS="ubuntu"
     - DUNECI_BASE_IMAGE=${CI_REGISTRY}/docker/ci/ubuntu:18.04
     - DUNE_COPASI_BASE_IMAGE=${CI_REGISTRY}/copasi/dune-copasi/dependencies/${DUNECI_OS}-${DUNECI_TOOLCHAIN}:latest
-    - DUNECONTROL=./${DUNE_CONTROL_PATH}/dune-common/bin/dunecontrol
   tags:
     - "dind"
 
@@ -66,7 +63,6 @@ stages:
     - DUNECI_OS="ubuntu"
     - DUNECI_BASE_IMAGE=${CI_REGISTRY}/docker/ci/ubuntu:18.04
     - DUNE_COPASI_BASE_IMAGE=${CI_REGISTRY}/copasi/dune-copasi/dependencies/${DUNECI_OS}-${DUNECI_TOOLCHAIN}:latest
-    - DUNECONTROL=./${DUNE_CONTROL_PATH}/dune-common/bin/dunecontrol
   tags:
     - "dind"
 
@@ -87,7 +83,8 @@ stages:
 .build: &build
   stage: build
   script:
-    - $DUNECONTROL --opts=/duneci/dune.opts --only=dune-copasi all
+    - $PDW
+    - dunecontrol --opts=/duneci/dune.opts --only=dune-copasi all
   artifacts:
     paths:
       - cmake
@@ -97,9 +94,9 @@ stages:
   stage: unit_test
   script: 
     - echo 'CMAKE_FLAGS+=" -DCMAKE_BUILD_TYPE=Debug"' >> /duneci/cmake-flags/dune_copasi.opts
-    - $DUNECONTROL --opts=/duneci/dune.opts --only=dune-copasi configure
-    - $DUNECONTROL --opts=/duneci/dune.opts --only=dune-copasi make --target build_unit_tests
-    - $DUNECONTROL --opts=/duneci/dune.opts --only=dune-copasi bexec ctest -j4 -L "unit"
+    - dunecontrol --opts=/duneci/dune.opts --only=dune-copasi configure
+    - dunecontrol --opts=/duneci/dune.opts --only=dune-copasi make --target build_unit_tests
+    - dunecontrol --opts=/duneci/dune.opts --only=dune-copasi bexec ctest -j4 -L "unit"
   artifacts:
     paths:
       - cmake/test
@@ -108,7 +105,7 @@ stages:
 .system_test: &system_test
   stage: system_test
   script: 
-    - $DUNECONTROL --opts=/duneci/dune.opts --only=dune-copasi bexec ctest -j4 -L "DUNE_SYSTEMTEST"
+    - dunecontrol --opts=/duneci/dune.opts --only=dune-copasi bexec ctest -j4 -L "DUNE_SYSTEMTEST"
   artifacts:
     paths:
       - cmake/test
