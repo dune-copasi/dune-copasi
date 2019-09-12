@@ -38,7 +38,6 @@ stages:
     - DUNECI_OS="debian"
     - DUNECI_BASE_IMAGE=${CI_REGISTRY}/docker/ci/debian:10
     - DUNE_COPASI_BASE_IMAGE=${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${DUNECI_TOOLCHAIN}
-  allow_failure: true
 
 .ubuntu_gcc: &ubuntu_gcc
   <<: *general_definitions
