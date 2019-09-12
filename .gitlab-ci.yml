@@ -14,53 +14,56 @@ stages:
 # OS setup
 .debian_gcc: &debian_gcc
   <<: *general_definitions
-  image: registry.dune-project.org/docker/ci/debian:10
+  image: registry.dune-project.org/copasi/dune-copasi/dependencies/debian-gcc-8-17:latest
   variables:
-    CI_BUILDS_DIR: /builds/copasi/dune-copasi
     DUNECI_TOOLCHAIN: "gcc-8-17"
+    DUNECI_OS: "debian"
+    DUNECI_BASE_IMAGE: registry.dune-project.org/docker/ci/debian:10
 
 .debian_clang: &debian_clang
   <<: *general_definitions
-  image: registry.dune-project.org/docker/ci/debian:10
+  image: registry.dune-project.org/copasi/dune-copasi/dependencies/debian-clang-7-libcpp-17:latest
   variables:
-    CI_BUILDS_DIR: /builds/copasi/dune-copasi
     DUNECI_TOOLCHAIN: "clang-7-libcpp-17"
+    DUNECI_OS: "debian"
+    DUNECI_BASE_IMAGE: registry.dune-project.org/docker/ci/debian:10
   allow_failure: true
 
 .ubuntu_gcc: &ubuntu_gcc
   <<: *general_definitions
-  image:  registry.dune-project.org/docker/ci/ubuntu:18.04
+  image: registry.dune-project.org/copasi/dune-copasi/dependencies/ubuntu-gcc-7-17:latest
   variables:
-    CI_BUILDS_DIR: /builds/copasi/dune-copasi
     DUNECI_TOOLCHAIN: "gcc-7-17"
+    DUNECI_OS: "ubuntu"
+    DUNECI_BASE_IMAGE: registry.dune-project.org/docker/ci/ubuntu:18.04
 
 .ubuntu_clang: &ubuntu_clang
   <<: *general_definitions
-  image: registry.dune-project.org/docker/ci/ubuntu:18.04
+  image: registry.dune-project.org/copasi/dune-copasi/dependencies/ubuntu-clang-6-17:latest
   variables:
-    CI_BUILDS_DIR: /builds/copasi/dune-copasi
     DUNECI_TOOLCHAIN: "clang-6-17"
+    DUNECI_OS: "ubuntu"
+    DUNECI_BASE_IMAGE: registry.dune-project.org/docker/ci/ubuntu:18.04
+
 
 # Stages
 .setup: &setup
   stage: setup
   image: docker:19.03.1
-  services:
-    - docker:19.03.1-dind
   script:
-    - docker build -t registry.dune-project.org/copasi/dune-copasi/requirements -f docker/requirements.dockerfile .
+    - docker login -u $CI_DEPLOY_USER -p $CI_DEPLOY_PASSWORD $CI_REGISTRY
+    - docker build -f docker/dependencies.dockerfile
+        --build-arg BASE_IMAGE=${DUNECI_BASE_IMAGE}
+        -t ${REGISTRY}/dependencies/${DUNECI_OS}-${DUNECI_TOOLCHAIN}:latest .
+    - docker push ${REGISTRY}/dependencies/${DUNECI_OS}-${DUNECI_TOOLCHAIN}:latest
   tags:
     - "dind"
   variables:
-    # DOCKER_DRIVER: overlay2
-    # DOCKER_TLS_CERTDIR: "/certs"
     DOCKER_HOST: tcp://docker:2375/
-    # When using dind, it's wise to use the overlayfs driver for
-    # improved performance.
     DOCKER_DRIVER: overlay2
-    #
-    # This will instruct Docker not to start over TLS.
     DOCKER_TLS_CERTDIR: ""
+    REGISTRY: registry.dune-project.org/copasi/dune-copasi
+
 # .build: &build
 #   stage: build
 #   script:
