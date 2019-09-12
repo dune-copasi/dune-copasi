@@ -5,9 +5,10 @@ stages:
   - build
   - unit_test
   - system_test
-  # - deploy
+  - deploy
 
 .docker_variables: &docker_variables
+  image: docker:19.03.1
   variables:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
@@ -22,43 +23,53 @@ stages:
 # OS setup
 .debian_gcc: &debian_gcc
   <<: *general_definitions
-  image: registry.dune-project.org/copasi/dune-copasi/dependencies/debian-gcc-8-17:latest
+  image: ${CI_REGISTRY}/copasi/dune-copasi/dependencies/debian-gcc-8-17:latest
   before_script:
     - DUNECI_TOOLCHAIN="gcc-8-17"
     - DUNECI_OS="debian"
     - DUNECI_BASE_IMAGE=${CI_REGISTRY}/docker/ci/debian:10
+    - DUNE_COPASI_BASE_IMAGE=${CI_REGISTRY}/copasi/dune-copasi/dependencies/${DUNECI_OS}-${DUNECI_TOOLCHAIN}:latest
+  tags:
+    - "dind"
 
 .debian_clang: &debian_clang
   <<: *general_definitions
-  image: registry.dune-project.org/copasi/dune-copasi/dependencies/debian-clang-7-libcpp-17:latest
+  image: ${CI_REGISTRY}/copasi/dune-copasi/dependencies/debian-clang-7-libcpp-17:latest
   before_script:
     - DUNECI_TOOLCHAIN="clang-7-libcpp-17"
     - DUNECI_OS="debian"
     - DUNECI_BASE_IMAGE=${CI_REGISTRY}/docker/ci/debian:10
+    - DUNE_COPASI_BASE_IMAGE=${CI_REGISTRY}/copasi/dune-copasi/dependencies/${DUNECI_OS}-${DUNECI_TOOLCHAIN}:latest
   allow_failure: true
+  tags:
+    - "dind"
 
 .ubuntu_gcc: &ubuntu_gcc
   <<: *general_definitions
-  image: registry.dune-project.org/copasi/dune-copasi/dependencies/ubuntu-gcc-7-17:latest
+  image: ${CI_REGISTRY}/copasi/dune-copasi/dependencies/ubuntu-gcc-7-17:latest
   before_script:
     - DUNECI_TOOLCHAIN="gcc-7-17"
     - DUNECI_OS="ubuntu"
     - DUNECI_BASE_IMAGE=${CI_REGISTRY}/docker/ci/ubuntu:18.04
+    - DUNE_COPASI_BASE_IMAGE=${CI_REGISTRY}/copasi/dune-copasi/dependencies/${DUNECI_OS}-${DUNECI_TOOLCHAIN}:latest
+  tags:
+    - "dind"
 
 .ubuntu_clang: &ubuntu_clang
   <<: *general_definitions
-  image: registry.dune-project.org/copasi/dune-copasi/dependencies/ubuntu-clang-6-17:latest
+  image: ${CI_REGISTRY}/copasi/dune-copasi/dependencies/ubuntu-clang-6-17:latest
   before_script:
     - DUNECI_TOOLCHAIN="clang-6-17"
     - DUNECI_OS="ubuntu"
     - DUNECI_BASE_IMAGE=${CI_REGISTRY}/docker/ci/ubuntu:18.04
-
+    - DUNE_COPASI_BASE_IMAGE=${CI_REGISTRY}/copasi/dune-copasi/dependencies/${DUNECI_OS}-${DUNECI_TOOLCHAIN}:latest
+  tags:
+    - "dind"
 
 # Stages
 .setup: &setup
   <<: *docker_variables
   stage: setup
-  image: docker:19.03.1
   script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker build -f docker/dependencies.dockerfile
@@ -99,6 +110,21 @@ stages:
       - cmake/test
     expire_in: 1 day
 
+.deploy: &deploy
+  <<: *docker_variables
+  stage: deploy
+  script: 
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -f docker/dune-copasi.dockerfile
+        --build-arg BASE_IMAGE=${DUNE_COPASI_BASE_IMAGE}
+        --build-arg BRANCH=${CI_COMMIT_REF_NAME}
+        -t ${CI_REGISTRY}/copasi/dune-copasi/dependencies/${DUNECI_OS}-${DUNECI_TOOLCHAIN}:${CI_COMMIT_REF_NAME} .
+    - docker push ${CI_REGISTRY}/copasi/dune-copasi/dependencies/${DUNECI_OS}-${DUNECI_TOOLCHAIN}:${CI_COMMIT_REF_NAME}
+    - docker logout $CI_REGISTRY
+  # only:
+  #   - master
+
+
 # debian gcc
 setup:debian_gcc:
   <<: *debian_gcc
@@ -121,6 +147,12 @@ system_test:debian_gcc:
   <<: *system_test
   dependencies:
     - build:debian_gcc
+
+deploy:debian_gcc:
+  <<: *debian_gcc
+  <<: *deploy
+  dependencies:
+    - system_test:debian_gcc
 
 # # ubuntu gcc
 # setup:ubuntu_gcc:
@@ -145,6 +177,12 @@ system_test:debian_gcc:
 #   dependencies:
 #     - build:ubuntu_gcc
 
+# deploy:ubuntu_gcc:
+#   <<: *ubuntu_gcc
+#   <<: *deploy
+#   dependencies:
+#     - system_test:ubuntu_gcc
+
 # debian clang
 setup:debian_clang:
   <<: *debian_clang
@@ -168,6 +206,12 @@ system_test:debian_clang:
   dependencies:
     - build:debian_clang
 
+deploy:debian_clang:
+  <<: *debian_clang
+  <<: *deploy
+  dependencies:
+    - system_test:debian_clang
+
 # # ubuntu clang
 # setup:ubuntu_clang:
 #   <<: *ubuntu_clang
@@ -190,3 +234,9 @@ system_test:debian_clang:
 #   <<: *system_test
 #   dependencies:
 #     - build:ubuntu_clang    
+
+# deploy:ubuntu_clang:
+#   <<: *ubuntu_clang
+#   <<: *deploy
+#   dependencies:
+#     - system_test:ubuntu_clang
