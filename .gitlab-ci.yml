@@ -2,9 +2,9 @@
 
 stages:
   - setup
-  # - build
-  # - unit_test
-  # - system_test
+  - build
+  - unit_test
+  - system_test
   # - deploy
 
 .docker_variables: &docker_variables
@@ -65,56 +65,62 @@ stages:
         --build-arg BASE_IMAGE=${DUNECI_BASE_IMAGE}
         -t ${CI_REGISTRY}/copasi/dune-copasi/dependencies/${DUNECI_OS}-${DUNECI_TOOLCHAIN}:latest .
     - docker push ${CI_REGISTRY}/copasi/dune-copasi/dependencies/${DUNECI_OS}-${DUNECI_TOOLCHAIN}:latest
+    - docker logout $CI_REGISTRY
+  only:
+    - master
 
+.build: &build
+  stage: build
+  script:
+    - duneci-install-module --opts=/duneci/dune.opts --only=dune-copasi all
+  artifacts:
+    paths:
+      - cmake
+    expire_in: 30 mins
 
-# .build: &build
-#   stage: build
-#   script:
-#     - $DUNECONTROL --opts=/duneci/dune.opts --only=dune-copasi all
+.unit_test: &unit_test
+  stage: unit_test
+  script: 
+    - echo 'CMAKE_FLAGS+=" -DCMAKE_BUILD_TYPE=Debug"' >> /duneci/cmake-flags/dune_copasi.opts
+    - $DUNECONTROL --opts=/duneci/dune.opts --only=dune-copasi configure
+    - $DUNECONTROL --opts=/duneci/dune.opts --only=dune-copasi make --target build_unit_tests
+    - $DUNECONTROL --opts=/duneci/dune.opts --only=dune-copasi bexec ctest -j4 -L "unit"
+  artifacts:
+    paths:
+      - cmake/test
+    expire_in: 1 day
 
-# .unit_test: &unit_test
-#   stage: unit_test
-#   script: 
-#     - echo 'CMAKE_FLAGS+=" -DCMAKE_BUILD_TYPE=Debug"' >> /duneci/cmake-flags/dune_copasi.opts
-#     - $DUNECONTROL --opts=/duneci/dune.opts --only=dune-copasi configure
-#     - $DUNECONTROL --opts=/duneci/dune.opts --only=dune-copasi make --target build_unit_tests
-#     - $DUNECONTROL --opts=/duneci/dune.opts --only=dune-copasi bexec ctest -j4 -L "unit"
-#   artifacts:
-#     paths:
-#       - build/dune-copasi/test
-#     expire_in: 1 day
-
-# .system_test: &system_test
-#   stage: system_test
-#   script: 
-#     - $DUNECONTROL --opts=/duneci/dune.opts --only=dune-copasi bexec ctest -j4 -L "DUNE_SYSTEMTEST"
-#   artifacts:
-#     paths:
-#       - build/dune-copasi/test
-#     expire_in: 1 day
+.system_test: &system_test
+  stage: system_test
+  script: 
+    - $DUNECONTROL --opts=/duneci/dune.opts --only=dune-copasi bexec ctest -j4 -L "DUNE_SYSTEMTEST"
+  artifacts:
+    paths:
+      - cmake/test
+    expire_in: 1 day
 
 # debian gcc
 setup:debian_gcc:
   <<: *debian_gcc
   <<: *setup
 
-# build:debian_gcc:
-#   <<: *debian_gcc
-#   <<: *build
-#   dependencies:
-#     - setup:debian_gcc
+build:debian_gcc:
+  <<: *debian_gcc
+  <<: *build
+  dependencies:
+    - setup:debian_gcc
 
-# unit_test:debian_gcc:
-#   <<: *debian_gcc
-#   <<: *unit_test
-#   dependencies:
-#     - build:debian_gcc
+unit_test:debian_gcc:
+  <<: *debian_gcc
+  <<: *unit_test
+  dependencies:
+    - build:debian_gcc
 
-# system_test:debian_gcc:
-#   <<: *debian_gcc
-#   <<: *system_test
-#   dependencies:
-#     - build:debian_gcc
+system_test:debian_gcc:
+  <<: *debian_gcc
+  <<: *system_test
+  dependencies:
+    - build:debian_gcc
 
 # # ubuntu gcc
 # setup:ubuntu_gcc:
@@ -139,28 +145,28 @@ setup:debian_gcc:
 #   dependencies:
 #     - build:ubuntu_gcc
 
-# # debian clang
-# setup:debian_clang:
-#   <<: *debian_clang
-#   <<: *setup
+# debian clang
+setup:debian_clang:
+  <<: *debian_clang
+  <<: *setup
 
-# build:debian_clang:
-#   <<: *debian_clang
-#   <<: *build
-#   dependencies:
-#     - setup:debian_clang
+build:debian_clang:
+  <<: *debian_clang
+  <<: *build
+  dependencies:
+    - setup:debian_clang
 
-# unit_test:debian_clang:
-#   <<: *debian_clang
-#   <<: *unit_test
-#   dependencies:
-#     - build:debian_clang
+unit_test:debian_clang:
+  <<: *debian_clang
+  <<: *unit_test
+  dependencies:
+    - build:debian_clang
 
-# system_test:debian_clang:
-#   <<: *debian_clang
-#   <<: *system_test
-#   dependencies:
-#     - build:debian_clang
+system_test:debian_clang:
+  <<: *debian_clang
+  <<: *system_test
+  dependencies:
+    - build:debian_clang
 
 # # ubuntu clang
 # setup:ubuntu_clang:
