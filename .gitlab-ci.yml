@@ -68,8 +68,8 @@ stages:
         -t ${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${DUNECI_TOOLCHAIN} .
     - docker push ${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${DUNECI_TOOLCHAIN}
     - docker logout $CI_REGISTRY/copasi/dune-copasi
-  # only:
-  #   - master
+  only:
+    - master
 
 .build: &build
   stage: build
@@ -112,8 +112,8 @@ stages:
         -t $CI_REGISTRY/copasi/dune-copasi/dune-copasi:${DUNECI_OS}-${DUNECI_TOOLCHAIN}-${CI_COMMIT_REF_NAME} .
     - docker push $CI_REGISTRY/copasi/dune-copasi/dune-copasi:${DUNECI_OS}-${DUNECI_TOOLCHAIN}-${CI_COMMIT_REF_NAME}
     - docker logout $CI_REGISTRY/copasi/dune-copasi
-  # only:
-  #   - master
+  only:
+    - master
 
 
 # debian gcc
