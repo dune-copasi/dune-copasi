@@ -83,7 +83,7 @@ stages:
 .build: &build
   stage: build
   script:
-    - duneci-install-module --opts=/duneci/dune.opts --only=dune-copasi all
+    - $DUNECONTROL --opts=/duneci/dune.opts --only=dune-copasi all
   artifacts:
     paths:
       - cmake
