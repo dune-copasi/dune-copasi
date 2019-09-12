@@ -104,7 +104,8 @@ stages:
 .system_test: &system_test
   stage: system_test
   script: 
-    - dunecontrol --opts=/duneci/dune.opts --only=dune-copasi bexec ctest -j4 -L "DUNE_SYSTEMTEST"
+    - cd build-cmake
+    - ctest -j4 -L "DUNE_SYSTEMTEST"
   artifacts:
     paths:
       - build-cmake/test
