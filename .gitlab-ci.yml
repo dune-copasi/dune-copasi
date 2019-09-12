@@ -83,11 +83,10 @@ stages:
 .build: &build
   stage: build
   script:
-    - echo $PDW
     - dunecontrol --opts=/duneci/dune.opts --only=dune-copasi all
   artifacts:
     paths:
-      - cmake
+      - cmake-build
     expire_in: 30 mins
 
 .unit_test: &unit_test
@@ -99,7 +98,7 @@ stages:
     - dunecontrol --opts=/duneci/dune.opts --only=dune-copasi bexec ctest -j4 -L "unit"
   artifacts:
     paths:
-      - cmake/test
+      - cmake-build/test
     expire_in: 1 day
 
 .system_test: &system_test
@@ -108,7 +107,7 @@ stages:
     - dunecontrol --opts=/duneci/dune.opts --only=dune-copasi bexec ctest -j4 -L "DUNE_SYSTEMTEST"
   artifacts:
     paths:
-      - cmake/test
+      - cmake-build/test
     expire_in: 1 day
 
 .deploy: &deploy
