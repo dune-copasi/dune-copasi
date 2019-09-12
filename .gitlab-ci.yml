@@ -85,7 +85,9 @@ stages:
     - dune_all dune-logging
     - dune_all dune-pdelab
     - dune_all dune-multidomaingrid
-
+  tags:
+    - "dind"
+    
 .build: &build
   stage: build
   script:
