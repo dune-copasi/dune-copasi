@@ -8,10 +8,12 @@ stages:
   # - deploy
 
 .docker_variables: &docker_variables
-  before_script:
-    - DOCKER_HOST=tcp://docker:2375/
-    - DOCKER_DRIVER=overlay2
-    - DOCKER_TLS_CERTDIR=""
+  variables:
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""
+  tags:
+    - "dind"
 
 .general_definitions: &general_definitions
   tags:
@@ -21,35 +23,35 @@ stages:
 .debian_gcc: &debian_gcc
   <<: *general_definitions
   image: registry.dune-project.org/copasi/dune-copasi/dependencies/debian-gcc-8-17:latest
-  variables:
-    DUNECI_TOOLCHAIN: "gcc-8-17"
-    DUNECI_OS: "debian"
-    DUNECI_BASE_IMAGE: registry.dune-project.org/docker/ci/debian:10
+  before_script:
+    - DUNECI_TOOLCHAIN="gcc-8-17"
+    - DUNECI_OS="debian"
+    - DUNECI_BASE_IMAGE=${CI_REGISTRY}/docker/ci/debian:10
 
 .debian_clang: &debian_clang
   <<: *general_definitions
   image: registry.dune-project.org/copasi/dune-copasi/dependencies/debian-clang-7-libcpp-17:latest
-  variables:
-    DUNECI_TOOLCHAIN: "clang-7-libcpp-17"
-    DUNECI_OS: "debian"
-    DUNECI_BASE_IMAGE: registry.dune-project.org/docker/ci/debian:10
+  before_script:
+    - DUNECI_TOOLCHAIN="clang-7-libcpp-17"
+    - DUNECI_OS="debian"
+    - DUNECI_BASE_IMAGE=${CI_REGISTRY}/docker/ci/debian:10
   allow_failure: true
 
 .ubuntu_gcc: &ubuntu_gcc
   <<: *general_definitions
   image: registry.dune-project.org/copasi/dune-copasi/dependencies/ubuntu-gcc-7-17:latest
-  variables:
-    DUNECI_TOOLCHAIN: "gcc-7-17"
-    DUNECI_OS: "ubuntu"
-    DUNECI_BASE_IMAGE: registry.dune-project.org/docker/ci/ubuntu:18.04
+  before_script:
+    - DUNECI_TOOLCHAIN="gcc-7-17"
+    - DUNECI_OS="ubuntu"
+    - DUNECI_BASE_IMAGE=${CI_REGISTRY}/docker/ci/ubuntu:18.04
 
 .ubuntu_clang: &ubuntu_clang
   <<: *general_definitions
   image: registry.dune-project.org/copasi/dune-copasi/dependencies/ubuntu-clang-6-17:latest
-  variables:
-    DUNECI_TOOLCHAIN: "clang-6-17"
-    DUNECI_OS: "ubuntu"
-    DUNECI_BASE_IMAGE: registry.dune-project.org/docker/ci/ubuntu:18.04
+  before_script:
+    - DUNECI_TOOLCHAIN="clang-6-17"
+    - DUNECI_OS="ubuntu"
+    - DUNECI_BASE_IMAGE=${CI_REGISTRY}/docker/ci/ubuntu:18.04
 
 
 # Stages
@@ -58,14 +60,12 @@ stages:
   stage: setup
   image: docker:19.03.1
   script:
-    - echo $CI_REGISTRY
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker build -f docker/dependencies.dockerfile
         --build-arg BASE_IMAGE=${DUNECI_BASE_IMAGE}
-        -t ${CI_REGISTRY}/dependencies/${DUNECI_OS}-${DUNECI_TOOLCHAIN}:latest .
-    - docker push ${CI_REGISTRY}/dependencies/${DUNECI_OS}-${DUNECI_TOOLCHAIN}:latest
-  tags:
-    - "dind"
+        -t ${CI_REGISTRY}/copasi/dune-copasi/dependencies/${DUNECI_OS}-${DUNECI_TOOLCHAIN}:latest .
+    - docker push ${CI_REGISTRY}/copasi/dune-copasi/dependencies/${DUNECI_OS}-${DUNECI_TOOLCHAIN}:latest
+
 
 # .build: &build
 #   stage: build
