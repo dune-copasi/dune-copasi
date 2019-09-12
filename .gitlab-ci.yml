@@ -7,6 +7,12 @@ stages:
   # - system_test
   # - deploy
 
+.docker_variables: &docker_variables
+  before_script:
+    - DOCKER_HOST=tcp://docker:2375/
+    - DOCKER_DRIVER=overlay2
+    - DOCKER_TLS_CERTDIR=""
+
 .general_definitions: &general_definitions
   tags:
     - "cores:4"
@@ -48,21 +54,18 @@ stages:
 
 # Stages
 .setup: &setup
+  <<: *docker_variables
   stage: setup
   image: docker:19.03.1
   script:
-    - docker login -u $CI_DEPLOY_USER -p $CI_DEPLOY_PASSWORD $CI_REGISTRY
+    - echo $CI_REGISTRY
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker build -f docker/dependencies.dockerfile
         --build-arg BASE_IMAGE=${DUNECI_BASE_IMAGE}
-        -t ${REGISTRY}/dependencies/${DUNECI_OS}-${DUNECI_TOOLCHAIN}:latest .
-    - docker push ${REGISTRY}/dependencies/${DUNECI_OS}-${DUNECI_TOOLCHAIN}:latest
+        -t ${CI_REGISTRY}/dependencies/${DUNECI_OS}-${DUNECI_TOOLCHAIN}:latest .
+    - docker push ${CI_REGISTRY}/dependencies/${DUNECI_OS}-${DUNECI_TOOLCHAIN}:latest
   tags:
     - "dind"
-  variables:
-    DOCKER_HOST: tcp://docker:2375/
-    DOCKER_DRIVER: overlay2
-    DOCKER_TLS_CERTDIR: ""
-    REGISTRY: registry.dune-project.org/copasi/dune-copasi
 
 # .build: &build
 #   stage: build
