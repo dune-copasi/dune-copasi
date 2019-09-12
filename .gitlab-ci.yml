@@ -37,14 +37,14 @@ stages:
   <<: *general_definitions
   image: registry.dune-project.org/docker/ci/debian:10
   variables:
-    CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
+    CI_BUILDS_DIR: /builds/copasi/dune-copasi
     DUNECI_TOOLCHAIN: "gcc-8-17"
 
 .debian_clang: &debian_clang
   <<: *general_definitions
   image: registry.dune-project.org/docker/ci/debian:10
   variables:
-    CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
+    CI_BUILDS_DIR: /builds/copasi/dune-copasi
     DUNECI_TOOLCHAIN: "clang-7-libcpp-17"
   allow_failure: true
 
@@ -52,14 +52,14 @@ stages:
   <<: *general_definitions
   image:  registry.dune-project.org/docker/ci/ubuntu:18.04
   variables:
-    CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
+    CI_BUILDS_DIR: /builds/copasi/dune-copasi
     DUNECI_TOOLCHAIN: "gcc-7-17"
 
 .ubuntu_clang: &ubuntu_clang
   <<: *general_definitions
   image: registry.dune-project.org/docker/ci/ubuntu:18.04
   variables:
-    CI_BUILDS_DIR: /builds/santiago.ospina/dune-copasi
+    CI_BUILDS_DIR: /builds/copasi/dune-copasi
     DUNECI_TOOLCHAIN: "clang-6-17"
 
 # Stages
@@ -85,6 +85,11 @@ stages:
     - dune_all dune-logging
     - dune_all dune-pdelab
     - dune_all dune-multidomaingrid
+<<<<<<< Updated upstream
+=======
+  tags:
+    - "dind"
+>>>>>>> Stashed changes
 
 .build: &build
   stage: build
