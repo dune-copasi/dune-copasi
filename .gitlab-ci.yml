@@ -2,35 +2,14 @@
 
 stages:
   - setup
-  - build
-  - unit_test
-  - system_test
+  # - build
+  # - unit_test
+  # - system_test
   # - deploy
 
 .general_definitions: &general_definitions
-  before_script:
-    # Set cmake flags
-    - echo 'CMAKE_FLAGS+=" -DCMAKE_GENERATOR="Ninja" -DDUNE_PYTHON_VIRTUALENV_SETUP=1 -DDUNE_PYTHON_VIRTUALENV_PATH=$CI_BUILDS_DIR/build/dune-python-venv"' >> /duneci/cmake-flags/dune_copasi.opts
-    # Set build directory
-    - echo 'BUILDDIR="$CI_BUILDS_DIR/build"' >> /duneci/cmake-flags/build_dir.opts
-    # create source directory if donesn't exist
-    - mkdir -p source
-    # clear dune-copasi folder if existing
-    - mkdir -p source/dune-copasi & rm -rf source/dune-copasi/*
-    # move repository sources into a subfolder 'dune-copasi' to match othe dune modules
-    - ls | grep -v 'source\|build' | xargs mv -t source/dune-copasi
-    # define helper functions
-    - DUNECONTROL=$CI_BUILDS_DIR/source/dune-common/bin/dunecontrol
-    - dune_configure() { $DUNECONTROL --opts=/duneci/dune.opts --module=$1 configure; }
-    - dune_make() { $DUNECONTROL --opts=/duneci/dune.opts --module=$1 make; }
-    - dune_all() { dune_configure $1 ; dune_make $1 ; }
   tags:
     - "cores:4"
-  artifacts:
-    paths:
-      - source
-      - build
-    expire_in: 30 minutes
 
 # OS setup
 .debian_gcc: &debian_gcc
@@ -65,143 +44,128 @@ stages:
 # Stages
 .setup: &setup
   stage: setup
+  image: registry.dune-project.org/docker/ci/service/docker:latest
+  services:
+    - docker:dind:2375/tcp
   script:
-    - cd source
-    # clone needed repositories
-    - git clone -b support/dune-copasi https://gitlab.dune-project.org/santiago.ospina/dune-common
-    - git clone --recursive https://gitlab.dune-project.org/staging/dune-logging
-    - git clone https://gitlab.dune-project.org/core/dune-geometry
-    - git clone https://gitlab.dune-project.org/core/dune-grid
-    - git clone https://gitlab.dune-project.org/staging/dune-uggrid
-    - git clone https://gitlab.dune-project.org/core/dune-istl
-    - git clone https://gitlab.dune-project.org/core/dune-localfunctions
-    - git clone -b support/dune-copasi https://gitlab.dune-project.org/santiago.ospina/dune-typetree
-    - git clone https://gitlab.dune-project.org/staging/dune-functions
-    # - git clone -b feature/allow-multidomain-vtk-compare-to-have-same-thresholds https://gitlab.dune-project.org/quality/dune-testtools
-    - git clone -b support/dune-copasi https://gitlab.dune-project.org/santiago.ospina/dune-pdelab
-    - git clone -b support/dune-copasi https://gitlab.dune-project.org/santiago.ospina/dune-multidomaingrid
-    # make required dune modules
-    # - dune_all dune-testtools
-    - dune_all dune-logging
-    - dune_all dune-pdelab
-    - dune_all dune-multidomaingrid
+    - docker build -t registry.dune-project.org/copasi/dune-copasi/requirements -f docker/requirements.dockerfile .
   tags:
     - "dind"
     
-.build: &build
-  stage: build
-  script:
-    - $DUNECONTROL --opts=/duneci/dune.opts --only=dune-copasi all
+# .build: &build
+#   stage: build
+#   script:
+#     - $DUNECONTROL --opts=/duneci/dune.opts --only=dune-copasi all
 
-.unit_test: &unit_test
-  stage: unit_test
-  script: 
-    - echo 'CMAKE_FLAGS+=" -DCMAKE_BUILD_TYPE=Debug"' >> /duneci/cmake-flags/dune_copasi.opts
-    - $DUNECONTROL --opts=/duneci/dune.opts --only=dune-copasi configure
-    - $DUNECONTROL --opts=/duneci/dune.opts --only=dune-copasi make --target build_unit_tests
-    - $DUNECONTROL --opts=/duneci/dune.opts --only=dune-copasi bexec ctest -j4 -L "unit"
-  artifacts:
-    paths:
-      - build/dune-copasi/test
-    expire_in: 1 day
+# .unit_test: &unit_test
+#   stage: unit_test
+#   script: 
+#     - echo 'CMAKE_FLAGS+=" -DCMAKE_BUILD_TYPE=Debug"' >> /duneci/cmake-flags/dune_copasi.opts
+#     - $DUNECONTROL --opts=/duneci/dune.opts --only=dune-copasi configure
+#     - $DUNECONTROL --opts=/duneci/dune.opts --only=dune-copasi make --target build_unit_tests
+#     - $DUNECONTROL --opts=/duneci/dune.opts --only=dune-copasi bexec ctest -j4 -L "unit"
+#   artifacts:
+#     paths:
+#       - build/dune-copasi/test
+#     expire_in: 1 day
 
-.system_test: &system_test
-  stage: system_test
-  script: 
-    - $DUNECONTROL --opts=/duneci/dune.opts --only=dune-copasi bexec ctest -j4 -L "DUNE_SYSTEMTEST"
-  artifacts:
-    paths:
-      - build/dune-copasi/test
-    expire_in: 1 day
+# .system_test: &system_test
+#   stage: system_test
+#   script: 
+#     - $DUNECONTROL --opts=/duneci/dune.opts --only=dune-copasi bexec ctest -j4 -L "DUNE_SYSTEMTEST"
+#   artifacts:
+#     paths:
+#       - build/dune-copasi/test
+#     expire_in: 1 day
 
 # debian gcc
 setup:debian_gcc:
   <<: *debian_gcc
   <<: *setup
 
-build:debian_gcc:
-  <<: *debian_gcc
-  <<: *build
-  dependencies:
-    - setup:debian_gcc
+# build:debian_gcc:
+#   <<: *debian_gcc
+#   <<: *build
+#   dependencies:
+#     - setup:debian_gcc
 
-unit_test:debian_gcc:
-  <<: *debian_gcc
-  <<: *unit_test
-  dependencies:
-    - build:debian_gcc
+# unit_test:debian_gcc:
+#   <<: *debian_gcc
+#   <<: *unit_test
+#   dependencies:
+#     - build:debian_gcc
 
-system_test:debian_gcc:
-  <<: *debian_gcc
-  <<: *system_test
-  dependencies:
-    - build:debian_gcc
+# system_test:debian_gcc:
+#   <<: *debian_gcc
+#   <<: *system_test
+#   dependencies:
+#     - build:debian_gcc
 
-# ubuntu gcc
-setup:ubuntu_gcc:
-  <<: *ubuntu_gcc
-  <<: *setup  
+# # ubuntu gcc
+# setup:ubuntu_gcc:
+#   <<: *ubuntu_gcc
+#   <<: *setup  
 
-build:ubuntu_gcc:
-  <<: *ubuntu_gcc
-  <<: *build
-  dependencies:
-    - setup:ubuntu_gcc
+# build:ubuntu_gcc:
+#   <<: *ubuntu_gcc
+#   <<: *build
+#   dependencies:
+#     - setup:ubuntu_gcc
 
-unit_test:ubuntu_gcc:
-  <<: *ubuntu_gcc
-  <<: *unit_test
-  dependencies:
-    - build:ubuntu_gcc
+# unit_test:ubuntu_gcc:
+#   <<: *ubuntu_gcc
+#   <<: *unit_test
+#   dependencies:
+#     - build:ubuntu_gcc
 
-system_test:ubuntu_gcc:
-  <<: *ubuntu_gcc
-  <<: *system_test
-  dependencies:
-    - build:ubuntu_gcc
+# system_test:ubuntu_gcc:
+#   <<: *ubuntu_gcc
+#   <<: *system_test
+#   dependencies:
+#     - build:ubuntu_gcc
 
-# debian clang
-setup:debian_clang:
-  <<: *debian_clang
-  <<: *setup
+# # debian clang
+# setup:debian_clang:
+#   <<: *debian_clang
+#   <<: *setup
 
-build:debian_clang:
-  <<: *debian_clang
-  <<: *build
-  dependencies:
-    - setup:debian_clang
+# build:debian_clang:
+#   <<: *debian_clang
+#   <<: *build
+#   dependencies:
+#     - setup:debian_clang
 
-unit_test:debian_clang:
-  <<: *debian_clang
-  <<: *unit_test
-  dependencies:
-    - build:debian_clang
+# unit_test:debian_clang:
+#   <<: *debian_clang
+#   <<: *unit_test
+#   dependencies:
+#     - build:debian_clang
 
-system_test:debian_clang:
-  <<: *debian_clang
-  <<: *system_test
-  dependencies:
-    - build:debian_clang
+# system_test:debian_clang:
+#   <<: *debian_clang
+#   <<: *system_test
+#   dependencies:
+#     - build:debian_clang
 
-# ubuntu clang
-setup:ubuntu_clang:
-  <<: *ubuntu_clang
-  <<: *setup  
+# # ubuntu clang
+# setup:ubuntu_clang:
+#   <<: *ubuntu_clang
+#   <<: *setup  
 
-build:ubuntu_clang:
-  <<: *ubuntu_clang
-  <<: *build
-  dependencies:
-    - setup:ubuntu_clang
+# build:ubuntu_clang:
+#   <<: *ubuntu_clang
+#   <<: *build
+#   dependencies:
+#     - setup:ubuntu_clang
 
-unit_test:ubuntu_clang:
-  <<: *ubuntu_clang
-  <<: *unit_test
-  dependencies:
-    - build:ubuntu_clang
+# unit_test:ubuntu_clang:
+#   <<: *ubuntu_clang
+#   <<: *unit_test
+#   dependencies:
+#     - build:ubuntu_clang
 
-system_test:ubuntu_clang:
-  <<: *ubuntu_clang
-  <<: *system_test
-  dependencies:
-    - build:ubuntu_clang    
+# system_test:ubuntu_clang:
+#   <<: *ubuntu_clang
+#   <<: *system_test
+#   dependencies:
+#     - build:ubuntu_clang    
