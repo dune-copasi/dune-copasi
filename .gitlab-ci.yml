@@ -44,9 +44,9 @@ stages:
 # Stages
 .setup: &setup
   stage: setup
-  image: registry.dune-project.org/docker/ci/service/docker:latest
+  image: docker:latest
   services:
-    - docker:dind:2375/tcp
+    - docker:dind
   script:
     - docker build -t registry.dune-project.org/copasi/dune-copasi/requirements -f docker/requirements.dockerfile .
   tags:
