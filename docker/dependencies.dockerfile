@@ -1,6 +1,6 @@
 ARG BASE_IMAGE=registry.dune-project.org/docker/ci/ubuntu:18.04
 FROM ${BASE_IMAGE}
-ARG DUNECI_PARALLEL=4
+ARG DUNECI_PARALLEL=2
 
 ARG TOOLCHAIN="clang-6-17"
 RUN ln -s /duneci/toolchains/${TOOLCHAIN} /duneci/toolchain
