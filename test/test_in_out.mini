@@ -1,0 +1,121 @@
+__name = in_out
+
+_begin_time = 0.
+_end_time = 10
+_time_step = 0.1
+
+[grid]
+file = grids/test_cell_membrane.msh
+initial_level = 0
+
+[model]
+begin_time = {_begin_time}
+end_time = {_end_time}
+time_step = {_time_step}
+
+[model.compartments]
+cytoplasm = 0
+membrane = 1
+nucleus = 2
+
+############################ Model for cytoplasm ############################
+
+[model.cytoplasm]
+begin_time = {_begin_time}
+end_time = {_end_time}
+time_step = {_time_step}
+
+[model.cytoplasm.operator]
+p65_cytoplasm = 0
+
+[model.cytoplasm.initial]
+p65_cytoplasm = 1
+
+
+[model.cytoplasm.reaction]
+p65_cytoplasm = p65_cytoplasm
+
+[model.cytoplasm.reaction.jacobian]
+dp65_cytoplasm_dp65_cytoplasm = 1
+
+[model.cytoplasm.diffusion]
+p65_cytoplasm = 1
+
+[model.cytoplasm.writer]
+file_name = {__name}_cytoplasm
+
+############################ Model for membrane ############################
+
+[model.membrane]
+begin_time = {_begin_time}
+end_time = {_end_time}
+time_step = {_time_step}
+
+[model.membrane.operator]
+p65_cytoplasm = 0
+p65_nucleus = 0
+
+[model.membrane.initial]
+p65_cytoplasm = 1
+p65_nucleus = 1
+
+[model.membrane.reaction]
+p65_cytoplasm = p65_nucleus
+p65_nucleus = p65_cytoplasm
+
+[model.membrane.reaction.jacobian]
+p65_cytoplasm_p65_cytoplasm = 0
+p65_cytoplasm_p65_nucleus = 1
+p65_nucleus_p65_cytoplasm = 1
+p65_nucleus_p65_nucleus = 0
+
+[model.membrane.diffusion]
+p65_cytoplasm = 1
+p65_nucleus = 1
+
+[model.membrane.writer]
+file_name = {__name}_membrane
+
+############################ Model for nucleus ############################
+
+[model.nucleus]
+begin_time = {_begin_time}
+end_time = {_end_time}
+time_step = {_time_step}
+
+[model.nucleus.operator]
+p65_nucleus = 0
+
+[model.nucleus.initial]
+p65_nucleus = 1
+
+
+[model.nucleus.reaction]
+p65_nucleus = p65_nucleus
+
+[model.nucleus.reaction.jacobian]
+dp65_nucleus_dp65_nucleus = 1
+
+[model.nucleus.diffusion]
+p65_nucleus = 1
+
+[model.nucleus.writer]
+file_name = {__name}_nucleus
+
+
+############################ Logging settings #################################
+# levels = off, critical, error, waring, notice, info, debug, trace, all
+
+[logging]
+default.level = trace
+
+[logging.sinks.stdout]
+pattern = "[\\{reldays:0>2\\}-\\{reltime:8%T\\}] [\\{backend\\}] \\{msg\\}"
+
+[logging.backend.model]
+level = trace
+indent = 2
+
+[logging.backend.solver]
+level = trace
+indent = 4

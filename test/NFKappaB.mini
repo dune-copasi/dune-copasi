@@ -1,0 +1,312 @@
+__name = NFkappaB
+
+_begin_time = 0.
+_end_time = 365
+_time_step = 1e-3
+
+[grid]
+file = grids/test_cell.msh
+initial_level = 0
+
+[model]
+begin_time = {_begin_time}
+end_time = {_end_time}
+time_step = {_time_step}
+
+[model.compartments]
+cytoplasm = 0
+#membrane = 1
+nucleus = 1
+
+############################ Model for cytoplasm ############################
+
+[model.cytoplasm]
+begin_time = {_begin_time}
+end_time = {_end_time}
+time_step = {_time_step}
+
+[model.cytoplasm.operator]
+p65_cytoplasm = 0
+IkBa_p = 0
+IKKb = 0
+IKKb_p = 0
+TNFa = 0
+p65_IkB_cytoplasm = 0
+IkBa_mRNA_cytoplasm = 0
+IkBa_cytoplasm = 0
+
+[model.cytoplasm.initial]
+p65_cytoplasm = 0.00166609
+IkBa_p = 0.234611
+IKKb = 0.298668
+IKKb_p = 0.00133151
+TNFa = 0
+p65_IkB_cytoplasm = 0.0411269
+IkBa_mRNA_cytoplasm = 0.199202
+IkBa_cytoplasm = 1.95156
+
+[model.cytoplasm.reaction]
+p65_cytoplasm = 0.036018623190168*p65_IkB_cytoplasm + 7342.46743032994*IKKb_p*p65_IkB_cytoplasm/(3.13820291340728 + p65_IkB_cytoplasm) - 1.0*(-0.0245628310133508*p65_IkB_cytoplasm + 8.18761033778361*p65_cytoplasm*IkBa_cytoplasm)
+IkBa_p = -35.9999481926134*IkBa_p + 7342.46743032994*IKKb_p*p65_IkB_cytoplasm/(3.13820291340728 + p65_IkB_cytoplasm) + 6608.22068729695*IKKb_p*IkBa_cytoplasm/(0.112460269242964 + IkBa_cytoplasm)
+IKKb = -0.1238783595*IKKb + 27.7868307830501*IKKb_p - 3.65474756811715*TNFa*IKKb/((1.47829 + IKKb)*(99.9998605315951 + TNFa))
+IKKb_p = 0.1238783595*IKKb - 27.7868307830501*IKKb_p + 3.65474756811715*TNFa*IKKb/((1.47829 + IKKb)*(99.9998605315951 + TNFa))
+TNFa = -0.9*TNFa
+p65_IkB_cytoplasm = -0.036018623190168*p65_IkB_cytoplasm - 7342.46743032994*IKKb_p*p65_IkB_cytoplasm/(3.13820291340728 + p65_IkB_cytoplasm) + 1.0*(-0.0245628310133508*p65_IkB_cytoplasm + 8.18761033778361*p65_cytoplasm*IkBa_cytoplasm)
+IkBa_mRNA_cytoplasm = -4.97223415385606*IkBa_mRNA_cytoplasm
+IkBa_cytoplasm = -0.036018623190168*IkBa_cytoplasm + 18.7354723520005*IkBa_mRNA_cytoplasm/(0.238680093564444 + IkBa_mRNA_cytoplasm) - 6608.22068729695*IKKb_p*IkBa_cytoplasm/(0.112460269242964 + IkBa_cytoplasm) - 1.0*(-0.0245628310133508*p65_IkB_cytoplasm + 8.18761033778361*p65_cytoplasm*IkBa_cytoplasm)
+
+[model.cytoplasm.reaction.jacobian]
+dp65_cytoplasm_dp65_cytoplasm = -8.18761033778361*IkBa_cytoplasm
+dp65_cytoplasm_dIkBa_p = 0
+dp65_cytoplasm_dIKKb = 0
+dp65_cytoplasm_dIKKb_p = 7342.46743032994*p65_IkB_cytoplasm/(3.13820291340728 + p65_IkB_cytoplasm)
+dp65_cytoplasm_dTNFa = 0
+dp65_cytoplasm_dp65_IkB_cytoplasm = 0.0605814542035188 + 7342.46743032994*IKKb_p/(3.13820291340728 + p65_IkB_cytoplasm) - 7342.46743032994*IKKb_p*p65_IkB_cytoplasm/(3.13820291340728 + p65_IkB_cytoplasm)^2
+dp65_cytoplasm_dIkBa_mRNA_cytoplasm = 0
+dp65_cytoplasm_dIkBa_cytoplasm = -8.18761033778361*p65_cytoplasm
+dIkBa_p_dp65_cytoplasm = 0
+dIkBa_p_dIkBa_p = -35.9999481926134
+dIkBa_p_dIKKb = 0
+dIkBa_p_dIKKb_p = 6608.22068729695*IkBa_cytoplasm/(0.112460269242964 + IkBa_cytoplasm) + 7342.46743032994*p65_IkB_cytoplasm/(3.13820291340728 + p65_IkB_cytoplasm)
+dIkBa_p_dTNFa = 0
+dIkBa_p_dp65_IkB_cytoplasm = 0.0 + 7342.46743032994*IKKb_p/(3.13820291340728 + p65_IkB_cytoplasm) - 7342.46743032994*IKKb_p*p65_IkB_cytoplasm/(3.13820291340728 + p65_IkB_cytoplasm)^2
+dIkBa_p_dIkBa_mRNA_cytoplasm = 0
+dIkBa_p_dIkBa_cytoplasm = 0.0 + 6608.22068729695*IKKb_p/(0.112460269242964 + IkBa_cytoplasm) - 6608.22068729695*IKKb_p*IkBa_cytoplasm/(0.112460269242964 + IkBa_cytoplasm)^2
+dIKKb_dp65_cytoplasm = 0
+dIKKb_dIkBa_p = 0
+dIKKb_dIKKb = -0.1238783595 - 3.65474756811715*TNFa/((1.47829 + IKKb)*(99.9998605315951 + TNFa)) + 3.65474756811715*TNFa*IKKb/((1.47829 + IKKb)^2*(99.9998605315951 + TNFa))
+dIKKb_dIKKb_p = 27.7868307830501
+dIKKb_dTNFa = 0.0 - 3.65474756811715*IKKb/((1.47829 + IKKb)*(99.9998605315951 + TNFa)) + 3.65474756811715*TNFa*IKKb/((1.47829 + IKKb)*(99.9998605315951 + TNFa)^2)
+dIKKb_dp65_IkB_cytoplasm = 0
+dIKKb_dIkBa_mRNA_cytoplasm = 0
+dIKKb_dIkBa_cytoplasm = 0
+dIKKb_p_dp65_cytoplasm = 0
+dIKKb_p_dIkBa_p = 0
+dIKKb_p_dIKKb = 0.1238783595 + 3.65474756811715*TNFa/((1.47829 + IKKb)*(99.9998605315951 + TNFa)) - 3.65474756811715*TNFa*IKKb/((1.47829 + IKKb)^2*(99.9998605315951 + TNFa))
+dIKKb_p_dIKKb_p = -27.7868307830501
+dIKKb_p_dTNFa = 0.0 + 3.65474756811715*IKKb/((1.47829 + IKKb)*(99.9998605315951 + TNFa)) - 3.65474756811715*TNFa*IKKb/((1.47829 + IKKb)*(99.9998605315951 + TNFa)^2)
+dIKKb_p_dp65_IkB_cytoplasm = 0
+dIKKb_p_dIkBa_mRNA_cytoplasm = 0
+dIKKb_p_dIkBa_cytoplasm = 0
+dTNFa_dp65_cytoplasm = 0
+dTNFa_dIkBa_p = 0
+dTNFa_dIKKb = 0
+dTNFa_dIKKb_p = 0
+dTNFa_dTNFa = -0.9
+dTNFa_dp65_IkB_cytoplasm = 0
+dTNFa_dIkBa_mRNA_cytoplasm = 0
+dTNFa_dIkBa_cytoplasm = 0
+dp65_IkB_cytoplasm_dp65_cytoplasm = 8.18761033778361*IkBa_cytoplasm
+dp65_IkB_cytoplasm_dIkBa_p = 0
+dp65_IkB_cytoplasm_dIKKb = 0
+dp65_IkB_cytoplasm_dIKKb_p = -7342.46743032994*p65_IkB_cytoplasm/(3.13820291340728 + p65_IkB_cytoplasm)
+dp65_IkB_cytoplasm_dTNFa = 0
+dp65_IkB_cytoplasm_dp65_IkB_cytoplasm = -0.0605814542035188 - 7342.46743032994*IKKb_p/(3.13820291340728 + p65_IkB_cytoplasm) + 7342.46743032994*IKKb_p*p65_IkB_cytoplasm/(3.13820291340728 + p65_IkB_cytoplasm)^2
+dp65_IkB_cytoplasm_dIkBa_mRNA_cytoplasm = 0
+dp65_IkB_cytoplasm_dIkBa_cytoplasm = 8.18761033778361*p65_cytoplasm
+dIkBa_mRNA_cytoplasm_dp65_cytoplasm = 0
+dIkBa_mRNA_cytoplasm_dIkBa_p = 0
+dIkBa_mRNA_cytoplasm_dIKKb = 0
+dIkBa_mRNA_cytoplasm_dIKKb_p = 0
+dIkBa_mRNA_cytoplasm_dTNFa = 0
+dIkBa_mRNA_cytoplasm_dp65_IkB_cytoplasm = 0
+dIkBa_mRNA_cytoplasm_dIkBa_mRNA_cytoplasm = -4.97223415385606
+dIkBa_mRNA_cytoplasm_dIkBa_cytoplasm = 0
+dIkBa_cytoplasm_dp65_cytoplasm = -8.18761033778361*IkBa_cytoplasm
+dIkBa_cytoplasm_dIkBa_p = 0
+dIkBa_cytoplasm_dIKKb = 0
+dIkBa_cytoplasm_dIKKb_p = -6608.22068729695*IkBa_cytoplasm/(0.112460269242964 + IkBa_cytoplasm)
+dIkBa_cytoplasm_dTNFa = 0
+dIkBa_cytoplasm_dp65_IkB_cytoplasm = 0.0245628310133508
+dIkBa_cytoplasm_dIkBa_mRNA_cytoplasm = 0.0 - 18.7354723520005*IkBa_mRNA_cytoplasm/(0.238680093564444 + IkBa_mRNA_cytoplasm)^2 + 18.7354723520005*(0.238680093564444 + IkBa_mRNA_cytoplasm)^(-1)
+dIkBa_cytoplasm_dIkBa_cytoplasm = -0.036018623190168 - 8.18761033778361*p65_cytoplasm - 6608.22068729695*IKKb_p/(0.112460269242964 + IkBa_cytoplasm) + 6608.22068729695*IKKb_p*IkBa_cytoplasm/(0.112460269242964 + IkBa_cytoplasm)^2
+
+[model.cytoplasm.diffusion]
+p65_cytoplasm = 1
+IkBa_p = 1
+IKKb = 1
+IKKb_p = 1
+TNFa = 1
+p65_IkB_cytoplasm = 1
+IkBa_mRNA_cytoplasm = 1
+IkBa_cytoplasm = 1
+
+[model.cytoplasm.writer]
+file_name = {__name}_cytoplasm
+
+############################ Model for membrane ############################
+
+[model.membrane]
+begin_time = {_begin_time}
+end_time = {_end_time}
+time_step = {_time_step}
+
+[model.membrane.operator]
+u_0 = 0
+u_1 = 0
+u_2 = 0
+u_3 = 0
+u_4 = 0
+u_5 = 0
+
+[model.membrane.initial]
+u_0 = 0
+u_1 = 0
+u_2 = 0
+u_3 = 0
+u_4 = 0
+u_5 = 0
+
+[model.membrane.reaction]
+u_0 = 0
+u_1 = 0
+u_2 = 0
+u_3 = 0
+u_4 = 0
+u_5 = 0
+
+[model.membrane.reaction.jacobian]
+du_0_du_0 = 0
+du_0_du_1 = 0
+du_0_du_2 = 0
+du_0_du_3 = 0
+du_0_du_4 = 0
+du_0_du_5 = 0
+du_1_du_0 = 0
+du_1_du_1 = 0
+du_1_du_2 = 0
+du_1_du_3 = 0
+du_1_du_4 = 0
+du_1_du_5 = 0
+du_2_du_0 = 0
+du_2_du_1 = 0
+du_2_du_2 = 0
+du_2_du_3 = 0
+du_2_du_4 = 0
+du_2_du_5 = 0
+du_3_du_0 = 0
+du_3_du_1 = 0
+du_3_du_2 = 0
+du_3_du_3 = 0
+du_3_du_4 = 0
+du_3_du_5 = 0
+du_4_du_0 = 0
+du_4_du_1 = 0
+du_4_du_2 = 0
+du_4_du_3 = 0
+du_4_du_4 = 0
+du_4_du_5 = 0
+du_5_du_0 = 0
+du_5_du_1 = 0
+du_5_du_2 = 0
+du_5_du_3 = 0
+du_5_du_4 = 0
+du_5_du_5 = 0
+
+[model.membrane.diffusion]
+u_0 = 100
+u_1 = 100
+u_2 = 100
+u_3 = 100
+u_4 = 100
+u_5 = 100
+
+[model.membrane.writer]
+file_name = {__name}_membrane
+
+############################ Model for nucleus ############################
+
+[model.nucleus]
+begin_time = {_begin_time}
+end_time = {_end_time}
+time_step = {_time_step}
+
+[model.nucleus.operator]
+IkBa_mRNA_2 = 0
+p65_nucleus = 0
+IkBa_nucleus = 0
+p65_IkB_nucleus = 0
+IkBa_mRNA_nucleus = 0
+IkBa_mRNA_1 = 0
+
+[model.nucleus.initial]
+IkBa_mRNA_2 = 5.14124
+p65_nucleus = 0.0832677
+IkBa_nucleus = 3.90313
+p65_IkB_nucleus = 0.00411473
+IkBa_mRNA_nucleus = 0.000133495
+IkBa_mRNA_1 = 5.14124
+
+[model.nucleus.reaction]
+IkBa_mRNA_2 = 5.00900035911484*IkBa_mRNA_1 - 5.00900035911484*IkBa_mRNA_2
+p65_nucleus = 0.036018623190168*p65_IkB_nucleus - 1.0*(-0.0245628310133508*p65_IkB_nucleus + 8.18761033778361*IkBa_nucleus*p65_nucleus)
+IkBa_nucleus = -0.036018623190168*IkBa_nucleus - 1.0*(-0.0245628310133508*p65_IkB_nucleus + 8.18761033778361*IkBa_nucleus*p65_nucleus)
+p65_IkB_nucleus = -0.036018623190168*p65_IkB_nucleus + 1.0*(-0.0245628310133508*p65_IkB_nucleus + 8.18761033778361*IkBa_nucleus*p65_nucleus)
+IkBa_mRNA_nucleus = 5.00900035911484*IkBa_mRNA_2 - 0.497223415385606*IkBa_mRNA_nucleus
+IkBa_mRNA_1 = -5.00900035911484*IkBa_mRNA_1 + 1.0*(0.0036897759857015 + 309.229298924907*p65_nucleus)
+
+[model.nucleus.reaction.jacobian]
+dIkBa_mRNA_2_dIkBa_mRNA_2 = -5.00900035911484
+dIkBa_mRNA_2_dp65_nucleus = 0
+dIkBa_mRNA_2_dIkBa_nucleus = 0
+dIkBa_mRNA_2_dp65_IkB_nucleus = 0
+dIkBa_mRNA_2_dIkBa_mRNA_nucleus = 0
+dIkBa_mRNA_2_dIkBa_mRNA_1 = 5.00900035911484
+dp65_nucleus_dIkBa_mRNA_2 = 0
+dp65_nucleus_dp65_nucleus = -8.18761033778361*IkBa_nucleus
+dp65_nucleus_dIkBa_nucleus = -8.18761033778361*p65_nucleus
+dp65_nucleus_dp65_IkB_nucleus = 0.0605814542035188
+dp65_nucleus_dIkBa_mRNA_nucleus = 0
+dp65_nucleus_dIkBa_mRNA_1 = 0
+dIkBa_nucleus_dIkBa_mRNA_2 = 0
+dIkBa_nucleus_dp65_nucleus = -8.18761033778361*IkBa_nucleus
+dIkBa_nucleus_dIkBa_nucleus = -0.036018623190168 - 8.18761033778361*p65_nucleus
+dIkBa_nucleus_dp65_IkB_nucleus = 0.0245628310133508
+dIkBa_nucleus_dIkBa_mRNA_nucleus = 0
+dIkBa_nucleus_dIkBa_mRNA_1 = 0
+dp65_IkB_nucleus_dIkBa_mRNA_2 = 0
+dp65_IkB_nucleus_dp65_nucleus = 8.18761033778361*IkBa_nucleus
+dp65_IkB_nucleus_dIkBa_nucleus = 8.18761033778361*p65_nucleus
+dp65_IkB_nucleus_dp65_IkB_nucleus = -0.0605814542035188
+dp65_IkB_nucleus_dIkBa_mRNA_nucleus = 0
+dp65_IkB_nucleus_dIkBa_mRNA_1 = 0
+dIkBa_mRNA_nucleus_dIkBa_mRNA_2 = 5.00900035911484
+dIkBa_mRNA_nucleus_dp65_nucleus = 0
+dIkBa_mRNA_nucleus_dIkBa_nucleus = 0
+dIkBa_mRNA_nucleus_dp65_IkB_nucleus = 0
+dIkBa_mRNA_nucleus_dIkBa_mRNA_nucleus = -0.497223415385606
+dIkBa_mRNA_nucleus_dIkBa_mRNA_1 = 0
+dIkBa_mRNA_1_dIkBa_mRNA_2 = 0
+dIkBa_mRNA_1_dp65_nucleus = 309.229298924907
+dIkBa_mRNA_1_dIkBa_nucleus = 0
+dIkBa_mRNA_1_dp65_IkB_nucleus = 0
+dIkBa_mRNA_1_dIkBa_mRNA_nucleus = 0
+dIkBa_mRNA_1_dIkBa_mRNA_1 = -5.00900035911484
+
+[model.nucleus.diffusion]
+IkBa_mRNA_2 = 1
+p65_nucleus = 1
+IkBa_nucleus = 1
+p65_IkB_nucleus = 1
+IkBa_mRNA_nucleus = 1
+IkBa_mRNA_1 = 1
+
+[model.nucleus.writer]
+file_name = {__name}_nucleus
+
+############################ Logging settings #################################
+# levels = off, critical, error, waring, notice, info, debug, trace, all
+
+[logging]
+default.level = trace
+
+[logging.sinks.stdout]
+pattern = "[\\{reldays:0>2\\}-\\{reltime:8%T\\}] [\\{backend\\}] \\{msg\\}"
+
+[logging.backend.model]
+level = trace
+indent = 2
+
+[logging.backend.solver]
+level = trace
+indent = 4

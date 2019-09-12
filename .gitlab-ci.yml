@@ -51,7 +51,9 @@ stages:
     - docker build -t registry.dune-project.org/copasi/dune-copasi/requirements -f docker/requirements.dockerfile .
   tags:
     - "dind"
-    
+  variables:
+    DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: "/certs"
 # .build: &build
 #   stage: build
 #   script:
