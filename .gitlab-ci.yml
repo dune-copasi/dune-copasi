@@ -119,8 +119,8 @@ stages:
     - docker build -f docker/dune-copasi.dockerfile
         --build-arg BASE_IMAGE=${DUNE_COPASI_BASE_IMAGE}
         --build-arg BRANCH=${CI_COMMIT_REF_NAME}
-        -t ${CI_REGISTRY}/copasi/dune-copasi/dune-copasi/dune-copasi:${DUNECI_OS}-${DUNECI_TOOLCHAIN}-${CI_COMMIT_REF_NAME} .
-    - docker push ${CI_REGISTRY}/copasi/dune-copasi/dune-copasi/dune-copasi:${DUNECI_OS}-${DUNECI_TOOLCHAIN}-${CI_COMMIT_REF_NAME}
+        -t dune-copasi:${DUNECI_OS}-${DUNECI_TOOLCHAIN}-${CI_COMMIT_REF_NAME} .
+    - docker push dune-copasi:${DUNECI_OS}-${DUNECI_TOOLCHAIN}-${CI_COMMIT_REF_NAME}
     - docker logout $CI_REGISTRY
   # only:
   #   - master
