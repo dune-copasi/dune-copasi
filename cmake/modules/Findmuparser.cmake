@@ -39,9 +39,18 @@ if (muparser_FOUND)
     set(muparser_INCLUDES ${muparser_INCLUDE_DIR} )
 
     # add the target
-    add_library(muparser::muparser SHARED IMPORTED)
-    set_target_properties(muparser::muparser
-      PROPERTIES IMPORTED_LOCATION ${muparser_LIBRARIES}
-                 INTERACE_INCLUDE_DIRECTORIES ${muparser_INCLUDES}
+    if (DUNE_USE_ONLY_STATIC_LIBS)
+        add_library(muparser::muparser STATIC IMPORTED)
+        set_target_properties(muparser::muparser
+          PROPERTIES IMPORTED_LOCATION ${muparser_LIBRARIES}
+                     INTERFACE_INCLUDE_DIRECTORIES ${muparser_INCLUDES}
+                     INTERFACE_COMPILE_DEFINITIONS "MUPARSER_STATIC"
     )
+    else()
+        add_library(muparser::muparser SHARED IMPORTED)
+        set_target_properties(muparser::muparser
+          PROPERTIES IMPORTED_LOCATION ${muparser_LIBRARIES}
+                     INTERFACE_INCLUDE_DIRECTORIES ${muparser_INCLUDES}
+        )
+    endif()
 endif()

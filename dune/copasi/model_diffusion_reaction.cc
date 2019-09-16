@@ -355,7 +355,11 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
 
   if (stat(path.c_str(), &st) != 0) {
     int stat = 0;
+#if defined(_WIN32)
+    stat = mkdir(path.c_str());
+#else
     stat = mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IRWXO);
+#endif
     if (stat != 0 && stat != -1)
       std::cout << "Error: Cannot create directory " << path << std::endl;
   }
