@@ -1,50 +1,28 @@
-## Deprecated CI for now
+# windows release build: mingw64 g++ from MSYS2 (currently 9.1.1) on Windows Server 2012 R2
+image:
+  - Visual Studio 2015
 
-# version: '{build}'
-# branches:
-#   only:
-#   - master
-# clone_folder: c:\projects\cmake-init
-# image:
-# - Visual Studio 2017
-# # - Visual Studio 2015
-# # - Visual Studio 2013
-# configuration:
-# - Debug
-# # - Release
-# platform:
-# - x64
-# environment:
-#   matrix:
-#   - arch: Win64
-#   # - arch: #does not work, Release|x64 not a valid target
-# matrix:
-#   fast_finish: true
-#   allow_failures:
-#     - platform: x64
-#       configuration: Debug
+clone_folder: C:\msys64\home\appveyor\dune-copasi
 
-# # skip unsupported combinations
-# init:
-# - set arch=
-# - if "%arch%"=="Win64" ( set arch= Win64)
-# - echo %arch%
-# - echo %APPVEYOR_BUILD_WORKER_IMAGE%
-# - if "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2017" ( set generator="Visual Studio 15 2017%arch%" )
-# - if "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2015" ( set generator="Visual Studio 14 2015%arch%" )
-# - if "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2013" ( set generator="Visual Studio 12 2013%arch%" )
-# - echo %generator%
+install:
+  - set PATH=C:\msys64\usr\bin;%PATH%
+  # download muparser & gmp as static libraries
+  - appveyor DownloadFile "https://github.com/lkeegan/libsbml-static/releases/latest/download/libsbml-static-windows.zip"
+  - 7z x libsbml-static-windows.zip
+  - mv muparser C:\msys64\home\appveyor\.
+  - mv gmp C:\msys64\home\appveyor\.
 
-# build_script:
-# - cmd: |-
-#     cd ..
-#     git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-common
-#     git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-geometry
-#     git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-grid
-#     git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-istl
-#     git clone -b releases/2.6 https://gitlab.dune-project.org/core/dune-localfunctions
-#     git clone -b releases/2.6 https://gitlab.dune-project.org/staging/dune-functions
-#     git clone -b releases/2.6 https://gitlab.dune-project.org/staging/dune-typetree
-#     git clone -b releases/2.6 https://gitlab.dune-project.org/pdelab/dune-pdelab
-#     bash "./dune-common/bin/dunecontrol configure -G %generator%"
-#     bash "./dune-common/bin/dunecontrol make"
+before_build:
+  - set DEPS_DIR=/home/appveyor
+  - echo CMAKE_FLAGS="-G 'Unix Makefiles' -DCMAKE_VERBOSE_MAKEFILE=1 -DDUNE_PYTHON_VIRTUALENV_SETUP=0 -DDUNE_PYTHON_ALLOW_GET_PIP=0 -DDUNE_PYTHON_VIRTUALENV_PATH=%DEPS_DIR%/dune-python-venv  -DGMPXX_INCLUDE_DIR:PATH=%DEPS_DIR%/gmp/include -DGMPXX_LIB:FILEPATH=%DEPS_DIR%/gmp/lib/libgmpxx.a -DGMP_LIB:FILEPATH=%DEPS_DIR%/gmp/lib/libgmp.a -DCMAKE_DISABLE_FIND_PACKAGE_QuadMath=TRUE -DBUILD_TESTING=OFF -DDUNE_USE_ONLY_STATIC_LIBS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=%DEPS_DIR%/muparser -DF77=true -DCMAKE_CXX_FLAGS='-Wa,-mbig-obj -static -static-libgcc -static-libstdc++' " > C:\msys64\home\appveyor\dune.txt
+  - type C:\msys64\home\appveyor\dune.txt
+  - set DUNE_OPTIONS_FILE=dune.txt
+  - set DUNECONTROL=./dune-common/bin/dunecontrol
+  - bash -l C:\msys64\home\appveyor\dune-copasi\.ci\setup.sh
+
+build_script:
+  - bash -l C:\msys64\home\appveyor\dune-copasi\.ci\build.sh
+
+test_script:
+  - bash -l C:\msys64\home\appveyor\dune-copasi\.ci\system_tests.sh
+  - bash -l C:\msys64\home\appveyor\dune-copasi\.ci\unit_tests.sh

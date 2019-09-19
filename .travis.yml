@@ -1,0 +1,63 @@
+language: cpp
+matrix:
+  include:
+    # linux build
+    - os: linux
+      dist: xenial
+      compiler: gcc
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-9
+            - python-dev
+            - python-pip
+            - python-virtualenv
+            - python3
+            - python3-dev
+            - python3-pip
+            - python3-venv
+
+    # mac build
+    - os: osx
+      osx_image: xcode10.3
+      compiler: clang
+
+before_install:
+  # DUNE will only compile for 10.14 - uses some C++17 not available in earlier osx versions...
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then export MACOSX_DEPLOYMENT_TARGET=10.14; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 100; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 100; fi
+  - gcc --version
+  - g++ --version
+  - cd ..
+  # download muparser as static library
+  - wget "https://github.com/lkeegan/libsbml-static/releases/latest/download/libsbml-static-$TRAVIS_OS_NAME.tgz"
+  - tar xzvf libsbml-static-$TRAVIS_OS_NAME.tgz
+install:
+  - echo 'CMAKE_FLAGS+=" -G '"'"'Unix Makefiles'"'"' "' >> dune.opts
+  - echo 'CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_SETUP=1 -DDUNE_PYTHON_ALLOW_GET_PIP=1 "' >> dune.opts
+  - echo 'CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_PATH='"$PWD"'/dune-python-venv"' >> dune.opts
+  - echo 'CMAKE_FLAGS+=" -DGMPXX_INCLUDE_DIR:PATH='"$PWD"'/gmp/include -DGMPXX_LIB:FILEPATH='"$PWD"'/gmp/lib/libgmpxx.a -DGMP_LIB:FILEPATH='"$PWD"'/gmp/lib/libgmp.a"' >> dune.opts
+  - echo 'CMAKE_FLAGS+=" -DCMAKE_DISABLE_FIND_PACKAGE_QuadMath=TRUE -DBUILD_TESTING=OFF"' >> dune.opts
+  - echo 'CMAKE_FLAGS+=" -DDUNE_USE_ONLY_STATIC_LIBS=ON -DCMAKE_BUILD_TYPE=Release"' >> dune.opts
+  - echo 'CMAKE_FLAGS+=" -DCMAKE_PREFIX_PATH='"$PWD"'/muparser -DF77=true "' >> dune.opts
+  - echo 'CMAKE_FLAGS+=" -DCMAKE_PREFIX_PATH='"$PWD"'/muparser -DF77=true "' >> dune.opts
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then echo 'CMAKE_FLAGS+="-DPYTHON_EXECUTABLE:FILEPATH=/usr/bin/python3"' >> dune.opts; fi
+  - export DUNE_OPTIONS_FILE="dune.opts"
+  - export DUNECONTROL=./dune-common/bin/dunecontrol
+  - echo "${DUNE_OPTIONS_FILE}"
+  # setup dependencies
+  - bash dune-copasi/.ci/setup.sh
+script: 
+  - bash dune-copasi/.ci/build.sh
+after_script: 
+  - bash dune-copasi/.ci/unit_tests.sh
+  - bash dune-copasi/.ci/system_tests.sh
+  # check dependencies of executable
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then otool -L $TRAVIS_BUILD_DIR/build-cmake/src/dune_copasi; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then ldd $TRAVIS_BUILD_DIR/build-cmake/src/dune_copasi; fi
+
+notifications:
+email: false
