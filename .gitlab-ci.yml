@@ -3,8 +3,8 @@
 stages:
   - setup
   - build
-  - unit_test
-  - system_test
+  - unit_tests
+  - system_tests
   - deploy
 
 .docker_variables: &docker_variables
@@ -29,6 +29,8 @@ stages:
     - DUNECI_OS="debian"
     - DUNECI_BASE_IMAGE=${CI_REGISTRY}/docker/ci/debian:10
     - DUNE_COPASI_BASE_IMAGE=${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${DUNECI_TOOLCHAIN}
+    - export DUNE_OPTIONS_FILE=/duneci/dune.opts
+    - export DUNECONTROL=dunecontrol
 
 .debian_clang: &debian_clang
   <<: *general_definitions
@@ -38,6 +40,8 @@ stages:
     - DUNECI_OS="debian"
     - DUNECI_BASE_IMAGE=${CI_REGISTRY}/docker/ci/debian:10
     - DUNE_COPASI_BASE_IMAGE=${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${DUNECI_TOOLCHAIN}
+    - export DUNE_OPTIONS_FILE=/duneci/dune.opts
+    - export DUNECONTROL=dunecontrol
 
 .ubuntu_gcc: &ubuntu_gcc
   <<: *general_definitions
@@ -47,6 +51,8 @@ stages:
     - DUNECI_OS="ubuntu"
     - DUNECI_BASE_IMAGE=${CI_REGISTRY}/docker/ci/ubuntu:18.04
     - DUNE_COPASI_BASE_IMAGE=${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${DUNECI_TOOLCHAIN}
+    - export DUNE_OPTIONS_FILE=/duneci/dune.opts
+    - export DUNECONTROL=dunecontrol
 
 .ubuntu_clang: &ubuntu_clang
   <<: *general_definitions
@@ -56,6 +62,8 @@ stages:
     - DUNECI_OS="ubuntu"
     - DUNECI_BASE_IMAGE=${CI_REGISTRY}/docker/ci/ubuntu:18.04
     - DUNE_COPASI_BASE_IMAGE=${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${DUNECI_TOOLCHAIN}
+    - export DUNE_OPTIONS_FILE=/duneci/dune.opts
+    - export DUNECONTROL=dunecontrol
 
 # Stages
 .setup: &setup
@@ -74,30 +82,32 @@ stages:
 .build: &build
   stage: build
   script:
-    - dunecontrol --opts=/duneci/dune.opts --only=dune-copasi all
+    - cd ..
+    - bash dune-copasi/.ci/build.sh
   artifacts:
     paths:
       - build-cmake
     expire_in: 30 mins
 
-.unit_test: &unit_test
-  stage: unit_test
+.unit_tests: &unit_tests
+  stage: unit_tests
   script: 
     - echo 'CMAKE_FLAGS+=" -DCMAKE_BUILD_TYPE=Debug"' >> /duneci/cmake-flags/dune_copasi.opts
-    - dunecontrol --opts=/duneci/dune.opts --only=dune-copasi configure
-    - dunecontrol --opts=/duneci/dune.opts --only=dune-copasi make --target build_unit_tests
-    - dunecontrol --opts=/duneci/dune.opts --only=dune-copasi bexec ctest -j4 -L "unit"
+    - cd .. 
+    - bash dune-copasi/.ci/unit_tests.sh
   artifacts:
     paths:
       - build-cmake/test
     expire_in: 1 day
 
-.system_test: &system_test
-  stage: system_test
+.system_tests: &system_tests
+  stage: system_tests
   script: 
-    - dunecontrol --opts=/duneci/dune.opts --only=dune-copasi bexec ctest -j4 -L "DUNE_SYSTEMTEST"
+    - cd ..
+    - bash dune-copasi/.ci/system_tests.sh
   artifacts:
     paths:
+      - cd ..
       - build-cmake/test
     expire_in: 1 day
 
@@ -127,15 +137,15 @@ build:debian_gcc:
   dependencies:
     - setup:debian_gcc
 
-unit_test:debian_gcc:
+unit_tests:debian_gcc:
   <<: *debian_gcc
-  <<: *unit_test
+  <<: *unit_tests
   dependencies:
     - build:debian_gcc
 
-system_test:debian_gcc:
+system_tests:debian_gcc:
   <<: *debian_gcc
-  <<: *system_test
+  <<: *system_tests
   dependencies:
     - build:debian_gcc
 
@@ -143,7 +153,7 @@ deploy:debian_gcc:
   <<: *debian_gcc
   <<: *deploy
   dependencies:
-    - system_test:debian_gcc
+    - system_tests:debian_gcc
 
 # # ubuntu gcc
 # setup:ubuntu_gcc:
@@ -156,15 +166,15 @@ deploy:debian_gcc:
 #   dependencies:
 #     - setup:ubuntu_gcc
 
-# unit_test:ubuntu_gcc:
+# unit_tests:ubuntu_gcc:
 #   <<: *ubuntu_gcc
-#   <<: *unit_test
+#   <<: *unit_tests
 #   dependencies:
 #     - build:ubuntu_gcc
 
-# system_test:ubuntu_gcc:
+# system_tests:ubuntu_gcc:
 #   <<: *ubuntu_gcc
-#   <<: *system_test
+#   <<: *system_tests
 #   dependencies:
 #     - build:ubuntu_gcc
 
@@ -172,7 +182,7 @@ deploy:debian_gcc:
 #   <<: *ubuntu_gcc
 #   <<: *deploy
 #   dependencies:
-#     - system_test:ubuntu_gcc
+#     - system_tests:ubuntu_gcc
 
 # debian clang
 setup:debian_clang:
@@ -185,15 +195,15 @@ build:debian_clang:
   dependencies:
     - setup:debian_clang
 
-unit_test:debian_clang:
+unit_tests:debian_clang:
   <<: *debian_clang
-  <<: *unit_test
+  <<: *unit_tests
   dependencies:
     - build:debian_clang
 
-system_test:debian_clang:
+system_tests:debian_clang:
   <<: *debian_clang
-  <<: *system_test
+  <<: *system_tests
   dependencies:
     - build:debian_clang
 
@@ -201,7 +211,7 @@ deploy:debian_clang:
   <<: *debian_clang
   <<: *deploy
   dependencies:
-    - system_test:debian_clang
+    - system_tests:debian_clang
 
 # # ubuntu clang
 # setup:ubuntu_clang:
@@ -214,15 +224,15 @@ deploy:debian_clang:
 #   dependencies:
 #     - setup:ubuntu_clang
 
-# unit_test:ubuntu_clang:
+# unit_tests:ubuntu_clang:
 #   <<: *ubuntu_clang
-#   <<: *unit_test
+#   <<: *unit_tests
 #   dependencies:
 #     - build:ubuntu_clang
 
-# system_test:ubuntu_clang:
+# system_tests:ubuntu_clang:
 #   <<: *ubuntu_clang
-#   <<: *system_test
+#   <<: *system_tests
 #   dependencies:
 #     - build:ubuntu_clang    
 
@@ -230,4 +240,4 @@ deploy:debian_clang:
 #   <<: *ubuntu_clang
 #   <<: *deploy
 #   dependencies:
-#     - system_test:ubuntu_clang
+#     - system_tests:ubuntu_clang

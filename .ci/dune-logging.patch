@@ -1,0 +1,12 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 693bab6..dd4ffae 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -136,7 +136,6 @@ the command \"git submodule update --init --recursive\" in the dune-logging sour
+   target_compile_definitions(
+     dune-logging-fmt
+     PRIVATE FMT_EXPORT
+-    INTERFACE $<$<NOT:$<STREQUAL:$<TARGET_PROPERTY:TYPE>,STATIC_LIBRARY>>:FMT_SHARED>
+     PUBLIC DUNE_LOGGING_VENDORED_FMT=1
+     )
+ 

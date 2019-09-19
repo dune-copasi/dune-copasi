@@ -6,6 +6,8 @@
 
 #include <dune/typetree/typetree.hh>
 
+#include <dune/common/exceptions.hh>
+
 #include <cassert>
 #include <complex>
 
