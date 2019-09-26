@@ -21,6 +21,12 @@ enum class AdaptivityPolicy
   None
 };
 
+enum class JacobianMethod
+{
+  Analytical,
+  Numerical
+};
+
 } // namespace Dune::Copasi
 
 #endif // DUNE_COPASI_ENUM_HH

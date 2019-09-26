@@ -14,8 +14,8 @@
 
 namespace Dune::Copasi {
 
-template<class Grid, int FEMorder, class OrderingTag>
-ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::
+template<class Traits>
+ModelMultiDomainDiffusionReaction<Traits>::
   ModelMultiDomainDiffusionReaction(std::shared_ptr<Grid> grid,
                                     const Dune::ParameterTree& config)
   : ModelBase(config)
@@ -80,16 +80,16 @@ ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::
   _logger.debug("ModelMultiDomainDiffusionReaction constructed"_fmt);
 }
 
-template<class Grid, int FEMorder, class OrderingTag>
-ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::
+template<class Traits>
+ModelMultiDomainDiffusionReaction<Traits>::
   ~ModelMultiDomainDiffusionReaction()
 {
   _logger.debug("ModelMultiDomainDiffusionReaction deconstructed"_fmt);
 }
 
-template<class Grid, int FEMorder, class OrderingTag>
+template<class Traits>
 void
-ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::
+ModelMultiDomainDiffusionReaction<Traits>::
   setup_grid_function_spaces()
 {
   _logger.debug("setup grid function space"_fmt);
@@ -101,7 +101,10 @@ ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::
 
   for (std::size_t domain = 0; domain < _domains; ++domain) {
     const std::string compartement = compartments[domain];
-    auto& model_config = _config.sub(compartement);
+    auto model_config = _config.sub(compartement);
+    model_config["begin_time"] = _config["begin_time"];
+    model_config["end_time"] = _config["end_time"];
+    model_config["time_step"] = _config["time_step"];
     SubDomainGridView sub_grid_view = _grid->subDomain(domain).leafGridView();
 
     _logger.trace("create a sub model for compartment {}"_fmt, domain);
@@ -139,9 +142,9 @@ ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::
   }
 }
 
-template<class Grid, int FEMorder, class OrderingTag>
+template<class Traits>
 void
-ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::
+ModelMultiDomainDiffusionReaction<Traits>::
   setup_coefficient_vectors()
 {
   for (auto& [op, state] : _states) {
@@ -155,9 +158,9 @@ ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::
   }
 }
 
-template<class Grid, int FEMorder, class OrderingTag>
+template<class Traits>
 void
-ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::
+ModelMultiDomainDiffusionReaction<Traits>::
   setup_constraints()
 {
   _logger.debug("setup constraints"_fmt);
@@ -182,9 +185,9 @@ ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::
   }
 }
 
-template<class Grid, int FEMorder, class OrderingTag>
+template<class Traits>
 auto
-ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::
+ModelMultiDomainDiffusionReaction<Traits>::
   setup_local_operator(std::size_t i) const
 {
   _logger.trace("setup local operators {}"_fmt, i);
@@ -202,9 +205,9 @@ ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::
   return std::make_pair(local_operator, temporal_local_operator);
 }
 
-template<class Grid, int FEMorder, class OrderingTag>
+template<class Traits>
 void
-ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::
+ModelMultiDomainDiffusionReaction<Traits>::
   setup_local_operators()
 {
   _logger.trace("setup local operators"_fmt);
@@ -219,9 +222,9 @@ ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::
   }
 }
 
-template<class Grid, int FEMorder, class OrderingTag>
+template<class Traits>
 void
-ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::
+ModelMultiDomainDiffusionReaction<Traits>::
   setup_grid_operators()
 {
   _logger.debug("setup grid operators"_fmt);
@@ -250,9 +253,9 @@ ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::
   }
 }
 
-template<class Grid, int FEMorder, class OrderingTag>
+template<class Traits>
 void
-ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::setup_solvers()
+ModelMultiDomainDiffusionReaction<Traits>::setup_solvers()
 {
   _logger.debug("setup solvers"_fmt);
   _linear_solvers.clear();
@@ -279,9 +282,9 @@ ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::setup_solvers()
   }
 }
 
-template<class Grid, int FEMorder, class OrderingTag>
+template<class Traits>
 void
-ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::
+ModelMultiDomainDiffusionReaction<Traits>::
   setup_vtk_writer()
 {
   _logger.debug("setup vtk writer"_fmt);
@@ -319,21 +322,21 @@ ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::
         std::cout << "Error: Cannot create directory " << path << std::endl;
     }
 
-    _sequential_writer[i] = std::make_shared<SW>(writer, file_name, path, path);
+    _sequential_writer[i] = std::make_shared<SW>(writer, file_name, path, "");
   }
 }
 
-template<class Grid, int FEMorder, class OrderingTag>
+template<class Traits>
 void
-ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::
+ModelMultiDomainDiffusionReaction<Traits>::
   suggest_timestep(double dt)
 {
   DUNE_THROW(NotImplemented, "not implemented");
 }
 
-template<class Grid, int FEMorder, class OrderingTag>
+template<class Traits>
 void
-ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::setup(
+ModelMultiDomainDiffusionReaction<Traits>::setup(
   ModelSetupPolicy setup_policy)
 {
   _logger.trace("setup operator started"_fmt);
@@ -354,9 +357,9 @@ ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::setup(
     setup_vtk_writer();
 }
 
-template<class Grid, int FEMorder, class OrderingTag>
+template<class Traits>
 void
-ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::step()
+ModelMultiDomainDiffusionReaction<Traits>::step()
 {
   double dt = _config.template get<double>("time_step");
 
@@ -422,9 +425,9 @@ ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::step()
   write_states();
 }
 
-template<class Grid, int FEMorder, class OrderingTag>
+template<class Traits>
 auto
-ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::
+ModelMultiDomainDiffusionReaction<Traits>::
   get_data_handler(std::map<std::size_t, State> states) const
 {
   std::vector<std::map<std::size_t, std::shared_ptr<DataHandler>>> data(
@@ -446,17 +449,17 @@ ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::
   return data;
 }
 
-template<class Grid, int FEMorder, class OrderingTag>
+template<class Traits>
 void
-ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::
+ModelMultiDomainDiffusionReaction<Traits>::
   update_data_handler()
 {
   _data = get_data_handler(_states);
 }
 
-template<class Grid, int FEMorder, class OrderingTag>
+template<class Traits>
 auto
-ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::
+ModelMultiDomainDiffusionReaction<Traits>::
   get_grid_function(const std::map<std::size_t, State>& states,
                     std::size_t domain,
                     std::size_t comp) const
@@ -480,9 +483,9 @@ ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::
   return gf;
 }
 
-template<class Grid, int FEMorder, class OrderingTag>
+template<class Traits>
 void
-ModelMultiDomainDiffusionReaction<Grid, FEMorder, OrderingTag>::write_states()
+ModelMultiDomainDiffusionReaction<Traits>::write_states()
   const
 {
 

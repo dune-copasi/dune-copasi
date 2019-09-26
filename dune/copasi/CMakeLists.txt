@@ -1,7 +1,23 @@
-add_library(dune_copasi_lib STATIC model_base.cc)
+add_subdirectory(concepts)
 
-target_link_libraries(dune_copasi_lib PUBLIC ${DUNE_LIBS} muparser::muparser)
-
-#install headers
-install(FILES copasi.hh DESTINATION
-        "${CMAKE_INSTALL_INCLUDEDIR}/dune/copasi")
+install(FILES   coefficient_mapper.hh
+                dynamic_local_basis.hh 
+                dynamic_local_coefficients.hh
+                dynamic_local_finite_element.hh
+                dynamic_local_interpolation.hh 
+                enum.hh
+                gmsh_reader.hh
+                grid_function_writer.hh
+                local_operator_multidomain.hh
+                local_operator.hh
+                model_base.hh
+                model_diffusion_reaction.cc
+                model_diffusion_reaction.hh 
+                model_multidomain_diffusion_reaction.cc
+                model_multidomain_diffusion_reaction.hh
+                model_state.hh
+                multidomain_entity_transformation.hh
+                multidomain_local_finite_element_map.hh
+                pdelab_callable_adapter.hh
+                pdelab_expression_adapter.hh
+        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/dune/copasi")

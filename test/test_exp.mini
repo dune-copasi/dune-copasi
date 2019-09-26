@@ -12,19 +12,15 @@ file = grids/square.msh
 initial_level = 0
 
 [model]
-begin_time = {_begin_time}
-end_time = {_end_time}
-time_step = {_time_step}
+begin_time = 0.
+end_time = 10
+time_step = 0.1
+order = 1
 
 [model.compartments]
 domain     = 0
 
 ############################ Model for domain ############################
-[model.domain]
-begin_time = {_begin_time}
-end_time = {_end_time}
-time_step = {_time_step}
-
 [model.domain.operator]
 u = 0
 

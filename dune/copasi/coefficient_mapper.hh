@@ -6,6 +6,8 @@
 #include <dune/pdelab/gridfunctionspace/lfsindexcache.hh>
 #include <dune/pdelab/gridfunctionspace/localfunctionspace.hh>
 
+#include <dune/common/parametertree.hh>
+
 #include <map>
 #include <memory>
 #include <vector>

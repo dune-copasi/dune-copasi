@@ -2,12 +2,14 @@
 #define DUNE_COPASI_LOCAL_OPERATOR_DIFFUSION_REACTION_HH
 
 #include <dune/copasi/coefficient_mapper.hh>
+#include <dune/copasi/enum.hh>
 
 #include <dune/pdelab/common/quadraturerules.hh>
 #include <dune/pdelab/localoperator/flags.hh>
 #include <dune/pdelab/localoperator/idefault.hh>
-#include <dune/pdelab/localoperator/pattern.hh>
 #include <dune/pdelab/localoperator/numericaljacobian.hh>
+#include <dune/pdelab/localoperator/numericaljacobianapply.hh>
+#include <dune/pdelab/localoperator/pattern.hh>
 
 #include <dune/geometry/referenceelements.hh>
 #include <dune/geometry/type.hh>
@@ -16,12 +18,21 @@
 
 #include <dune/copasi/pdelab_expression_adapter.hh>
 
+#include <set>
+
 namespace Dune::Copasi {
 
-template<class GV, class LFE, class CM = DefaultCoefficientMapper>
+template<class GV,
+         class LFE,
+         class CM = DefaultCoefficientMapper,
+         JacobianMethod JM = JacobianMethod::Analytical>
 class LocalOperatorDiffusionReaction
   : public Dune::PDELab::LocalOperatorDefaultFlags
   , public Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>
+  , public PDELab::NumericalJacobianVolume<
+      LocalOperatorDiffusionReaction<GV, LFE, CM, JM>>
+  , public PDELab::NumericalJacobianApplyVolume<
+      LocalOperatorDiffusionReaction<GV, LFE, CM, JM>>
 {
   //! grid view
   using GridView = GV;
@@ -235,6 +246,22 @@ public:
                              const LFSV& lfsv,
                              R& r) const
   {
+    if constexpr (JM == JacobianMethod::Numerical) {
+      PDELab::NumericalJacobianApplyVolume<LocalOperatorDiffusionReaction>::
+        jacobian_apply_volume(eg, lfsu, x, z, lfsv, r);
+    } else {
+      _jacobian_apply_volume(eg, lfsu, x, z, lfsv, r);
+    }
+  }
+
+  template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
+  void _jacobian_apply_volume(const EG& eg,
+                              const LFSU& lfsu,
+                              const X& x,
+                              const X& z,
+                              const LFSV& lfsv,
+                              R& r) const
+  {
     // assume we receive a power local finite element!
     auto x_coeff_local = [&](const std::size_t& component,
                              const std::size_t& dof) {
@@ -259,12 +286,22 @@ public:
 
     _coefficient_mapper.bind(entity);
 
+    DynamicVector<RF> u(_components);
+    DynamicVector<RF> diffusion(_lfs_components.size());
+    DynamicVector<RF> reaction(_lfs_components.size());
+    DynamicVector<FieldVector<RF, dim>> grad(_basis_size);
+
     // loop over quadrature points
     for (std::size_t q = 0; q < _rule.size(); q++) {
+
       const auto& position = _rule[q].position();
 
+      std::fill(u.begin(), u.end(), 0.);
+      std::fill(diffusion.begin(), diffusion.end(), 0.);
+      std::fill(reaction.begin(), reaction.end(), 0.);
+      std::fill(grad.begin(), grad.end(), FieldVector<RF, dim>(0.));
+
       // get diffusion coefficient
-      DynamicVector<RF> diffusion(_lfs_components.size());
       for (std::size_t k = 0; k < _lfs_components.size(); k++)
         _diffusion_gf[k]->evaluate(entity, position, diffusion[k]);
 
@@ -273,13 +310,11 @@ public:
       RF factor = _rule[q].weight() * geo.integrationElement(position);
 
       // evaluate concentrations at quadrature point
-      DynamicVector<RF> u(_components);
       for (std::size_t k = 0; k < _components; k++)
         for (std::size_t j = 0; j < _basis_size; j++) // ansatz func. loop
           u[k] += _coefficient_mapper(x_coeff_local, k, j) * _phihat[q][j];
 
       // get reaction term
-      DynamicVector<RF> reaction(_lfs_components.size());
       for (std::size_t k = 0; k < _lfs_components.size(); k++) {
         _reaction_gf[k]->update(u);
         _reaction_gf[k]->evaluate(entity, position, reaction[k]);
@@ -287,7 +322,6 @@ public:
 
       // compute gradients of basis functions in transformed element
       // (independent of component)
-      DynamicVector<FieldVector<RF, dim>> grad(_basis_size);
       for (std::size_t i = 0; i < dim; i++)             // rows of S
         for (std::size_t k = 0; k < dim; k++)           // columns of S
           for (std::size_t j = 0; j < _basis_size; j++) // columns of _gradhat
@@ -302,13 +336,13 @@ public:
             graduh[d] += grad[j][d] * z_coeff_local(k, j);
 
         // scalar products
-        for (std::size_t d = 0; d < dim; d++)           // rows of grad
-          for (std::size_t i = 0; i < _basis_size; i++) // test func. loop
-            accumulate(k, i, diffusion[k] * grad[i][d] * graduh[d] * factor);
-
-        // reaction term
         for (std::size_t i = 0; i < _basis_size; i++) // test func. loop
-          accumulate(k, i, -reaction[k] * _phihat[q][i] * factor);
+        {
+          typename R::value_type rhs = -reaction[k] * _phihat[q][i];
+          for (std::size_t d = 0; d < dim; d++) // rows of grad
+            rhs += diffusion[k] * grad[i][d] * graduh[d];
+          accumulate(k, i, rhs * factor);
+        }
       }
     }
   }
@@ -321,6 +355,11 @@ public:
                        const LFSV& lfsv,
                        M& mat) const
   {
+    if constexpr (JM == JacobianMethod::Numerical) {
+      PDELab::NumericalJacobianVolume<LocalOperatorDiffusionReaction>::
+        jacobian_volume(eg, lfsu, x, lfsv, mat);
+      return;
+    }
     // assume we receive a power local finite element!
     auto x_coeff_local = [&](const std::size_t& component,
                              const std::size_t& dof) {
@@ -344,32 +383,31 @@ public:
 
     _coefficient_mapper.bind(entity);
 
+    DynamicVector<RF> u(_components);
+    DynamicVector<RF> diffusion(_lfs_components.size());
+    DynamicVector<RF> jacobian(_lfs_components.size() * _lfs_components.size());
+    DynamicVector<FieldVector<RF, dim>> grad(_basis_size);
+
     // loop over quadrature points
     for (std::size_t q = 0; q < _rule.size(); q++) {
-      // local stiffness matrix (independent of component)
-      std::vector<std::vector<RF>> A(_basis_size);
-      std::fill(A.begin(), A.end(), std::vector<RF>(_basis_size));
 
       const auto& position = _rule[q].position();
 
+      std::fill(u.begin(), u.end(), 0.);
+      std::fill(diffusion.begin(), diffusion.end(), 0.);
+      std::fill(jacobian.begin(), jacobian.end(), 0.);
+      std::fill(grad.begin(), grad.end(), FieldVector<RF, dim>(0.));
+
       // get diffusion coefficient
-      DynamicVector<RF> diffusion(_lfs_components.size());
       for (std::size_t k = 0; k < _lfs_components.size(); k++)
         _diffusion_gf[k]->evaluate(entity, position, diffusion[k]);
 
-      // get jacobian and determinant
-      FieldMatrix<DF, dim, dim> S = geo.jacobianInverseTransposed(position);
-      RF factor = _rule[q].weight() * geo.integrationElement(position);
-
       // evaluate concentrations at quadrature point
-      DynamicVector<RF> u(_components);
       for (std::size_t k = 0; k < _components; k++)
         for (std::size_t j = 0; j < _basis_size; j++) //  ansatz func. loop
           u[k] += _coefficient_mapper(x_coeff_local, k, j) * _phihat[q][j];
 
       // evaluate reaction term
-      DynamicVector<RF> jacobian(_lfs_components.size() *
-                                 _lfs_components.size());
       for (std::size_t k = 0; k < _lfs_components.size(); k++) {
         for (std::size_t l = 0; l < _lfs_components.size(); l++) {
           const auto j = _lfs_components.size() * k + l;
@@ -378,33 +416,40 @@ public:
         }
       }
 
+      // get jacobian and determinant
+      FieldMatrix<DF, dim, dim> S = geo.jacobianInverseTransposed(position);
+      RF factor = _rule[q].weight() * geo.integrationElement(position);
+
       // compute gradients of basis functions in transformed element
       // (independent of component)
-      DynamicVector<FieldVector<RF, dim>> grad(_basis_size);
       for (std::size_t i = 0; i < dim; i++)             // rows of S
         for (std::size_t k = 0; k < dim; k++)           // columns of S
           for (std::size_t j = 0; j < _basis_size; j++) // columns of _gradhat
             grad[j][i] += S[i][k] * _gradhat[q][j][0][k];
 
-      // compute grad^T * grad
-      for (std::size_t k = 0; k < _lfs_components.size(); k++)
-        for (std::size_t i = 0; i < _basis_size; i++)
-          for (std::size_t d = 0; d < dim; d++)
-            for (std::size_t j = 0; j < _basis_size; j++)
-              accumulate(
-                k, i, k, j, diffusion[k] * grad[i][d] * grad[j][d] * factor);
+      auto do_link = [&](std::size_t comp_i, std::size_t comp_j) {
+        auto it = _component_pattern.find(std::make_pair(comp_i, comp_j));
+        return (it != _component_pattern.end());
+      };
 
-      for (std::size_t k = 0; k < _lfs_components.size(); k++)
+      // compute grad^T * grad
+      for (std::size_t k = 0; k < _lfs_components.size(); k++) {
         for (std::size_t l = 0; l < _lfs_components.size(); l++) {
+          if (not do_link(k, l))
+            continue;
           const auto j = _lfs_components.size() * k + l;
-          for (std::size_t m = 0; m < _basis_size; m++)
-            for (std::size_t n = 0; n < _basis_size; n++)
-              accumulate(k,
-                         m,
-                         l,
-                         n,
-                         _phihat[q][m] * jacobian[j] * _phihat[q][n] * factor);
+          for (std::size_t m = 0; m < _basis_size; m++) {
+            for (std::size_t n = 0; n < _basis_size; n++) {
+              typename M::value_type jac =
+                -jacobian[j] * _phihat[q][m] * _phihat[q][n];
+              if (l == k)
+                for (std::size_t d = 0; d < dim; d++)
+                  jac += diffusion[k] * grad[m][d] * grad[n][d];
+              accumulate(k, m, l, n, jac * factor);
+            }
+          }
         }
+      }
     }
   }
 
@@ -415,7 +460,7 @@ public:
                     const LFSV& lfsv,
                     R& r) const
   {
-    jacobian_apply_volume(eg, lfsu, x, x, lfsv, r);
+    _jacobian_apply_volume(eg, lfsu, x, x, lfsv, r);
   }
 
   //! apply local jacobian of the volume term -> linear variant
@@ -426,16 +471,24 @@ public:
                              const LFSV& lfsv,
                              R& r) const
   {
-    jacobian_apply_volume(eg, lfsu, x, x, lfsv, r);
+    if constexpr (JM == JacobianMethod::Numerical) {
+      PDELab::NumericalJacobianApplyVolume<LocalOperatorDiffusionReaction>::
+        jacobian_apply_volume(eg, lfsu, x, lfsv, r);
+      return;
+    }
+    _jacobian_apply_volume(eg, lfsu, x, x, lfsv, r);
   }
 };
 
-template<class GV, class LFE>
+template<class GV, class LFE, JacobianMethod JM = JacobianMethod::Analytical>
 class TemporalLocalOperatorDiffusionReaction
   : public Dune::PDELab::LocalOperatorDefaultFlags
   , public Dune::PDELab::FullVolumePattern
   , public Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>
-  , public Dune::PDELab::NumericalJacobianVolume<TemporalLocalOperatorDiffusionReaction<GV,LFE>>
+  , public Dune::PDELab::NumericalJacobianVolume<
+      TemporalLocalOperatorDiffusionReaction<GV, LFE, JM>>
+  , public Dune::PDELab::NumericalJacobianApplyVolume<
+      TemporalLocalOperatorDiffusionReaction<GV, LFE, JM>>
 {
   //! grid view
   using GridView = GV;
@@ -576,39 +629,45 @@ public:
     }
   }
 
-  // template<typename EG, typename LFSU, typename X, typename LFSV, typename Mat>
-  // void jacobian_volume(const EG& eg,
-  //                      const LFSU& lfsu,
-  //                      const X& x,
-  //                      const LFSV& lfsv,
-  //                      Mat& mat) const
-  // {
-  //   auto accumulate = [&](const std::size_t& component_i,
-  //                         const std::size_t& dof_i,
-  //                         const std::size_t& component_j,
-  //                         const std::size_t& dof_j,
-  //                         const auto& value) {
-  //     mat.accumulate(
-  //       lfsv.child(component_i), dof_i, lfsu.child(component_j), dof_j, value);
-  //   };
+  template<typename EG, typename LFSU, typename X, typename LFSV, typename Mat>
+  void jacobian_volume(const EG& eg,
+                       const LFSU& lfsu,
+                       const X& x,
+                       const LFSV& lfsv,
+                       Mat& mat) const
+  {
+    if constexpr (JM == JacobianMethod::Numerical) {
+      PDELab::NumericalJacobianVolume<TemporalLocalOperatorDiffusionReaction>::
+        jacobian_volume(eg, lfsu, x, lfsv, mat);
+      return;
+    }
 
-  //   // get geometry
-  //   const auto geo = eg.geometry();
+    auto accumulate = [&](const std::size_t& component_i,
+                          const std::size_t& dof_i,
+                          const std::size_t& component_j,
+                          const std::size_t& dof_j,
+                          const auto& value) {
+      mat.accumulate(
+        lfsv.child(component_i), dof_i, lfsu.child(component_j), dof_j, value);
+    };
 
-  //   // loop over quadrature points
-  //   for (std::size_t q = 0; q < _rule.size(); q++) {
-  //     const auto& position = _rule[q].position();
-  //     // get Jacobian and determinant
-  //     RF factor = _rule[q].weight() * geo.integrationElement(position);
+    // get geometry
+    const auto geo = eg.geometry();
 
-  //     // integrate mass matrix
-  //     for (std::size_t k = 0; k < _lfs_components.size();
-  //          k++) // loop over components
-  //       for (std::size_t i = 0; i < _basis_size; i++)
-  //         for (std::size_t j = 0; j < _basis_size; j++)
-  //           accumulate(k, i, k, j, _phihat[q][i] * _phihat[q][j] * factor);
-  //   }
-  // }
+    // loop over quadrature points
+    for (std::size_t q = 0; q < _rule.size(); q++) {
+      const auto& position = _rule[q].position();
+      // get Jacobian and determinant
+      RF factor = _rule[q].weight() * geo.integrationElement(position);
+
+      // integrate mass matrix
+      for (std::size_t k = 0; k < _lfs_components.size();
+           k++) // loop over components
+        for (std::size_t i = 0; i < _basis_size; i++)
+          for (std::size_t j = 0; j < _basis_size; j++)
+            accumulate(k, i, k, j, _phihat[q][i] * _phihat[q][j] * factor);
+    }
+  }
 
   template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
   void jacobian_apply_volume(const EG& eg,
@@ -618,6 +677,16 @@ public:
                              const LFSV& lfsv,
                              R& r) const
   {
+    if constexpr (JM == JacobianMethod::Numerical) {
+      PDELab::NumericalJacobianApplyVolume<
+        TemporalLocalOperatorDiffusionReaction>::jacobian_apply_volume(eg,
+                                                                       lfsu,
+                                                                       x,
+                                                                       z,
+                                                                       lfsv,
+                                                                       r);
+      return;
+    }
     alpha_volume(eg, lfsu, z, lfsv, r);
   }
 
@@ -628,6 +697,15 @@ public:
                              const LFSV& lfsv,
                              R& r) const
   {
+    if constexpr (JM == JacobianMethod::Numerical) {
+      PDELab::NumericalJacobianApplyVolume<
+        TemporalLocalOperatorDiffusionReaction>::jacobian_apply_volume(eg,
+                                                                       lfsu,
+                                                                       x,
+                                                                       lfsv,
+                                                                       r);
+      return;
+    }
     alpha_volume(eg, lfsu, x, lfsv, r);
   }
 };
