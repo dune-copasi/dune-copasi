@@ -6,7 +6,7 @@
 #include <dune/copasi/model_diffusion_reaction.hh>
 #include <dune/copasi/model_diffusion_reaction.cc>
 #include <dune/copasi/model_multidomain_diffusion_reaction.hh>
-#include <dune/copasi/model_multidomain_diffusion_reaction.cc>
+#include <dune/copasi/enum.hh>
 
 #include <dune/grid/multidomaingrid.hh>
 #include <dune/grid/io/file/gmshreader.hh>
@@ -63,8 +63,36 @@ int main(int argc, char** argv)
     grid_ptr->globalRefine(level);
 
     auto& model_config = config.sub("model");
-    Dune::Copasi::ModelMultiDomainDiffusionReaction<Grid> model(grid_ptr,model_config);
-    model.run();
+    int order = model_config.get<int>("order");
+    std::string jacobian = model_config.get<std::string>("jacobian_type");
+    
+    if (order == 1)
+    {
+      using Ordering = Dune::PDELab::EntityBlockedOrderingTag;
+      constexpr int Order = 1;
+      if (jacobian == "analytical")
+      {
+        constexpr Dune::Copasi::JacobianMethod Jac = Dune::Copasi::JacobianMethod::Analytical;
+        using ModelTraits = Dune::Copasi::ModelMultiDomainDiffusionReactionTraits<Grid,Order,Ordering,Jac>;
+        Dune::Copasi::ModelMultiDomainDiffusionReaction<ModelTraits> model(grid_ptr,model_config);
+        model.run();
+      }
+      else if (jacobian == "numerical")
+      {
+        constexpr Dune::Copasi::JacobianMethod Jac = Dune::Copasi::JacobianMethod::Numerical;
+        using ModelTraits = Dune::Copasi::ModelMultiDomainDiffusionReactionTraits<Grid,Order,Ordering,Jac>;
+        Dune::Copasi::ModelMultiDomainDiffusionReaction<ModelTraits> model(grid_ptr,model_config);
+        model.run();
+      }
+      else 
+      {
+        DUNE_THROW(Dune::IOError,"Jacobian type " << jacobian << " is not supported by dune-copasi");        
+      }
+    } 
+    else
+    {
+      DUNE_THROW(Dune::IOError,"Finite element order " << order << " is not supported by dune-copasi");
+    }
 
     return 0;
   }

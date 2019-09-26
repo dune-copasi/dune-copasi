@@ -1,9 +1,6 @@
-
-_op_u0 = 0
-_op_u1 = 0, 1 | expand
-_op_v1 = 0, 1 | expand
-_name_sufix = {_op_u0}{_op_u1}{_op_v1}
-__name = test_cell_{_name_sufix}
+_jacobian_type = numerical, analytical           | expand
+_name_sufix = {_jacobian_type}
+__name = {_name_sufix}
 
 [grid]
 file = grids/test_cell.msh
@@ -15,13 +12,16 @@ end_time = 0.01
 time_step = 2e-3
 order = 1
 
+# extra 
+jacobian_type = {_jacobian_type}
+
 [model.compartments]
 cell     = 0
 nucleoid = 1
 
 ############################ Model for cell ############################
 [model.cell.operator]
-u = {_op_u0}
+u = 0
 
 [model.cell.initial]
 u = 10
@@ -40,8 +40,8 @@ file_name = {__name}_cell
 
 ############################ Model for nucleoid ############################
 [model.nucleoid.operator]
-u = {_op_u1}
-v = {_op_v1}
+u = 0
+v = 0
 
 [model.nucleoid.initial]
 u = 5

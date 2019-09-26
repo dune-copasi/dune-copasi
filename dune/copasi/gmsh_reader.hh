@@ -65,9 +65,17 @@ public:
     grid->updateSubDomains();
     grid->postUpdateSubDomains();
 
-    if (_logger.level() > Logging::LogLevel::trace)
-      for (int i = 0; i < max_subdomains; ++i)
+    // _logger.debug("Load balance grid"_fmt);
+    // grid->loadBalance();
+
+    if (_logger.level() >= Logging::LogLevel::trace) {
+      _logger.debug("Grid info"_fmt);
+      gridinfo(*grid);
+      for (int i = 0; i < max_subdomains; ++i) {
+        _logger.debug("Subdomain {} info"_fmt, i);
         gridinfo(grid->subDomain(i));
+      }
+    }
 
     if (not cout_redirected)
       Dune::Logging::Logging::restoreCout();

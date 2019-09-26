@@ -20,8 +20,8 @@
 
 namespace Dune::Copasi {
 
-template<class Grid, class GridView, int FEMorder, class OrderingTag>
-ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
+template<class Traits>
+ModelDiffusionReaction<Traits>::
   ModelDiffusionReaction(std::shared_ptr<Grid> grid,
                          const Dune::ParameterTree& config,
                          GV grid_view,
@@ -47,16 +47,16 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
   _logger.debug("ModelDiffusionReaction constructed"_fmt);
 }
 
-template<class Grid, class GridView, int FEMorder, class OrderingTag>
-ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
+template<class Traits>
+ModelDiffusionReaction<Traits>::
   ~ModelDiffusionReaction()
 {
   _logger.debug("ModelDiffusionReaction deconstructed"_fmt);
 }
 
-template<class Grid, class GridView, int FEMorder, class OrderingTag>
+template<class Traits>
 void
-ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::step()
+ModelDiffusionReaction<Traits>::step()
 {
   double dt = _config.template get<double>("time_step");
 
@@ -85,18 +85,18 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::step()
   write_states();
 }
 
-template<class Grid, class GridView, int FEMorder, class OrderingTag>
+template<class Traits>
 void
-ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::suggest_timestep(
+ModelDiffusionReaction<Traits>::suggest_timestep(
   double dt)
 {
   DUNE_THROW(NotImplemented, "");
 }
 
-// template<class Grid, class GridView, int FEMorder, class OrderingTag>
+// template<class Traits>
 // template<class T>
 // void
-// ModelDiffusionReaction<Grid, GridView, FEMorder,
+// ModelDiffusionReaction<Grid, GV, FEMorder,
 // OrderingTag>::set_state(const T& input_state)
 // {
 //   if constexpr (std::is_arithmetic<T>::value) {
@@ -129,9 +129,9 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::suggest_timestep(
 //   }
 // }
 
-template<class Grid, class GridView, int FEMorder, class OrderingTag>
+template<class Traits>
 auto
-ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
+ModelDiffusionReaction<Traits>::
   setup_component_grid_function_space(std::string name) const
 {
   _logger.trace("create a finite element map"_fmt);
@@ -139,16 +139,17 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
   auto finite_element_map = std::make_shared<FEM>(_grid_view, base_fem);
 
   _logger.trace("setup grid function space for component {}"_fmt, name);
+  const ES entity_set(_grid->leafGridView());
   auto comp_gfs =
-    std::make_shared<LGFS>(_grid->leafGridView(), finite_element_map);
+    std::make_shared<LGFS>(entity_set, finite_element_map);
   comp_gfs->name(name);
 
   return comp_gfs;
 }
 
-template<class Grid, class GridView, int FEMorder, class OrderingTag>
+template<class Traits>
 auto
-ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
+ModelDiffusionReaction<Traits>::
   setup_domain_grid_function_space(std::vector<std::string> comp_names) const
 {
   _logger.debug("setup domain grid function space"_fmt);
@@ -163,9 +164,9 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
   return std::make_shared<GFS>(comp_gfs_vec);
 }
 
-template<class Grid, class GridView, int FEMorder, class OrderingTag>
+template<class Traits>
 void
-ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
+ModelDiffusionReaction<Traits>::
   setup_grid_function_space()
 {
   // get component names
@@ -198,9 +199,9 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
   }
 }
 
-template<class Grid, class GridView, int FEMorder, class OrderingTag>
+template<class Traits>
 void
-ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
+ModelDiffusionReaction<Traits>::
   setup_coefficient_vectors()
 {
   _logger.debug("setup coefficient vector"_fmt);
@@ -214,9 +215,9 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
   }
 }
 
-template<class Grid, class GridView, int FEMorder, class OrderingTag>
+template<class Traits>
 void
-ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
+ModelDiffusionReaction<Traits>::
   setup_constraints()
 {
   _logger.debug("setup constraints"_fmt);
@@ -237,9 +238,9 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
   }
 }
 
-template<class Grid, class GridView, int FEMorder, class OrderingTag>
+template<class Traits>
 auto
-ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
+ModelDiffusionReaction<Traits>::
   setup_local_operator(std::size_t i) const
 {
   _logger.trace("setup local operators {}"_fmt, i);
@@ -257,9 +258,9 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
   return std::make_pair(local_operator, temporal_local_operator);
 }
 
-template<class Grid, class GridView, int FEMorder, class OrderingTag>
+template<class Traits>
 void
-ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
+ModelDiffusionReaction<Traits>::
   setup_local_operators()
 {
   _logger.trace("setup local operators"_fmt);
@@ -274,9 +275,9 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
   }
 }
 
-template<class Grid, class GridView, int FEMorder, class OrderingTag>
+template<class Traits>
 void
-ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
+ModelDiffusionReaction<Traits>::
   setup_grid_operators()
 {
   _logger.debug("setup grid operators"_fmt);
@@ -305,9 +306,9 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
   }
 }
 
-template<class Grid, class GridView, int FEMorder, class OrderingTag>
+template<class Traits>
 void
-ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::setup_solvers()
+ModelDiffusionReaction<Traits>::setup_solvers()
 {
   _logger.debug("setup solvers"_fmt);
   _linear_solvers.clear();
@@ -340,9 +341,9 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::setup_solvers()
   }
 }
 
-template<class Grid, class GridView, int FEMorder, class OrderingTag>
+template<class Traits>
 void
-ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
+ModelDiffusionReaction<Traits>::
   setup_vtk_writer()
 {
   _logger.debug("setup vtk writer"_fmt);
@@ -367,9 +368,9 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::
   _sequential_writer = std::make_shared<SW>(_writer, file_name, path, path);
 }
 
-template<class Grid, class GridView, int FEMorder, class OrderingTag>
+template<class Traits>
 void
-ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::setup(
+ModelDiffusionReaction<Traits>::setup(
   ModelSetupPolicy setup_policy)
 {
   if (setup_policy >= ModelSetupPolicy::GridFunctionSpace)
@@ -388,9 +389,9 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::setup(
     setup_vtk_writer();
 }
 
-template<class Grid, class GridView, int FEMorder, class OrderingTag>
+template<class Traits>
 void
-ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::write_states()
+ModelDiffusionReaction<Traits>::write_states()
   const
 {
   for (auto& [op, state] : _states) {
@@ -399,7 +400,7 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::write_states()
 
     auto etity_transformation = [&](auto e) {
       if constexpr (Concept::isMultiDomainGrid<Grid>() and
-                    Concept::isSubDomainGrid<typename GridView::Grid>())
+                    Concept::isSubDomainGrid<typename GV::Grid>())
         return _grid->multiDomainEntity(e);
       else
         return e;
@@ -408,7 +409,7 @@ ModelDiffusionReaction<Grid, GridView, FEMorder, OrderingTag>::write_states()
 
     using Predicate = PDELab::vtk::DefaultPredicate;
     using Data =
-      PDELab::vtk::DGFTreeCommonData<GFS, X, Predicate, GridView, ET>;
+      PDELab::vtk::DGFTreeCommonData<GFS, X, Predicate, GV, ET>;
     std::shared_ptr<Data> data =
       std::make_shared<Data>(*gfs, *x, _grid_view, etity_transformation);
     PDELab::vtk::OutputCollector<SW, Data> collector(*_sequential_writer, data);

@@ -3,6 +3,7 @@
 
 #include <dune/copasi/coefficient_mapper.hh>
 #include <dune/copasi/concepts/grid.hh>
+#include <dune/copasi/enum.hh>
 #include <dune/copasi/grid_function_writer.hh>
 #include <dune/copasi/local_operator.hh>
 #include <dune/copasi/model_base.hh>
@@ -27,19 +28,36 @@
 
 namespace Dune::Copasi {
 
+template<class G,
+         class GV = typename G::Traits::LeafGridView,
+         int FEMorder = 1,
+         class OT = PDELab::EntityBlockedOrderingTag,
+         JacobianMethod JM = JacobianMethod::Analytical>
+struct ModelDiffusionReactionTraits
+{
+  using Grid = G;
+  using GridView = GV;
+  using OrderingTag = OT;
+  static constexpr JacobianMethod jacobian_method = JM;
+  static constexpr int order = FEMorder;
+};
+
 /**
  * @brief      Class for diffusion-reaction models.
  *
  * @tparam     components  Number of components
  * @tparam     Param       Parameterization class
  */
-template<class Grid,
-         class GridView = typename Grid::Traits::LeafGridView,
-         int FEMorder = 1,
-         class OrderingTag = PDELab::EntityBlockedOrderingTag>
+template<class Traits>
 class ModelDiffusionReaction : public ModelBase
 {
 public:
+  using Grid = typename Traits::Grid;
+
+  using OT = typename Traits::OrderingTag;
+
+  static constexpr JacobianMethod JM = Traits::jacobian_method;
+
   // Check templates
   static_assert(Concept::isGrid<Grid>(), "Provided an invalid grid");
 
@@ -47,13 +65,13 @@ public:
   static constexpr int dim = 2;
 
   //! Polynomial order
-  static constexpr int order = FEMorder;
+  static constexpr int order = Traits::order;
 
   //! Grid view
-  using GV = GridView;
+  using GV = typename Traits::GridView;
 
   //! Host grid view
-  using HGV = typename Grid::LeafGridView;
+  using HGV = typename Traits::Grid::LeafGridView;
 
   //! Domain field
   using DF = typename Grid::ctype;
@@ -73,17 +91,20 @@ public:
   //! Constraints builder
   using CON = PDELab::ConformingDirichletConstraints;
 
+  //! Entity set
+  using ES = Dune::PDELab::NonOverlappingEntitySet<HGV>;
+
   //! Leaf vector backend
   using LVBE = PDELab::ISTL::VectorBackend<>;
 
   //! Leaf grid function space
-  using LGFS = PDELab::GridFunctionSpace<HGV, FEM, CON, LVBE>;
+  using LGFS = PDELab::GridFunctionSpace<ES, FEM, CON, LVBE>;
 
   //! Vector backend
   using VBE = LVBE;
 
   //! Grid function space
-  using GFS = PDELab::DynamicPowerGridFunctionSpace<LGFS, VBE, OrderingTag>;
+  using GFS = PDELab::DynamicPowerGridFunctionSpace<LGFS, VBE, OT>;
 
   //! Coefficient vector
   using X = PDELab::Backend::Vector<GFS, RF>;
@@ -103,10 +124,10 @@ private:
   using CM = Dune::Copasi::ModelCoefficientMapper<ConstState>;
 
   //! Local operator
-  using LOP = LocalOperatorDiffusionReaction<GV, FE, CM>;
+  using LOP = LocalOperatorDiffusionReaction<GV, FE, CM, JM>;
 
   //! Temporal local operator
-  using TLOP = TemporalLocalOperatorDiffusionReaction<GV, FE>;
+  using TLOP = TemporalLocalOperatorDiffusionReaction<GV, FE, JM>;
 
   //! Matrix backend
   using MBE = Dune::PDELab::ISTL::BCRSMatrixBackend<>;
@@ -160,7 +181,7 @@ public:
    */
   template<class T = int,
            class = std::enable_if_t<
-             std::is_same_v<GridView, typename Grid::Traits::LeafGridView>,
+             std::is_same_v<GV, typename Grid::Traits::LeafGridView>,
              T>>
   ModelDiffusionReaction(std::shared_ptr<Grid> grid,
                          const Dune::ParameterTree& config,

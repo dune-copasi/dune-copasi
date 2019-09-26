@@ -2,6 +2,7 @@
 #define DUNE_COPASI_MODEL_MULTIDOMAIN_DIFFUSION_REACTION_HH
 
 #include <dune/copasi/concepts/grid.hh>
+#include <dune/copasi/enum.hh>
 #include <dune/copasi/local_operator_multidomain.hh>
 #include <dune/copasi/model_base.hh>
 #include <dune/copasi/model_diffusion_reaction.cc>
@@ -19,11 +20,27 @@
 
 namespace Dune::Copasi {
 
-template<class Grid,
+template<class G,
          int FEMorder = 1,
-         class OrderingTag = PDELab::EntityBlockedOrderingTag>
+         class OT = PDELab::EntityBlockedOrderingTag,
+         JacobianMethod JM = JacobianMethod::Analytical>
+struct ModelMultiDomainDiffusionReactionTraits
+{
+  using Grid = G;
+  using OrderingTag = OT;
+  static constexpr int order = FEMorder;
+  static constexpr JacobianMethod jacobian_method = JM;
+};
+
+template<class Traits>
 class ModelMultiDomainDiffusionReaction : public ModelBase
 {
+  using Grid = typename Traits::Grid;
+
+  using OT = typename Traits::OrderingTag;
+
+  static constexpr JacobianMethod JM = Traits::jacobian_method;
+
   // Check grid template
   static_assert(Concept::isMultiDomainGrid<Grid>(),
                 "Provided grid type is not a multidomain grid");
@@ -33,11 +50,13 @@ class ModelMultiDomainDiffusionReaction : public ModelBase
   //! World dimension
   static constexpr int dim = 2;
   //! Polynomial order
-  static constexpr int order = FEMorder;
+  static constexpr int order = Traits::order;
 
   using SubDomainGridView = typename Grid::SubDomainGrid::LeafGridView;
-  using SubModel =
-    ModelDiffusionReaction<Grid, SubDomainGridView, order, OrderingTag>;
+
+  using SubModelTraits =
+    ModelDiffusionReactionTraits<Grid, SubDomainGridView, order, OT>;
+  using SubModel = ModelDiffusionReaction<SubModelTraits>;
 
   //! Grid view
   using GridView = typename Grid::LeafGridView;
@@ -89,10 +108,10 @@ class ModelMultiDomainDiffusionReaction : public ModelBase
   using CM = Dune::Copasi::MultiDomainModelCoefficientMapper<ConstState>;
 
   //! Local operator
-  using LOP = LocalOperatorMultiDomainDiffusionReaction<Grid, FE, CM>;
+  using LOP = LocalOperatorMultiDomainDiffusionReaction<Grid, FE, CM, JM>;
 
   //! Temporal local operator
-  using TLOP = TemporalLocalOperatorMultiDomainDiffusionReaction<Grid, FE>;
+  using TLOP = TemporalLocalOperatorMultiDomainDiffusionReaction<Grid, FE, JM>;
 
   //! Matrix backend
   using MBE = Dune::PDELab::ISTL::BCRSMatrixBackend<>;
