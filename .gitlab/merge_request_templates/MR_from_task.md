@@ -15,7 +15,7 @@ _Fill this in_
    <!-- change all occurences of <branch> for your branch name -->
    - [ ] [![Build Status](https://gitlab.dune-project.org/copasi/dune-copasi/badges/<branch>/pipeline.svg)](https://gitlab.dune-project.org/copasi/dune-copasi/pipelines)
    - [ ] [![Build Status](https://travis-ci.org/SoilRos/dune-copasi.svg?branch=<branch>)](https://travis-ci.org/SoilRos/dune-copasi/branches)
-   - [ ] [![Build status](https://ci.appveyor.com/api/projects/status/6605joy2w17qvca8/branch/<branch>?svg=true)](https://ci.appveyor.com/project/SoilRos/dune-copasi/branch/<branch>)
+   - [ ] [![Build status](https://ci.appveyor.com/api/projects/status/6605joy2w17qvca8/branch/<branch>?svg=true)](https://ci.appveyor.com/project/SoilRos/dune-copasi/history)
 - [ ] Delete branch option set <!-- unless there's a good reason -->
 - [ ] Added entry to `CHANGELOG.md`
 
