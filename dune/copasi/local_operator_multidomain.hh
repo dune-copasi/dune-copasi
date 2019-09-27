@@ -235,6 +235,13 @@ public:
     }
   }
 
+  void setTime(double t)
+  {
+    Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>::setTime(t);
+    for (auto lp : _local_operator)
+      lp->setTime(t);
+  }
+
   template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
   void jacobian_apply_volume(const EG& eg,
                              const LFSU& lfsu,

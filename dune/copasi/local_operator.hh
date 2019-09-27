@@ -183,7 +183,7 @@ public:
           grid_view, d_eq);
       _reaction_gf[k] =
         std::make_shared<ExpressionToGridFunctionAdapter<GridView, RF>>(
-          grid_view, r_eq, reaction_keys);
+          grid_view, r_eq, true, reaction_keys);
 
       for (std::size_t l = 0; l < _lfs_components.size(); l++) {
         const auto j = _lfs_components.size() * k + l;
@@ -192,7 +192,7 @@ public:
 
         _jacobian_gf[j] =
           std::make_shared<ExpressionToGridFunctionAdapter<GridView, RF>>(
-            grid_view, j_eq, reaction_keys);
+            grid_view, j_eq, true, reaction_keys);
         if (k == l) {
           _component_pattern.insert(std::make_pair(k, l));
           continue;
@@ -236,6 +236,20 @@ public:
           for (std::size_t k = 0; k < lfsv.child(i).size(); ++k)
             for (std::size_t l = 0; l < lfsu.child(j).size(); ++l)
               pattern.addLink(lfsv.child(i), k, lfsu.child(j), l);
+  }
+
+  void setTime(double t)
+  {
+    Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>::setTime(t);
+    for (auto& gf : _jacobian_gf)
+      if (gf)
+        gf->set_time(t);
+    for (auto& gf : _reaction_gf)
+      if (gf)
+        gf->set_time(t);
+    for (auto& gf : _diffusion_gf)
+      if (gf)
+        gf->set_time(t);
   }
 
   template<typename EG, typename LFSU, typename X, typename LFSV, typename R>

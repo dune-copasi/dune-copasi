@@ -11,6 +11,7 @@
 #include <dune/pdelab/gridfunctionspace/gridfunctionadapter.hh>
 
 #include <dune/copasi/model_multidomain_diffusion_reaction.hh>
+#include <dune/copasi/muparser_data_handler.hh>
 
 namespace Dune::Copasi {
 
@@ -38,6 +39,12 @@ ModelMultiDomainDiffusionReaction<Traits>::
   std::vector<std::shared_ptr<CompartementGridFunction>> comp_functions(
     _domains);
 
+  std::vector<std::shared_ptr<TIFFGrayscale<std::size_t>>> data(0);
+  std::vector<std::string> data_id(0);
+  MuParserDataHandler<TIFFGrayscale<unsigned short>> _mu_data_handler;
+  if (_config.hasSub("data"))
+    _mu_data_handler.add_tiff_functions(_config.sub("data"));
+
   for (auto& [op, state] : _states) {
     _logger.trace("interpolation of operator {}"_fmt, op);
     for (std::size_t i = 0; i < _domains; ++i) {
@@ -61,7 +68,11 @@ ModelMultiDomainDiffusionReaction<Traits>::
 
         _logger.trace("creating grid function for variable: {}"_fmt, var);
         std::string eq = intial_config[var];
-        functions[count] = std::make_shared<GridFunction>(_grid_view, eq);
+        functions[count] =
+          std::make_shared<GridFunction>(_grid_view, eq, false);
+        _mu_data_handler.set_functions(functions[count]->parser());
+        functions[count]->compile_parser();
+        functions[count]->set_time(current_time());
         count++;
       }
       // the second is because of the "ghost" child for empty compartments
@@ -237,7 +248,11 @@ ModelMultiDomainDiffusionReaction<Traits>::
     auto& lop = _local_operators[op];
     auto& tlop = _temporal_local_operators[op];
 
-    MBE mbe((int)pow(3, dim));
+    std::size_t max_comps(0);
+    for (std::size_t i = 0; i < gfs->degree(); i++)
+      max_comps = std::max(max_comps,gfs->child(i).degree());
+    
+    MBE mbe((int)pow(3, dim)*max_comps);
 
     _logger.trace("create spatial grid operator {}"_fmt, op);
     _spatial_grid_operators[op] = std::make_shared<GOS>(
@@ -371,7 +386,10 @@ ModelMultiDomainDiffusionReaction<Traits>::step()
   double max_error = std::numeric_limits<double>::max();
   auto states_after = _states;
 
-  _logger.info("Time Step {:.2e} + {:.2e} -> {:.2e}"_fmt, current_time(), dt, current_time()+dt);
+  _logger.info("Time Step {:.2e} + {:.2e} -> {:.2e}"_fmt,
+               current_time(),
+               dt,
+               current_time() + dt);
   std::size_t op_iter = 0;
   do {
     const auto states_before = states_after;
