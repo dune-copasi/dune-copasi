@@ -1,17 +1,17 @@
-__name = test_exp
-
-_grow_rate = 0.2
-_initial = 1
+__name = test_tiff
 
 [grid]
 file = grids/square.msh
-initial_level = 0
+initial_level = 3
 
 [model]
 begin_time = 0.
-end_time = 10
+end_time = 0.
 time_step = 0.1
 order = 1
+
+[model.data]
+flowers = data/tiff/flower-minisblack-16.tif
 
 [model.compartments]
 domain     = 0
@@ -21,24 +21,24 @@ domain     = 0
 u = 0
 
 [model.domain.initial]
-u = {_initial}
+u = flowers(x,y-0.25)
 
 [model.domain.reaction]
-u = {_grow_rate}*u
+u = 0
 
 [model.domain.reaction.jacobian]
-du_du = {_grow_rate}
+du_du = 0
 
 [model.domain.diffusion]
-u = 0.
+u = 1e-3
 
 [model.domain.writer]
 file_name = {__name}
 
 ######################### Compare with analytic vtk ######################### 
 [wrapper.vtkcompare]
-name = {__name}/{__name}-00101
-reference = reference/{__name}-00101
+name = {__name}/{__name}-00000
+reference = reference/{__name}-00000
 extension = vtu
 relative = 2e-2
 absolute = 1e-9

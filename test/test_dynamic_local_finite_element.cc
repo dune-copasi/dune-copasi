@@ -73,7 +73,8 @@ test_power_local_coefficients(const Coefficients& coefficients,
   }
 
   // check that local keys are ordered
-  if (unique_key.size() == 0) return false;
+  if (unique_key.size() == 0)
+    return false;
   auto it = std::next(unique_key.begin());
   while (it != unique_key.end()) {
     const auto& a = *std::prev(it);

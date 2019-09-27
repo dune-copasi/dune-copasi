@@ -32,7 +32,7 @@ before_install:
   - gcc --version
   - g++ --version
   - cd ..
-  # download muparser as static library
+  # download muparser, gmp and libtiff as static libraries
   - wget "https://github.com/lkeegan/libsbml-static/releases/latest/download/libsbml-static-$TRAVIS_OS_NAME.tgz"
   - tar xzvf libsbml-static-$TRAVIS_OS_NAME.tgz
 install:
@@ -42,17 +42,19 @@ install:
   - echo 'CMAKE_FLAGS+=" -DGMPXX_INCLUDE_DIR:PATH='"$PWD"'/gmp/include -DGMPXX_LIB:FILEPATH='"$PWD"'/gmp/lib/libgmpxx.a -DGMP_LIB:FILEPATH='"$PWD"'/gmp/lib/libgmp.a"' >> dune.opts
   - echo 'CMAKE_FLAGS+=" -DCMAKE_DISABLE_FIND_PACKAGE_QuadMath=TRUE -DBUILD_TESTING=OFF"' >> dune.opts
   - echo 'CMAKE_FLAGS+=" -DDUNE_USE_ONLY_STATIC_LIBS=ON -DCMAKE_BUILD_TYPE=Release"' >> dune.opts
-  - echo 'CMAKE_FLAGS+=" -DCMAKE_PREFIX_PATH='"$PWD"'/muparser -DF77=true "' >> dune.opts
-  - echo 'CMAKE_FLAGS+=" -DCMAKE_PREFIX_PATH='"$PWD"'/muparser -DF77=true "' >> dune.opts
+  - echo 'CMAKE_FLAGS+=" -DCMAKE_PREFIX_PATH='"$PWD"' -DF77=true "' >> dune.opts
+  - echo 'CMAKE_FLAGS+=" -Dmuparser_ROOT='"$PWD"'/muparser "' >> dune.opts
+  - echo 'CMAKE_FLAGS+=" -DTIFF_ROOT='"$PWD"'/libtiff "' >> dune.opts
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then echo 'CMAKE_FLAGS+="-DPYTHON_EXECUTABLE:FILEPATH=/usr/bin/python3"' >> dune.opts; fi
+  - echo 'MAKE_FLAGS="-j2 VERBOSE=1"' >> dune.opts
   - export DUNE_OPTIONS_FILE="dune.opts"
   - export DUNECONTROL=./dune-common/bin/dunecontrol
   - echo "${DUNE_OPTIONS_FILE}"
   # setup dependencies
   - bash dune-copasi/.ci/setup.sh
-script: 
+script:
   - bash dune-copasi/.ci/build.sh
-after_script: 
+after_script:
   - bash dune-copasi/.ci/unit_tests.sh
   - bash dune-copasi/.ci/system_tests.sh
   # check dependencies of executable
