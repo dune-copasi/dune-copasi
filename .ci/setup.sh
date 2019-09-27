@@ -37,7 +37,7 @@ for repo in dune-common dune-typetree dune-pdelab dune-multidomaingrid
 do
   git clone -b support/dune-copasi --depth 1 --recursive https://gitlab.dune-project.org/santiago.ospina/$repo.git
 done
-for repo in core/dune-geometry core/dune-istl core/dune-localfunctions staging/dune-functions staging/dune-uggrid staging/dune-logging
+for repo in core/dune-geometry core/dune-grid core/dune-istl core/dune-localfunctions staging/dune-functions staging/dune-uggrid staging/dune-logging
 do
   git clone -b $DUNE_VERSION --depth 1 --recursive https://gitlab.dune-project.org/$repo.git
 done
@@ -46,10 +46,6 @@ done
 if [[ ! $MSYSTEM ]]; then
 	git clone -b feature/allow-multidomain-vtk-compare-to-have-same-thresholds https://gitlab.dune-project.org/quality/dune-testtools.git
 fi
-
-# temporarily use fork of dunegrid to fix gmshreader on windows:
-# todo: when fixed on master, add core/dune-grid back to list above
-git clone -b gmsh_reader_fix --depth 1 --recursive https://gitlab.dune-project.org/liam.keegan/dune-grid.git
 
 # on windows, symlinks from git repos don't work
 # msys git replaces symlinks with a text file containing the linked file location
