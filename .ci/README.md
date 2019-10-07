@@ -21,10 +21,10 @@ mirrors all modifications made in the main repository.
   - Main repository: https://gitlab.dune-project.org/copasi/dune-copasi
   - Mirror repository: https://github.com/SoilRos/dune-copasi
 
-The main idea here is that they almost the same instructions in the different stages.
-In all the cases, the scripts expect to have defined `DUNECONTROL` and 
-`DUNE_OPTIONS_FILE` variables for running `dunecontrol` and for the configuration 
-options. 
+The main idea here is that they, the different CI, follow almost the same
+instructions in the different stages. In all the cases, the scripts expect 
+to have defined `DUNECONTROL` and `DUNE_OPTIONS_FILE` variables for running 
+`dunecontrol` and for the configuration options. 
 
 ### Stage: Setup
 
