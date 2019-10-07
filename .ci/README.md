@@ -58,7 +58,7 @@ not feasible for windows due to the python environment setup.
 For getting them replace `<branch>` for the specific branch you want:
 
 ### GitLab CI
-  - Link: https://gitlab.dune-project.org/santiago.ospina/dune-copasi/pipelines
+  - Link: https://gitlab.dune-project.org/copasi/dune-copasi/pipelines
   - Badge: [https://gitlab.dune-project.org/copasi/dune-copasi/badges/`<branch>`/pipeline.svg](https://gitlab.dune-project.org/copasi/dune-copasi/badges/master/pipeline.svg)
 ### Travis
   - Link: https://travis-ci.org/SoilRos/dune-copasi
