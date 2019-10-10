@@ -323,12 +323,7 @@ ModelMultiDomainDiffusionReaction<Traits>::
     std::string path = config_writer.get("path", file_name);
     int vtk_ref = config_writer.get("virtual_refinement", 0);
 
-    const auto subsamling_intervals = Dune::refinementLevels(vtk_ref);
-    std::shared_ptr<W> writer =
-      std::make_shared<W>(sub_grid_view, subsamling_intervals);
-
     struct stat st;
-
     if (stat(path.c_str(), &st) != 0) {
       int stat = 0;
 #if defined(_WIN32)
@@ -338,6 +333,18 @@ ModelMultiDomainDiffusionReaction<Traits>::
 #endif
       if (stat != 0 && stat != -1)
         std::cout << "Error: Cannot create directory " << path << std::endl;
+    }
+
+    std::shared_ptr<W> writer;
+
+    if (vtk_ref > 0)
+    {
+      const auto subsamling_intervals = Dune::refinementLevels(vtk_ref);
+      writer = std::make_shared<VRW>(sub_grid_view, subsamling_intervals);
+    }
+    else
+    {
+      writer = std::make_shared<W>(sub_grid_view, Dune::VTK::conforming);
     }
 
     _sequential_writer[i] = std::make_shared<SW>(writer, file_name, path, "");
