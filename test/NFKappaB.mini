@@ -133,6 +133,7 @@ IkBa_cytoplasm = 1
 
 [model.cytoplasm.writer]
 file_name = {__name}_cytoplasm
+virtual_refinement = 0
 
 ############################ Model for membrane ############################
 
@@ -213,6 +214,7 @@ u_5 = 100
 
 [model.membrane.writer]
 file_name = {__name}_membrane
+virtual_refinement = 0
 
 ############################ Model for nucleus ############################
 
@@ -293,6 +295,7 @@ IkBa_mRNA_1 = 1
 
 [model.nucleus.writer]
 file_name = {__name}_nucleus
+virtual_refinement = 0
 
 ############################ Logging settings #################################
 # levels = off, critical, error, waring, notice, info, debug, trace, all

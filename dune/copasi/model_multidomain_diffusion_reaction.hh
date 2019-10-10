@@ -140,7 +140,7 @@ class ModelMultiDomainDiffusionReaction : public ModelBase
   using OSM = Dune::PDELab::OneStepMethod<RF, GOI, NLS, X, X>;
 
   //! Writer
-  using W = Dune::VTKWriter<SubDomainGridView>;
+  using W = Dune::SubsamplingVTKWriter<SubDomainGridView>;
 
   //! Sequential writer
   using SW = Dune::VTKSequenceWriter<SubDomainGridView>;

@@ -317,13 +317,16 @@ ModelMultiDomainDiffusionReaction<Traits>::
     SubDomainGridView sub_grid_view =
       _grid->subDomain(sub_domain_id).leafGridView();
 
-    std::shared_ptr<W> writer =
-      std::make_shared<W>(sub_grid_view, Dune::VTK::conforming);
-
     auto config_writer = model_config.sub("writer");
     std::string file_name =
       config_writer.template get<std::string>("file_name");
     std::string path = config_writer.get("path", file_name);
+    int vtk_ref = config_writer.get("virtual_refinement", 0);
+
+    const auto subsamling_intervals = Dune::refinementLevels(vtk_ref);
+    std::shared_ptr<W> writer =
+      std::make_shared<W>(sub_grid_view, subsamling_intervals);
+
     struct stat st;
 
     if (stat(path.c_str(), &st) != 0) {

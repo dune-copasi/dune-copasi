@@ -37,6 +37,7 @@ u = 1.
 
 [model.cell.writer]
 file_name = {__name}_cell
+virtual_refinement = 0
 
 ############################ Model for nucleoid ############################
 [model.nucleoid.operator]
@@ -63,6 +64,7 @@ v = 1.
 
 [model.nucleoid.writer]
 file_name = {__name}_nucleoid
+virtual_refinement = 0
 
 ######################### Compare with reference vtk ######################### 
 [wrapper.vtkcompare]
