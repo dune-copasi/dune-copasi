@@ -98,6 +98,7 @@ stages:
   artifacts:
     paths:
       - build-cmake/test
+    when: on_failure
     expire_in: 1 day
 
 .system_tests: &system_tests
@@ -106,6 +107,7 @@ stages:
     - cd ..
     - bash dune-copasi/.ci/system_tests.sh
   artifacts:
+    when: on_failure
     paths:
       - cd ..
       - build-cmake/test
