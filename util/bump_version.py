@@ -60,12 +60,19 @@ def main(argv):
   prefix = 'Version: '
   update_version(dune_version_path,prefix+old_version,prefix+new_version)
 
+  project_url = "https://gitlab.dune-project.org/copasi/dune-copasi/"
+
   with open(changelog_path, "r") as changelog_file:
     new_changelog = ''
     for line in changelog_file.readlines():
       if "## [Unreleased]" in line:
         new_changelog += line +"\n"
         new_changelog += "## [" + new_version+ "] - " + datetime.date.today().isoformat() + "\n"
+      elif "[Unreleased]: " + project_url in line:
+        new_changelog += "[Unreleased]: " + project_url+new_version+"...master\n"
+      elif "["+old_version+"]: " + project_url in line:
+        new_changelog += "["+new_version+"]: "+project_url+old_version+"..."+new_version+"\n"
+        new_changelog += line
       else:
         new_changelog += line
 
@@ -74,7 +81,10 @@ def main(argv):
 
   print "New version is:", new_version
 
-  print "Changelog was updated, check that the update is correct!"
+  print "Changelog was updated, check that the update is correct"
+
+  print "If this is a definitive change, please set a new tag in the repository\n"
+  print "\tgit tag v"+new_version+"\n"
 
 if __name__ == "__main__":
    main(sys.argv[1:])
