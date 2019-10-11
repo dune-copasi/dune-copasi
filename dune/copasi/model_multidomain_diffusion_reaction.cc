@@ -251,7 +251,7 @@ ModelMultiDomainDiffusionReaction<Traits>::
     std::size_t max_comps(0);
     for (std::size_t i = 0; i < gfs->degree(); i++)
       max_comps = std::max(max_comps,gfs->child(i).degree());
-    
+
     MBE mbe((int)pow(3, dim)*max_comps);
 
     _logger.trace("create spatial grid operator {}"_fmt, op);
@@ -386,7 +386,7 @@ ModelMultiDomainDiffusionReaction<Traits>::step()
   double max_error = std::numeric_limits<double>::max();
   auto states_after = _states;
 
-  _logger.info("Time Step {:.2e} + {:.2e} -> {:.2e}"_fmt,
+  _logger.info("Time Step {:.2e} + {:.2e} -> {:.2e}"_fmt,
                current_time(),
                dt,
                current_time() + dt);
