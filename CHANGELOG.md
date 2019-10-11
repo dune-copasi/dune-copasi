@@ -32,5 +32,5 @@ Types of changes
 - [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Solver for reaction-diffusion systems in multiple compartments.
 
-[Unreleased]: https://gitlab.dune-project.org/copasi/dune-copasi/0.1.0...master
+[Unreleased]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v0.1.0...master
 [0.1.0]: https://gitlab.dune-project.org/copasi/dune-copasi/-/tags/v0.1.0
