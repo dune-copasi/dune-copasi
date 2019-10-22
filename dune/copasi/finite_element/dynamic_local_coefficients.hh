@@ -11,10 +11,21 @@
 
 namespace Dune::Copasi {
 
+/**
+ * @brief      This class describes dynamic power local coefficients.
+ *
+ * @tparam     Coefficients  The base local coefficients
+ */
 template<class Coefficients>
 class DynamicPowerLocalCoefficients
 {
 public:
+  /**
+   * @brief      Constructs a new instance.
+   *
+   * @param[in]  coefficients  The base coefficients
+   * @param[in]  power_size    The power size
+   */
   DynamicPowerLocalCoefficients(const Coefficients& coefficients,
                                 std::size_t power_size)
     : _size(power_size * coefficients.size())
@@ -53,24 +64,55 @@ public:
     assert(_local_keys.size() == size());
   }
 
+  /**
+   * @brief      Constructs a new instance.
+   *
+   * @param[in]  coefficients  The base coefficients
+   */
   DynamicPowerLocalCoefficients(const Coefficients& coefficients)
     : DynamicPowerLocalCoefficients(coefficients, 1)
   {}
 
+  /**
+   * @brief      Constructs a new instance.
+   *
+   * @param[in]  power_size  The power size
+   *
+   * @tparam     <unnamed>   Internal use to allow default constructible base
+   *                         local coefficients
+   */
   template<
     class = std::enable_if_t<std::is_default_constructible_v<Coefficients>>>
   DynamicPowerLocalCoefficients(std::size_t power_size)
     : DynamicPowerLocalCoefficients(Coefficients{}, power_size)
   {}
 
+  /**
+   * @brief      Constructs a new instance.
+   *
+   * @tparam     <unnamed>   Internal use to allow default constructible base
+   *                         local coefficients
+   */
   template<
     class = std::enable_if_t<std::is_default_constructible_v<Coefficients>>>
   DynamicPowerLocalCoefficients()
     : DynamicPowerLocalCoefficients(1)
   {}
 
+  /**
+   * @brief      Returns the number of coefficients
+   *
+   * @return     The size
+   */
   std::size_t size() const { return _size; }
 
+  /**
+   * @brief      Returns a local key for each degree of freedom
+   *
+   * @param[in]  i     The degree of freedom
+   *
+   * @return     The local key for the given degree of freedom
+   */
   const LocalKey& localKey(std::size_t i) const { return _local_keys[i]; }
 
 private:

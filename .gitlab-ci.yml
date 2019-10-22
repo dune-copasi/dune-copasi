@@ -125,7 +125,6 @@ stages:
   only:
     - master
 
-
 # debian gcc
 setup:debian_gcc:
   <<: *debian_gcc

@@ -26,6 +26,9 @@ Types of changes
  -->
 
 ## [Unreleased]
+### Added
+- Code documentation
+- Brief installation instructions
 
 ## [0.1.0] - 2019-10-11
 ### Added

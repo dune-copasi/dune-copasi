@@ -14,12 +14,38 @@
 
 namespace Dune::Copasi {
 
+/**
+ * @brief      Default coefficinet mapper
+ * @details    Does nothing but evaluate the second an the third arguments of
+ *             the parenthesis call into the first one. Useful to keep code
+ *             compatible with other coefficient mappers
+ */
 struct DefaultCoefficientMapper
 {
+  /**
+   * @brief      Constructor. Arguments in this class do nothimg.
+   *
+   * @param[in]  operator_config  The operator configuration file
+   * @param[in]  this_op          The operator for local coefficients
+   */
   DefaultCoefficientMapper(const ParameterTree& operator_config,
                            std::size_t this_op)
   {}
 
+  /**
+   * @brief      Evaluates the coefficents for a give component and a degree of
+   *             freedom. Either from a local vector x_view_local, or by other
+   *             stored coefficients vector.
+   *
+   * @param[in]  x_view_local  The view on the local coefficients vector
+   * @param[in]  comp          The component
+   * @param[in]  dof           The degree of freedom
+   *
+   * @tparam     XViewLocal    The type fo the local coefficient view
+   *
+   * @return     The coefficient value for the requested component and the
+   *             degree of freedom
+   */
   template<class XViewLocal>
   auto operator()(const XViewLocal& x_view_local,
                   const std::size_t& comp,
@@ -28,17 +54,41 @@ struct DefaultCoefficientMapper
     return x_view_local(comp, dof);
   }
 
+  /**
+   * @brief      Bind internal coefficients to an entity
+   *
+   * @param[in]  <unnamed>  The entity
+   *
+   * @tparam     E          The entity
+   */
   template<class E>
   void bind(const E&)
   {}
 
+  /**
+   * @brief      Unbind this coefficients to an entity
+   */
   void unbind() {}
 
+  /**
+   * @brief      Updates the internal coefficients with a exteral source.
+   *
+   * @param[in]  <unnamed>  Map to the model states
+   *
+   * @tparam     T          Map to the model states
+   */
   template<class T>
   void update(const T&)
   {}
 };
 
+/**
+ * @brief      Model coefficinet mapper base
+ * @details    Keeps a reference to external coefficients so that they are
+ *             accessible within other local operators.
+ *
+ * @tparam     ModelState  The model state type
+ */
 template<class ModelState>
 struct ModelCoefficientMapperBase
 {
@@ -58,13 +108,27 @@ struct ModelCoefficientMapperBase
   std::map<std::size_t, std::shared_ptr<XView>> _x_view;
   std::map<std::size_t, std::shared_ptr<SolutionVector>> _x;
 
+  /**
+   * @brief      Constructs the model coefficient mapper base
+   * @details    The operator in the argument refers to the index to which the
+   *             coefficient mapper has to use local coefficients (passed as
+   *             argument during evaluation) instead of the external
+   *             coefficients. The index refers to the index to which the model
+   *             states are mapped from.
+   *
+   * @param[in]  this_op  The operator for local coefficients
+   */
   ModelCoefficientMapperBase(std::size_t this_op)
     : _this_op(this_op)
   {}
 
+  /**
+   * @brief      Updates the given model states.
+   *
+   * @param[in]  states  The model states
+   */
   void update(const std::map<std::size_t, ModelState>& states)
   {
-
     _x.clear();
     _x_view.clear();
     _lfs_cache.clear();
@@ -81,6 +145,15 @@ struct ModelCoefficientMapperBase
     }
   }
 
+  /**
+   * @brief      Bind internal coefficients to an entity
+   * @details    This binds the entity to a internal local function space and
+   *             local coefficients to the internal coefficients
+   *
+   * @param[in]  entity  The entity
+   *
+   * @tparam     E       The entity
+   */
   template<class E>
   void bind(const E& entity)
   {
@@ -95,6 +168,9 @@ struct ModelCoefficientMapperBase
     }
   }
 
+  /**
+   * @brief      Unbind this coefficients to an entity
+   */
   void unbind()
   {
     for (auto& [op, x_view] : _x_view)
@@ -102,6 +178,14 @@ struct ModelCoefficientMapperBase
   }
 };
 
+/**
+ * @brief      Constructs the model coefficient mapper
+ * @details    This coefficient mapper is designed to one domain local
+ *             operators. That is, when the PDELab local function tree only
+ *             has depth equal to 1
+ *
+ * @tparam     ModelState  The model state type
+ */
 template<class ModelState>
 struct ModelCoefficientMapper : public ModelCoefficientMapperBase<ModelState>
 {
@@ -113,10 +197,21 @@ struct ModelCoefficientMapper : public ModelCoefficientMapperBase<ModelState>
   // component -> (operator,child)
   std::unordered_map<std::size_t, std::array<std::size_t, 2>> _comp_mapper;
 
+  /**
+   * @brief      Constructor of the coefficient mapper
+   *
+   * @param[in]  this_op  The operator for local coefficients
+   */
   ModelCoefficientMapper(std::size_t this_op = 0)
     : Base(this_op)
   {}
 
+  /**
+   * @brief      Constructor of the coefficient mapper
+   *
+   * @param[in]  map_operator  A vector mapping components to operators
+   * @param[in]  this_op       The operator for local coefficients
+   */
   ModelCoefficientMapper(const std::vector<std::size_t>& map_operator,
                          std::size_t this_op)
     : Base(this_op)
@@ -124,6 +219,12 @@ struct ModelCoefficientMapper : public ModelCoefficientMapperBase<ModelState>
     set_mapper(map_operator);
   }
 
+  /**
+   * @brief      Constructor of the coefficient mapper
+   *
+   * @param[in]  operator_config  The operator configuration
+   * @param[in]  this_op          The operator for local coefficients
+   */
   ModelCoefficientMapper(const ParameterTree& operator_config,
                          std::size_t this_op)
     : Base(this_op)
@@ -141,6 +242,12 @@ struct ModelCoefficientMapper : public ModelCoefficientMapperBase<ModelState>
     set_mapper(map_op);
   }
 
+  /**
+   * @brief      Sets a map from component to operator and child in the PDELab
+   *             tree
+   *
+   * @param[in]  map_op  A vector mapping components to operators
+   */
   void set_mapper(const std::vector<std::size_t>& map_op)
   {
     std::size_t max_op = *std::max_element(map_op.begin(), map_op.end());
@@ -151,6 +258,20 @@ struct ModelCoefficientMapper : public ModelCoefficientMapperBase<ModelState>
         std::array<std::size_t, 2>{ map_op[i], comp_child[map_op[i]]++ };
   }
 
+  /**
+   * @brief      Evaluates the coefficents for a give component and a degree of
+   *             freedom. Either from a local vector x_view_local, or by other
+   *             stored coefficients vector.
+   *
+   * @param[in]  x_view_local  The view on the local coefficients vector
+   * @param[in]  comp          The component
+   * @param[in]  dof           The degree of freedom
+   *
+   * @tparam     XViewLocal    The type fo the local coefficient view
+   *
+   * @return     The coefficient value for the requested component and the
+   *             degree of freedom
+   */
   template<class XViewLocal>
   auto operator()(const XViewLocal& x_view_local,
                   const std::size_t& comp,
@@ -167,6 +288,14 @@ struct ModelCoefficientMapper : public ModelCoefficientMapperBase<ModelState>
   }
 };
 
+/**
+ * @brief      Constructs the coefficient mapper for multidomain models
+ * @details    This coefficient mapper is designed to multidomain domain local
+ *             operators. That is, when the PDELab local function tree has
+ *             depth equal to 2
+ *
+ * @tparam     ModelState  The model state type
+ */
 template<class ModelState>
 struct MultiDomainModelCoefficientMapper
   : public ModelCoefficientMapper<ModelState>
@@ -179,6 +308,20 @@ struct MultiDomainModelCoefficientMapper
   using Base::Base;
   std::size_t _domain;
 
+  /**
+   * @brief      Evaluates the coefficents for a give component and a degree of
+   *             freedom. Either from a local vector x_view_local, or by other
+   *             stored coefficients vector.
+   *
+   * @param[in]  x_view_local  The view on the local coefficients vector
+   * @param[in]  comp          The component
+   * @param[in]  dof           The degree of freedom
+   *
+   * @tparam     XViewLocal    The type fo the local coefficient view
+   *
+   * @return     The coefficient value for the requested component and the
+   *             degree of freedom
+   */
   template<class XViewLocal>
   auto operator()(const XViewLocal& x_view_local,
                   const std::size_t& comp,
@@ -195,6 +338,16 @@ struct MultiDomainModelCoefficientMapper
     }
   }
 
+  /**
+   * @brief      Bind internal coefficients to an entity
+   * @details    This procedure sets the first child in the PDELab tree by
+   *             finding the domain the entity belongs to, plus further bindings
+   *             for the other coefficients
+   *
+   * @param[in]  entity  The entity
+   *
+   * @tparam     E       The entity
+   */
   template<class E>
   void bind(const E& entity)
   {

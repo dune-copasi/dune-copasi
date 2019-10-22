@@ -7,18 +7,18 @@
  * file but a header which has to be included when compiling.
  */
 
+#include <dune/copasi/common/muparser_data_handler.hh>
+#include <dune/copasi/model/multidomain_diffusion_reaction.hh>
+
 #include <dune/pdelab/common/functionutilities.hh>
 #include <dune/pdelab/gridfunctionspace/gridfunctionadapter.hh>
-
-#include <dune/copasi/model_multidomain_diffusion_reaction.hh>
-#include <dune/copasi/muparser_data_handler.hh>
 
 namespace Dune::Copasi {
 
 template<class Traits>
-ModelMultiDomainDiffusionReaction<Traits>::
-  ModelMultiDomainDiffusionReaction(std::shared_ptr<Grid> grid,
-                                    const Dune::ParameterTree& config)
+ModelMultiDomainDiffusionReaction<Traits>::ModelMultiDomainDiffusionReaction(
+  std::shared_ptr<Grid> grid,
+  const Dune::ParameterTree& config)
   : ModelBase(config)
   , _solver_logger(Logging::Logging::componentLogger(config, "solver"))
   , _config(config)
@@ -92,16 +92,14 @@ ModelMultiDomainDiffusionReaction<Traits>::
 }
 
 template<class Traits>
-ModelMultiDomainDiffusionReaction<Traits>::
-  ~ModelMultiDomainDiffusionReaction()
+ModelMultiDomainDiffusionReaction<Traits>::~ModelMultiDomainDiffusionReaction()
 {
   _logger.debug("ModelMultiDomainDiffusionReaction deconstructed"_fmt);
 }
 
 template<class Traits>
 void
-ModelMultiDomainDiffusionReaction<Traits>::
-  setup_grid_function_spaces()
+ModelMultiDomainDiffusionReaction<Traits>::setup_grid_function_spaces()
 {
   _logger.debug("setup grid function space"_fmt);
 
@@ -155,8 +153,7 @@ ModelMultiDomainDiffusionReaction<Traits>::
 
 template<class Traits>
 void
-ModelMultiDomainDiffusionReaction<Traits>::
-  setup_coefficient_vectors()
+ModelMultiDomainDiffusionReaction<Traits>::setup_coefficient_vectors()
 {
   for (auto& [op, state] : _states) {
     _logger.debug("setup coefficient vector for operator {}"_fmt, op);
@@ -171,8 +168,7 @@ ModelMultiDomainDiffusionReaction<Traits>::
 
 template<class Traits>
 void
-ModelMultiDomainDiffusionReaction<Traits>::
-  setup_constraints()
+ModelMultiDomainDiffusionReaction<Traits>::setup_constraints()
 {
   _logger.debug("setup constraints"_fmt);
 
@@ -198,8 +194,8 @@ ModelMultiDomainDiffusionReaction<Traits>::
 
 template<class Traits>
 auto
-ModelMultiDomainDiffusionReaction<Traits>::
-  setup_local_operator(std::size_t i) const
+ModelMultiDomainDiffusionReaction<Traits>::setup_local_operator(
+  std::size_t i) const
 {
   _logger.trace("setup local operators {}"_fmt, i);
 
@@ -218,8 +214,7 @@ ModelMultiDomainDiffusionReaction<Traits>::
 
 template<class Traits>
 void
-ModelMultiDomainDiffusionReaction<Traits>::
-  setup_local_operators()
+ModelMultiDomainDiffusionReaction<Traits>::setup_local_operators()
 {
   _logger.trace("setup local operators"_fmt);
 
@@ -235,8 +230,7 @@ ModelMultiDomainDiffusionReaction<Traits>::
 
 template<class Traits>
 void
-ModelMultiDomainDiffusionReaction<Traits>::
-  setup_grid_operators()
+ModelMultiDomainDiffusionReaction<Traits>::setup_grid_operators()
 {
   _logger.debug("setup grid operators"_fmt);
   _spatial_grid_operators.clear();
@@ -250,9 +244,9 @@ ModelMultiDomainDiffusionReaction<Traits>::
 
     std::size_t max_comps(0);
     for (std::size_t i = 0; i < gfs->degree(); i++)
-      max_comps = std::max(max_comps,gfs->child(i).degree());
+      max_comps = std::max(max_comps, gfs->child(i).degree());
 
-    MBE mbe((int)pow(3, dim)*max_comps);
+    MBE mbe((int)pow(3, dim) * max_comps);
 
     _logger.trace("create spatial grid operator {}"_fmt, op);
     _spatial_grid_operators[op] = std::make_shared<GOS>(
@@ -299,8 +293,7 @@ ModelMultiDomainDiffusionReaction<Traits>::setup_solvers()
 
 template<class Traits>
 void
-ModelMultiDomainDiffusionReaction<Traits>::
-  setup_vtk_writer()
+ModelMultiDomainDiffusionReaction<Traits>::setup_vtk_writer()
 {
   _logger.debug("setup vtk writer"_fmt);
   const auto& compartments = _config.sub("compartments").getValueKeys();
@@ -343,16 +336,14 @@ ModelMultiDomainDiffusionReaction<Traits>::
 
 template<class Traits>
 void
-ModelMultiDomainDiffusionReaction<Traits>::
-  suggest_timestep(double dt)
+ModelMultiDomainDiffusionReaction<Traits>::suggest_timestep(double dt)
 {
   DUNE_THROW(NotImplemented, "not implemented");
 }
 
 template<class Traits>
 void
-ModelMultiDomainDiffusionReaction<Traits>::setup(
-  ModelSetupPolicy setup_policy)
+ModelMultiDomainDiffusionReaction<Traits>::setup(ModelSetupPolicy setup_policy)
 {
   _logger.trace("setup operator started"_fmt);
 
@@ -445,8 +436,8 @@ ModelMultiDomainDiffusionReaction<Traits>::step()
 
 template<class Traits>
 auto
-ModelMultiDomainDiffusionReaction<Traits>::
-  get_data_handler(std::map<std::size_t, State> states) const
+ModelMultiDomainDiffusionReaction<Traits>::get_data_handler(
+  std::map<std::size_t, State> states) const
 {
   std::vector<std::map<std::size_t, std::shared_ptr<DataHandler>>> data(
     _domains);
@@ -469,18 +460,17 @@ ModelMultiDomainDiffusionReaction<Traits>::
 
 template<class Traits>
 void
-ModelMultiDomainDiffusionReaction<Traits>::
-  update_data_handler()
+ModelMultiDomainDiffusionReaction<Traits>::update_data_handler()
 {
   _data = get_data_handler(_states);
 }
 
 template<class Traits>
 auto
-ModelMultiDomainDiffusionReaction<Traits>::
-  get_grid_function(const std::map<std::size_t, State>& states,
-                    std::size_t domain,
-                    std::size_t comp) const
+ModelMultiDomainDiffusionReaction<Traits>::get_grid_function(
+  const std::map<std::size_t, State>& states,
+  std::size_t domain,
+  std::size_t comp) const
 {
   auto data = get_data_handler(states);
   const auto& compartments = _config.sub("compartments").getValueKeys();
@@ -503,8 +493,7 @@ ModelMultiDomainDiffusionReaction<Traits>::
 
 template<class Traits>
 void
-ModelMultiDomainDiffusionReaction<Traits>::write_states()
-  const
+ModelMultiDomainDiffusionReaction<Traits>::write_states() const
 {
 
   const auto& compartments = _config.sub("compartments").getValueKeys();

@@ -7,9 +7,17 @@
 
 namespace Dune::Copasi {
 
+/// forward declaration of model state
 template<class G, class GFS, class X>
 struct ModelState;
 
+/**
+ * @brief      Constant model state container
+ *
+ * @tparam     G     Grid type
+ * @tparam     GFS   Grid function space type
+ * @tparam     X     Coefficients vector
+ */
 template<class G, class GFS, class X>
 struct ConstModelState
 {

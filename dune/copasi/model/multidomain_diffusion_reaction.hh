@@ -1,13 +1,13 @@
 #ifndef DUNE_COPASI_MODEL_MULTIDOMAIN_DIFFUSION_REACTION_HH
 #define DUNE_COPASI_MODEL_MULTIDOMAIN_DIFFUSION_REACTION_HH
 
+#include <dune/copasi/common/enum.hh>
 #include <dune/copasi/concepts/grid.hh>
-#include <dune/copasi/enum.hh>
-#include <dune/copasi/local_operator_multidomain.hh>
-#include <dune/copasi/model_base.hh>
-#include <dune/copasi/model_diffusion_reaction.cc>
-#include <dune/copasi/model_diffusion_reaction.hh>
-#include <dune/copasi/multidomain_entity_transformation.hh>
+#include <dune/copasi/grid/multidomain_entity_transformation.hh>
+#include <dune/copasi/model/base.hh>
+#include <dune/copasi/model/diffusion_reaction.cc>
+#include <dune/copasi/model/diffusion_reaction.hh>
+#include <dune/copasi/model/multidomain_local_operator.hh>
 
 #include <dune/pdelab/backend/istl.hh>
 #include <dune/pdelab/backend/istl/novlpistlsolverbackend.hh>
@@ -20,6 +20,14 @@
 
 namespace Dune::Copasi {
 
+/**
+ * @brief      Traits for diffusion reaction models in multigrid domains
+ *
+ * @tparam     G         Grid
+ * @tparam     FEMorder  Order of the finite element method
+ * @tparam     OT        PDELab ordering tag
+ * @tparam     JM        Jacobian method
+ */
 template<class G,
          int FEMorder = 1,
          class OT = PDELab::EntityBlockedOrderingTag,
@@ -32,6 +40,11 @@ struct ModelMultiDomainDiffusionReactionTraits
   static constexpr JacobianMethod jacobian_method = JM;
 };
 
+/**
+ * @brief      Class for diffusion-reaction models in multigrid domains.
+ *
+ * @tparam     Traits  Class that define static policies on the model
+ */
 template<class Traits>
 class ModelMultiDomainDiffusionReaction : public ModelBase
 {
@@ -163,28 +176,44 @@ class ModelMultiDomainDiffusionReaction : public ModelBase
     DGFTreeLeafFunction<ComponentLFS, DataHandler, SubDomainGridView>;
 
 public:
+  /**
+   * @brief      Constructs a new instance.
+   *
+   * @param[in]  grid    The grid
+   * @param[in]  config  The configuration
+   */
   ModelMultiDomainDiffusionReaction(std::shared_ptr<Grid> grid,
                                     const Dune::ParameterTree& config);
 
+  /**
+   * @brief      Destroys the object.
+   */
   ~ModelMultiDomainDiffusionReaction();
 
   /**
-   * @brief      Get the model state
+   * @brief      Get mutable model states
    *
-   * @return     Model state
+   * @return     Model states
    */
   std::map<std::size_t, State> states() { return _states; }
 
   /**
-   * @brief      Get the model state
+   * @brief      Get constat model states
    *
-   * @return     Model state
+   * @return     Constant model states
    */
   std::map<std::size_t, ConstState> const_states() const
   {
     return const_states(_states);
   }
 
+  /**
+   * @brief      Get constat model states
+   *
+   * @param[in]  states  A map to mutable states
+   *
+   * @return     Constant model states
+   */
   std::map<std::size_t, ConstState> const_states(
     const std::map<std::size_t, State>& states) const
   {
@@ -194,21 +223,44 @@ public:
   }
 
   /**
-   * @brief      Get the model state
+   * @brief      Get the model states
    *
-   * @return     Model state
+   * @return     Model states
    */
   std::map<std::size_t, ConstState> states() const { return const_states(); }
 
+  /**
+   * @brief      Setup function
+   * @details    This class sets up the model to have completely defined the
+   *             requested feature in the policy
+   *
+   * @param[in]  setup_policy  The setup policy
+   */
   void setup(ModelSetupPolicy setup_policy = ModelSetupPolicy::All);
 
+  /**
+   * @copydoc ModelBase::suggest_timestep
+   */
   void suggest_timestep(double dt) override;
 
+  /**
+   * @copydoc ModelBase::step
+   */
   void step() override;
 
-  auto get_grid_function(const std::map<std::size_t, State>&,
-                         std::size_t,
-                         std::size_t) const;
+  /**
+   * @brief      Gets a grid function for a given component and a sub domain.
+   * @todo       Make this function operate on constant states
+   *
+   * @param[in]  states  The model states
+   * @param[in]  domain  The domain
+   * @param[in]  comp    The component
+   *
+   * @return     The grid function.
+   */
+  auto get_grid_function(const std::map<std::size_t, State>& states,
+                         std::size_t domain,
+                         std::size_t comp) const;
 
 protected:
   void setup_grid_function_spaces();

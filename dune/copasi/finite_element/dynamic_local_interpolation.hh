@@ -6,10 +6,16 @@
 #include <dune/common/classname.hh>
 #include <dune/common/dynvector.hh>
 #include <dune/common/fvector.hh>
+
 #include <iostream>
 
 namespace Dune::Copasi {
 
+/**
+ * @brief      This class describes a dynamic power local interpolation.
+ *
+ * @tparam     Interpolation  The base interpolation
+ */
 template<class Interpolation>
 class DynamicPowerLocalInterpolation
 {
@@ -22,22 +28,52 @@ public:
     assert(_power_size >= 0);
   }
 
+  /**
+   * @brief      Constructs a new instance.
+   *
+   * @param[in]  interpolation  The base interpolation
+   */
   DynamicPowerLocalInterpolation(const Interpolation& interpolation)
     : DynamicPowerLocalInterpolation(interpolation, 1)
   {}
 
+  /**
+   * @brief      Constructs a new instance.
+   *
+   * @param[in]  power_size  The power size
+   *
+   * @tparam     <unnamed>   Internal template argument to allow default
+   *                         constructible base interpolations
+   */
   template<
     class = std::enable_if_t<std::is_default_constructible_v<Interpolation>>>
   DynamicPowerLocalInterpolation(std::size_t power_size)
     : DynamicPowerLocalInterpolation(Interpolation{}, power_size)
   {}
 
+  /**
+   * @brief      Constructs a new instance.
+   *
+   * @tparam     <unnamed>   Internal template argument to allow default
+   *                         constructible base interpolations
+   */
   template<
     class = std::enable_if_t<std::is_default_constructible_v<Interpolation>>>
   DynamicPowerLocalInterpolation()
     : DynamicPowerLocalInterpolation(1)
   {}
 
+  /**
+   * @brief      Interpolation method
+   *
+   * @param[in]  f     Function to be interpolated. If its return type is a
+   *                   dynamic vector, it has to have a size equal or greater
+   *                   than the power size set to this ibject
+   * @param      out   The vector of coefficients for the local finite element
+   *
+   * @tparam     F     The function type
+   * @tparam     C     The coefficents type
+   */
   template<typename F, typename C>
   void interpolate(const F& f, std::vector<C>& out) const
   {

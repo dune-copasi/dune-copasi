@@ -1,7 +1,7 @@
 #ifndef DUNE_COPASI_MODEL_BASE_HH
 #define DUNE_COPASI_MODEL_BASE_HH
 
-#include <dune/copasi/enum.hh>
+#include <dune/copasi/common/enum.hh>
 
 #include <dune/logging/logging.hh>
 

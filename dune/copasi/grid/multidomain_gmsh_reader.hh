@@ -1,26 +1,63 @@
 #ifndef DUNE_COPASI_GMSH_READER_HH
 #define DUNE_COPASI_GMSH_READER_HH
 
+#include <dune/copasi/concepts/grid.hh>
+
 #include <dune/grid/common/gridinfo.hh>
 #include <dune/grid/io/file/gmshreader.hh>
 #include <dune/grid/multidomaingrid.hh>
 
 #include <dune/logging/logging.hh>
 
+#include <dune/common/typetraits.hh>
+
 #include <algorithm>
 #include <type_traits>
 
 namespace Dune::Copasi {
 
+/**
+ * @brief      This class describes a multi domain gmsh reader.
+ *
+ * @tparam     Grid  The grid
+ */
 template<class Grid>
-class GmshReader;
+class MultiDomainGmshReader
+{
+  static_assert(Dune::Copasi::Concept::isMultiDomainGrid<Grid>(),
+                "Grid is not multidomain grid");
 
+  // this is due the fact that multidomain grids do not export its traits type.
+  // And, since it is needed for the some grids construction, the only way is by
+  // template specialization.
+  static_assert(AlwaysFalse<Grid>::value,
+                "Not implemented: This class only accepts multidomain grids "
+                "from the dune-multidomain grid module");
+};
+
+/**
+ * @brief      This class describes a multi domain gmsh reader.
+ *
+ * @tparam     HostGrid   The host grid of the multidomain grid
+ * @tparam     MDGTraits  Traits of the multidomain grid (this is different to
+ *                        the grid interface traits!)
+ */
 template<class HostGrid, class MDGTraits>
-class GmshReader<Dune::mdgrid::MultiDomainGrid<HostGrid, MDGTraits>>
+class MultiDomainGmshReader<Dune::mdgrid::MultiDomainGrid<HostGrid, MDGTraits>>
 {
 public:
   using Grid = Dune::mdgrid::MultiDomainGrid<HostGrid, MDGTraits>;
 
+  /**
+   * @brief      Reads a grid out of a file name and a configuration file
+   *
+   * @param[in]  fileName                The gmsh file name
+   * @param[in]  config                  The configuration file
+   * @param[in]  insertBoundarySegments  Bool to include boundary segments while
+   *                                     reading file
+   *
+   * @return     A pair containing pointers to the host and the multidomain grid
+   */
   static auto read(const std::string& fileName,
                    ParameterTree config,
                    bool insertBoundarySegments = true)
