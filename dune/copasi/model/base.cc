@@ -2,7 +2,7 @@
 #include "config.h"
 #endif
 
-#include <dune/copasi/model_base.hh>
+#include <dune/copasi/model/base.hh>
 
 #include <dune/common/exceptions.hh>
 #include <dune/common/float_cmp.hh>

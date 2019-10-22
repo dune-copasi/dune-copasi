@@ -1,8 +1,9 @@
 #ifndef DUNE_COPASI_LOCAL_OPERATOR_DIFFUSION_REACTION_HH
 #define DUNE_COPASI_LOCAL_OPERATOR_DIFFUSION_REACTION_HH
 
-#include <dune/copasi/coefficient_mapper.hh>
-#include <dune/copasi/enum.hh>
+#include <dune/copasi/common/coefficient_mapper.hh>
+#include <dune/copasi/common/enum.hh>
+#include <dune/copasi/common/pdelab_expression_adapter.hh>
 
 #include <dune/pdelab/common/quadraturerules.hh>
 #include <dune/pdelab/localoperator/flags.hh>
@@ -16,12 +17,26 @@
 
 #include <dune/common/fvector.hh>
 
-#include <dune/copasi/pdelab_expression_adapter.hh>
-
 #include <set>
 
 namespace Dune::Copasi {
 
+/**
+ * @brief      This class describes a PDELab local operator for diffusion
+ *             reaction systems.
+ * @details    This class describre the operatrions for local integrals required
+ *             for diffusion reaction system. The operator is only valid for
+ *             entities contained in the grid view. The local finite element is
+ *             used for caching shape function evaluations. The coefficient
+ *             mapper is the interface to fetch date from either local or
+ *             external coefficient vectors. And the jacobian method switches
+ *             between numerical and analytical jacobians.
+ *
+ * @tparam     GV    Grid View
+ * @tparam     LFE   Local Finite Element
+ * @tparam     CM    Coefficient Mapper
+ * @tparam     JM    Jacobian Method
+ */
 template<class GV,
          class LFE,
          class CM = DefaultCoefficientMapper,
@@ -106,14 +121,25 @@ public:
   //! residual assembly flags
   static constexpr bool doAlphaVolume = true;
 
+  /**
+   * @brief      Constructs a new instance.
+   *
+   * @todo       Make integration order variable depending on user requirements
+   *             and polynomail order of the local finite element
+   *
+   * @param[in]  grid_view       The grid view where this local operator is
+   *                             valid
+   * @param[in]  config          The configuration tree
+   * @param[in]  finite_element  The local finite element
+   * @param[in]  id_operator     The index of this operator
+   */
   LocalOperatorDiffusionReaction(GridView grid_view,
                                  const ParameterTree& config,
                                  const LocalFiniteElement& finite_element,
                                  std::size_t id_operator)
     : _basis_size(finite_element.localBasis().size())
     , _components(config.sub("reaction").getValueKeys().size())
-    , _rule(QuadratureRules<RF, dim>::rule(finite_element.type(),
-                                           3)) // TODO: make order variable
+    , _rule(QuadratureRules<RF, dim>::rule(finite_element.type(), 3))
     , _diffusion_gf(_components)
     , _reaction_gf(_components)
     , _jacobian_gf(_components * _components)
@@ -215,12 +241,32 @@ public:
     _logger.debug("LocalOperatorDiffusionReaction constructed"_fmt);
   }
 
+  /**
+   * @brief      Updates the coefficient mapper with given states.
+   *
+   * @param[in]  states  A map from operator index to states
+   *
+   * @tparam     States  Map from index to states
+   */
   template<class States>
   void update(const States& states)
   {
     _coefficient_mapper.update(states);
   }
 
+  /**
+   * @brief      Pattern volume
+   * @details    This method links degrees of freedom between trial and test
+   *             spaces taking into account the structure of the reaction term
+   *
+   * @param[in]  lfsu          The trial local function space
+   * @param[in]  lfsv          The test local function space
+   * @param      pattern       The local pattern
+   *
+   * @tparam     LFSU          The trial local function space
+   * @tparam     LFSV          The test local function space
+   * @tparam     LocalPattern  The local pattern
+   */
   template<typename LFSU, typename LFSV, typename LocalPattern>
   void pattern_volume(const LFSU& lfsu,
                       const LFSV& lfsv,
@@ -238,6 +284,11 @@ public:
               pattern.addLink(lfsv.child(i), k, lfsu.child(j), l);
   }
 
+  /**
+   * @brief      Sets the time.
+   *
+   * @param[in]  t     The new time
+   */
   void setTime(double t)
   {
     Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>::setTime(t);
@@ -252,6 +303,25 @@ public:
         gf->set_time(t);
   }
 
+  /**
+   * @brief      The jacobian volume integral for matrix free operations
+   * @details    This only switches between the actual implementation (in
+   *             _jacobian_apply_volume) and the numerical jacobian
+   *
+   * @param[in]  eg    The entity
+   * @param[in]  lfsu  The trial local function space
+   * @param[in]  x     The local coefficient vector
+   * @param[in]  z     The local position in the trial space to which to apply
+   *                   the Jacobian.
+   * @param[in]  lfsv  The test local function space
+   * @param      r     The resulting vector
+   *
+   * @tparam     EG    The entity
+   * @tparam     LFSU  The trial local function space
+   * @tparam     X     The local coefficient vector type
+   * @tparam     LFSV  The test local function space
+   * @tparam     R     The resulting vector
+   */
   template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
   void jacobian_apply_volume(const EG& eg,
                              const LFSU& lfsu,
@@ -268,6 +338,57 @@ public:
     }
   }
 
+  /**
+   * @brief      The jacobian volume integral for matrix free operations (linear
+   *             variant)
+   * @details    This only switches between the actual implementation (in
+   *             _jacobian_apply_volume) and the numerical jacobian
+   *
+   * @param[in]  eg    The entity
+   * @param[in]  lfsu  The trial local function space
+   * @param[in]  x     The local coefficient vector
+   * @param[in]  lfsv  The test local function space
+   * @param      r     The resulting vector
+   *
+   * @tparam     EG    The entity
+   * @tparam     LFSU  The trial local function space
+   * @tparam     X     The local coefficient vector type
+   * @tparam     LFSV  The test local function space
+   * @tparam     R     The resulting vector
+   */
+  template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
+  void jacobian_apply_volume(const EG& eg,
+                             const LFSU& lfsu,
+                             const X& x,
+                             const LFSV& lfsv,
+                             R& r) const
+  {
+    if constexpr (JM == JacobianMethod::Numerical) {
+      PDELab::NumericalJacobianApplyVolume<LocalOperatorDiffusionReaction>::
+        jacobian_apply_volume(eg, lfsu, x, lfsv, r);
+      return;
+    } else {
+      _jacobian_apply_volume(eg, lfsu, x, x, lfsv, r);
+    }
+  }
+
+  /**
+   * @brief      The jacobian volume integral for matrix free operations
+   *
+   * @param[in]  eg    The entity
+   * @param[in]  lfsu  The trial local function space
+   * @param[in]  x     The local coefficient vector
+   * @param[in]  z     The local position in the trial space to which to apply
+   *                   the Jacobian.
+   * @param[in]  lfsv  The test local function space
+   * @param      r     The resulting vector
+   *
+   * @tparam     EG    The entity
+   * @tparam     LFSU  The trial local function space
+   * @tparam     X     The local coefficient vector type
+   * @tparam     LFSV  The test local function space
+   * @tparam     R     The resulting vector
+   */
   template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
   void _jacobian_apply_volume(const EG& eg,
                               const LFSU& lfsu,
@@ -361,7 +482,21 @@ public:
     }
   }
 
-  //! jacobian contribution of volume term
+  /**
+   * @brief      The jacobian volume integral
+   *
+   * @param[in]  eg    The entity
+   * @param[in]  lfsu  The trial local function space
+   * @param[in]  x     The local coefficient vector
+   * @param[in]  lfsv  The test local function space
+   * @param      mat   The local matrix
+   *
+   * @tparam     EG    The entity
+   * @tparam     LFSU  The trial local function space
+   * @tparam     X     The local coefficient vector type
+   * @tparam     LFSV  The test local function space
+   * @tparam     M     The local matrix
+   */
   template<typename EG, typename LFSU, typename X, typename LFSV, typename M>
   void jacobian_volume(const EG& eg,
                        const LFSU& lfsu,
@@ -467,6 +602,21 @@ public:
     }
   }
 
+  /**
+   * @brief      The volume integral
+   *
+   * @param[in]  eg    The entity
+   * @param[in]  lfsu  The trial local function space
+   * @param[in]  x     The local coefficient vector
+   * @param[in]  lfsv  The test local function space
+   * @param      r     The local residual vector
+   *
+   * @tparam     EG    The entity
+   * @tparam     LFSU  The trial local function space
+   * @tparam     X     The local coefficient vector type
+   * @tparam     LFSV  The test local function space
+   * @tparam     R     The local residual vector
+   */
   template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
   void alpha_volume(const EG& eg,
                     const LFSU& lfsu,
@@ -476,24 +626,21 @@ public:
   {
     _jacobian_apply_volume(eg, lfsu, x, x, lfsv, r);
   }
-
-  //! apply local jacobian of the volume term -> linear variant
-  template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
-  void jacobian_apply_volume(const EG& eg,
-                             const LFSU& lfsu,
-                             const X& x,
-                             const LFSV& lfsv,
-                             R& r) const
-  {
-    if constexpr (JM == JacobianMethod::Numerical) {
-      PDELab::NumericalJacobianApplyVolume<LocalOperatorDiffusionReaction>::
-        jacobian_apply_volume(eg, lfsu, x, lfsv, r);
-      return;
-    }
-    _jacobian_apply_volume(eg, lfsu, x, x, lfsv, r);
-  }
 };
 
+/**
+ * @brief      This class describes a PDELab local operator for temporal part
+ *             for diffusion reaction systems.
+ * @details    This class describre the operatrions for local integrals required
+ *             for diffusion reaction system. The operator is only valid for
+ *             entities contained in the grid view. The local finite element is
+ *             used for caching shape function evaluations. And the jacobian
+ *             method switches between numerical and analytical jacobians.
+ *
+ * @tparam     GV    Grid View
+ * @tparam     LFE   Local Finite Element
+ * @tparam     JM    Jacobian Method
+ */
 template<class GV, class LFE, JacobianMethod JM = JacobianMethod::Analytical>
 class TemporalLocalOperatorDiffusionReaction
   : public Dune::PDELab::LocalOperatorDefaultFlags
@@ -560,6 +707,18 @@ public:
   //! residual assembly flags
   static constexpr bool doAlphaVolume = true;
 
+  /**
+   * @brief      Constructs a new instance.
+   *
+   * @todo       Make integration order variable depending on user requirements
+   *             and polynomail order of the local finite element
+   *
+   * @param[in]  grid_view       The grid view where this local operator is
+   *                             valid
+   * @param[in]  config          The configuration tree
+   * @param[in]  finite_element  The local finite element
+   * @param[in]  id_operator     The index of this operator
+   */
   TemporalLocalOperatorDiffusionReaction(
     GridView grid_view,
     const ParameterTree& config,
@@ -567,8 +726,7 @@ public:
     std::size_t id_operator)
     : _basis_size(finite_element.size())
     , _components(config.sub("reaction").getValueKeys().size())
-    , _rule(QuadratureRules<RF, dim>::rule(finite_element.type(),
-                                           3)) // TODO: make order variable
+    , _rule(QuadratureRules<RF, dim>::rule(finite_element.type(), 3))
     , _logger(Logging::Logging::componentLogger(config, "model"))
   {
     auto& config_operator = config.sub("operator");
@@ -602,6 +760,21 @@ public:
     _logger.debug("TemporalLocalOperatorDiffusionReaction constructed"_fmt);
   }
 
+  /**
+   * @brief      The volume integral
+   *
+   * @param[in]  eg    The entity
+   * @param[in]  lfsu  The trial local function space
+   * @param[in]  x     The local coefficient vector
+   * @param[in]  lfsv  The test local function space
+   * @param      r     The local residual vector
+   *
+   * @tparam     EG    The entity
+   * @tparam     LFSU  The trial local function space
+   * @tparam     X     The local coefficient vector type
+   * @tparam     LFSV  The test local function space
+   * @tparam     R     The local residual vector
+   */
   template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
   void alpha_volume(const EG& eg,
                     const LFSU& lfsu,
@@ -643,12 +816,27 @@ public:
     }
   }
 
-  template<typename EG, typename LFSU, typename X, typename LFSV, typename Mat>
+  /**
+   * @brief      The jacobian volume integral
+   *
+   * @param[in]  eg    The entity
+   * @param[in]  lfsu  The trial local function space
+   * @param[in]  x     The local coefficient vector
+   * @param[in]  lfsv  The test local function space
+   * @param      mat   The local matrix
+   *
+   * @tparam     EG    The entity
+   * @tparam     LFSU  The trial local function space
+   * @tparam     X     The local coefficient vector type
+   * @tparam     LFSV  The test local function space
+   * @tparam     M     The local matrix
+   */
+  template<typename EG, typename LFSU, typename X, typename LFSV, typename M>
   void jacobian_volume(const EG& eg,
                        const LFSU& lfsu,
                        const X& x,
                        const LFSV& lfsv,
-                       Mat& mat) const
+                       M& mat) const
   {
     if constexpr (JM == JacobianMethod::Numerical) {
       PDELab::NumericalJacobianVolume<TemporalLocalOperatorDiffusionReaction>::
@@ -683,6 +871,25 @@ public:
     }
   }
 
+  /**
+   * @brief      The jacobian volume integral for matrix free operations
+   * @details    This only switches between the actual implementation (in
+   *             alpha_volume) and the numerical jacobian
+   *
+   * @param[in]  eg    The entity
+   * @param[in]  lfsu  The trial local function space
+   * @param[in]  x     The local coefficient vector
+   * @param[in]  z     The local position in the trial space to which to apply
+   *                   the Jacobian.
+   * @param[in]  lfsv  The test local function space
+   * @param      r     The resulting vector
+   *
+   * @tparam     EG    The entity
+   * @tparam     LFSU  The trial local function space
+   * @tparam     X     The local coefficient vector type
+   * @tparam     LFSV  The test local function space
+   * @tparam     R     The resulting vector
+   */
   template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
   void jacobian_apply_volume(const EG& eg,
                              const LFSU& lfsu,
@@ -704,6 +911,24 @@ public:
     alpha_volume(eg, lfsu, z, lfsv, r);
   }
 
+  /**
+   * @brief      The jacobian volume integral for matrix free operations (linear
+   *             variant)
+   * @details    This only switches between the actual implementation (in
+   *             alpha_volume) and the numerical jacobian
+   *
+   * @param[in]  eg    The entity
+   * @param[in]  lfsu  The trial local function space
+   * @param[in]  x     The local coefficient vector
+   * @param[in]  lfsv  The test local function space
+   * @param      r     The resulting vector
+   *
+   * @tparam     EG    The entity
+   * @tparam     LFSU  The trial local function space
+   * @tparam     X     The local coefficient vector type
+   * @tparam     LFSV  The test local function space
+   * @tparam     R     The resulting vector
+   */
   template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
   void jacobian_apply_volume(const EG& eg,
                              const LFSU& lfsu,

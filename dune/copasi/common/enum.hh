@@ -3,6 +3,9 @@
 
 namespace Dune::Copasi {
 
+/**
+ * @brief      This class describes a model setup policy.
+ */
 enum class ModelSetupPolicy
 {
   None,
@@ -16,11 +19,17 @@ enum class ModelSetupPolicy
   All
 };
 
+/**
+ * @brief      This class describes an adaptivity policy.
+ */
 enum class AdaptivityPolicy
 {
   None
 };
 
+/**
+ * @brief      This class describes a jacobian method.
+ */
 enum class JacobianMethod
 {
   Analytical,

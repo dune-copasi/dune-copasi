@@ -1,9 +1,9 @@
 #ifndef DUNE_COPASI_LOCAL_OPERATOR_MULTIDOMAIN_DIFFUSION_REACTION_HH
 #define DUNE_COPASI_LOCAL_OPERATOR_MULTIDOMAIN_DIFFUSION_REACTION_HH
 
+#include <dune/copasi/common/enum.hh>
 #include <dune/copasi/concepts/grid.hh>
-#include <dune/copasi/enum.hh>
-#include <dune/copasi/local_operator.hh>
+#include <dune/copasi/model/local_operator.hh>
 
 #include <dune/pdelab/localoperator/numericaljacobian.hh>
 #include <dune/pdelab/localoperator/numericaljacobianapply.hh>
@@ -15,6 +15,24 @@
 
 namespace Dune::Copasi {
 
+/**
+ * @brief      This class describes a PDELab local operator for multi domain
+ *             diffusion reaction systems.
+ * @details    This class describre the operatrions for local integrals required
+ *             for diffusion reaction system. The operator is only valid for
+ *             entities contained in the grid. The local finite element is used
+ *             for caching shape function evaluations. The coefficient mapper is
+ *             the interface to fetch date from either local or external
+ *             coefficient vectors. And the jacobian method switches between
+ *             numerical and analytical jacobians. This local operator creates
+ *             internally an individual local operator for every subdomain in
+ *             the grid
+ *
+ * @tparam     Grid                The grid
+ * @tparam     LocalFiniteElement  Local Finite Element
+ * @tparam     CM                  Coefficient Mapper
+ * @tparam     JM                  Jacobian Method
+ */
 template<class Grid,
          class LocalFiniteElement,
          class CM = DefaultCoefficientMapper,
@@ -94,6 +112,14 @@ public:
   //! residual assembly flags
   static constexpr bool doAlphaSkeleton = true;
 
+  /**
+   * @brief      Constructs a new instance.
+   *
+   * @param[in]  grid            The grid
+   * @param[in]  config          The configuration
+   * @param[in]  finite_element  The local finite element
+   * @param[in]  id_operator     The index of this operator
+   */
   LocalOperatorMultiDomainDiffusionReaction(
     std::shared_ptr<const Grid> grid,
     const ParameterTree& config,
@@ -146,6 +172,13 @@ public:
     }
   }
 
+  /**
+   * @brief      Updates the coefficient mapper with given states.
+   *
+   * @param[in]  states  A map from operator index to states
+   *
+   * @tparam     States  Map from index to states
+   */
   template<class States>
   void update(const States& states)
   {
@@ -153,7 +186,9 @@ public:
       _local_operator[i]->update(states);
   }
 
-  // define sparsity pattern of operator representation
+  /**
+   * @copydoc LocalOperatorDiffusionReaction::pattern_volume
+   */
   template<typename LFSU, typename LFSV, typename LocalPattern>
   void pattern_volume(const LFSU& lfsu,
                       const LFSV& lfsv,
@@ -164,6 +199,23 @@ public:
     }
   }
 
+  /**
+   * @brief      Pattern sckeleton
+   * @details    This method links degrees of freedom between trial and test
+   *             spaces at entities intersection taking into account the
+   *             structure of the reaction term
+   *
+   * @param[in]  lfsu_i        The inside trial local function space
+   * @param[in]  lfsv_i        The inside test local function space
+   * @param[in]  lfsu_o        The outside trial local function space
+   * @param[in]  lfsv_o        The outside test local function space
+   * @param      pattern_io    The inside-outside local pattern
+   * @param      pattern_oi    The outside-inside local pattern
+   *
+   * @tparam     LFSU          The trial local function space
+   * @tparam     LFSV          The test local function space
+   * @tparam     LocalPattern  The local pattern
+   */
   template<typename LFSU, typename LFSV, typename LocalPattern>
   void pattern_skeleton(const LFSU& lfsu_i,
                         const LFSV& lfsv_i,
@@ -235,6 +287,11 @@ public:
     }
   }
 
+  /**
+   * @brief      Sets the time.
+   *
+   * @param[in]  t     The new time
+   */
   void setTime(double t)
   {
     Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>::setTime(t);
@@ -242,6 +299,11 @@ public:
       lp->setTime(t);
   }
 
+  /**
+   * @copydoc LocalOperatorDiffusionReaction::jacobian_apply_volume
+   * @details    This particular operator does a jacobian apply volume for the
+   *             LocalOperatorDiffusionReaction corresponding to incoming entity
+   */
   template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
   void jacobian_apply_volume(const EG& eg,
                              const LFSU& lfsu,
@@ -262,7 +324,34 @@ public:
     }
   }
 
-  //! jacobian contribution of volume term
+  /**
+   * @copydoc LocalOperatorDiffusionReaction::jacobian_apply_volume
+   * @details    This particular operator does a jacobian apply volume for the
+   *             LocalOperatorDiffusionReaction corresponding to incoming entity
+   */
+  template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
+  void jacobian_apply_volume(const EG& eg,
+                             const LFSU& lfsu,
+                             const X& x,
+                             const LFSV& lfsv,
+                             R& r) const
+  {
+    for (std::size_t i = 0; i < _size; ++i) {
+      if (lfsu.child(i).size() > 0) {
+        const auto& sub_lfsu = lfsu.child(i);
+        const auto& sub_lfsv = lfsv.child(i);
+        if (sub_lfsu.size() == 0)
+          continue;
+        _local_operator[i]->jacobian_apply_volume(eg, sub_lfsu, x, sub_lfsv, r);
+      }
+    }
+  }
+
+  /**
+   * @copydoc LocalOperatorDiffusionReaction::jacobian_volume
+   * @details    This particular operator does a jacobian volume for the
+   *             LocalOperatorDiffusionReaction corresponding to incoming entity
+   */
   template<typename EG, typename LFSU, typename X, typename LFSV, typename M>
   void jacobian_volume(const EG& eg,
                        const LFSU& lfsu,
@@ -281,6 +370,11 @@ public:
     }
   }
 
+  /**
+   * @copydoc LocalOperatorDiffusionReaction::alpha_volume
+   * @details    This particular operator does a alpha volume for the
+   *             LocalOperatorDiffusionReaction corresponding to incoming entity
+   */
   template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
   void alpha_volume(const EG& eg,
                     const LFSU& lfsu,
@@ -300,26 +394,28 @@ public:
     }
   }
 
-  //! apply local jacobian of the volume term -> linear variant
-  template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
-  void jacobian_apply_volume(const EG& eg,
-                             const LFSU& lfsu,
-                             const X& x,
-                             const LFSV& lfsv,
-                             R& r) const
-  {
-    for (std::size_t i = 0; i < _size; ++i) {
-      if (lfsu.child(i).size() > 0) {
-        const auto& sub_lfsu = lfsu.child(i);
-        const auto& sub_lfsv = lfsv.child(i);
-        if (sub_lfsu.size() == 0)
-          continue;
-        _local_operator[i]->jacobian_apply_volume(eg, sub_lfsu, x, sub_lfsv, r);
-      }
-    }
-  }
-
-  // skeleton integral depending on test and ansatz functions
+  /**
+   * @brief      The skeleton integral
+   * @details    This integral is only performed at the interface between
+   *             different domains. Currently it has the form of
+   *             dichlet-dirichlet boundary condition between domains
+   *
+   * @param[in]  ig      The intersection
+   * @param[in]  lfsu_i  The inside trial local function space
+   * @param[in]  x_i     The inside local coefficient vector
+   * @param[in]  lfsv_i  The inside test local function space
+   * @param[in]  lfsu_o  The outside trial local function space
+   * @param[in]  x_o     The outside local coefficient vector
+   * @param[in]  lfsv_o  The outside test local function space
+   * @param      r_i     The inside residual vector
+   * @param      r_o     The outside residual vector
+   *
+   * @tparam     IG      The indersection
+   * @tparam     LFSU    The trial local function space
+   * @tparam     X       The local coefficient vector
+   * @tparam     LFSV    The test local function space
+   * @tparam     R       The residual vector
+   */
   template<typename IG, typename LFSU, typename X, typename LFSV, typename R>
   void alpha_skeleton(const IG& ig,
                       const LFSU& lfsu_i,
@@ -451,6 +547,28 @@ public:
     }
   }
 
+  /**
+   * @brief      The jacobian skeleton integral
+   * @copydetails alpha_skeleton
+   *
+   * @param[in]  ig      The intersection
+   * @param[in]  lfsu_i  The inside trial local function space
+   * @param[in]  x_i     The inside local coefficient vector
+   * @param[in]  lfsv_i  The inside test local function space
+   * @param[in]  lfsu_o  The outside trial local function space
+   * @param[in]  x_o     The outside local coefficient vector
+   * @param[in]  lfsv_o  The outside test local function space
+   * @param      mat_ii  The local inside-inside matrix
+   * @param      mat_io  The local inside-outside matrix
+   * @param      mat_oi  The local outside-inside matrix
+   * @param      mat_oo  The local outside-outside matrix
+   *
+   * @tparam     IG      The indersection
+   * @tparam     LFSU    The trial local function space
+   * @tparam     X       The local coefficient vector
+   * @tparam     LFSV    The test local function space
+   * @tparam     J       The local jacobian matrix
+   */
   template<typename IG, typename LFSU, typename X, typename LFSV, typename J>
   void jacobian_skeleton(const IG& ig,
                          const LFSU& lfsu_i,
@@ -640,52 +758,23 @@ public:
       }
     }
   }
-
-  template<typename IG, typename LFSU, typename X, typename LFSV, typename Y>
-  void jacobian_apply_skeleton(const IG& ig,
-                               const LFSU& lfsu_i,
-                               const X& x_i,
-                               const LFSV& lfsv_i,
-                               const LFSU& lfsu_o,
-                               const X& x_o,
-                               const LFSV& lfsv_o,
-                               Y& y_i,
-                               Y& y_o) const
-  {
-    if constexpr (JM == JacobianMethod::Numerical) {
-      PDELab::NumericalJacobianApplySkeleton<
-        LocalOperatorMultiDomainDiffusionReaction>::
-        jacobian_apply_skeleton(
-          ig, lfsu_i, x_i, lfsv_i, lfsu_o, x_o, lfsv_o, y_i, y_o);
-      return;
-    }
-    DUNE_THROW(NotImplemented, "Analytic jacobian is not implemented");
-  }
-
-  template<typename IG, typename LFSU, typename X, typename LFSV, typename Y>
-  void jacobian_apply_skeleton(const IG& ig,
-                               const LFSU& lfsu_i,
-                               const X& x_i,
-                               const X& z_i,
-                               const LFSV& lfsv_i,
-                               const LFSU& lfsu_o,
-                               const X& x_o,
-                               const X& z_o,
-                               const LFSV& lfsv_o,
-                               Y& y_i,
-                               Y& y_o) const
-  {
-    if constexpr (JM == JacobianMethod::Numerical) {
-      PDELab::NumericalJacobianApplySkeleton<
-        LocalOperatorMultiDomainDiffusionReaction>::
-        jacobian_apply_skeleton(
-          ig, lfsu_i, x_i, z_i, lfsv_i, lfsu_o, x_o, z_o, lfsv_o, y_i, y_o);
-      return;
-    }
-    DUNE_THROW(NotImplemented, "Analytic jacobian is not implemented");
-  }
 };
 
+/**
+ * @brief      This class describes a PDELab temporal local operator for multi
+ *             domain diffusion reaction systems.
+ * @details    This class describre the operatrions for local integrals required
+ *             for diffusion reaction system. The operator is only valid for
+ *             entities contained in the grid. The local finite element is used
+ *             for caching shape function evaluations.And the jacobian method
+ *             switches between numerical and analytical jacobians. This local
+ *             operator creates internally an individual local operator for
+ *             every subdomain in the grid
+ *
+ * @tparam     Grid                The grid
+ * @tparam     LocalFiniteElement  The local finite element
+ * @tparam     JM                  The jacobian method
+ */
 template<class Grid,
          class LocalFiniteElement,
          JacobianMethod JM = JacobianMethod::Analytical>
@@ -710,6 +799,14 @@ public:
   //! residual assembly flags
   static constexpr bool doAlphaVolume = true;
 
+  /**
+   * @brief      Constructs a new instance.
+   *
+   * @param[in]  grid            The grid
+   * @param[in]  config          The configuration
+   * @param[in]  finite_element  The local finite element
+   * @param[in]  id_operator     The index of this operator
+   */
   TemporalLocalOperatorMultiDomainDiffusionReaction(
     std::shared_ptr<const Grid> grid,
     const ParameterTree& config,
@@ -733,7 +830,9 @@ public:
     }
   }
 
-  // define sparsity pattern of operator representation
+  /**
+   * @copydoc TemporalLocalOperatorDiffusionReaction::pattern_volume
+   */
   template<typename LFSU, typename LFSV, typename LocalPattern>
   void pattern_volume(const LFSU& lfsu,
                       const LFSV& lfsv,
@@ -743,6 +842,9 @@ public:
       _local_operator[i]->pattern_volume(lfsu.child(i), lfsv.child(i), pattern);
   }
 
+  /**
+   * @copydoc LocalOperatorMultiDomainDiffusionReaction::alpha_volume
+   */
   template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
   void alpha_volume(const EG& eg,
                     const LFSU& lfsu,
@@ -761,6 +863,9 @@ public:
     }
   }
 
+  /**
+   * @copydoc LocalOperatorMultiDomainDiffusionReaction::jacobian_volume
+   */
   template<typename EG, typename LFSU, typename X, typename LFSV, typename Mat>
   void jacobian_volume(const EG& eg,
                        const LFSU& lfsu,
@@ -779,6 +884,9 @@ public:
     }
   }
 
+  /**
+   * @copydoc LocalOperatorMultiDomainDiffusionReaction::jacobian_apply_volume
+   */
   template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
   void jacobian_apply_volume(const EG& eg,
                              const LFSU& lfsu,
@@ -799,6 +907,9 @@ public:
     }
   }
 
+  /**
+   * @copydoc LocalOperatorMultiDomainDiffusionReaction::jacobian_apply_volume
+   */
   template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
   void jacobian_apply_volume(const EG& eg,
                              const LFSU& lfsu,

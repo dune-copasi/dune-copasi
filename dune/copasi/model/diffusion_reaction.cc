@@ -7,9 +7,8 @@
  * file but a header which has to be included when compiling.
  */
 
-#include <dune/copasi/model_diffusion_reaction.hh>
-#include <dune/copasi/pdelab_callable_adapter.hh>
-#include <dune/copasi/pdelab_expression_adapter.hh>
+#include <dune/copasi/common/pdelab_expression_adapter.hh>
+#include <dune/copasi/model/diffusion_reaction.hh>
 
 #include <dune/pdelab/function/callableadapter.hh>
 #include <dune/pdelab/gridfunctionspace/vtk.hh>
@@ -21,11 +20,11 @@
 namespace Dune::Copasi {
 
 template<class Traits>
-ModelDiffusionReaction<Traits>::
-  ModelDiffusionReaction(std::shared_ptr<Grid> grid,
-                         const Dune::ParameterTree& config,
-                         GV grid_view,
-                         ModelSetupPolicy setup_policy)
+ModelDiffusionReaction<Traits>::ModelDiffusionReaction(
+  std::shared_ptr<Grid> grid,
+  const Dune::ParameterTree& config,
+  GV grid_view,
+  ModelSetupPolicy setup_policy)
   : ModelBase(config)
   , _solver_logger(Logging::Logging::componentLogger(config, "solver"))
   , _components(config.sub("reaction").getValueKeys().size())
@@ -48,8 +47,7 @@ ModelDiffusionReaction<Traits>::
 }
 
 template<class Traits>
-ModelDiffusionReaction<Traits>::
-  ~ModelDiffusionReaction()
+ModelDiffusionReaction<Traits>::~ModelDiffusionReaction()
 {
   _logger.debug("ModelDiffusionReaction deconstructed"_fmt);
 }
@@ -87,8 +85,7 @@ ModelDiffusionReaction<Traits>::step()
 
 template<class Traits>
 void
-ModelDiffusionReaction<Traits>::suggest_timestep(
-  double dt)
+ModelDiffusionReaction<Traits>::suggest_timestep(double dt)
 {
   DUNE_THROW(NotImplemented, "");
 }
@@ -131,8 +128,8 @@ ModelDiffusionReaction<Traits>::suggest_timestep(
 
 template<class Traits>
 auto
-ModelDiffusionReaction<Traits>::
-  setup_component_grid_function_space(std::string name) const
+ModelDiffusionReaction<Traits>::setup_component_grid_function_space(
+  std::string name) const
 {
   _logger.trace("create a finite element map"_fmt);
   BaseFEM base_fem(_grid->leafGridView());
@@ -140,8 +137,7 @@ ModelDiffusionReaction<Traits>::
 
   _logger.trace("setup grid function space for component {}"_fmt, name);
   const ES entity_set(_grid->leafGridView());
-  auto comp_gfs =
-    std::make_shared<LGFS>(entity_set, finite_element_map);
+  auto comp_gfs = std::make_shared<LGFS>(entity_set, finite_element_map);
   comp_gfs->name(name);
 
   return comp_gfs;
@@ -149,8 +145,8 @@ ModelDiffusionReaction<Traits>::
 
 template<class Traits>
 auto
-ModelDiffusionReaction<Traits>::
-  setup_domain_grid_function_space(std::vector<std::string> comp_names) const
+ModelDiffusionReaction<Traits>::setup_domain_grid_function_space(
+  std::vector<std::string> comp_names) const
 {
   _logger.debug("setup domain grid function space"_fmt);
 
@@ -166,8 +162,7 @@ ModelDiffusionReaction<Traits>::
 
 template<class Traits>
 void
-ModelDiffusionReaction<Traits>::
-  setup_grid_function_space()
+ModelDiffusionReaction<Traits>::setup_grid_function_space()
 {
   // get component names
   auto& operator_splitting_config = _config.sub("operator");
@@ -201,8 +196,7 @@ ModelDiffusionReaction<Traits>::
 
 template<class Traits>
 void
-ModelDiffusionReaction<Traits>::
-  setup_coefficient_vectors()
+ModelDiffusionReaction<Traits>::setup_coefficient_vectors()
 {
   _logger.debug("setup coefficient vector"_fmt);
   for (auto& [op, state] : _states) {
@@ -217,8 +211,7 @@ ModelDiffusionReaction<Traits>::
 
 template<class Traits>
 void
-ModelDiffusionReaction<Traits>::
-  setup_constraints()
+ModelDiffusionReaction<Traits>::setup_constraints()
 {
   _logger.debug("setup constraints"_fmt);
 
@@ -240,8 +233,7 @@ ModelDiffusionReaction<Traits>::
 
 template<class Traits>
 auto
-ModelDiffusionReaction<Traits>::
-  setup_local_operator(std::size_t i) const
+ModelDiffusionReaction<Traits>::setup_local_operator(std::size_t i) const
 {
   _logger.trace("setup local operators {}"_fmt, i);
 
@@ -260,8 +252,7 @@ ModelDiffusionReaction<Traits>::
 
 template<class Traits>
 void
-ModelDiffusionReaction<Traits>::
-  setup_local_operators()
+ModelDiffusionReaction<Traits>::setup_local_operators()
 {
   _logger.trace("setup local operators"_fmt);
 
@@ -277,8 +268,7 @@ ModelDiffusionReaction<Traits>::
 
 template<class Traits>
 void
-ModelDiffusionReaction<Traits>::
-  setup_grid_operators()
+ModelDiffusionReaction<Traits>::setup_grid_operators()
 {
   _logger.debug("setup grid operators"_fmt);
   _spatial_grid_operators.clear();
@@ -343,8 +333,7 @@ ModelDiffusionReaction<Traits>::setup_solvers()
 
 template<class Traits>
 void
-ModelDiffusionReaction<Traits>::
-  setup_vtk_writer()
+ModelDiffusionReaction<Traits>::setup_vtk_writer()
 {
   _logger.debug("setup vtk writer"_fmt);
 
@@ -370,8 +359,7 @@ ModelDiffusionReaction<Traits>::
 
 template<class Traits>
 void
-ModelDiffusionReaction<Traits>::setup(
-  ModelSetupPolicy setup_policy)
+ModelDiffusionReaction<Traits>::setup(ModelSetupPolicy setup_policy)
 {
   if (setup_policy >= ModelSetupPolicy::GridFunctionSpace)
     setup_grid_function_space();
@@ -391,8 +379,7 @@ ModelDiffusionReaction<Traits>::setup(
 
 template<class Traits>
 void
-ModelDiffusionReaction<Traits>::write_states()
-  const
+ModelDiffusionReaction<Traits>::write_states() const
 {
   for (auto& [op, state] : _states) {
     auto& x = state.coefficients;
@@ -408,8 +395,7 @@ ModelDiffusionReaction<Traits>::write_states()
     using ET = decltype(etity_transformation);
 
     using Predicate = PDELab::vtk::DefaultPredicate;
-    using Data =
-      PDELab::vtk::DGFTreeCommonData<GFS, X, Predicate, GV, ET>;
+    using Data = PDELab::vtk::DGFTreeCommonData<GFS, X, Predicate, GV, ET>;
     std::shared_ptr<Data> data =
       std::make_shared<Data>(*gfs, *x, _grid_view, etity_transformation);
     PDELab::vtk::OutputCollector<SW, Data> collector(*_sequential_writer, data);

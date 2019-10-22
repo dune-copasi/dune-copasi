@@ -2,7 +2,7 @@
 #include "config.h"
 #endif
 
-#include <dune/copasi/tiff_grayscale.hh>
+#include <dune/copasi/common/tiff_grayscale.hh>
 
 #include <dune/grid/yaspgrid.hh>
 
