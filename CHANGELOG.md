@@ -27,6 +27,7 @@ Types of changes
 
 ## [Unreleased]
 ### Added
+- Move and rename header files
 - Code documentation
 - Brief installation instructions
 
