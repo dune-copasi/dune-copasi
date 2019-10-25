@@ -1,5 +1,5 @@
-#ifndef DUNE_COPASI_DYNAMIC_LOCAL_BASIS_HH
-#define DUNE_COPASI_DYNAMIC_LOCAL_BASIS_HH
+#ifndef DUNE_COPASI_DYNAMIC_POWER_LOCAL_BASIS_HH
+#define DUNE_COPASI_DYNAMIC_POWER_LOCAL_BASIS_HH
 
 #include <algorithm>
 #include <array>
@@ -176,4 +176,4 @@ private:
 
 } // namespace Dune::Copasi
 
-#endif // DUNE_COPASI_DYNAMIC_LOCAL_BASIS_HH
+#endif // DUNE_COPASI_DYNAMIC_POWER_LOCAL_BASIS_HH

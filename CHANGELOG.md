@@ -27,9 +27,10 @@ Types of changes
 
 ## [Unreleased]
 ### Added
-- Move and rename header files
 - Code documentation
 - Brief installation instructions
+### Changed
+- Move and rename header files
 
 ## [0.1.0] - 2019-10-11
 ### Added

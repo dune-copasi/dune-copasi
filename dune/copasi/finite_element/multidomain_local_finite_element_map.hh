@@ -1,9 +1,7 @@
 #ifndef DUNE_COPASI_MULTIDOMAIN_LOCAL_FINITE_ELEMENT_MAP_HH
 #define DUNE_COPASI_MULTIDOMAIN_LOCAL_FINITE_ELEMENT_MAP_HH
 
-#include <dune/copasi/finite_element/dynamic_local_finite_element.hh>
-
-#include <dune/pdelab/finiteelementmap/finiteelementmap.hh>
+#include <dune/copasi/finite_element/dynamic_power_local_finite_element_map.hh>
 
 namespace Dune::Copasi {
 
@@ -23,17 +21,20 @@ namespace Dune::Copasi {
  */
 template<class FiniteElementMap, class GridView>
 class MultiDomainLocalFiniteElementMap
-  : public PDELab::LocalFiniteElementMapInterface<
-      PDELab::LocalFiniteElementMapTraits<DynamicPowerLocalFiniteElement<
-        typename FiniteElementMap::Traits::FiniteElement>>,
-      MultiDomainLocalFiniteElementMap<FiniteElementMap, GridView>>
+  : public DynamicPowerLocalFiniteElementMap<FiniteElementMap>
 {
+  using Base = DynamicPowerLocalFiniteElementMap<FiniteElementMap>;
+
   using BaseFiniteElement = typename FiniteElementMap::Traits::FiniteElement;
   using FiniteElement = DynamicPowerLocalFiniteElement<BaseFiniteElement>;
 
-public:
-  static const int dimension = FiniteElementMap::dimension;
+  using SubDomainGrid = typename GridView::Grid;
+  using MultiDomainGrid = typename SubDomainGrid::MultiDomainGrid;
 
+  static_assert(Concept::isSubDomainGrid<typename GridView::Grid>(), 
+    "This class is only meant to be used for multidomain grids and its subdomains");
+
+public:
   /**
    * @brief      Constructs a new instance.
    *
@@ -49,17 +50,15 @@ public:
                                    FiniteElementMap fem,
                                    BaseFiniteElement base_finite_element,
                                    std::size_t power_size = 1)
-    : _grid_view(grid_view)
-    , _power_size(power_size)
-    , _fem(fem)
-    , _fe_cache(NULL)
+    : Base(fem, power_size)
+    , _grid_view(grid_view)
     , _fe_null(base_finite_element, 0)
   {}
 
   /**
    * @brief      Constructs a new instance.
    * @details    This constructor is only available if the base finite element
-   *             is default constructiible
+   *             is default constructible
    *
    * @param[in]  grid_view   The grid view
    * @param[in]  fem         The finite element map to wrap
@@ -82,13 +81,7 @@ public:
   {}
 
   /**
-   * @brief      Destroys the object.
-   */
-  ~MultiDomainLocalFiniteElementMap() { delete _fe_cache; }
-
-  /**
    * @brief      Searches for the finite element for entity e.
-   * @todo       Cache more than one finite element
    *
    * @param[in]  e           The entity
    *
@@ -100,39 +93,36 @@ public:
   template<class EntityType>
   const FiniteElement& find(const EntityType& e) const
   {
-    if constexpr (Concept::isSubDomainGrid<typename GridView::Grid>()) {
-      using SubDomainGrid = typename GridView::Grid;
-      using MultiDomainGrid = typename SubDomainGrid::MultiDomainGrid;
+    constexpr int codim = EntityType::codimension;
 
-      constexpr int codim = EntityType::codimension;
+    using MultiDomainEntity =
+      typename MultiDomainGrid::template Codim<codim>::Entity;
 
-      auto sub_domain = _grid_view.grid().domain();
+    using SubDomainEntity =
+      typename SubDomainGrid::template Codim<codim>::Entity;
 
-      using MultiDomainEntity =
-        typename MultiDomainGrid::template Codim<codim>::Entity;
-      if constexpr (std::is_same_v<EntityType, MultiDomainEntity>) {
-        bool in_grid_view = _grid_view.grid()
-                              .multiDomainGrid()
-                              .leafIndexSet()
-                              .subDomains(e)
-                              .contains(sub_domain);
-        if (not in_grid_view)
-          return _fe_null;
-      } else {
-        DUNE_THROW(NotImplemented,
-                   "Method not implemented for subdomain entites");
-      }
+    auto sub_domain = _grid_view.grid().domain();
+    const auto& md_grid = _grid_view.grid().multiDomainGrid();
+
+    bool in_grid_view = true;
+
+    if constexpr (std::is_same_v<EntityType, MultiDomainEntity>) {
+      in_grid_view = md_grid.leafIndexSet()
+                            .subDomains(e)
+                            .contains(sub_domain);
+    } else if constexpr (std::is_same_v<EntityType, SubDomainEntity>) {
+      in_grid_view = md_grid.leafIndexSet()
+                            .subDomains(md_grid.multiDomainEntity(e))
+                            .contains(sub_domain);
+    } else {
+      static_assert(AlwaysFalse<EntityType>::value,
+                  "Method not implemented for subdomain or other types of entites");
     }
-    auto base_fe = _fem.find(e);
 
-    // cache the last used base finite element
-    if (_base_fe_cache != &base_fe) {
-      _base_fe_cache = &base_fe;
-      if (_fe_cache != NULL)
-        delete _fe_cache;
-      _fe_cache = new FiniteElement(base_fe, _power_size);
-    }
-    return *_fe_cache;
+    if (in_grid_view)
+      return Base::find(e);
+    else 
+      return _fe_null;
   }
 
   /**
@@ -142,43 +132,8 @@ public:
    */
   bool fixedSize() const { return false; }
 
-  /**
-   * @brief      Size for a given geometry type
-   *
-   * @param[in]  gt    The geometry type
-   *
-   * @return     The size for the given geometry type
-   */
-  std::size_t size(GeometryType gt) const
-  {
-    return _power_size * _fem.size(gt);
-  }
-
-  /**
-   * @brief      Describes wheter a codim has associated degrees of freedom
-   *
-   * @param[in]  codim  The codim
-   *
-   * @return     True if codim has dregees of freedom
-   */
-  bool hasDOFs(int codim) const
-  {
-    return (_power_size != 0) && _fem.hasDOFs(codim);
-  }
-
-  /**
-   * @brief      Maximum local size for all finite elements
-   *
-   * @return     The maximim size
-   */
-  std::size_t maxLocalSize() const { return _power_size * _fem.maxLocalSize(); }
-
 private:
   GridView _grid_view;
-  std::size_t _power_size;
-  FiniteElementMap _fem;
-  mutable BaseFiniteElement* _base_fe_cache;
-  mutable FiniteElement* _fe_cache;
   const FiniteElement _fe_null;
 };
 
