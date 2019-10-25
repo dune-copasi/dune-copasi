@@ -3,7 +3,7 @@
 
 #include <dune/copasi/common/enum.hh>
 #include <dune/copasi/concepts/grid.hh>
-#include <dune/copasi/model/local_operator.hh>
+#include <dune/copasi/model/local_operator_CG.hh>
 
 #include <dune/pdelab/localoperator/numericaljacobian.hh>
 #include <dune/pdelab/localoperator/numericaljacobianapply.hh>
@@ -81,7 +81,7 @@ class LocalOperatorMultiDomainDiffusionReaction
 
   using GridView = typename Grid::SubDomainGrid::LeafGridView;
   using BaseLOP =
-    LocalOperatorDiffusionReaction<GridView, LocalFiniteElement, CM, JM>;
+    LocalOperatorDiffusionReactionCG<GridView, LocalFiniteElement, CM, JM>;
 
   const IndexSet& _index_set;
 
@@ -187,7 +187,7 @@ public:
   }
 
   /**
-   * @copydoc LocalOperatorDiffusionReaction::pattern_volume
+   * @copydoc LocalOperatorDiffusionReactionCG::pattern_volume
    */
   template<typename LFSU, typename LFSV, typename LocalPattern>
   void pattern_volume(const LFSU& lfsu,
@@ -300,9 +300,9 @@ public:
   }
 
   /**
-   * @copydoc LocalOperatorDiffusionReaction::jacobian_apply_volume
+   * @copydoc LocalOperatorDiffusionReactionCG::jacobian_apply_volume
    * @details    This particular operator does a jacobian apply volume for the
-   *             LocalOperatorDiffusionReaction corresponding to incoming entity
+   *             LocalOperatorDiffusionReactionCG corresponding to incoming entity
    */
   template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
   void jacobian_apply_volume(const EG& eg,
@@ -325,9 +325,9 @@ public:
   }
 
   /**
-   * @copydoc LocalOperatorDiffusionReaction::jacobian_apply_volume
+   * @copydoc LocalOperatorDiffusionReactionCG::jacobian_apply_volume
    * @details    This particular operator does a jacobian apply volume for the
-   *             LocalOperatorDiffusionReaction corresponding to incoming entity
+   *             LocalOperatorDiffusionReactionCG corresponding to incoming entity
    */
   template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
   void jacobian_apply_volume(const EG& eg,
@@ -348,9 +348,9 @@ public:
   }
 
   /**
-   * @copydoc LocalOperatorDiffusionReaction::jacobian_volume
+   * @copydoc LocalOperatorDiffusionReactionCG::jacobian_volume
    * @details    This particular operator does a jacobian volume for the
-   *             LocalOperatorDiffusionReaction corresponding to incoming entity
+   *             LocalOperatorDiffusionReactionCG corresponding to incoming entity
    */
   template<typename EG, typename LFSU, typename X, typename LFSV, typename M>
   void jacobian_volume(const EG& eg,
@@ -371,9 +371,9 @@ public:
   }
 
   /**
-   * @copydoc LocalOperatorDiffusionReaction::alpha_volume
+   * @copydoc LocalOperatorDiffusionReactionCG::alpha_volume
    * @details    This particular operator does a alpha volume for the
-   *             LocalOperatorDiffusionReaction corresponding to incoming entity
+   *             LocalOperatorDiffusionReactionCG corresponding to incoming entity
    */
   template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
   void alpha_volume(const EG& eg,
@@ -786,7 +786,7 @@ class TemporalLocalOperatorMultiDomainDiffusionReaction
 
   using GridView = typename Grid::SubDomainGrid::LeafGridView;
   using BaseLOP =
-    TemporalLocalOperatorDiffusionReaction<GridView, LocalFiniteElement, JM>;
+    TemporalLocalOperatorDiffusionReactionCG<GridView, LocalFiniteElement, JM>;
 
   std::size_t _size;
 
@@ -831,7 +831,7 @@ public:
   }
 
   /**
-   * @copydoc TemporalLocalOperatorDiffusionReaction::pattern_volume
+   * @copydoc TemporalLocalOperatorDiffusionReactionCG::pattern_volume
    */
   template<typename LFSU, typename LFSV, typename LocalPattern>
   void pattern_volume(const LFSU& lfsu,

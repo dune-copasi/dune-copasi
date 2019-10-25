@@ -102,6 +102,7 @@ class ModelMultiDomainDiffusionReaction : public ModelBase
   //! SubDomain grid function space
   using SDGFS = typename SubModel::GFS;
 
+  //! Vector backend
   using VBE = typename LGFS::Traits::Backend;
   using GFS = PDELab::DynamicPowerGridFunctionSpace<SDGFS, VBE>;
 

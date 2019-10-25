@@ -6,7 +6,7 @@
 #include <dune/copasi/concepts/grid.hh>
 #include <dune/copasi/finite_element/multidomain_local_finite_element_map.hh>
 #include <dune/copasi/model/base.hh>
-#include <dune/copasi/model/local_operator.hh>
+#include <dune/copasi/model/local_operator_CG.hh>
 #include <dune/copasi/model/state.hh>
 
 #include <dune/pdelab/backend/istl.hh>
@@ -21,7 +21,6 @@
 
 #include <dune/grid/io/file/vtk/vtksequencewriter.hh>
 #include <dune/grid/io/file/vtk/vtkwriter.hh>
-#include <dune/grid/uggrid.hh>
 
 #include <memory>
 
@@ -132,10 +131,10 @@ private:
   using CM = Dune::Copasi::ModelCoefficientMapper<ConstState>;
 
   //! Local operator
-  using LOP = LocalOperatorDiffusionReaction<GV, FE, CM, JM>;
+  using LOP = LocalOperatorDiffusionReactionCG<GV, FE, CM, JM>;
 
   //! Temporal local operator
-  using TLOP = TemporalLocalOperatorDiffusionReaction<GV, FE, JM>;
+  using TLOP = TemporalLocalOperatorDiffusionReactionCG<GV, FE, JM>;
 
   //! Matrix backend
   using MBE = Dune::PDELab::ISTL::BCRSMatrixBackend<>;

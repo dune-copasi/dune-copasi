@@ -41,13 +41,13 @@ template<class GV,
          class LFE,
          class CM = DefaultCoefficientMapper,
          JacobianMethod JM = JacobianMethod::Analytical>
-class LocalOperatorDiffusionReaction
+class LocalOperatorDiffusionReactionCG
   : public Dune::PDELab::LocalOperatorDefaultFlags
   , public Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>
   , public PDELab::NumericalJacobianVolume<
-      LocalOperatorDiffusionReaction<GV, LFE, CM, JM>>
+      LocalOperatorDiffusionReactionCG<GV, LFE, CM, JM>>
   , public PDELab::NumericalJacobianApplyVolume<
-      LocalOperatorDiffusionReaction<GV, LFE, CM, JM>>
+      LocalOperatorDiffusionReactionCG<GV, LFE, CM, JM>>
 {
   //! grid view
   using GridView = GV;
@@ -133,7 +133,7 @@ public:
    * @param[in]  finite_element  The local finite element
    * @param[in]  id_operator     The index of this operator
    */
-  LocalOperatorDiffusionReaction(GridView grid_view,
+  LocalOperatorDiffusionReactionCG(GridView grid_view,
                                  const ParameterTree& config,
                                  const LocalFiniteElement& finite_element,
                                  std::size_t id_operator)
@@ -238,7 +238,7 @@ public:
       _logger.trace("pattern <{},{}>"_fmt, i.first, i.second);
     }
 
-    _logger.debug("LocalOperatorDiffusionReaction constructed"_fmt);
+    _logger.debug("LocalOperatorDiffusionReactionCG constructed"_fmt);
   }
 
   /**
@@ -331,7 +331,7 @@ public:
                              R& r) const
   {
     if constexpr (JM == JacobianMethod::Numerical) {
-      PDELab::NumericalJacobianApplyVolume<LocalOperatorDiffusionReaction>::
+      PDELab::NumericalJacobianApplyVolume<LocalOperatorDiffusionReactionCG>::
         jacobian_apply_volume(eg, lfsu, x, z, lfsv, r);
     } else {
       _jacobian_apply_volume(eg, lfsu, x, z, lfsv, r);
@@ -364,7 +364,7 @@ public:
                              R& r) const
   {
     if constexpr (JM == JacobianMethod::Numerical) {
-      PDELab::NumericalJacobianApplyVolume<LocalOperatorDiffusionReaction>::
+      PDELab::NumericalJacobianApplyVolume<LocalOperatorDiffusionReactionCG>::
         jacobian_apply_volume(eg, lfsu, x, lfsv, r);
       return;
     } else {
@@ -505,7 +505,7 @@ public:
                        M& mat) const
   {
     if constexpr (JM == JacobianMethod::Numerical) {
-      PDELab::NumericalJacobianVolume<LocalOperatorDiffusionReaction>::
+      PDELab::NumericalJacobianVolume<LocalOperatorDiffusionReactionCG>::
         jacobian_volume(eg, lfsu, x, lfsv, mat);
       return;
     }
@@ -642,14 +642,14 @@ public:
  * @tparam     JM    Jacobian Method
  */
 template<class GV, class LFE, JacobianMethod JM = JacobianMethod::Analytical>
-class TemporalLocalOperatorDiffusionReaction
+class TemporalLocalOperatorDiffusionReactionCG
   : public Dune::PDELab::LocalOperatorDefaultFlags
   , public Dune::PDELab::FullVolumePattern
   , public Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>
   , public Dune::PDELab::NumericalJacobianVolume<
-      TemporalLocalOperatorDiffusionReaction<GV, LFE, JM>>
+      TemporalLocalOperatorDiffusionReactionCG<GV, LFE, JM>>
   , public Dune::PDELab::NumericalJacobianApplyVolume<
-      TemporalLocalOperatorDiffusionReaction<GV, LFE, JM>>
+      TemporalLocalOperatorDiffusionReactionCG<GV, LFE, JM>>
 {
   //! grid view
   using GridView = GV;
@@ -719,7 +719,7 @@ public:
    * @param[in]  finite_element  The local finite element
    * @param[in]  id_operator     The index of this operator
    */
-  TemporalLocalOperatorDiffusionReaction(
+  TemporalLocalOperatorDiffusionReactionCG(
     GridView grid_view,
     const ParameterTree& config,
     const LocalFiniteElement& finite_element,
@@ -757,7 +757,7 @@ public:
       phi.clear();
     }
 
-    _logger.debug("TemporalLocalOperatorDiffusionReaction constructed"_fmt);
+    _logger.debug("TemporalLocalOperatorDiffusionReactionCG constructed"_fmt);
   }
 
   /**
@@ -839,7 +839,7 @@ public:
                        M& mat) const
   {
     if constexpr (JM == JacobianMethod::Numerical) {
-      PDELab::NumericalJacobianVolume<TemporalLocalOperatorDiffusionReaction>::
+      PDELab::NumericalJacobianVolume<TemporalLocalOperatorDiffusionReactionCG>::
         jacobian_volume(eg, lfsu, x, lfsv, mat);
       return;
     }
@@ -900,7 +900,7 @@ public:
   {
     if constexpr (JM == JacobianMethod::Numerical) {
       PDELab::NumericalJacobianApplyVolume<
-        TemporalLocalOperatorDiffusionReaction>::jacobian_apply_volume(eg,
+        TemporalLocalOperatorDiffusionReactionCG>::jacobian_apply_volume(eg,
                                                                        lfsu,
                                                                        x,
                                                                        z,
@@ -938,7 +938,7 @@ public:
   {
     if constexpr (JM == JacobianMethod::Numerical) {
       PDELab::NumericalJacobianApplyVolume<
-        TemporalLocalOperatorDiffusionReaction>::jacobian_apply_volume(eg,
+        TemporalLocalOperatorDiffusionReactionCG>::jacobian_apply_volume(eg,
                                                                        lfsu,
                                                                        x,
                                                                        lfsv,
