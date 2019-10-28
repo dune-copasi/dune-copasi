@@ -4,7 +4,7 @@ _grow_rate = 0.2
 _initial = 1
 
 [grid]
-file = grids/square.msh
+file = grids/square_triangles.msh
 initial_level = 0
 
 [model]
@@ -35,7 +35,7 @@ u = 0.
 [model.domain.writer]
 file_name = {__name}
 
-######################### Compare with analytic vtk ######################### 
+######################### Compare with analytic vtk #########################
 [wrapper.vtkcompare]
 name = {__name}/{__name}-00101
 reference = reference/{__name}-00101

@@ -28,17 +28,22 @@ dune_add_test(NAME            test_tiff_grayscale
 if (dune-testtools_FOUND)
 
   add_system_test_per_target(
-    TARGET          dune_copasi
+    TARGET          dune_copasi_md
     SCRIPT          dune_vtkcompare.py
     INIFILE         test_cell.mini)
 
   add_system_test_per_target(
-    TARGET          dune_copasi
+    TARGET          dune_copasi_md
+    SCRIPT          dune_vtkcompare.py
+    INIFILE         test_exp.mini)
+
+  add_system_test_per_target(
+    TARGET          dune_copasi_sd
     SCRIPT          dune_vtkcompare.py
     INIFILE         test_exp.mini)
 
     add_system_test_per_target(
-      TARGET          dune_copasi
+      TARGET          dune_copasi_md
       SCRIPT          dune_vtkcompare.py
       INIFILE         test_tiff.mini)
 
@@ -52,9 +57,6 @@ if (dune-testtools_FOUND)
   add_dependencies(build_unit_tests dune_copasi_test_jacobian)
   set_property(TEST "dune_copasi_test_jacobian_analytical" PROPERTY LABELS unit)
   set_property(TEST "dune_copasi_test_jacobian_numerical" PROPERTY LABELS unit)
-
-  # make sure dune_copasi is built by default
-  set_property(TARGET dune_copasi PROPERTY EXCLUDE_FROM_ALL 0)
 
 endif()
 
