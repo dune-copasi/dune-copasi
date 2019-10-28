@@ -4,8 +4,8 @@ dune_symlink_to_source_files(FILES "grids" DESTINATION "." )
 dune_symlink_to_source_files(FILES "reference" DESTINATION "." )
 dune_symlink_to_source_files(FILES "data" DESTINATION "." )
 
-dune_add_test(NAME            test_dynamic_local_finite_element
-              SOURCES         test_dynamic_local_finite_element.cc
+dune_add_test(NAME            test_dynamic_power_local_finite_element
+              SOURCES         test_dynamic_power_local_finite_element.cc
               LABELS          unit)
 
 dune_add_test(NAME            test_concepts_pdelab
@@ -28,9 +28,9 @@ dune_add_test(NAME            test_tiff_grayscale
 if (dune-testtools_FOUND)
 
   add_system_test_per_target(
-    TARGET          dune_copasi_md
+    TARGET          dune_copasi_sd
     SCRIPT          dune_vtkcompare.py
-    INIFILE         test_cell.mini)
+    INIFILE         test_exp.mini)
 
   add_system_test_per_target(
     TARGET          dune_copasi_md
@@ -40,12 +40,17 @@ if (dune-testtools_FOUND)
   add_system_test_per_target(
     TARGET          dune_copasi_sd
     SCRIPT          dune_vtkcompare.py
-    INIFILE         test_exp.mini)
+    INIFILE         test_tiff.mini)
 
-    add_system_test_per_target(
-      TARGET          dune_copasi_md
-      SCRIPT          dune_vtkcompare.py
-      INIFILE         test_tiff.mini)
+  add_system_test_per_target(
+    TARGET          dune_copasi_md
+    SCRIPT          dune_vtkcompare.py
+    INIFILE         test_tiff.mini)
+
+  add_system_test_per_target(
+    TARGET          dune_copasi_md
+    SCRIPT          dune_vtkcompare.py
+    INIFILE         test_cell.mini)
 
   dune_add_system_test(
     SOURCE          test_jacobian.cc
@@ -58,6 +63,9 @@ if (dune-testtools_FOUND)
   set_property(TEST "dune_copasi_test_jacobian_analytical" PROPERTY LABELS unit)
   set_property(TEST "dune_copasi_test_jacobian_numerical" PROPERTY LABELS unit)
 
+  # make sure dune_copasi executables are built by default
+  set_property(TARGET dune_copasi_sd PROPERTY EXCLUDE_FROM_ALL 0)
+  set_property(TARGET dune_copasi_md PROPERTY EXCLUDE_FROM_ALL 0)
 endif()
 
 add_custom_target(build_system_tests DEPENDS dune_copasi)
