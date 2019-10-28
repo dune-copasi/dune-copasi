@@ -7,7 +7,9 @@
  * file but a header which has to be included when compiling.
  */
 
+#include <dune/copasi/concepts/pdelab.hh>
 #include <dune/copasi/common/pdelab_expression_adapter.hh>
+#include <dune/copasi/common/muparser_data_handler.hh>
 #include <dune/copasi/model/diffusion_reaction.hh>
 
 #include <dune/pdelab/function/callableadapter.hh>
@@ -35,11 +37,8 @@ ModelDiffusionReaction<Traits>::ModelDiffusionReaction(
   setup(setup_policy);
 
   if (setup_policy == ModelSetupPolicy::All) {
-    // _logger.debug("set initial state"_fmt);
-    // auto& intial_config = _config.sub("initial");
-    // ExpressionToGridFunctionAdapter<GV, RF> initial(_grid_view,
-    // intial_config); set_state(initial);
-
+    if (_config.hasSub("initial"))
+      set_initial(_config);
     write_states();
   }
 
@@ -53,78 +52,76 @@ ModelDiffusionReaction<Traits>::~ModelDiffusionReaction()
 }
 
 template<class Traits>
-void
-ModelDiffusionReaction<Traits>::step()
+void ModelDiffusionReaction<Traits>::set_initial(const ParameterTree& model_config)
 {
-  double dt = _config.template get<double>("time_step");
+  _logger.debug("set initial state from parameter tree"_fmt);
 
-  const bool cout_redirected = Dune::Logging::Logging::isCoutRedirected();
-  if (not cout_redirected)
-    Dune::Logging::Logging::redirectCout(_solver_logger.name(),
-                                         Dune::Logging::LogLevel::detail);
+  MuParserDataHandler<TIFFGrayscale<unsigned short>> mu_data_handler;
+  if (model_config.hasSub("data"))
+    mu_data_handler.add_tiff_functions(model_config.sub("data"));
 
-  // do time step
-  for (auto& [op, state] : _states) {
-    _local_operators[op]->update(const_states());
+  if (not model_config.hasSub("initial"))
+    DUNE_THROW(IOError, "configuration file does not have initial section");
 
-    auto& x = state.coefficients;
-    auto x_new = std::make_shared<X>(*x);
-    _one_step_methods[op]->apply(current_time(), dt, *x, *x_new);
+  const auto& initial_config = model_config.sub("initial");
+  const auto& vars = initial_config.getValueKeys();
 
-    // accept time step
-    x = x_new;
+  using GridFunction = ExpressionToGridFunctionAdapter<GV, RF>;
+  std::vector<GridFunction> functions;
+
+  for (std::size_t i = 0; i < vars.size(); i++) {
+    functions.emplace_back(_grid_view, initial_config[vars[i]], false);
+    assert(functions.size() == i+1);
+    mu_data_handler.set_functions(functions[i].parser());
+    functions[i].compile_parser();
+    functions[i].set_time(current_time());
   }
 
-  if (not cout_redirected)
-    Dune::Logging::Logging::restoreCout();
-
-  current_time() += dt;
-
-  write_states();
+  set_initial(functions);
 }
 
 template<class Traits>
-void
-ModelDiffusionReaction<Traits>::suggest_timestep(double dt)
+template<class GF>
+void ModelDiffusionReaction<Traits>::set_initial(std::vector<GF>& initial)
 {
-  DUNE_THROW(NotImplemented, "");
+  static_assert(Concept::isPDELabGridFunction<GF>(), "GF is not a PDElab grid functions");
+  static_assert(std::is_same_v<typename GF::Traits::GridViewType,GV>, "GF has to have the same grid view as the templated grid");
+  static_assert(GF::Traits::dimDomain == Grid::dimension, "GF has to have domain dimension equal to the grid");
+  static_assert(GF::Traits::dimRange == 1, "GF has to have range dimension equal to 1");
+
+  _logger.debug("set initial state from grid functions"_fmt);
+
+  if (initial.size() != _config.sub("diffusion").getValueKeys().size())
+    DUNE_THROW(RangeError,"Wrong number of grid functions");
+
+  for (auto& [op, state] : _states) {
+    _logger.trace("interpolation of operator {}"_fmt, op);
+    std::size_t comp_size = state.grid_function_space->degree();
+    std::vector<std::shared_ptr<GF>> functions(comp_size);
+
+    auto& operator_config = _config.sub("operator");
+    auto comp_names = operator_config.getValueKeys();
+    std::sort(comp_names.begin(), comp_names.end());
+
+    std::size_t count_i = 0; // index for variables in operator
+    std::size_t count_j = 0; // index for all variables
+    for (const auto& var : comp_names) {
+      assert(count_i < comp_names.size());
+      if (op != operator_config.template get<std::size_t>(var))
+        continue;
+
+      _logger.trace("creating grid function for variable: {}"_fmt, var);
+      functions[count_i] = stackobject_to_shared_ptr(initial[count_j]);
+      functions[count_i]->set_time(current_time());
+      count_i++;
+      count_j++;
+    }
+
+    PDELab::DynamicPowerGridFunction<GF> comp_initial(functions);
+    Dune::PDELab::interpolate(
+      comp_initial, *state.grid_function_space, *state.coefficients);
+  }
 }
-
-// template<class Traits>
-// template<class T>
-// void
-// ModelDiffusionReaction<Grid, GV, FEMorder,
-// OrderingTag>::set_state(const T& input_state)
-// {
-//   if constexpr (std::is_arithmetic<T>::value) {
-//     _logger.trace("convert state to a vector of components"_fmt);
-//     DynamicVector<RF> component_state(_components, input_state);
-
-//     _logger.trace("set state from constant vector of components"_fmt);
-//     set_state(component_state);
-//   } else if constexpr (std::is_same_v<T, Dune::DynamicVector<RF>>) {
-//     assert(input_state.size() == _components);
-
-//     _logger.trace("convert vector of components to a callable"_fmt);
-//     auto callable = [&](const auto& x) { return input_state; };
-
-//     _logger.trace("set state from callable"_fmt);
-//     set_state(callable);
-//   } else if constexpr (Concept::isPDELabCallable<GV, T>()) {
-//     _logger.trace("convert callable to a grid function"_fmt);
-//     auto grid_function = makeGridFunctionFromCallable(_grid_view,
-//     input_state);
-
-//     _logger.trace("set state from grid function"_fmt);
-//     set_state(grid_function);
-//   } else if constexpr (Concept::isPDELabGridFunction<T>()) {
-//     _logger.trace("interpolate grid function to model coefficients"_fmt);
-//     Dune::PDELab::interpolate(input_state, *_gfs, *_x);
-//   } else {
-//     static_assert(Dune::AlwaysFalse<T>::value, "Not known input model
-//     state");
-//   }
-// }
 
 template<class Traits>
 auto
@@ -132,8 +129,8 @@ ModelDiffusionReaction<Traits>::setup_component_grid_function_space(
   std::string name) const
 {
   _logger.trace("create a finite element map"_fmt);
-  BaseFEM base_fem(_grid->leafGridView());
-  auto finite_element_map = std::make_shared<FEM>(_grid_view, base_fem);
+  typename Traits::BaseFEM base_fem(_grid->leafGridView());
+  auto finite_element_map = std::make_shared<FEM>(base_fem);
 
   _logger.trace("setup grid function space for component {}"_fmt, name);
   const ES entity_set(_grid->leafGridView());
@@ -198,10 +195,10 @@ template<class Traits>
 void
 ModelDiffusionReaction<Traits>::setup_coefficient_vectors()
 {
-  _logger.debug("setup coefficient vector"_fmt);
   for (auto& [op, state] : _states) {
+    _logger.debug("setup coefficient vector for operator {}"_fmt, op);
+    const auto& gfs = _states[op].grid_function_space;
     auto& x = _states[op].coefficients;
-    auto& gfs = _states[op].grid_function_space;
     if (x)
       x = std::make_shared<X>(*gfs, *(x->storage()));
     else
@@ -225,7 +222,8 @@ ModelDiffusionReaction<Traits>::setup_constraints()
     auto& gfs = _states[op].grid_function_space;
     Dune::PDELab::constraints(b0, *gfs, *_constraints[op]);
 
-    _logger.info("constrained dofs: {} of {}"_fmt,
+    _logger.info("constrained dofs in operator {}: {} of {}"_fmt,
+                op,
                  _constraints[op]->size(),
                  gfs->globalSize());
   }
@@ -238,7 +236,7 @@ ModelDiffusionReaction<Traits>::setup_local_operator(std::size_t i) const
   _logger.trace("setup local operators {}"_fmt, i);
 
   _logger.trace("create spatial local operator {}"_fmt, i);
-  FE finite_element;
+  typename Traits::BaseFEM::Traits::FiniteElement finite_element;
 
   auto local_operator =
     std::make_shared<LOP>(_grid_view, _config, finite_element, i);
@@ -280,7 +278,8 @@ ModelDiffusionReaction<Traits>::setup_grid_operators()
     auto& lop = _local_operators[op];
     auto& tlop = _temporal_local_operators[op];
 
-    MBE mbe((int)pow(3, dim));
+    // @todo fix this estimate for something more accurate
+    MBE mbe((int)Dune::power((int)3, (int)Grid::dimension));
 
     _logger.trace("create spatial grid operator {}"_fmt, op);
     _spatial_grid_operators[op] = std::make_shared<GOS>(
@@ -314,12 +313,6 @@ ModelDiffusionReaction<Traits>::setup_solvers()
     _logger.trace("create nonlinear solver"_fmt);
     _nonlinear_solvers[op] =
       std::make_shared<NLS>(*_grid_operators[op], *x, *_linear_solvers[op]);
-    _nonlinear_solvers[op]->setReassembleThreshold(0.0);
-    _nonlinear_solvers[op]->setVerbosityLevel(2);
-    _nonlinear_solvers[op]->setReduction(1e-8);
-    _nonlinear_solvers[op]->setMinLinearReduction(1e-10);
-    _nonlinear_solvers[op]->setMaxIterations(25);
-    _nonlinear_solvers[op]->setLineSearchMaxIterations(10);
 
     _logger.trace("select and prepare time-stepping scheme"_fmt);
     using AlexMethod = Dune::PDELab::Alexander2Parameter<double>;
@@ -359,6 +352,14 @@ ModelDiffusionReaction<Traits>::setup_vtk_writer()
 
 template<class Traits>
 void
+ModelDiffusionReaction<Traits>::suggest_timestep(double dt)
+{
+  // @todo do time addaptivity
+  _config["time_step"] = dt;
+}
+
+template<class Traits>
+void
 ModelDiffusionReaction<Traits>::setup(ModelSetupPolicy setup_policy)
 {
   if (setup_policy >= ModelSetupPolicy::GridFunctionSpace)
@@ -375,6 +376,37 @@ ModelDiffusionReaction<Traits>::setup(ModelSetupPolicy setup_policy)
     setup_solvers();
   if (setup_policy >= ModelSetupPolicy::Writer)
     setup_vtk_writer();
+}
+
+template<class Traits>
+void
+ModelDiffusionReaction<Traits>::step()
+{
+  double dt = _config.template get<double>("time_step");
+
+  const bool cout_redirected = Dune::Logging::Logging::isCoutRedirected();
+  if (not cout_redirected)
+    Dune::Logging::Logging::redirectCout(_solver_logger.name(),
+                                         Dune::Logging::LogLevel::detail);
+
+  // do time step
+  for (auto& [op, state] : _states) {
+    _local_operators[op]->update(const_states());
+
+    auto& x = state.coefficients;
+    auto x_new = std::make_shared<X>(*x);
+    _one_step_methods[op]->apply(current_time(), dt, *x, *x_new);
+
+    // accept time step
+    x = x_new;
+  }
+
+  if (not cout_redirected)
+    Dune::Logging::Logging::restoreCout();
+
+  current_time() += dt;
+
+  write_states();
 }
 
 template<class Traits>
@@ -403,7 +435,7 @@ ModelDiffusionReaction<Traits>::write_states() const
       collector.addSolution(data->_lfs.child(k),
                             PDELab::vtk::defaultNameScheme());
   }
-  _sequential_writer->write(current_time(), Dune::VTK::appendedraw);
+  _sequential_writer->write(current_time(), Dune::VTK::base64);
   _sequential_writer->vtkWriter()->clear();
 }
 

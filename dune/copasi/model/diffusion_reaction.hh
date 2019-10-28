@@ -27,7 +27,7 @@
 namespace Dune::Copasi {
 
 /**
- * @brief      Traits for diffusion reaction models
+ * @brief      Traits for diffusion reaction models with Pk elements
  *
  * @tparam     G         Grid
  * @tparam     GV        Grid View
@@ -40,13 +40,17 @@ template<class G,
          int FEMorder = 1,
          class OT = PDELab::EntityBlockedOrderingTag,
          JacobianMethod JM = JacobianMethod::Analytical>
-struct ModelDiffusionReactionTraits
+struct ModelPkDiffusionReactionTraits
 {
   using Grid = G;
   using GridView = GV;
+  using BaseFEM = PDELab::PkLocalFiniteElementMap<
+          typename Grid::Traits::LeafGridView,
+          typename Grid::ctype,
+          double,
+          FEMorder>;
   using OrderingTag = OT;
   static constexpr JacobianMethod jacobian_method = JM;
-  static constexpr int order = FEMorder;
 };
 
 /**
@@ -68,12 +72,6 @@ public:
   // Check templates
   static_assert(Concept::isGrid<Grid>(), "Provided an invalid grid");
 
-  //! World dimension
-  static constexpr int dim = 2;
-
-  //! Polynomial order
-  static constexpr int order = Traits::order;
-
   //! Grid view
   using GV = typename Traits::GridView;
 
@@ -84,16 +82,10 @@ public:
   using DF = typename Grid::ctype;
 
   //! Range field
-  using RF = double;
-
-  //! Finite element
-  using FE = Dune::PkLocalFiniteElement<DF, RF, dim, order>;
-
-  //! Base finite element map
-  using BaseFEM = PDELab::PkLocalFiniteElementMap<HGV, DF, RF, order>;
+  using RF = typename Traits::BaseFEM::Traits::FiniteElement::Traits::LocalBasisType::Traits::RangeFieldType;
 
   //! Finite element map
-  using FEM = MultiDomainLocalFiniteElementMap<BaseFEM, GV>;
+  using FEM = DynamicPowerLocalFiniteElementMap<typename Traits::BaseFEM>;
 
   //! Constraints builder
   using CON = PDELab::ConformingDirichletConstraints;
@@ -131,10 +123,10 @@ private:
   using CM = Dune::Copasi::ModelCoefficientMapper<ConstState>;
 
   //! Local operator
-  using LOP = LocalOperatorDiffusionReactionCG<GV, FE, CM, JM>;
+  using LOP = LocalOperatorDiffusionReactionCG<GV, typename Traits::BaseFEM::Traits::FiniteElement, CM, JM>;
 
   //! Temporal local operator
-  using TLOP = TemporalLocalOperatorDiffusionReactionCG<GV, FE, JM>;
+  using TLOP = TemporalLocalOperatorDiffusionReactionCG<GV, typename Traits::BaseFEM::Traits::FiniteElement, JM>;
 
   //! Matrix backend
   using MBE = Dune::PDELab::ISTL::BCRSMatrixBackend<>;
@@ -172,8 +164,10 @@ public:
   /**
    * @brief      Constructs the model
    *
-   * @param[in]  grid    The grid
-   * @param[in]  config  The configuration file
+   * @param[in]  grid          The grid
+   * @param[in]  config        The configuration file
+   * @param[in]  grid_view     The grid view to operate with
+   * @param[in]  setup_policy  Policy to setup model
    */
   ModelDiffusionReaction(std::shared_ptr<Grid> grid,
                          const Dune::ParameterTree& config,
@@ -182,9 +176,12 @@ public:
 
   /**
    * @brief      Constructs the model
+   * @details    This constructor only is available if the grid view
+   *             is the leaf grid view of the templated grid
    *
-   * @param[in]  grid    The grid
-   * @param[in]  config  The configuration file
+   * @param[in]  grid          The grid
+   * @param[in]  config        The configuration file
+   * @param[in]  setup_policy  Policy to setup model
    */
   template<class T = int,
            class = std::enable_if_t<
@@ -242,23 +239,22 @@ public:
   std::map<std::size_t, ConstState> states() const { return const_states(); }
 
   /**
-   * @brief      Sets the state of the model
+   * @brief      Sets the initial state of the model
    *
-   * @param[in]  input_state  The state to set in the model
-   *
-   * @tparam     T            Type of valid input states. Valid states are:
-   *                          * Arithmetic values: Set all components with the
-   *                            same value everywhere in the domain
-   *                          * Field vector: Set each component with the values
-   *                            in the field vector everywhere in the domain
-   *                          * PDELab callable: A lambda function which returns
-   *                            a field vector with the components state for
-   *                            every position in the domain
-   *                          * PDELab grid function: A function following the
-   *                            PDELab grid function interface
+   * @param[in]  model_config  A parameter tree with 'initial' and optionally 'data' subsections
    */
-  template<class T>
-  void set_state(const T& input_state);
+  void set_initial(const ParameterTree& model_config);
+
+  /**
+   * @brief      Sets the initial state of the model
+   * @details    The input vector should have the same size as the number of variables in the model. Additionally, they will be indepreted aphabetically accodingly to the name set to othe input sections (e.g. 'model.diffusion' section).
+   *
+   * @tparam     GF       A valid PDELab grid functions (see @Concepts::PDELabGridFunction)
+   * @param[in]  initial  Vector of grid functions for each variable
+   */
+  template<class GF>
+  void set_initial(std::vector<GF>& initial);
+
 
 protected:
   auto setup_component_grid_function_space(std::string) const;
