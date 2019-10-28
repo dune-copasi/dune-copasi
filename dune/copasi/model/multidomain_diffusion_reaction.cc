@@ -18,7 +18,8 @@ namespace Dune::Copasi {
 template<class Traits>
 ModelMultiDomainDiffusionReaction<Traits>::ModelMultiDomainDiffusionReaction(
   std::shared_ptr<Grid> grid,
-  const Dune::ParameterTree& config)
+  const Dune::ParameterTree& config,
+  ModelSetupPolicy setup_policy)
   : ModelBase(config)
   , _solver_logger(Logging::Logging::componentLogger(config, "solver"))
   , _config(config)
@@ -26,7 +27,7 @@ ModelMultiDomainDiffusionReaction<Traits>::ModelMultiDomainDiffusionReaction(
   , _grid(grid)
   , _domains(config.sub("compartments").getValueKeys().size())
 {
-  setup();
+  setup(setup_policy);
 
   using GridFunction = ExpressionToGridFunctionAdapter<GridView, RF>;
   using CompartementGridFunction =
@@ -39,11 +40,9 @@ ModelMultiDomainDiffusionReaction<Traits>::ModelMultiDomainDiffusionReaction(
   std::vector<std::shared_ptr<CompartementGridFunction>> comp_functions(
     _domains);
 
-  std::vector<std::shared_ptr<TIFFGrayscale<std::size_t>>> data(0);
-  std::vector<std::string> data_id(0);
-  MuParserDataHandler<TIFFGrayscale<unsigned short>> _mu_data_handler;
+  MuParserDataHandler<TIFFGrayscale<unsigned short>> mu_data_handler;
   if (_config.hasSub("data"))
-    _mu_data_handler.add_tiff_functions(_config.sub("data"));
+    mu_data_handler.add_tiff_functions(_config.sub("data"));
 
   for (auto& [op, state] : _states) {
     _logger.trace("interpolation of operator {}"_fmt, op);
@@ -70,7 +69,7 @@ ModelMultiDomainDiffusionReaction<Traits>::ModelMultiDomainDiffusionReaction(
         std::string eq = intial_config[var];
         functions[count] =
           std::make_shared<GridFunction>(_grid_view, eq, false);
-        _mu_data_handler.set_functions(functions[count]->parser());
+        mu_data_handler.set_functions(functions[count]->parser());
         functions[count]->compile_parser();
         functions[count]->set_time(current_time());
         count++;
@@ -170,11 +169,13 @@ template<class Traits>
 void
 ModelMultiDomainDiffusionReaction<Traits>::setup_constraints()
 {
-  _logger.debug("setup constraints"_fmt);
+  _logger.debug("setup base constraints"_fmt);
 
   auto b0lambda = [&](const auto& i, const auto& x) { return false; };
   auto b0 =
     Dune::PDELab::makeBoundaryConditionFromCallable(_grid_view, b0lambda);
+
+  _logger.trace("setup power constraints"_fmt);
   using B = Dune::PDELab::DynamicPowerConstraintsParameters<decltype(b0)>;
   std::vector<std::shared_ptr<decltype(b0)>> b0_vec;
   for (std::size_t i = 0; i < _domains; i++)
@@ -186,7 +187,9 @@ ModelMultiDomainDiffusionReaction<Traits>::setup_constraints()
     const auto& gfs = state.grid_function_space;
     _constraints[op] = std::make_unique<CC>();
     Dune::PDELab::constraints(b, *gfs, *_constraints[op]);
-    _logger.info("constrained dofs: {} of {}"_fmt,
+
+    _logger.info("constrained dofs in operator {}: {} of {}"_fmt,
+                op,
                  _constraints[op]->size(),
                  gfs->globalSize());
   }
@@ -246,6 +249,7 @@ ModelMultiDomainDiffusionReaction<Traits>::setup_grid_operators()
     for (std::size_t i = 0; i < gfs->degree(); i++)
       max_comps = std::max(max_comps, gfs->child(i).degree());
 
+    // @todo fix this estimate for something more accurate
     MBE mbe((int)pow(3, dim) * max_comps);
 
     _logger.trace("create spatial grid operator {}"_fmt, op);
@@ -338,7 +342,8 @@ template<class Traits>
 void
 ModelMultiDomainDiffusionReaction<Traits>::suggest_timestep(double dt)
 {
-  DUNE_THROW(NotImplemented, "not implemented");
+  // @todo do time addaptivity
+  _config["time_step"] = dt;
 }
 
 template<class Traits>
@@ -420,7 +425,7 @@ ModelMultiDomainDiffusionReaction<Traits>::step()
     op_iter++;
   } while (max_error >= 1e-14 and _states.size() > 1);
 
-  // TODO: integrate each component and calculate error after iteration
+  // @todo integrate each component and calculate error after iteration
 
   if (not cout_redirected)
     Dune::Logging::Logging::restoreCout();

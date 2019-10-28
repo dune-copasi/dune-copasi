@@ -184,7 +184,8 @@ public:
    * @param[in]  config  The configuration
    */
   ModelMultiDomainDiffusionReaction(std::shared_ptr<Grid> grid,
-                                    const Dune::ParameterTree& config);
+                                    const Dune::ParameterTree& config
+                                    ModelSetupPolicy setup_policy = ModelSetupPolicy::All);
 
   /**
    * @brief      Destroys the object.
