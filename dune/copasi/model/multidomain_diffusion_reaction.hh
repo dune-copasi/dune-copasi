@@ -32,12 +32,27 @@ template<class G,
          int FEMorder = 1,
          class OT = PDELab::EntityBlockedOrderingTag,
          JacobianMethod JM = JacobianMethod::Analytical>
-struct ModelMultiDomainDiffusionReactionTraits
+struct ModelMultiDomainPkDiffusionReactionTraits
 {
   using Grid = G;
+
+  // Check grid template
+  static_assert(Concept::isMultiDomainGrid<Grid>(),
+                "Provided grid type is not a multidomain grid");
+
+  static_assert(Concept::isSubDomainGrid<typename Grid::SubDomainGrid>());
+
   using OrderingTag = OT;
-  static constexpr int order = FEMorder;
+
   static constexpr JacobianMethod jacobian_method = JM;
+
+  using SubModelTraits =
+      ModelPkDiffusionReactionTraits<
+        Grid,
+        typename Grid::SubDomainGrid::LeafGridView,
+        FEMorder,
+        OrderingTag,
+        jacobian_method>;
 };
 
 /**
@@ -54,22 +69,9 @@ class ModelMultiDomainDiffusionReaction : public ModelBase
 
   static constexpr JacobianMethod JM = Traits::jacobian_method;
 
-  // Check grid template
-  static_assert(Concept::isMultiDomainGrid<Grid>(),
-                "Provided grid type is not a multidomain grid");
-
-  static_assert(Concept::isSubDomainGrid<typename Grid::SubDomainGrid>());
-
-  //! World dimension
-  static constexpr int dim = 2;
-  //! Polynomial order
-  static constexpr int order = Traits::order;
-
   using SubDomainGridView = typename Grid::SubDomainGrid::LeafGridView;
 
-  using SubModelTraits =
-    ModelDiffusionReactionTraits<Grid, SubDomainGridView, order, OT>;
-  using SubModel = ModelDiffusionReaction<SubModelTraits>;
+  using SubModel = ModelDiffusionReaction<typename Traits::SubModelTraits>;
 
   //! Grid view
   using GridView = typename Grid::LeafGridView;
@@ -81,14 +83,8 @@ class ModelMultiDomainDiffusionReaction : public ModelBase
   //! Range field
   using RF = double;
 
-  //! Finite element
-  using FE = Dune::PkLocalFiniteElement<DF, RF, dim, order>;
-
-  //! Base finite element map
-  using BaseFEM = PDELab::PkLocalFiniteElementMap<GV, DF, RF, order>;
-
   //! Finite element map
-  using FEM = MultiDomainLocalFiniteElementMap<BaseFEM, SubDomainGridView>;
+  using FEM = MultiDomainLocalFiniteElementMap<typename Traits::SubModelTraits::BaseFEM, SubDomainGridView>;
 
   //! Constraints builder
   using CON = PDELab::ConformingDirichletConstraints;
@@ -122,10 +118,10 @@ class ModelMultiDomainDiffusionReaction : public ModelBase
   using CM = Dune::Copasi::MultiDomainModelCoefficientMapper<ConstState>;
 
   //! Local operator
-  using LOP = LocalOperatorMultiDomainDiffusionReaction<Grid, FE, CM, JM>;
+  using LOP = LocalOperatorMultiDomainDiffusionReaction<Grid, typename Traits::SubModelTraits::BaseFEM::Traits::FiniteElement, CM, JM>;
 
   //! Temporal local operator
-  using TLOP = TemporalLocalOperatorMultiDomainDiffusionReaction<Grid, FE, JM>;
+  using TLOP = TemporalLocalOperatorMultiDomainDiffusionReaction<Grid, typename Traits::SubModelTraits::BaseFEM::Traits::FiniteElement, JM>;
 
   //! Matrix backend
   using MBE = Dune::PDELab::ISTL::BCRSMatrixBackend<>;
@@ -184,7 +180,7 @@ public:
    * @param[in]  config  The configuration
    */
   ModelMultiDomainDiffusionReaction(std::shared_ptr<Grid> grid,
-                                    const Dune::ParameterTree& config
+                                    const Dune::ParameterTree& config,
                                     ModelSetupPolicy setup_policy = ModelSetupPolicy::All);
 
   /**

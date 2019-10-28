@@ -134,7 +134,7 @@ ModelMultiDomainDiffusionReaction<Traits>::setup_grid_function_spaces()
       if (not gfs_vector[domain]) {
         typename SDGFS::NodeStorage ns(1);
         _logger.trace("create a finite element map"_fmt);
-        BaseFEM base_fem(_grid_view);
+        typename Traits::SubModelTraits::BaseFEM base_fem(_grid_view);
         SubDomainGridView sub_grid_view =
           _grid->subDomain(domain).leafGridView();
         auto finite_element_map =
@@ -203,7 +203,7 @@ ModelMultiDomainDiffusionReaction<Traits>::setup_local_operator(
   _logger.trace("setup local operators {}"_fmt, i);
 
   _logger.trace("create spatial local operator {}"_fmt, i);
-  FE finite_element;
+  typename Traits::SubModelTraits::BaseFEM::Traits::FiniteElement finite_element;
 
   auto local_operator =
     std::make_shared<LOP>(_grid, _config, finite_element, i);
@@ -250,7 +250,7 @@ ModelMultiDomainDiffusionReaction<Traits>::setup_grid_operators()
       max_comps = std::max(max_comps, gfs->child(i).degree());
 
     // @todo fix this estimate for something more accurate
-    MBE mbe((int)pow(3, dim) * max_comps);
+    MBE mbe((int)Dune::power((int)3, (int)Grid::dimension) * max_comps);
 
     _logger.trace("create spatial grid operator {}"_fmt, op);
     _spatial_grid_operators[op] = std::make_shared<GOS>(
