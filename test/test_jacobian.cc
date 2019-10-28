@@ -6,10 +6,12 @@
 #include <dune/copasi/grid/multidomain_gmsh_reader.hh>
 #include <dune/copasi/model/diffusion_reaction.cc>
 #include <dune/copasi/model/diffusion_reaction.hh>
+#include <dune/copasi/model/multidomain_diffusion_reaction.cc>
 #include <dune/copasi/model/multidomain_diffusion_reaction.hh>
 
-#include <dune/grid/io/file/gmshreader.hh>
 #include <dune/grid/multidomaingrid.hh>
+
+#include <dune/grid/uggrid.hh>
 
 #include <dune/logging/logging.hh>
 
@@ -75,7 +77,7 @@ main(int argc, char** argv)
         constexpr Dune::Copasi::JacobianMethod Jac =
           Dune::Copasi::JacobianMethod::Analytical;
         using ModelTraits = Dune::Copasi::
-          ModelMultiDomainDiffusionReactionTraits<Grid, Order, Ordering, Jac>;
+          ModelMultiDomainPkDiffusionReactionTraits<Grid, Order, Ordering, Jac>;
         Dune::Copasi::ModelMultiDomainDiffusionReaction<ModelTraits> model(
           grid_ptr, model_config);
         model.run();
@@ -83,7 +85,7 @@ main(int argc, char** argv)
         constexpr Dune::Copasi::JacobianMethod Jac =
           Dune::Copasi::JacobianMethod::Numerical;
         using ModelTraits = Dune::Copasi::
-          ModelMultiDomainDiffusionReactionTraits<Grid, Order, Ordering, Jac>;
+          ModelMultiDomainPkDiffusionReactionTraits<Grid, Order, Ordering, Jac>;
         Dune::Copasi::ModelMultiDomainDiffusionReaction<ModelTraits> model(
           grid_ptr, model_config);
         model.run();
