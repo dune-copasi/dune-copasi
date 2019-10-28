@@ -52,7 +52,8 @@ ModelDiffusionReaction<Traits>::~ModelDiffusionReaction()
 }
 
 template<class Traits>
-void ModelDiffusionReaction<Traits>::set_initial(const ParameterTree& model_config)
+void
+ModelDiffusionReaction<Traits>::set_initial(const ParameterTree& model_config)
 {
   _logger.debug("set initial state from parameter tree"_fmt);
 
@@ -77,7 +78,10 @@ void ModelDiffusionReaction<Traits>::set_initial(const ParameterTree& model_conf
     functions[i].set_time(current_time());
   }
 
-  set_initial(functions);
+  if constexpr (std::is_same_v<GV,typename Grid::Traits::LeafGridView>)
+    set_initial(functions);
+  else
+    DUNE_THROW(IOError,"Initialization of model is not valid when instantiated with a grid view 'GridView' different that the one of the templated grid 'Grid'");
 }
 
 template<class Traits>
@@ -85,7 +89,8 @@ template<class GF>
 void ModelDiffusionReaction<Traits>::set_initial(std::vector<GF>& initial)
 {
   static_assert(Concept::isPDELabGridFunction<GF>(), "GF is not a PDElab grid functions");
-  static_assert(std::is_same_v<typename GF::Traits::GridViewType,GV>, "GF has to have the same grid view as the templated grid");
+  static_assert(std::is_same_v<typename GF::Traits::GridViewType,GV>, "GF has to have the same grid view as the templated grid view");
+  static_assert(std::is_same_v<typename GF::Traits::GridViewType,typename Grid::Traits::LeafGridView>, "GF has to have the same grid view as the templated grid");
   static_assert(GF::Traits::dimDomain == Grid::dimension, "GF has to have domain dimension equal to the grid");
   static_assert(GF::Traits::dimRange == 1, "GF has to have range dimension equal to 1");
 
