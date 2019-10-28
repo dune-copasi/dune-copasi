@@ -6,6 +6,7 @@
 #include <dune/copasi/grid/multidomain_gmsh_reader.hh>
 #include <dune/copasi/model/diffusion_reaction.cc>
 #include <dune/copasi/model/diffusion_reaction.hh>
+#include <dune/copasi/model/multidomain_diffusion_reaction.cc>
 #include <dune/copasi/model/multidomain_diffusion_reaction.hh>
 
 #include <dune/grid/multidomaingrid.hh>
@@ -55,42 +56,33 @@ main(int argc, char** argv)
 
     auto grid_file = grid_config.get<std::string>("file");
 
-    auto [md_grid_ptr, host_grid_ptr] =
+    auto [grid_ptr, host_grid_ptr] =
       Dune::Copasi::MultiDomainGmshReader<Grid>::read(grid_file, config);
 
     log.debug("Applying global refinement of level: {}"_fmt, level);
-    md_grid_ptr->globalRefine(level);
+    grid_ptr->globalRefine(level);
 
     auto& model_config = config.sub("model");
     int order = model_config.get<int>("order");
 
-    auto& compartments = model_config.sub("compartments");
-    for (auto&& compartment : compartments.getValueKeys())
-    {
-      auto& compartment_config = model_config.sub(compartment);
-      // todo add time settings
-      int domain = compartments.get<int>(compartment);
-      std::shared_ptr<Grid> grid_ptr = Dune::stackobject_to_shared_ptr(md_grid_ptr->subDomain(domain));
-
-      if (order == 1) {
-        constexpr int Order = 1;
-        using ModelTraits =
-          Dune::Copasi::ModelMultiDomainDiffusionReactionTraits<Grid, Order>;
-        Dune::Copasi::ModelMultiDomainDiffusionReaction<ModelTraits> model(
-          grid_ptr, compartment_config);
-        model.run();
-      } else if (order == 2) {
-        constexpr int Order = 2;
-        using ModelTraits =
-          Dune::Copasi::ModelMultiDomainDiffusionReactionTraits<Grid, Order>;
-        Dune::Copasi::ModelMultiDomainDiffusionReaction<ModelTraits> model(
-          grid_ptr, compartment_config);
-        model.run();
-      } else {
-        DUNE_THROW(Dune::IOError,
-                  "Finite element order " << order
-                                          << " is not supported by dune-copasi");
-      }
+    if (order == 1) {
+      constexpr int Order = 1;
+      using ModelTraits =
+        Dune::Copasi::ModelMultiDomainPkDiffusionReactionTraits<Grid, Order>;
+      Dune::Copasi::ModelMultiDomainDiffusionReaction<ModelTraits> model(
+        grid_ptr, model_config);
+      model.run();
+    } else if (order == 2) {
+      constexpr int Order = 2;
+      using ModelTraits =
+        Dune::Copasi::ModelMultiDomainPkDiffusionReactionTraits<Grid, Order>;
+      Dune::Copasi::ModelMultiDomainDiffusionReaction<ModelTraits> model(
+        grid_ptr, model_config);
+      model.run();
+    } else {
+      DUNE_THROW(Dune::IOError,
+                "Finite element order " << order
+                                        << " is not supported by dune-copasi");
     }
   } catch (Dune::Exception& e) {
     std::cerr << "Dune reported error: " << e << std::endl;
