@@ -99,10 +99,20 @@ main(int argc, char** argv)
       auto compartment_config = model_config.sub(compartment);
 
       // add missing keywords for individual models
+
+      // ...time keys
       compartment_config["begin_time"] = model_config["begin_time"];
       compartment_config["end_time"] = model_config["end_time"];
       compartment_config["time_step"] = model_config["time_step"];
 
+      // ...data keys
+      if (model_config.hasSub("data"))
+      {
+        const auto& data_config = model_config.sub("data");
+        for (auto&& key : data_config.getValueKeys())
+          compartment_config["data."+key] = data_config[key];
+      }
+      
       if (order == 1) {
         constexpr int Order = 1;
         using ModelTraits =
