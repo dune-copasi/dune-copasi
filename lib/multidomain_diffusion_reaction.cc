@@ -25,12 +25,5 @@ using ModelTraits2 =
   Dune::Copasi::ModelMultiDomainDiffusionReactionTraits<Grid, 2>;
 template class ModelMultiDomainDiffusionReaction<ModelTraits2>;
 
-using Ordering = Dune::PDELab::EntityBlockedOrderingTag;
-constexpr Dune::Copasi::JacobianMethod Jac =
-  Dune::Copasi::JacobianMethod::Numerical;
-using ModelTraits1Num =
-  Dune::Copasi::ModelMultiDomainDiffusionReactionTraits<Grid, 1, Ordering, Jac>;
-template class ModelMultiDomainDiffusionReaction<ModelTraits1Num>;
-
 } // namespace Dorie
 } // namespace Dune
