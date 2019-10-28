@@ -1,6 +1,7 @@
 install(FILES   base.hh
                 multidomain_local_operator.hh
-                local_operator.hh
+                local_operator_CG.hh
+                local_operator_FV.hh
                 diffusion_reaction.cc
                 diffusion_reaction.hh
                 multidomain_diffusion_reaction.cc
