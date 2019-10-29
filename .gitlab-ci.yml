@@ -91,9 +91,9 @@ stages:
 
 .unit_tests: &unit_tests
   stage: unit_tests
-  script: 
+  script:
     - echo 'CMAKE_FLAGS+=" -DCMAKE_BUILD_TYPE=Debug"' >> /duneci/cmake-flags/dune_copasi.opts
-    - cd .. 
+    - cd ..
     - bash dune-copasi/.ci/unit_tests.sh
   artifacts:
     paths:
@@ -102,7 +102,7 @@ stages:
 
 .system_tests: &system_tests
   stage: system_tests
-  script: 
+  script:
     - cd ..
     - bash dune-copasi/.ci/system_tests.sh
   artifacts:
@@ -114,7 +114,7 @@ stages:
 .deploy: &deploy
   <<: *docker_variables
   stage: deploy
-  script: 
+  script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY/copasi/dune-copasi
     - docker build -f docker/dune-copasi.dockerfile
         --build-arg BASE_IMAGE=${DUNE_COPASI_BASE_IMAGE}
@@ -157,7 +157,7 @@ deploy:debian_gcc:
 # # ubuntu gcc
 # setup:ubuntu_gcc:
 #   <<: *ubuntu_gcc
-#   <<: *setup  
+#   <<: *setup
 
 # build:ubuntu_gcc:
 #   <<: *ubuntu_gcc
@@ -215,7 +215,7 @@ deploy:debian_clang:
 # # ubuntu clang
 # setup:ubuntu_clang:
 #   <<: *ubuntu_clang
-#   <<: *setup  
+#   <<: *setup
 
 # build:ubuntu_clang:
 #   <<: *ubuntu_clang
@@ -233,7 +233,7 @@ deploy:debian_clang:
 #   <<: *ubuntu_clang
 #   <<: *system_tests
 #   dependencies:
-#     - build:ubuntu_clang    
+#     - build:ubuntu_clang
 
 # deploy:ubuntu_clang:
 #   <<: *ubuntu_clang
