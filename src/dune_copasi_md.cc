@@ -81,8 +81,8 @@ main(int argc, char** argv)
       model.run();
     } else {
       DUNE_THROW(Dune::IOError,
-                "Finite element order " << order
-                                        << " is not supported by dune-copasi");
+                 "Finite element order " << order
+                                         << " is not supported by dune-copasi");
     }
   } catch (Dune::Exception& e) {
     std::cerr << "Dune reported error: " << e << std::endl;

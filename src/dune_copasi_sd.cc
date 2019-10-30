@@ -106,13 +106,12 @@ main(int argc, char** argv)
       compartment_config["time_step"] = model_config["time_step"];
 
       // ...data keys
-      if (model_config.hasSub("data"))
-      {
+      if (model_config.hasSub("data")) {
         const auto& data_config = model_config.sub("data");
         for (auto&& key : data_config.getValueKeys())
-          compartment_config["data."+key] = data_config[key];
+          compartment_config["data." + key] = data_config[key];
       }
-      
+
       if (order == 1) {
         constexpr int Order = 1;
         using ModelTraits =
