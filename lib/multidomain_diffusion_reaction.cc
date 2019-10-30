@@ -18,11 +18,11 @@ using MDGTraits = Dune::mdgrid::DynamicSubDomainCountTraits<dim, 1>;
 using Grid = Dune::mdgrid::MultiDomainGrid<HostGrid, MDGTraits>;
 
 using ModelTraits1 =
-  Dune::Copasi::ModelMultiDomainDiffusionReactionTraits<Grid, 1>;
+  Dune::Copasi::ModelMultiDomainPkDiffusionReactionTraits<Grid, 1>;
 template class ModelMultiDomainDiffusionReaction<ModelTraits1>;
 
 using ModelTraits2 =
-  Dune::Copasi::ModelMultiDomainDiffusionReactionTraits<Grid, 2>;
+  Dune::Copasi::ModelMultiDomainPkDiffusionReactionTraits<Grid, 2>;
 template class ModelMultiDomainDiffusionReaction<ModelTraits2>;
 
 } // namespace Dorie
