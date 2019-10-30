@@ -78,7 +78,7 @@ ModelDiffusionReaction<Traits>::set_initial(const ParameterTree& model_config)
     functions[i].set_time(current_time());
   }
 
-  if constexpr (std::is_same_v<GV, typename Grid::Traits::LeafGridView>)
+  if constexpr (not Traits::is_sub_model)
     set_initial(functions);
   else
     DUNE_THROW(
@@ -144,8 +144,15 @@ ModelDiffusionReaction<Traits>::setup_component_grid_function_space(
   std::string name) const
 {
   _logger.trace("create a finite element map"_fmt);
+
+  // @todo make factory for fem classes
   typename Traits::BaseFEM base_fem(_grid->leafGridView());
-  auto finite_element_map = std::make_shared<FEM>(base_fem);
+
+  std::shared_ptr<FEM> finite_element_map;
+  if constexpr (Traits::is_sub_model)
+    finite_element_map = std::make_shared<FEM>(_grid_view, base_fem);
+  else
+    finite_element_map = std::make_shared<FEM>(base_fem);
 
   _logger.trace("setup grid function space for component {}"_fmt, name);
   const ES entity_set(_grid->leafGridView());

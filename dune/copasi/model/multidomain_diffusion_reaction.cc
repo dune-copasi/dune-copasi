@@ -137,8 +137,11 @@ ModelMultiDomainDiffusionReaction<Traits>::setup_grid_function_spaces()
         typename Traits::SubModelTraits::BaseFEM base_fem(_grid_view);
         SubDomainGridView sub_grid_view =
           _grid->subDomain(domain).leafGridView();
+
+        // @todo make factory of this classes
+        using LeafFEM = typename Traits::SubModelTraits::FEM;
         auto finite_element_map =
-          std::make_shared<FEM>(sub_grid_view, base_fem, 0);
+          std::make_shared<LeafFEM>(sub_grid_view, base_fem, 0);
         ns[0] = std::make_shared<LGFS>(_grid_view, finite_element_map);
         ns[0]->name("empty param");
         gfs_vector[domain] = std::make_shared<SDGFS>(ns);

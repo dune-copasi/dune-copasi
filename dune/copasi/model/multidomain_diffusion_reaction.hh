@@ -82,11 +82,6 @@ class ModelMultiDomainDiffusionReaction : public ModelBase
   //! Range field
   using RF = double;
 
-  //! Finite element map
-  using FEM =
-    MultiDomainLocalFiniteElementMap<typename Traits::SubModelTraits::BaseFEM,
-                                     SubDomainGridView>;
-
   //! Constraints builder
   using CON = PDELab::ConformingDirichletConstraints;
 

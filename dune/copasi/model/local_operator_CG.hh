@@ -237,8 +237,6 @@ public:
     for (auto i : _component_pattern) {
       _logger.trace("pattern <{},{}>"_fmt, i.first, i.second);
     }
-
-    _logger.debug("LocalOperatorDiffusionReactionCG constructed"_fmt);
   }
 
   /**
@@ -756,8 +754,6 @@ public:
       _phihat.push_back(phi);
       phi.clear();
     }
-
-    _logger.debug("TemporalLocalOperatorDiffusionReactionCG constructed"_fmt);
   }
 
   /**

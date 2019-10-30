@@ -4,6 +4,7 @@
 #include <dune/copasi/common/coefficient_mapper.hh>
 #include <dune/copasi/common/enum.hh>
 #include <dune/copasi/concepts/grid.hh>
+#include <dune/copasi/finite_element/dynamic_power_local_finite_element_map.hh>
 #include <dune/copasi/finite_element/multidomain_local_finite_element_map.hh>
 #include <dune/copasi/model/base.hh>
 #include <dune/copasi/model/local_operator_CG.hh>
@@ -49,13 +50,22 @@ struct ModelPkDiffusionReactionTraits
                                     typename Grid::ctype,
                                     double,
                                     FEMorder>;
+
+  static constexpr bool is_sub_model = not std::is_same_v<typename Grid::Traits::LeafGridView,GridView>;
+
+  //! Finite element map
+  using FEM = std::conditional_t<
+                  is_sub_model,
+                  MultiDomainLocalFiniteElementMap<BaseFEM,GridView>,
+                  DynamicPowerLocalFiniteElementMap<BaseFEM>
+                >;
+
   using OrderingTag = OT;
   static constexpr JacobianMethod jacobian_method = JM;
 };
 
 /**
  * @brief      Class for diffusion-reaction models.
- * @todo       Make this class work as stand-alone again
  *
  * @tparam     Traits  Class that define static policies on the model
  */
@@ -81,12 +91,12 @@ public:
   //! Domain field
   using DF = typename Grid::ctype;
 
-  //! Range field
-  using RF = typename Traits::BaseFEM::Traits::FiniteElement::Traits::
-    LocalBasisType::Traits::RangeFieldType;
-
   //! Finite element map
-  using FEM = DynamicPowerLocalFiniteElementMap<typename Traits::BaseFEM>;
+  using FEM = typename Traits::FEM;
+
+  //! Range field
+  using RF = typename FEM::Traits::FiniteElement::Traits::
+    LocalBasisType::Traits::RangeFieldType;
 
   //! Constraints builder
   using CON = PDELab::ConformingDirichletConstraints;

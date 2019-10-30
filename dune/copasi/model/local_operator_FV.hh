@@ -18,7 +18,6 @@ class LocalOperatorDiffusionReactionFV
   , public PDELab::NumericalJacobianApplyVolume<
       LocalOperatorDiffusionReactionFV<GV, LFE, CM, JM>>
 {
-
   /**
    * @brief      The jacobian volume integral for matrix free operations
    * @details    This only switches between the actual implementation (in
