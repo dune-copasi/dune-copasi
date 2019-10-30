@@ -26,7 +26,7 @@ public:
   /**
    * @brief      Destroys the model
    */
-  ~ModelBase();
+  virtual ~ModelBase();
 
   /**
    * @brief      Sets the adaptivity policy.

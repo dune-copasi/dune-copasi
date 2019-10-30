@@ -480,8 +480,6 @@ public:
       r_o.accumulate(lfsu_do.child(component), dof, value);
     };
 
-    typename IG::Entity::Geometry::JacobianInverseTransposed jac;
-
     auto& coefficient_mapper_i = _local_operator[domain_i]->_coefficient_mapper;
     coefficient_mapper_i.bind(entity_i);
 
@@ -673,8 +671,6 @@ public:
                         dof_j,
                         value);
     };
-
-    typename IG::Entity::Geometry::JacobianInverseTransposed jac;
 
     for (const auto& it : quadratureRule(geo_f, 3)) {
       const auto& position_f = it.position();

@@ -91,7 +91,7 @@ void ModelDiffusionReaction<Traits>::set_initial(std::vector<GF>& initial)
   static_assert(Concept::isPDELabGridFunction<GF>(), "GF is not a PDElab grid functions");
   static_assert(std::is_same_v<typename GF::Traits::GridViewType,GV>, "GF has to have the same grid view as the templated grid view");
   static_assert(std::is_same_v<typename GF::Traits::GridViewType,typename Grid::Traits::LeafGridView>, "GF has to have the same grid view as the templated grid");
-  static_assert(GF::Traits::dimDomain == Grid::dimension, "GF has to have domain dimension equal to the grid");
+  static_assert((int)GF::Traits::dimDomain == (int)Grid::dimension, "GF has to have domain dimension equal to the grid");
   static_assert(GF::Traits::dimRange == 1, "GF has to have range dimension equal to 1");
 
   _logger.debug("set initial state from grid functions"_fmt);
