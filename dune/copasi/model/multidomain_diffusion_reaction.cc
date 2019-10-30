@@ -189,7 +189,7 @@ ModelMultiDomainDiffusionReaction<Traits>::setup_constraints()
     Dune::PDELab::constraints(b, *gfs, *_constraints[op]);
 
     _logger.info("constrained dofs in operator {}: {} of {}"_fmt,
-                op,
+                 op,
                  _constraints[op]->size(),
                  gfs->globalSize());
   }
@@ -203,7 +203,8 @@ ModelMultiDomainDiffusionReaction<Traits>::setup_local_operator(
   _logger.trace("setup local operators {}"_fmt, i);
 
   _logger.trace("create spatial local operator {}"_fmt, i);
-  typename Traits::SubModelTraits::BaseFEM::Traits::FiniteElement finite_element;
+  typename Traits::SubModelTraits::BaseFEM::Traits::FiniteElement
+    finite_element;
 
   auto local_operator =
     std::make_shared<LOP>(_grid, _config, finite_element, i);

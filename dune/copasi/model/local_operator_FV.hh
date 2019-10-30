@@ -141,7 +141,7 @@ class LocalOperatorDiffusionReactionFV
 
     // get center in local coordinates
     const auto ref_el = referenceElement(geo);
-    const auto position = ref_el.position(0,0);
+    const auto position = ref_el.position(0, 0);
 
     // get diffusion coefficient
     for (std::size_t k = 0; k < _lfs_components.size(); k++)
@@ -220,7 +220,7 @@ class LocalOperatorDiffusionReactionFV
 
     // get center in local coordinates
     const auto ref_el = referenceElement(geo);
-    const auto position = ref_el.position(0,0);
+    const auto position = ref_el.position(0, 0);
 
     std::fill(u.begin(), u.end(), 0.);
     std::fill(jacobian.begin(), jacobian.end(), 0.);
@@ -252,7 +252,6 @@ class LocalOperatorDiffusionReactionFV
       }
     }
   }
-
 
   /**
    * @brief      The skeleton integral
@@ -321,13 +320,13 @@ class LocalOperatorDiffusionReactionFV
 
     // get center in local coordinates
     const auto ref_el_f = referenceElement(geo);
-    const auto position_f = ref_el.position(0,0);
+    const auto position_f = ref_el.position(0, 0);
 
     // cell centers in references elements
     auto ref_el_i = referenceElement(geo_in_i);
     auto ref_el_o = referenceElement(geo_in_o);
-    auto position_i = ref_el_i.position(0,0);
-    auto position_o = ref_el_o.position(0,0);
+    auto position_i = ref_el_i.position(0, 0);
+    auto position_o = ref_el_o.position(0, 0);
 
     // cell centers in global coordinates
     auto position_g_i = geo_in_i.global(position_i);
@@ -338,15 +337,17 @@ class LocalOperatorDiffusionReactionFV
     auto distance = position_g_i.two_norm();
 
     // get diffusion coefficient
-    for (std::size_t k = 0; k < _lfs_components.size(); k++)
-    {
+    for (std::size_t k = 0; k < _lfs_components.size(); k++) {
       RF diffusion_i(0.), diffusion_o(0.);
       _diffusion_gf[k]->evaluate(entity_i, position_i, diffusion_i);
       _diffusion_gf[k]->evaluate(entity_o, position_o, diffusion_o);
-      RF diffusion = 2.0/(1.0/(diffusion_i+1E-30) + 1.0/(diffusion_o+1E-30));
-      RF gradu = coefficient_mapper_i(x_coeff_local_i, k, 0) - coefficient_mapper_o(x_coeff_local_o, k, 0);
+      RF diffusion =
+        2.0 / (1.0 / (diffusion_i + 1E-30) + 1.0 / (diffusion_o + 1E-30));
+      RF gradu = coefficient_mapper_i(x_coeff_local_i, k, 0) -
+                 coefficient_mapper_o(x_coeff_local_o, k, 0);
       gradu /= distance;
-      // contribution to residual on inside element, other residual is computed by symmetric call
+      // contribution to residual on inside element, other residual is computed
+      // by symmetric call
       accumulate_i(k, 0, diffusion * gradu * geo_f.volume());
       accumulate_o(k, 0, diffusion * gradu * geo_f.volume());
     }
@@ -390,16 +391,16 @@ class LocalOperatorDiffusionReactionFV
     if constexpr (JM == JacobianMethod::Numerical) {
       PDELab::NumericalJacobianSkeleton<
         LocalOperatorDiffusionReactionFV>::jacobian_skeleton(ig,
-                                                            lfsu_i,
-                                                            x_i,
-                                                            lfsv_i,
-                                                            lfsu_o,
-                                                            x_o,
-                                                            lfsv_o,
-                                                            mat_ii,
-                                                            mat_io,
-                                                            mat_oi,
-                                                            mat_oo);
+                                                             lfsu_i,
+                                                             x_i,
+                                                             lfsv_i,
+                                                             lfsu_o,
+                                                             x_o,
+                                                             lfsv_o,
+                                                             mat_ii,
+                                                             mat_io,
+                                                             mat_oi,
+                                                             mat_oo);
       return;
     }
 
@@ -467,13 +468,13 @@ class LocalOperatorDiffusionReactionFV
 
     // get center in local coordinates
     const auto ref_el_f = referenceElement(geo);
-    const auto position_f = ref_el.position(0,0);
+    const auto position_f = ref_el.position(0, 0);
 
     // cell centers in references elements
     auto ref_el_i = referenceElement(geo_in_i);
     auto ref_el_o = referenceElement(geo_in_o);
-    auto position_i = ref_el_i.position(0,0);
-    auto position_o = ref_el_o.position(0,0);
+    auto position_i = ref_el_i.position(0, 0);
+    auto position_o = ref_el_o.position(0, 0);
 
     // cell centers in global coordinates
     auto position_g_i = geo_in_i.global(position_i);
@@ -484,18 +485,19 @@ class LocalOperatorDiffusionReactionFV
     auto distance = position_g_i.two_norm();
 
     // get diffusion coefficient
-    for (std::size_t k = 0; k < _lfs_components.size(); k++)
-    {
+    for (std::size_t k = 0; k < _lfs_components.size(); k++) {
       RF diffusion_i(0.), diffusion_o(0.);
       _diffusion_gf[k]->evaluate(entity_i, position_i, diffusion_i);
       _diffusion_gf[k]->evaluate(entity_o, position_o, diffusion_o);
-      RF diffusion = 2.0/(1.0/(diffusion_i+1E-30) + 1.0/(diffusion_o+1E-30));
+      RF diffusion =
+        2.0 / (1.0 / (diffusion_i + 1E-30) + 1.0 / (diffusion_o + 1E-30));
 
-      // contribution to residual on inside element, other residual is computed by symmetric call
-      accumulate_ii(k, 0, k, 0,   diffusion * geo_f.volume());
-      accumulate_io(k, 0, k, 0, - diffusion * geo_f.volume());
-      accumulate_oo(k, 0, k, 0,   diffusion * geo_f.volume());
-      accumulate_oi(k, 0, k, 0, - diffusion * geo_f.volume());
+      // contribution to residual on inside element, other residual is computed
+      // by symmetric call
+      accumulate_ii(k, 0, k, 0, diffusion * geo_f.volume());
+      accumulate_io(k, 0, k, 0, -diffusion * geo_f.volume());
+      accumulate_oo(k, 0, k, 0, diffusion * geo_f.volume());
+      accumulate_oi(k, 0, k, 0, -diffusion * geo_f.volume());
     }
   }
 };

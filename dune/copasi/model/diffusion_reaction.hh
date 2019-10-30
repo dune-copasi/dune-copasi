@@ -44,11 +44,11 @@ struct ModelPkDiffusionReactionTraits
 {
   using Grid = G;
   using GridView = GV;
-  using BaseFEM = PDELab::PkLocalFiniteElementMap<
-          typename Grid::Traits::LeafGridView,
-          typename Grid::ctype,
-          double,
-          FEMorder>;
+  using BaseFEM =
+    PDELab::PkLocalFiniteElementMap<typename Grid::Traits::LeafGridView,
+                                    typename Grid::ctype,
+                                    double,
+                                    FEMorder>;
   using OrderingTag = OT;
   static constexpr JacobianMethod jacobian_method = JM;
 };
@@ -82,7 +82,8 @@ public:
   using DF = typename Grid::ctype;
 
   //! Range field
-  using RF = typename Traits::BaseFEM::Traits::FiniteElement::Traits::LocalBasisType::Traits::RangeFieldType;
+  using RF = typename Traits::BaseFEM::Traits::FiniteElement::Traits::
+    LocalBasisType::Traits::RangeFieldType;
 
   //! Finite element map
   using FEM = DynamicPowerLocalFiniteElementMap<typename Traits::BaseFEM>;
@@ -123,10 +124,17 @@ private:
   using CM = Dune::Copasi::ModelCoefficientMapper<ConstState>;
 
   //! Local operator
-  using LOP = LocalOperatorDiffusionReactionCG<GV, typename Traits::BaseFEM::Traits::FiniteElement, CM, JM>;
+  using LOP = LocalOperatorDiffusionReactionCG<
+    GV,
+    typename Traits::BaseFEM::Traits::FiniteElement,
+    CM,
+    JM>;
 
   //! Temporal local operator
-  using TLOP = TemporalLocalOperatorDiffusionReactionCG<GV, typename Traits::BaseFEM::Traits::FiniteElement, JM>;
+  using TLOP = TemporalLocalOperatorDiffusionReactionCG<
+    GV,
+    typename Traits::BaseFEM::Traits::FiniteElement,
+    JM>;
 
   //! Matrix backend
   using MBE = Dune::PDELab::ISTL::BCRSMatrixBackend<>;
@@ -241,20 +249,24 @@ public:
   /**
    * @brief      Sets the initial state of the model
    *
-   * @param[in]  model_config  A parameter tree with 'initial' and optionally 'data' subsections
+   * @param[in]  model_config  A parameter tree with 'initial' and optionally
+   * 'data' subsections
    */
   void set_initial(const ParameterTree& model_config);
 
   /**
    * @brief      Sets the initial state of the model
-   * @details    The input vector should have the same size as the number of variables in the model. Additionally, they will be indepreted aphabetically accodingly to the name set to othe input sections (e.g. 'model.diffusion' section).
+   * @details    The input vector should have the same size as the number of
+   * variables in the model. Additionally, they will be indepreted aphabetically
+   * accodingly to the name set to othe input sections (e.g. 'model.diffusion'
+   * section).
    *
-   * @tparam     GF       A valid PDELab grid functions (see @Concepts::PDELabGridFunction)
+   * @tparam     GF       A valid PDELab grid functions (see
+   * @Concepts::PDELabGridFunction)
    * @param[in]  initial  Vector of grid functions for each variable
    */
   template<class GF>
   void set_initial(std::vector<GF>& initial);
-
 
 protected:
   auto setup_component_grid_function_space(std::string) const;

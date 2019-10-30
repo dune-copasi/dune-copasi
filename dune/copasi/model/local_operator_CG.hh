@@ -134,9 +134,9 @@ public:
    * @param[in]  id_operator     The index of this operator
    */
   LocalOperatorDiffusionReactionCG(GridView grid_view,
-                                 const ParameterTree& config,
-                                 const LocalFiniteElement& finite_element,
-                                 std::size_t id_operator)
+                                   const ParameterTree& config,
+                                   const LocalFiniteElement& finite_element,
+                                   std::size_t id_operator)
     : _basis_size(finite_element.localBasis().size())
     , _components(config.sub("reaction").getValueKeys().size())
     , _rule(QuadratureRules<RF, dim>::rule(finite_element.type(), 3))
@@ -839,8 +839,12 @@ public:
                        M& mat) const
   {
     if constexpr (JM == JacobianMethod::Numerical) {
-      PDELab::NumericalJacobianVolume<TemporalLocalOperatorDiffusionReactionCG>::
-        jacobian_volume(eg, lfsu, x, lfsv, mat);
+      PDELab::NumericalJacobianVolume<
+        TemporalLocalOperatorDiffusionReactionCG>::jacobian_volume(eg,
+                                                                   lfsu,
+                                                                   x,
+                                                                   lfsv,
+                                                                   mat);
       return;
     }
 
@@ -901,11 +905,11 @@ public:
     if constexpr (JM == JacobianMethod::Numerical) {
       PDELab::NumericalJacobianApplyVolume<
         TemporalLocalOperatorDiffusionReactionCG>::jacobian_apply_volume(eg,
-                                                                       lfsu,
-                                                                       x,
-                                                                       z,
-                                                                       lfsv,
-                                                                       r);
+                                                                         lfsu,
+                                                                         x,
+                                                                         z,
+                                                                         lfsv,
+                                                                         r);
       return;
     }
     alpha_volume(eg, lfsu, z, lfsv, r);
@@ -939,10 +943,10 @@ public:
     if constexpr (JM == JacobianMethod::Numerical) {
       PDELab::NumericalJacobianApplyVolume<
         TemporalLocalOperatorDiffusionReactionCG>::jacobian_apply_volume(eg,
-                                                                       lfsu,
-                                                                       x,
-                                                                       lfsv,
-                                                                       r);
+                                                                         lfsu,
+                                                                         x,
+                                                                         lfsv,
+                                                                         r);
       return;
     }
     alpha_volume(eg, lfsu, x, lfsv, r);

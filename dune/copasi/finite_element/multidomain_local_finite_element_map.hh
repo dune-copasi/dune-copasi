@@ -31,8 +31,9 @@ class MultiDomainLocalFiniteElementMap
   using SubDomainGrid = typename GridView::Grid;
   using MultiDomainGrid = typename SubDomainGrid::MultiDomainGrid;
 
-  static_assert(Concept::isSubDomainGrid<typename GridView::Grid>(), 
-    "This class is only meant to be used for multidomain grids and its subdomains");
+  static_assert(Concept::isSubDomainGrid<typename GridView::Grid>(),
+                "This class is only meant to be used for multidomain grids and "
+                "its subdomains");
 
 public:
   /**
@@ -107,21 +108,20 @@ public:
     bool in_grid_view = true;
 
     if constexpr (std::is_same_v<EntityType, MultiDomainEntity>) {
-      in_grid_view = md_grid.leafIndexSet()
-                            .subDomains(e)
-                            .contains(sub_domain);
+      in_grid_view = md_grid.leafIndexSet().subDomains(e).contains(sub_domain);
     } else if constexpr (std::is_same_v<EntityType, SubDomainEntity>) {
       in_grid_view = md_grid.leafIndexSet()
-                            .subDomains(md_grid.multiDomainEntity(e))
-                            .contains(sub_domain);
+                       .subDomains(md_grid.multiDomainEntity(e))
+                       .contains(sub_domain);
     } else {
-      static_assert(AlwaysFalse<EntityType>::value,
-                  "Method not implemented for subdomain or other types of entites");
+      static_assert(
+        AlwaysFalse<EntityType>::value,
+        "Method not implemented for subdomain or other types of entites");
     }
 
     if (in_grid_view)
       return Base::find(e);
-    else 
+    else
       return _fe_null;
   }
 

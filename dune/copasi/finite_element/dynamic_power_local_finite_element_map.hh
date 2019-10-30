@@ -38,7 +38,7 @@ public:
    *                                  subdomain)
    */
   DynamicPowerLocalFiniteElementMap(FiniteElementMap fem,
-                                   std::size_t power_size = 1)
+                                    std::size_t power_size = 1)
     : _power_size(power_size)
     , _fem(fem)
     , _fe_cache(NULL)

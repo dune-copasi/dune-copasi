@@ -47,12 +47,11 @@ struct ModelMultiDomainPkDiffusionReactionTraits
   static constexpr JacobianMethod jacobian_method = JM;
 
   using SubModelTraits =
-      ModelPkDiffusionReactionTraits<
-        Grid,
-        typename Grid::SubDomainGrid::LeafGridView,
-        FEMorder,
-        OrderingTag,
-        jacobian_method>;
+    ModelPkDiffusionReactionTraits<Grid,
+                                   typename Grid::SubDomainGrid::LeafGridView,
+                                   FEMorder,
+                                   OrderingTag,
+                                   jacobian_method>;
 };
 
 /**
@@ -84,7 +83,9 @@ class ModelMultiDomainDiffusionReaction : public ModelBase
   using RF = double;
 
   //! Finite element map
-  using FEM = MultiDomainLocalFiniteElementMap<typename Traits::SubModelTraits::BaseFEM, SubDomainGridView>;
+  using FEM =
+    MultiDomainLocalFiniteElementMap<typename Traits::SubModelTraits::BaseFEM,
+                                     SubDomainGridView>;
 
   //! Constraints builder
   using CON = PDELab::ConformingDirichletConstraints;
@@ -118,10 +119,17 @@ class ModelMultiDomainDiffusionReaction : public ModelBase
   using CM = Dune::Copasi::MultiDomainModelCoefficientMapper<ConstState>;
 
   //! Local operator
-  using LOP = LocalOperatorMultiDomainDiffusionReaction<Grid, typename Traits::SubModelTraits::BaseFEM::Traits::FiniteElement, CM, JM>;
+  using LOP = LocalOperatorMultiDomainDiffusionReaction<
+    Grid,
+    typename Traits::SubModelTraits::BaseFEM::Traits::FiniteElement,
+    CM,
+    JM>;
 
   //! Temporal local operator
-  using TLOP = TemporalLocalOperatorMultiDomainDiffusionReaction<Grid, typename Traits::SubModelTraits::BaseFEM::Traits::FiniteElement, JM>;
+  using TLOP = TemporalLocalOperatorMultiDomainDiffusionReaction<
+    Grid,
+    typename Traits::SubModelTraits::BaseFEM::Traits::FiniteElement,
+    JM>;
 
   //! Matrix backend
   using MBE = Dune::PDELab::ISTL::BCRSMatrixBackend<>;
@@ -179,9 +187,10 @@ public:
    * @param[in]  grid    The grid
    * @param[in]  config  The configuration
    */
-  ModelMultiDomainDiffusionReaction(std::shared_ptr<Grid> grid,
-                                    const Dune::ParameterTree& config,
-                                    ModelSetupPolicy setup_policy = ModelSetupPolicy::All);
+  ModelMultiDomainDiffusionReaction(
+    std::shared_ptr<Grid> grid,
+    const Dune::ParameterTree& config,
+    ModelSetupPolicy setup_policy = ModelSetupPolicy::All);
 
   /**
    * @brief      Destroys the object.

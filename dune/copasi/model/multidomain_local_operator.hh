@@ -302,7 +302,8 @@ public:
   /**
    * @copydoc LocalOperatorDiffusionReactionCG::jacobian_apply_volume
    * @details    This particular operator does a jacobian apply volume for the
-   *             LocalOperatorDiffusionReactionCG corresponding to incoming entity
+   *             LocalOperatorDiffusionReactionCG corresponding to incoming
+   * entity
    */
   template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
   void jacobian_apply_volume(const EG& eg,
@@ -327,7 +328,8 @@ public:
   /**
    * @copydoc LocalOperatorDiffusionReactionCG::jacobian_apply_volume
    * @details    This particular operator does a jacobian apply volume for the
-   *             LocalOperatorDiffusionReactionCG corresponding to incoming entity
+   *             LocalOperatorDiffusionReactionCG corresponding to incoming
+   * entity
    */
   template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
   void jacobian_apply_volume(const EG& eg,
@@ -350,7 +352,8 @@ public:
   /**
    * @copydoc LocalOperatorDiffusionReactionCG::jacobian_volume
    * @details    This particular operator does a jacobian volume for the
-   *             LocalOperatorDiffusionReactionCG corresponding to incoming entity
+   *             LocalOperatorDiffusionReactionCG corresponding to incoming
+   * entity
    */
   template<typename EG, typename LFSU, typename X, typename LFSV, typename M>
   void jacobian_volume(const EG& eg,
@@ -373,7 +376,8 @@ public:
   /**
    * @copydoc LocalOperatorDiffusionReactionCG::alpha_volume
    * @details    This particular operator does a alpha volume for the
-   *             LocalOperatorDiffusionReactionCG corresponding to incoming entity
+   *             LocalOperatorDiffusionReactionCG corresponding to incoming
+   * entity
    */
   template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
   void alpha_volume(const EG& eg,

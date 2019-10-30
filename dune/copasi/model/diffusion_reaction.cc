@@ -7,9 +7,9 @@
  * file but a header which has to be included when compiling.
  */
 
-#include <dune/copasi/concepts/pdelab.hh>
-#include <dune/copasi/common/pdelab_expression_adapter.hh>
 #include <dune/copasi/common/muparser_data_handler.hh>
+#include <dune/copasi/common/pdelab_expression_adapter.hh>
+#include <dune/copasi/concepts/pdelab.hh>
 #include <dune/copasi/model/diffusion_reaction.hh>
 
 #include <dune/pdelab/function/callableadapter.hh>
@@ -72,32 +72,42 @@ ModelDiffusionReaction<Traits>::set_initial(const ParameterTree& model_config)
 
   for (std::size_t i = 0; i < vars.size(); i++) {
     functions.emplace_back(_grid_view, initial_config[vars[i]], false);
-    assert(functions.size() == i+1);
+    assert(functions.size() == i + 1);
     mu_data_handler.set_functions(functions[i].parser());
     functions[i].compile_parser();
     functions[i].set_time(current_time());
   }
 
-  if constexpr (std::is_same_v<GV,typename Grid::Traits::LeafGridView>)
+  if constexpr (std::is_same_v<GV, typename Grid::Traits::LeafGridView>)
     set_initial(functions);
   else
-    DUNE_THROW(IOError,"Initialization of model is not valid when instantiated with a grid view 'GridView' different that the one of the templated grid 'Grid'");
+    DUNE_THROW(
+      IOError,
+      "Initialization of model is not valid when instantiated with a grid view "
+      "'GridView' different that the one of the templated grid 'Grid'");
 }
 
 template<class Traits>
 template<class GF>
-void ModelDiffusionReaction<Traits>::set_initial(std::vector<GF>& initial)
+void
+ModelDiffusionReaction<Traits>::set_initial(std::vector<GF>& initial)
 {
-  static_assert(Concept::isPDELabGridFunction<GF>(), "GF is not a PDElab grid functions");
-  static_assert(std::is_same_v<typename GF::Traits::GridViewType,GV>, "GF has to have the same grid view as the templated grid view");
-  static_assert(std::is_same_v<typename GF::Traits::GridViewType,typename Grid::Traits::LeafGridView>, "GF has to have the same grid view as the templated grid");
-  static_assert((int)GF::Traits::dimDomain == (int)Grid::dimension, "GF has to have domain dimension equal to the grid");
-  static_assert(GF::Traits::dimRange == 1, "GF has to have range dimension equal to 1");
+  static_assert(Concept::isPDELabGridFunction<GF>(),
+                "GF is not a PDElab grid functions");
+  static_assert(std::is_same_v<typename GF::Traits::GridViewType, GV>,
+                "GF has to have the same grid view as the templated grid view");
+  static_assert(std::is_same_v<typename GF::Traits::GridViewType,
+                               typename Grid::Traits::LeafGridView>,
+                "GF has to have the same grid view as the templated grid");
+  static_assert((int)GF::Traits::dimDomain == (int)Grid::dimension,
+                "GF has to have domain dimension equal to the grid");
+  static_assert(GF::Traits::dimRange == 1,
+                "GF has to have range dimension equal to 1");
 
   _logger.debug("set initial state from grid functions"_fmt);
 
   if (initial.size() != _config.sub("diffusion").getValueKeys().size())
-    DUNE_THROW(RangeError,"Wrong number of grid functions");
+    DUNE_THROW(RangeError, "Wrong number of grid functions");
 
   for (auto& [op, state] : _states) {
     _logger.trace("interpolation of operator {}"_fmt, op);
@@ -228,7 +238,7 @@ ModelDiffusionReaction<Traits>::setup_constraints()
     Dune::PDELab::constraints(b0, *gfs, *_constraints[op]);
 
     _logger.info("constrained dofs in operator {}: {} of {}"_fmt,
-                op,
+                 op,
                  _constraints[op]->size(),
                  gfs->globalSize());
   }
