@@ -29,63 +29,27 @@ ModelMultiDomainDiffusionReaction<Traits>::ModelMultiDomainDiffusionReaction(
 {
   setup(setup_policy);
 
-  using GridFunction = ExpressionToGridFunctionAdapter<GridView, RF>;
-  using CompartementGridFunction =
-    PDELab::DynamicPowerGridFunction<GridFunction>;
-  using MultiDomainGridFunction =
-    PDELab::DynamicPowerGridFunction<CompartementGridFunction>;
+  if (setup_policy == ModelSetupPolicy::All) {
 
-  const auto& compartments = _config.sub("compartments").getValueKeys();
+    MuParserDataHandler<TIFFGrayscale<unsigned short>> mu_data_handler;
+    if (_config.hasSub("data"))
+      mu_data_handler.add_tiff_functions(_config.sub("data"));
 
-  std::vector<std::shared_ptr<CompartementGridFunction>> comp_functions(
-    _domains);
+    auto initial_muparser =
+      get_muparser_initial(_config, _grid->leafGridView(), false);
 
-  MuParserDataHandler<TIFFGrayscale<unsigned short>> mu_data_handler;
-  if (_config.hasSub("data"))
-    mu_data_handler.add_tiff_functions(_config.sub("data"));
-
-  for (auto& [op, state] : _states) {
-    _logger.trace("interpolation of operator {}"_fmt, op);
-    for (std::size_t i = 0; i < _domains; ++i) {
-      std::size_t comp_size = state.grid_function_space->child(i).degree();
-      std::vector<std::shared_ptr<GridFunction>> functions(comp_size);
-
-      const std::string compartement = compartments[i];
-      auto& intial_config = _config.sub(compartement + ".initial");
-      _logger.trace("creating grid functions for compartment: {}"_fmt,
-                    compartement);
-
-      auto& operator_config = _config.sub(compartement + ".operator");
-      auto comp_names = operator_config.getValueKeys();
-      std::sort(comp_names.begin(), comp_names.end());
-
-      std::size_t count = 0;
-      for (const auto& var : comp_names) {
-        assert(count < comp_names.size());
-        if (op != operator_config.template get<std::size_t>(var))
-          continue;
-
-        _logger.trace("creating grid function for variable: {}"_fmt, var);
-        std::string eq = intial_config[var];
-        functions[count] =
-          std::make_shared<GridFunction>(_grid_view, eq, false);
-        mu_data_handler.set_functions(functions[count]->parser());
-        functions[count]->compile_parser();
-        functions[count]->set_time(current_time());
-        count++;
+    for (auto&& sd_grid_function : initial_muparser) {
+      for (auto&& mu_grid_function : sd_grid_function) {
+        mu_data_handler.set_functions(mu_grid_function.parser());
+        mu_grid_function.compile_parser();
+        mu_grid_function.set_time(current_time());
       }
-      // the second is because of the "ghost" child for empty compartments
-      assert(count == comp_size or count == 0);
-      comp_functions[i] = std::make_shared<CompartementGridFunction>(functions);
     }
+    set_initial(initial_muparser);
 
-    MultiDomainGridFunction initial(comp_functions);
-    Dune::PDELab::interpolate(
-      initial, *state.grid_function_space, *state.coefficients);
+    update_data_handler();
+    write_states();
   }
-
-  update_data_handler();
-  write_states();
 
   _logger.debug("ModelMultiDomainDiffusionReaction constructed"_fmt);
 }
@@ -94,6 +58,95 @@ template<class Traits>
 ModelMultiDomainDiffusionReaction<Traits>::~ModelMultiDomainDiffusionReaction()
 {
   _logger.debug("ModelMultiDomainDiffusionReaction deconstructed"_fmt);
+}
+
+template<class Traits>
+template<class GFGridView>
+auto
+ModelMultiDomainDiffusionReaction<Traits>::get_muparser_initial(
+  const ParameterTree& model_config,
+  const GFGridView& gf_grid_view,
+  bool compile)
+{
+  const auto& compartments = model_config.sub("compartments").getValueKeys();
+
+  using GridFunction = ExpressionToGridFunctionAdapter<GV, RF>;
+  std::vector<std::vector<GridFunction>> functions;
+
+  for (std::size_t domain = 0; domain < compartments.size(); domain++) {
+    const std::string compartement = compartments[domain];
+    auto sub_model_config = model_config.sub(compartement);
+    auto sub_model_initial =
+      SubModel::get_muparser_initial(sub_model_config, gf_grid_view, compile);
+    functions.emplace_back(sub_model_initial);
+  }
+
+  return functions;
+}
+
+template<class Traits>
+template<class GF>
+void
+ModelMultiDomainDiffusionReaction<Traits>::set_initial(
+  const std::vector<std::vector<GF>>& initial)
+{
+  static_assert(Concept::isPDELabGridFunction<GF>(),
+                "GF is not a PDElab grid functions");
+  static_assert(std::is_same_v<typename GF::Traits::GridViewType, GV>,
+                "GF has to have the same grid view as the templated grid");
+  static_assert((int)GF::Traits::dimDomain == (int)Grid::dimension,
+                "GF has to have domain dimension equal to the grid");
+  static_assert(GF::Traits::dimRange == 1,
+                "GF has to have range dimension equal to 1");
+
+  _logger.debug("set initial state from grid functions"_fmt);
+
+  const auto& compartments_config = _config.sub("compartments");
+  if (initial.size() != compartments_config.getValueKeys().size())
+    DUNE_THROW(RangeError, "Wrong number of grid functions");
+
+  using CompartementGridFunction = PDELab::DynamicPowerGridFunction<GF>;
+  using MultiDomainGridFunction =
+    PDELab::DynamicPowerGridFunction<CompartementGridFunction>;
+
+  for (auto& [op, state] : _states) {
+    _logger.trace("interpolation of operator {}"_fmt, op);
+
+    std::vector<std::shared_ptr<CompartementGridFunction>> md_functions(
+      _domains);
+
+    for (std::size_t i = 0; i < initial.size(); ++i) {
+      std::size_t comp_size = state.grid_function_space->child(i).degree();
+      std::vector<std::shared_ptr<GF>> sd_functions(comp_size);
+
+      auto compartment = compartments_config.getValueKeys()[i];
+      auto& sub_model_config = _config.sub(compartment);
+      auto& operator_config = sub_model_config.sub("operator");
+      auto comp_names = operator_config.getValueKeys();
+      std::sort(comp_names.begin(), comp_names.end());
+
+      std::size_t count_i = 0; // index for variables in operator
+      std::size_t count_j = 0; // index for all variables
+      for (const auto& var : comp_names) {
+        assert(count_i < comp_names.size());
+        if (op != operator_config.template get<std::size_t>(var))
+          continue;
+
+        _logger.trace("creating grid function for variable: {}"_fmt, var);
+        sd_functions[count_i] = stackobject_to_shared_ptr(initial[i][count_j]));
+        sd_functions[count_i]->set_time(current_time());
+        count_i++;
+        count_j++;
+      }
+
+      md_functions[i] =
+        std::make_shared<CompartementGridFunction>(sd_functions);
+    }
+
+    MultiDomainGridFunction md_initial(md_functions);
+    Dune::PDELab::interpolate(
+      md_initial, *state.grid_function_space, *state.coefficients);
+  }
 }
 
 template<class Traits>
@@ -129,22 +182,10 @@ ModelMultiDomainDiffusionReaction<Traits>::setup_grid_function_spaces()
   for (auto& [op, gfs_vector] : gfs_operator_vec) {
     _logger.trace("setup power grid function space for operator {}"_fmt, op);
 
-    // fill empty grid function spaces pointers
     for (std::size_t domain = 0; domain < _domains; domain++) {
       if (not gfs_vector[domain]) {
-        typename SDGFS::NodeStorage ns(1);
-        _logger.trace("create a finite element map"_fmt);
-        typename Traits::SubModelTraits::BaseFEM base_fem(_grid_view);
-        SubDomainGridView sub_grid_view =
-          _grid->subDomain(domain).leafGridView();
-
-        // @todo make factory of this classes
-        using LeafFEM = typename Traits::SubModelTraits::FEM;
-        auto finite_element_map =
-          std::make_shared<LeafFEM>(sub_grid_view, base_fem, 0);
-        ns[0] = std::make_shared<LGFS>(_grid_view, finite_element_map);
-        ns[0]->name("empty param");
-        gfs_vector[domain] = std::make_shared<SDGFS>(ns);
+        DUNE_THROW(RangeError,
+                   "Operators have to have at least one variable per domain!");
       }
     }
 
@@ -515,9 +556,6 @@ ModelMultiDomainDiffusionReaction<Traits>::write_states() const
       PDELab::vtk::OutputCollector<SW, DataHandler> collector(
         *_sequential_writer[i], data);
       for (std::size_t k = 0; k < data->_lfs.child(i).degree(); k++) {
-        if (state.grid_function_space->child(i).child(k).name() ==
-            "empty param")
-          continue;
         collector.addSolution(data->_lfs.child(i).child(k),
                               PDELab::vtk::defaultNameScheme());
       }
