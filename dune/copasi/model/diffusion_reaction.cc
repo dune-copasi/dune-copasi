@@ -36,11 +36,23 @@ ModelDiffusionReaction<Traits>::ModelDiffusionReaction(
 {
   setup(setup_policy);
 
-  if (setup_policy == ModelSetupPolicy::All) {
-    if (_config.hasSub("initial"))
-      set_initial(_config);
-    write_states();
-  }
+  if constexpr (not Traits::is_sub_model) // todo fix this conditional for
+                                          // something else
+    if (setup_policy == ModelSetupPolicy::All) {
+      MuParserDataHandler<TIFFGrayscale<unsigned short>> mu_data_handler;
+      if (_config.hasSub("data"))
+        mu_data_handler.add_tiff_functions(_config.sub("data"));
+
+      auto initial_muparser = get_muparser_initial(_config, _grid_view, false);
+
+      for (auto&& mu_grid_function : initial_muparser) {
+        mu_data_handler.set_functions(mu_grid_function.parser());
+        mu_grid_function.compile_parser();
+        mu_grid_function.set_time(current_time());
+      }
+      set_initial(initial_muparser);
+      write_states();
+    }
 
   _logger.debug("ModelDiffusionReaction constructed"_fmt);
 }
@@ -52,45 +64,36 @@ ModelDiffusionReaction<Traits>::~ModelDiffusionReaction()
 }
 
 template<class Traits>
-void
-ModelDiffusionReaction<Traits>::set_initial(const ParameterTree& model_config)
+template<class GFGridView>
+auto
+ModelDiffusionReaction<Traits>::get_muparser_initial(
+  const ParameterTree& model_config,
+  const GFGridView& gf_grid_view,
+  bool compile)
 {
-  _logger.debug("set initial state from parameter tree"_fmt);
-
-  MuParserDataHandler<TIFFGrayscale<unsigned short>> mu_data_handler;
-  if (model_config.hasSub("data"))
-    mu_data_handler.add_tiff_functions(model_config.sub("data"));
-
   if (not model_config.hasSub("initial"))
     DUNE_THROW(IOError, "configuration file does not have initial section");
 
   const auto& initial_config = model_config.sub("initial");
   const auto& vars = initial_config.getValueKeys();
 
-  using GridFunction = ExpressionToGridFunctionAdapter<GV, RF>;
+  using GridFunction = ExpressionToGridFunctionAdapter<GFGridView, RF>;
   std::vector<GridFunction> functions;
 
   for (std::size_t i = 0; i < vars.size(); i++) {
-    functions.emplace_back(_grid_view, initial_config[vars[i]], false);
+    functions.emplace_back(gf_grid_view, initial_config[vars[i]], compile);
     assert(functions.size() == i + 1);
-    mu_data_handler.set_functions(functions[i].parser());
-    functions[i].compile_parser();
-    functions[i].set_time(current_time());
+    if (compile)
+      functions[i].compile_parser();
   }
 
-  if constexpr (not Traits::is_sub_model)
-    set_initial(functions);
-  else
-    DUNE_THROW(
-      IOError,
-      "Initialization of model is not valid when instantiated with a grid view "
-      "'GridView' different that the one of the templated grid 'Grid'");
+  return functions;
 }
 
 template<class Traits>
 template<class GF>
 void
-ModelDiffusionReaction<Traits>::set_initial(std::vector<GF>& initial)
+ModelDiffusionReaction<Traits>::set_initial(const std::vector<GF>& initial)
 {
   static_assert(Concept::isPDELabGridFunction<GF>(),
                 "GF is not a PDElab grid functions");
