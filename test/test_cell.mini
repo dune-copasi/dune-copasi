@@ -1,7 +1,7 @@
 
 _op_u0 = 0
-_op_u1 = 0, 1 | expand
-_op_v1 = 0, 1 | expand
+_op_u1 = 0
+_op_v1 = 0
 _name_sufix = {_op_u0}{_op_u1}{_op_v1}
 __name = test_cell_{_name_sufix}
 
