@@ -44,6 +44,12 @@ main(int argc, char** argv)
     auto log = Dune::Logging::Logging::logger(config);
     log.notice("Starting dune-copasi"_fmt);
 
+    log.debug("Input config file '{}':"_fmt, config_filename);
+
+    Dune::Logging::LoggingStream ls(false, log.indented(2));
+    if (log.level() >= Dune::Logging::LogLevel::debug)
+      config.report(ls);
+
     // create a multidomain grid
     //   here we use multidomain grids to be able to simulate
     //   each compartment individually and have similar input as in

@@ -14,6 +14,7 @@
 #include <dune/grid/uggrid.hh>
 
 #include <dune/logging/logging.hh>
+#include <dune/logging/loggingstream.hh>
 
 #include <dune/common/exceptions.hh>
 #include <dune/common/parallel/mpihelper.hh>
@@ -44,6 +45,12 @@ main(int argc, char** argv)
     using namespace Dune::Literals;
     auto log = Dune::Logging::Logging::logger(config);
     log.notice("Starting dune-copasi"_fmt);
+
+    log.debug("Input config file '{}':"_fmt, config_filename);
+
+    Dune::Logging::LoggingStream ls(false, log.indented(2));
+    if (log.level() >= Dune::Logging::LogLevel::debug)
+      config.report(ls);
 
     // create a grid
     constexpr int dim = 2;
