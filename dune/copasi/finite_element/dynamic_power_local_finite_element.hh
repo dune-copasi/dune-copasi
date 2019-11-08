@@ -75,6 +75,9 @@ public:
    *
    * @param[in]  power_size  The power size
    */
+  template<
+    bool default_constructible = std::is_default_constructible_v<LocalFiniteElement>,
+    class = std::enable_if_t<default_constructible>>
   DynamicPowerLocalFiniteElement(std::size_t power_size)
     : DynamicPowerLocalFiniteElement(LocalFiniteElement{}, power_size)
   {}

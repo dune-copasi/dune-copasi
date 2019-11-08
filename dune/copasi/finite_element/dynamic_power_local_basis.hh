@@ -51,7 +51,9 @@ public:
    * @tparam     <unnamed>   Internal use to allow default constructible base
    *                         local basis
    */
-  template<class = std::enable_if_t<std::is_default_constructible_v<Basis>>>
+  template<
+    bool default_constructible = std::is_default_constructible_v<Basis>,
+    class = std::enable_if_t<default_constructible>>
   DynamicPowerLocalBasis(std::size_t power_size)
     : DynamicPowerLocalBasis(Basis{}, power_size)
   {}
@@ -62,7 +64,9 @@ public:
    * @tparam     <unnamed>   Internal use to allow default constructible base
    *                         local basis
    */
-  template<class = std::enable_if_t<std::is_default_constructible_v<Basis>>>
+  template<
+    bool default_constructible = std::is_default_constructible_v<Basis>,
+    class = std::enable_if_t<default_constructible>>
   DynamicPowerLocalBasis()
     : DynamicPowerLocalBasis(1)
   {}

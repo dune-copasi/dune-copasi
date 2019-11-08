@@ -82,7 +82,8 @@ public:
    *                         local coefficients
    */
   template<
-    class = std::enable_if_t<std::is_default_constructible_v<Coefficients>>>
+    bool default_constructible = std::is_default_constructible_v<Coefficients>,
+    class = std::enable_if_t<default_constructible>>
   DynamicPowerLocalCoefficients(std::size_t power_size)
     : DynamicPowerLocalCoefficients(Coefficients{}, power_size)
   {}
@@ -94,7 +95,8 @@ public:
    *                         local coefficients
    */
   template<
-    class = std::enable_if_t<std::is_default_constructible_v<Coefficients>>>
+    bool default_constructible = std::is_default_constructible_v<Coefficients>,
+    class = std::enable_if_t<default_constructible>>
   DynamicPowerLocalCoefficients()
     : DynamicPowerLocalCoefficients(1)
   {}

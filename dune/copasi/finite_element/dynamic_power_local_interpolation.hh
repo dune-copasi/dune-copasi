@@ -46,7 +46,8 @@ public:
    *                         constructible base interpolations
    */
   template<
-    class = std::enable_if_t<std::is_default_constructible_v<Interpolation>>>
+    bool default_constructible = std::is_default_constructible_v<Interpolation>,
+    class = std::enable_if_t<default_constructible>>
   DynamicPowerLocalInterpolation(std::size_t power_size)
     : DynamicPowerLocalInterpolation(Interpolation{}, power_size)
   {}
@@ -58,7 +59,8 @@ public:
    *                         constructible base interpolations
    */
   template<
-    class = std::enable_if_t<std::is_default_constructible_v<Interpolation>>>
+    bool default_constructible = std::is_default_constructible_v<Interpolation>,
+    class = std::enable_if_t<default_constructible>>
   DynamicPowerLocalInterpolation()
     : DynamicPowerLocalInterpolation(1)
   {}
