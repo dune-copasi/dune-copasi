@@ -252,7 +252,7 @@ public:
    * @param[in]  initial  Vector of vecotrs of grid functions, one for each variable
    */
   template<class GF>
-  void set_initial(const std::vector<std::vector<GF>>& initial);
+  void set_initial(std::vector<std::vector<GF>>& initial);
 
   /**
    * @brief      Setup function

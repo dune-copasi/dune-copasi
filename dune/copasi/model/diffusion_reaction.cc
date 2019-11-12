@@ -47,8 +47,8 @@ ModelDiffusionReaction<Traits>::ModelDiffusionReaction(
 
       for (auto&& mu_grid_function : initial_muparser) {
         mu_data_handler.set_functions(mu_grid_function.parser());
-        mu_grid_function.compile_parser();
         mu_grid_function.set_time(current_time());
+        mu_grid_function.compile_parser();
       }
       set_initial(initial_muparser);
       write_states();
@@ -93,10 +93,8 @@ ModelDiffusionReaction<Traits>::get_muparser_initial(
 template<class Traits>
 template<class GF>
 void
-ModelDiffusionReaction<Traits>::set_initial(const std::vector<GF>& initial)
+ModelDiffusionReaction<Traits>::set_initial(std::vector<GF>& initial)
 {
-  static_assert(std::is_move_constructible_v<GF>,
-                "GF must be move constructible");
   static_assert(Concept::isPDELabGridFunction<GF>(),
                 "GF is not a PDElab grid functions");
   static_assert(std::is_same_v<typename GF::Traits::GridViewType, GV>,
@@ -131,7 +129,7 @@ ModelDiffusionReaction<Traits>::set_initial(const std::vector<GF>& initial)
         continue;
 
       _logger.trace("creating grid function for variable: {}"_fmt, var);
-      functions[count_i] = std::make_shared<GF>(std::move(initial[count_j]));
+      functions[count_i] = stackobject_to_shared_ptr<GF>(initial[count_j]);
       functions[count_i]->set_time(current_time());
       count_i++;
       count_j++;

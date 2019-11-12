@@ -88,10 +88,8 @@ template<class Traits>
 template<class GF>
 void
 ModelMultiDomainDiffusionReaction<Traits>::set_initial(
-  const std::vector<std::vector<GF>>& initial)
+  std::vector<std::vector<GF>>& initial)
 {
-  static_assert(std::is_move_constructible_v<GF>,
-                "GF must be move constructible");
   static_assert(Concept::isPDELabGridFunction<GF>(),
                 "GF is not a PDElab grid functions");
   static_assert(std::is_same_v<typename GF::Traits::GridViewType, GV>,
@@ -136,7 +134,7 @@ ModelMultiDomainDiffusionReaction<Traits>::set_initial(
 
         _logger.trace("creating grid function for variable: {}"_fmt, var);
         sd_functions[count_i] =
-          std::make_shared<GF>(std::move(initial[i][count_j]));
+          stackobject_to_shared_ptr<GF>(initial[i][count_j]);
         sd_functions[count_i]->set_time(current_time());
         count_i++;
         count_j++;

@@ -277,7 +277,7 @@ public:
    * @param[in]  initial  Vector of grid functions for each variable
    */
   template<class GF>
-  void set_initial(const std::vector<GF>& initial);
+  void set_initial(std::vector<GF>& initial);
 
 protected:
   auto setup_component_grid_function_space(std::string) const;
