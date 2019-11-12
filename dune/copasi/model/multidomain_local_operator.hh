@@ -35,7 +35,7 @@ namespace Dune::Copasi {
  */
 template<class Grid,
          class LocalFiniteElement,
-         class CM = DefaultCoefficientMapper,
+         class SubLocalOperator,
          JacobianMethod JM = JacobianMethod::Analytical>
 class LocalOperatorMultiDomainDiffusionReaction
   : public Dune::PDELab::LocalOperatorDefaultFlags
@@ -43,12 +43,12 @@ class LocalOperatorMultiDomainDiffusionReaction
   , public Dune::PDELab::NumericalJacobianSkeleton<
       LocalOperatorMultiDomainDiffusionReaction<Grid,
                                                 LocalFiniteElement,
-                                                CM,
+                                                SubLocalOperator,
                                                 JM>>
   , public Dune::PDELab::NumericalJacobianApplySkeleton<
       LocalOperatorMultiDomainDiffusionReaction<Grid,
                                                 LocalFiniteElement,
-                                                CM,
+                                                SubLocalOperator,
                                                 JM>>
 {
   static_assert(Concept::isMultiDomainGrid<Grid>());
@@ -80,8 +80,7 @@ class LocalOperatorMultiDomainDiffusionReaction
   static constexpr std::size_t unused_domain = ~std::size_t(0);
 
   using GridView = typename Grid::SubDomainGrid::LeafGridView;
-  using BaseLOP =
-    LocalOperatorDiffusionReactionCG<GridView, LocalFiniteElement, CM, JM>;
+  using SubLOP = SubLocalOperator;
 
   const IndexSet& _index_set;
 
@@ -89,7 +88,7 @@ class LocalOperatorMultiDomainDiffusionReaction
 
   const std::size_t _size;
 
-  mutable std::vector<std::shared_ptr<BaseLOP>> _local_operator;
+  mutable std::vector<std::shared_ptr<SubLOP>> _local_operator;
 
   std::vector<std::vector<std::string>> _component_name;
 
@@ -101,13 +100,13 @@ public:
   static constexpr bool doSkeletonTwoSided = true;
 
   //! pattern assembly flags
-  static constexpr bool doPatternVolume = BaseLOP::doPatternVolume;
+  static constexpr bool doPatternVolume = SubLOP::doPatternVolume;
 
   //! pattern assembly flags
   static constexpr bool doPatternSkeleton = true;
 
   //! residual assembly flags
-  static constexpr bool doAlphaVolume = BaseLOP::doAlphaVolume;
+  static constexpr bool doAlphaVolume = SubLOP::doAlphaVolume;
 
   //! residual assembly flags
   static constexpr bool doAlphaSkeleton = true;
@@ -146,7 +145,7 @@ public:
       _component_name[i] = sub_config.sub("reaction").getValueKeys();
       std::sort(_component_name[i].begin(), _component_name[i].end());
 
-      auto lp = std::make_shared<BaseLOP>(
+      auto lp = std::make_shared<SubLOP>(
         sub_grid_view, sub_config, finite_element, id_operator);
       _local_operator[i] = lp;
     }
@@ -770,6 +769,7 @@ public:
  *             switches between numerical and analytical jacobians. This local
  *             operator creates internally an individual local operator for
  *             every subdomain in the grid
+ * @todo       Add numerical jacobian methods
  *
  * @tparam     Grid                The grid
  * @tparam     LocalFiniteElement  The local finite element
@@ -777,6 +777,7 @@ public:
  */
 template<class Grid,
          class LocalFiniteElement,
+         class SubLocalOperator,
          JacobianMethod JM = JacobianMethod::Analytical>
 class TemporalLocalOperatorMultiDomainDiffusionReaction
   : public Dune::PDELab::LocalOperatorDefaultFlags
@@ -785,12 +786,11 @@ class TemporalLocalOperatorMultiDomainDiffusionReaction
   static_assert(Concept::isMultiDomainGrid<Grid>());
 
   using GridView = typename Grid::SubDomainGrid::LeafGridView;
-  using BaseLOP =
-    TemporalLocalOperatorDiffusionReactionCG<GridView, LocalFiniteElement, JM>;
+  using SubLOP = SubLocalOperator;
 
   std::size_t _size;
 
-  std::vector<std::shared_ptr<BaseLOP>> _local_operator;
+  std::vector<std::shared_ptr<SubLOP>> _local_operator;
 
 public:
   //! pattern assembly flags
@@ -825,7 +825,7 @@ public:
       GridView sub_grid_view = grid->subDomain(sub_domain_id).leafGridView();
 
       const auto& sub_config = config.sub(compartments[i]);
-      _local_operator[i] = std::make_shared<BaseLOP>(
+      _local_operator[i] = std::make_shared<SubLOP>(
         sub_grid_view, sub_config, finite_element, id_operator);
     }
   }
