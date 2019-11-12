@@ -46,9 +46,9 @@ ModelDiffusionReaction<Traits>::ModelDiffusionReaction(
       auto initial_muparser = get_muparser_initial(_config, _grid_view, false);
 
       for (auto&& mu_grid_function : initial_muparser) {
-        mu_data_handler.set_functions(mu_grid_function.parser());
-        mu_grid_function.set_time(current_time());
-        mu_grid_function.compile_parser();
+        mu_data_handler.set_functions(mu_grid_function->parser());
+        mu_grid_function->set_time(current_time());
+        mu_grid_function->compile_parser();
       }
       set_initial(initial_muparser);
       write_states();
@@ -78,13 +78,15 @@ ModelDiffusionReaction<Traits>::get_muparser_initial(
   const auto& vars = initial_config.getValueKeys();
 
   using GridFunction = ExpressionToGridFunctionAdapter<GFGridView, RF>;
-  std::vector<GridFunction> functions;
+  std::vector<std::shared_ptr<GridFunction>> functions;
 
   for (std::size_t i = 0; i < vars.size(); i++) {
-    functions.emplace_back(gf_grid_view, initial_config[vars[i]], compile);
+    auto gf = std::make_shared<GridFunction>(
+      gf_grid_view, initial_config[vars[i]], compile);
+    functions.emplace_back(gf);
     assert(functions.size() == i + 1);
     if (compile)
-      functions[i].compile_parser();
+      functions[i]->compile_parser();
   }
 
   return functions;
@@ -93,19 +95,23 @@ ModelDiffusionReaction<Traits>::get_muparser_initial(
 template<class Traits>
 template<class GF>
 void
-ModelDiffusionReaction<Traits>::set_initial(std::vector<GF>& initial)
+ModelDiffusionReaction<Traits>::set_initial(
+  const std::vector<std::shared_ptr<GF>>& initial)
 {
-  static_assert(Concept::isPDELabGridFunction<GF>(),
-                "GF is not a PDElab grid functions");
-  static_assert(std::is_same_v<typename GF::Traits::GridViewType, GV>,
-                "GF has to have the same grid view as the templated grid view");
-  static_assert(std::is_same_v<typename GF::Traits::GridViewType,
-                               typename Grid::Traits::LeafGridView>,
-                "GF has to have the same grid view as the templated grid");
-  static_assert((int)GF::Traits::dimDomain == (int)Grid::dimension,
-                "GF has to have domain dimension equal to the grid");
-  static_assert(GF::Traits::dimRange == 1,
-                "GF has to have range dimension equal to 1");
+  using GridFunction = std::decay_t<GF>;
+  static_assert(Concept::isPDELabGridFunction<GridFunction>(),
+                "GridFunction is not a PDElab grid functions");
+  static_assert(
+    std::is_same_v<typename GridFunction::Traits::GridViewType, GV>,
+    "GridFunction has to have the same grid view as the templated grid view");
+  static_assert(
+    std::is_same_v<typename GridFunction::Traits::GridViewType,
+                   typename Grid::Traits::LeafGridView>,
+    "GridFunction has to have the same grid view as the templated grid");
+  static_assert((int)GridFunction::Traits::dimDomain == (int)Grid::dimension,
+                "GridFunction has to have domain dimension equal to the grid");
+  static_assert(GridFunction::Traits::dimRange == 1,
+                "GridFunction has to have range dimension equal to 1");
 
   _logger.debug("set initial state from grid functions"_fmt);
 
@@ -115,7 +121,7 @@ ModelDiffusionReaction<Traits>::set_initial(std::vector<GF>& initial)
   for (auto& [op, state] : _states) {
     _logger.trace("interpolation of operator {}"_fmt, op);
     std::size_t comp_size = state.grid_function_space->degree();
-    std::vector<std::shared_ptr<GF>> functions(comp_size);
+    std::vector<std::shared_ptr<GridFunction>> functions(comp_size);
 
     auto& operator_config = _config.sub("operator");
     auto comp_names = operator_config.getValueKeys();
@@ -129,13 +135,13 @@ ModelDiffusionReaction<Traits>::set_initial(std::vector<GF>& initial)
         continue;
 
       _logger.trace("creating grid function for variable: {}"_fmt, var);
-      functions[count_i] = stackobject_to_shared_ptr<GF>(initial[count_j]);
+      functions[count_i] = initial[count_j];
       functions[count_i]->set_time(current_time());
       count_i++;
       count_j++;
     }
 
-    PDELab::DynamicPowerGridFunction<GF> comp_initial(functions);
+    PDELab::DynamicPowerGridFunction<GridFunction> comp_initial(functions);
     Dune::PDELab::interpolate(
       comp_initial, *state.grid_function_space, *state.coefficients);
   }

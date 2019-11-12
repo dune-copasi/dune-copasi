@@ -71,7 +71,7 @@ ModelMultiDomainDiffusionReaction<Traits>::get_muparser_initial(
   const auto& compartments = model_config.sub("compartments").getValueKeys();
 
   using GridFunction = ExpressionToGridFunctionAdapter<GV, RF>;
-  std::vector<std::vector<GridFunction>> functions;
+  std::vector<std::vector<std::shared_ptr<GridFunction>>> functions;
 
   for (std::size_t domain = 0; domain < compartments.size(); domain++) {
     const std::string compartement = compartments[domain];
@@ -88,16 +88,18 @@ template<class Traits>
 template<class GF>
 void
 ModelMultiDomainDiffusionReaction<Traits>::set_initial(
-  std::vector<std::vector<GF>>& initial)
+  const std::vector<std::vector<std::shared_ptr<GF>>>& initial)
 {
-  static_assert(Concept::isPDELabGridFunction<GF>(),
-                "GF is not a PDElab grid functions");
-  static_assert(std::is_same_v<typename GF::Traits::GridViewType, GV>,
-                "GF has to have the same grid view as the templated grid");
-  static_assert((int)GF::Traits::dimDomain == (int)Grid::dimension,
-                "GF has to have domain dimension equal to the grid");
-  static_assert(GF::Traits::dimRange == 1,
-                "GF has to have range dimension equal to 1");
+  using GridFunction = std::decay_t<GF>;
+  static_assert(Concept::isPDELabGridFunction<GridFunction>(),
+                "GridFunction is not a PDElab grid functions");
+  static_assert(
+    std::is_same_v<typename GridFunction::Traits::GridViewType, GV>,
+    "GridFunction has to have the same grid view as the templated grid");
+  static_assert((int)GridFunction::Traits::dimDomain == (int)Grid::dimension,
+                "GridFunction has to have domain dimension equal to the grid");
+  static_assert(GridFunction::Traits::dimRange == 1,
+                "GridFunction has to have range dimension equal to 1");
 
   _logger.debug("set initial state from grid functions"_fmt);
 
@@ -105,7 +107,8 @@ ModelMultiDomainDiffusionReaction<Traits>::set_initial(
   if (initial.size() != compartments_config.getValueKeys().size())
     DUNE_THROW(RangeError, "Wrong number of grid functions");
 
-  using CompartementGridFunction = PDELab::DynamicPowerGridFunction<GF>;
+  using CompartementGridFunction =
+    PDELab::DynamicPowerGridFunction<GridFunction>;
   using MultiDomainGridFunction =
     PDELab::DynamicPowerGridFunction<CompartementGridFunction>;
 
@@ -117,7 +120,7 @@ ModelMultiDomainDiffusionReaction<Traits>::set_initial(
 
     for (std::size_t i = 0; i < initial.size(); ++i) {
       std::size_t comp_size = state.grid_function_space->child(i).degree();
-      std::vector<std::shared_ptr<GF>> sd_functions(comp_size);
+      std::vector<std::shared_ptr<GridFunction>> sd_functions(comp_size);
 
       auto compartment = compartments_config.getValueKeys()[i];
       auto& sub_model_config = _config.sub(compartment);
@@ -133,8 +136,7 @@ ModelMultiDomainDiffusionReaction<Traits>::set_initial(
           continue;
 
         _logger.trace("creating grid function for variable: {}"_fmt, var);
-        sd_functions[count_i] =
-          stackobject_to_shared_ptr<GF>(initial[i][count_j]);
+        sd_functions[count_i] = initial[i][count_j];
         sd_functions[count_i]->set_time(current_time());
         count_i++;
         count_j++;

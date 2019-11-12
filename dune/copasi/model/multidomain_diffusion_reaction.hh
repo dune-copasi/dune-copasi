@@ -15,7 +15,6 @@
 
 #include <dune/common/parametertree.hh>
 
-#include <array>
 #include <memory>
 
 namespace Dune::Copasi {
@@ -117,13 +116,14 @@ class ModelMultiDomainDiffusionReaction : public ModelBase
   using LOP = LocalOperatorMultiDomainDiffusionReaction<
     Grid,
     typename Traits::SubModelTraits::BaseFEM::Traits::FiniteElement,
-    CM,
+    typename Traits::SubModelTraits::template LocalOperator<CM>,
     JM>;
 
   //! Temporal local operator
   using TLOP = TemporalLocalOperatorMultiDomainDiffusionReaction<
     Grid,
     typename Traits::SubModelTraits::BaseFEM::Traits::FiniteElement,
+    typename Traits::SubModelTraits::template TemporalLocalOperator<CM>,
     JM>;
 
   //! Matrix backend
@@ -238,12 +238,15 @@ public:
    * 'data' subsections
    */
   template<class GFGridView>
-  static auto get_muparser_initial(const ParameterTree& model_config, const GFGridView& gf_grid_view, bool compile = true);
+  static auto get_muparser_initial(const ParameterTree& model_config,
+                                   const GFGridView& gf_grid_view , bool compile = true);
 
   /**
    * @brief      Sets the initial state of the model
    * @details    The input vector of vectors should have the same size as the number of
-   * domains variables in the model, and each vector for each subdomain has to have the same size as the number of variables in the compartment. Additionally, variables will be indepreted aphabetically
+   * domains variables in the model, and each vector for each subdomain has to have the
+   * same size as the number of variables in the compartment. Additionally, variables
+   * will be indepreted aphabetically
    * accodingly to the name set to othe input sections (e.g. 'model.<compartment>.diffusion'
    * section).
    *
@@ -252,7 +255,7 @@ public:
    * @param[in]  initial  Vector of vecotrs of grid functions, one for each variable
    */
   template<class GF>
-  void set_initial(std::vector<std::vector<GF>>& initial);
+  void set_initial(const std::vector<std::vector<std::shared_ptr<GF>>>& initial);
 
   /**
    * @brief      Setup function
