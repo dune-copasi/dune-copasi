@@ -1,23 +1,113 @@
-#ifndef DUNE_COPASI_LOCAL_OPERATOR_DIFFUSION_REACTION_HH
-#define DUNE_COPASI_LOCAL_OPERATOR_DIFFUSION_REACTION_HH
+#ifndef DUNE_COPASI_LOCAL_OPERATOR_DIFFUSION_REACTION_FV_HH
+#define DUNE_COPASI_LOCAL_OPERATOR_DIFFUSION_REACTION_FV_HH
 
 #include <dune/copasi/common/coefficient_mapper.hh>
 #include <dune/copasi/common/enum.hh>
 #include <dune/copasi/common/pdelab_expression_adapter.hh>
 
+#include <dune/pdelab/localoperator/numericaljacobian.hh>
+#include <dune/pdelab/localoperator/numericaljacobianapply.hh>
+#include <dune/pdelab/localoperator/pattern.hh>
+#include <dune/pdelab/localoperator/flags.hh>
+#include <dune/pdelab/localoperator/idefault.hh>
+
 namespace Dune::Copasi {
 
+// todo add the correct patterns
 template<class GV,
+         class LBT,
          class CM = DefaultCoefficientMapper,
          JacobianMethod JM = JacobianMethod::Numerical>
 class LocalOperatorDiffusionReactionFV
   : public Dune::PDELab::LocalOperatorDefaultFlags
   , public Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>
+  , protected LocalOperatorDiffusionReactionBase<GV,LBT,CM>
   , public PDELab::NumericalJacobianVolume<
-      LocalOperatorDiffusionReactionFV<GV, LFE, CM, JM>>
+      LocalOperatorDiffusionReactionFV<GV, LBT, CM, JM>>
   , public PDELab::NumericalJacobianApplyVolume<
-      LocalOperatorDiffusionReactionFV<GV, LFE, CM, JM>>
+      LocalOperatorDiffusionReactionFV<GV, LBT, CM, JM>>
+  , public PDELab::FullSkeletonPattern
+  , public PDELab::FullVolumePattern
 {
+  using GridView = GV;
+  using LOPBase = LocalOperatorDiffusionReactionBase<GV,LBT,CM>;
+
+  using RF = typename LOPBase::RF;
+  using DF = typename LOPBase::DF;
+  using LOPBase::_component_pattern;
+  using LOPBase::_components;
+  using LOPBase::dim;
+  using LOPBase::_phihat;
+  using LOPBase::_gradhat;
+  using LOPBase::_diffusion_gf;
+  using LOPBase::_reaction_gf;
+  using LOPBase::_jacobian_gf;
+
+public:
+
+  //! pattern assembly flags
+  static constexpr bool doPatternVolume = true;
+
+  //! residual assembly flags
+  static constexpr bool doAlphaVolume = true;
+
+  //! pattern assembly flags
+  static constexpr bool doPatternSkeleton = true;
+
+  //! residual assembly flags
+  static constexpr bool doAlphaSkeleton = true;
+
+  using LOPBase::_coefficient_mapper_i;
+  using LOPBase::_coefficient_mapper_o;
+  using LOPBase::_lfs_components;
+
+  using LOPBase::update;
+
+  template<class LocalFiniteElement>
+  LocalOperatorDiffusionReactionFV(GridView grid_view,
+                                   const ParameterTree& config,
+                                   const LocalFiniteElement& finite_element,
+                                   std::size_t id_operator)
+    : LOPBase(config,id_operator,grid_view)
+  {}
+
+
+  void setTime(double t)
+  {
+    Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>::setTime(t);
+    LOPBase::setTime(t);
+  }
+
+  /**
+   * @brief      Pattern volume
+   * @details    This method links degrees of freedom between trial and test
+   *             spaces taking into account the structure of the reaction term
+   *
+   * @param[in]  lfsu          The trial local function space
+   * @param[in]  lfsv          The test local function space
+   * @param      pattern       The local pattern
+   *
+   * @tparam     LFSU          The trial local function space
+   * @tparam     LFSV          The test local function space
+   * @tparam     LocalPattern  The local pattern
+   */
+  // template<typename LFSU, typename LFSV, typename LocalPattern>
+  // void pattern_volume(const LFSU& lfsu,
+  //                     const LFSV& lfsv,
+  //                     LocalPattern& pattern) const
+  // {
+  //   auto do_link = [&](std::size_t comp_i, std::size_t comp_j) {
+  //     auto it = _component_pattern.find(std::make_pair(comp_i, comp_j));
+  //     return (it != _component_pattern.end());
+  //   };
+  //   for (std::size_t i = 0; i < lfsv.degree(); ++i)
+  //     for (std::size_t j = 0; j < lfsu.degree(); ++j)
+  //       if (do_link(i, j))
+  //         for (std::size_t k = 0; k < lfsv.child(i).size(); ++k)
+  //           for (std::size_t l = 0; l < lfsu.child(j).size(); ++l)
+  //             pattern.addLink(lfsv.child(i), k, lfsu.child(j), l);
+  // }
+
   /**
    * @brief      The jacobian volume integral for matrix free operations
    * @details    This only switches between the actual implementation (in
@@ -88,6 +178,31 @@ class LocalOperatorDiffusionReactionFV
   }
 
   /**
+   * @brief      The volume integral
+   *
+   * @param[in]  eg    The entity
+   * @param[in]  lfsu  The trial local function space
+   * @param[in]  x     The local coefficient vector
+   * @param[in]  lfsv  The test local function space
+   * @param      r     The local residual vector
+   *
+   * @tparam     EG    The entity
+   * @tparam     LFSU  The trial local function space
+   * @tparam     X     The local coefficient vector type
+   * @tparam     LFSV  The test local function space
+   * @tparam     R     The local residual vector
+   */
+  template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
+  void alpha_volume(const EG& eg,
+                    const LFSU& lfsu,
+                    const X& x,
+                    const LFSV& lfsv,
+                    R& r) const
+  {
+    _jacobian_apply_volume(eg, lfsu, x, x, lfsv, r);
+  }
+
+  /**
    * @brief      The jacobian volume integral for matrix free operations
    *
    * @param[in]  eg    The entity
@@ -130,7 +245,7 @@ class LocalOperatorDiffusionReactionFV
     // get geometry
     const auto geo = eg.geometry();
 
-    _coefficient_mapper.bind(entity);
+    _coefficient_mapper_i.bind(entity);
 
     DynamicVector<RF> u(_components);
     DynamicVector<RF> reaction(_lfs_components.size());
@@ -142,13 +257,9 @@ class LocalOperatorDiffusionReactionFV
     const auto ref_el = referenceElement(geo);
     const auto position = ref_el.position(0, 0);
 
-    // get diffusion coefficient
-    for (std::size_t k = 0; k < _lfs_components.size(); k++)
-      _diffusion_gf[k]->evaluate(entity, position, diffusion[k]);
-
     // evaluate concentrations at quadrature point
     for (std::size_t k = 0; k < _components; k++)
-      u[k] += _coefficient_mapper(x_coeff_local, k, 0);
+      u[k] += _coefficient_mapper_i(x_coeff_local, k, 0);
 
     // get reaction term
     for (std::size_t k = 0; k < _lfs_components.size(); k++) {
@@ -204,15 +315,13 @@ class LocalOperatorDiffusionReactionFV
         lfsv.child(component_i), dof_i, lfsu.child(component_j), dof_j, value);
     };
 
-    assert(lfsu_i.degree() == 0);
-
     // get entity
     const auto entity = eg.entity();
 
     // get geometry
     const auto geo = eg.geometry();
 
-    _coefficient_mapper.bind(entity);
+    _coefficient_mapper_i.bind(entity);
 
     DynamicVector<RF> u(_components);
     DynamicVector<RF> jacobian(_lfs_components.size() * _lfs_components.size());
@@ -226,7 +335,7 @@ class LocalOperatorDiffusionReactionFV
 
     // evaluate concentrations at quadrature point
     for (std::size_t k = 0; k < _components; k++)
-      u[k] += _coefficient_mapper(x_coeff_local, k, 0);
+      u[k] += _coefficient_mapper_i(x_coeff_local, k, 0);
 
     // evaluate reaction term
     for (std::size_t k = 0; k < _lfs_components.size(); k++) {
@@ -307,30 +416,32 @@ class LocalOperatorDiffusionReactionFV
     };
 
     // get cell entities from both sides of the intersection
-    const auto& entity_f = ig.intersection();
     const auto& entity_i = ig.inside();
     const auto& entity_o = ig.outside();
+    const auto& entity_f = ig.intersection();
 
-    assert(lfsu_i.degree() == 0);
+    assert(lfsu_i.degree() == 1);
+    assert(lfsu_o.degree() == 1);
 
+    auto geo_i = entity_i.geometry();
+    auto geo_o = entity_o.geometry();
     auto geo_f = entity_f.geometry();
     auto geo_in_i = entity_f.geometryInInside();
     auto geo_in_o = entity_f.geometryInOutside();
 
-    // get center in local coordinates
-    const auto ref_el_f = referenceElement(geo);
-    const auto position_f = ref_el.position(0, 0);
-
-    // cell centers in references elements
+    // cell centers in codim 1 reference element (facet)
     auto ref_el_i = referenceElement(geo_in_i);
     auto ref_el_o = referenceElement(geo_in_o);
-    auto position_i = ref_el_i.position(0, 0);
-    auto position_o = ref_el_o.position(0, 0);
+    auto position_f_i = ref_el_i.position(0, 0);
+    auto position_f_o = ref_el_o.position(0, 0);
 
-    // cell centers in global coordinates
-    auto position_g_i = geo_in_i.global(position_i);
-    auto position_g_o = geo_in_o.global(position_o);
+    // cell centers in codim 0 reference element (cube)
+    auto position_i = geo_in_i.global(position_f_i);
+    auto position_o = geo_in_o.global(position_f_o);
 
+    // cell centers in global coordinates reference element (cube)
+    auto position_g_i = geo_i.center();
+    auto position_g_o = geo_o.center();
     // distance between the two cell centers
     position_g_i -= position_g_o;
     auto distance = position_g_i.two_norm();
@@ -342,8 +453,8 @@ class LocalOperatorDiffusionReactionFV
       _diffusion_gf[k]->evaluate(entity_o, position_o, diffusion_o);
       RF diffusion =
         2.0 / (1.0 / (diffusion_i + 1E-30) + 1.0 / (diffusion_o + 1E-30));
-      RF gradu = coefficient_mapper_i(x_coeff_local_i, k, 0) -
-                 coefficient_mapper_o(x_coeff_local_o, k, 0);
+      RF gradu = _coefficient_mapper_i(x_coeff_local_i, k, 0) -
+                 _coefficient_mapper_o(x_coeff_local_o, k, 0);
       gradu /= distance;
       // contribution to residual on inside element, other residual is computed
       // by symmetric call
@@ -403,16 +514,6 @@ class LocalOperatorDiffusionReactionFV
       return;
     }
 
-    const auto& entity_f = ig.intersection();
-    const auto& entity_i = ig.inside();
-    const auto& entity_o = ig.outside();
-
-    assert(lfsu_i.degree() == 0);
-
-    auto geo_f = entity_f.geometry();
-    auto geo_in_i = entity_f.geometryInInside();
-    auto geo_in_o = entity_f.geometryInOutside();
-
     auto accumulate_ii = [&](const std::size_t& component_i,
                              const std::size_t& dof_i,
                              const std::size_t& component_j,
@@ -460,28 +561,27 @@ class LocalOperatorDiffusionReactionFV
                         dof_j,
                         value);
     };
+    // get cell entities from both sides of the intersection
+    const auto& entity_i = ig.inside();
+    const auto& entity_o = ig.outside();
+    const auto& entity_f = ig.intersection();
+
+    assert(lfsu_i.degree() == 1);
+    assert(lfsu_o.degree() == 1);
 
     auto geo_f = entity_f.geometry();
     auto geo_in_i = entity_f.geometryInInside();
     auto geo_in_o = entity_f.geometryInOutside();
 
-    // get center in local coordinates
-    const auto ref_el_f = referenceElement(geo);
-    const auto position_f = ref_el.position(0, 0);
-
-    // cell centers in references elements
+    // cell centers in codim 1 reference element (facet)
     auto ref_el_i = referenceElement(geo_in_i);
     auto ref_el_o = referenceElement(geo_in_o);
-    auto position_i = ref_el_i.position(0, 0);
-    auto position_o = ref_el_o.position(0, 0);
+    auto position_f_i = ref_el_i.position(0, 0);
+    auto position_f_o = ref_el_o.position(0, 0);
 
-    // cell centers in global coordinates
-    auto position_g_i = geo_in_i.global(position_i);
-    auto position_g_o = geo_in_o.global(position_o);
-
-    // distance between the two cell centers
-    position_g_i -= position_g_o;
-    auto distance = position_g_i.two_norm();
+    // cell centers in codim 0 reference element (cube)
+    auto position_i = geo_in_i.global(position_f_i);
+    auto position_o = geo_in_o.global(position_f_o);
 
     // get diffusion coefficient
     for (std::size_t k = 0; k < _lfs_components.size(); k++) {
@@ -503,4 +603,4 @@ class LocalOperatorDiffusionReactionFV
 
 } // namespace Dune::Copasi
 
-#endif // DUNE_COPASI_LOCAL_OPERATOR_DIFFUSION_REACTION_HH
+#endif // DUNE_COPASI_LOCAL_OPERATOR_DIFFUSION_REACTION_FV_HH

@@ -1,23 +1,20 @@
-#ifndef DUNE_COPASI_LOCAL_OPERATOR_DIFFUSION_REACTION_HH
-#define DUNE_COPASI_LOCAL_OPERATOR_DIFFUSION_REACTION_HH
+#ifndef DUNE_COPASI_LOCAL_OPERATOR_DIFFUSION_REACTION_CG_HH
+#define DUNE_COPASI_LOCAL_OPERATOR_DIFFUSION_REACTION_CG_HH
 
-#include <dune/copasi/common/coefficient_mapper.hh>
 #include <dune/copasi/common/enum.hh>
-#include <dune/copasi/common/pdelab_expression_adapter.hh>
+#include <dune/copasi/model/local_operator_base.hh>
 
-#include <dune/pdelab/common/quadraturerules.hh>
-#include <dune/pdelab/localoperator/flags.hh>
-#include <dune/pdelab/localoperator/idefault.hh>
 #include <dune/pdelab/localoperator/numericaljacobian.hh>
 #include <dune/pdelab/localoperator/numericaljacobianapply.hh>
 #include <dune/pdelab/localoperator/pattern.hh>
+#include <dune/pdelab/localoperator/flags.hh>
+#include <dune/pdelab/localoperator/idefault.hh>
+#include <dune/pdelab/common/quadraturerules.hh>
 
 #include <dune/geometry/referenceelements.hh>
 #include <dune/geometry/type.hh>
 
 #include <dune/common/fvector.hh>
-
-#include <set>
 
 namespace Dune::Copasi {
 
@@ -33,87 +30,44 @@ namespace Dune::Copasi {
  *             between numerical and analytical jacobians.
  *
  * @tparam     GV    Grid View
- * @tparam     LFE   Local Finite Element
+ * @tparam     LBT   Local basis traits
  * @tparam     CM    Coefficient Mapper
  * @tparam     JM    Jacobian Method
  */
 template<class GV,
-         class LFE,
+         class LBT,
          class CM = DefaultCoefficientMapper,
          JacobianMethod JM = JacobianMethod::Analytical>
 class LocalOperatorDiffusionReactionCG
   : public Dune::PDELab::LocalOperatorDefaultFlags
   , public Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>
+  , protected LocalOperatorDiffusionReactionBase<GV,LBT,CM>
   , public PDELab::NumericalJacobianVolume<
-      LocalOperatorDiffusionReactionCG<GV, LFE, CM, JM>>
+      LocalOperatorDiffusionReactionCG<GV, LBT, CM, JM>>
   , public PDELab::NumericalJacobianApplyVolume<
-      LocalOperatorDiffusionReactionCG<GV, LFE, CM, JM>>
+      LocalOperatorDiffusionReactionCG<GV, LBT, CM, JM>>
 {
-  //! grid view
   using GridView = GV;
 
-  //! local finite element
-  using LocalFiniteElement = LFE;
+  using LOPBase = LocalOperatorDiffusionReactionBase<GV,LBT,CM>;
 
-  //! coefficient mapper
-  using CoefficientMapper = CM;
-
-  //! local basis
-  using LocalBasis = typename LocalFiniteElement::Traits::LocalBasisType;
-
-  //! domain field
-  using DF = typename LocalBasis::Traits::DomainFieldType;
-
-  //! coordinates type
-  using Domain = typename LocalBasis::Traits::DomainType;
-
-  //! range field
-  using RF = typename LocalBasis::Traits::RangeFieldType;
-
-  //! range type (for the local finite element)
-  using Range = typename LocalBasis::Traits::RangeType;
-
-  //! jacobian tpye
-  using Jacobian = typename LocalBasis::Traits::JacobianType;
-
-  //! Adapter for dynamic expressions
-  using ExpressionAdapter = ExpressionToGridFunctionAdapter<GridView, RF>;
-
-  //! world dimension
-  static constexpr int dim = LocalBasis::Traits::dimDomain;
-
-  //! range dimension
-  static constexpr int dim_range = LocalBasis::Traits::dimRange;
-
-  // this operator only support scalar ranges
-  static_assert(dim_range == 1);
-
-  //! number of basis per component
-  const std::size_t _basis_size;
-  //! components
-  std::size_t _components;
-  //! reference to a quadrature rule
-  const QuadratureRule<RF, dim>& _rule;
-
-  //! basis functions at quadrature points
-  std::vector<std::vector<Range>> _phihat;
-  //! basis function gradients at quadrature points
-  std::vector<std::vector<Jacobian>> _gradhat;
-
-  std::vector<std::shared_ptr<ExpressionAdapter>> _diffusion_gf;
-  mutable std::vector<std::shared_ptr<ExpressionAdapter>> _reaction_gf;
-  mutable std::vector<std::shared_ptr<ExpressionAdapter>> _jacobian_gf;
-
-  Logging::Logger _logger;
-
-  std::set<std::pair<std::size_t, std::size_t>> _component_pattern;
+  using RF = typename LOPBase::RF;
+  using DF = typename LOPBase::DF;
+  using LOPBase::_component_pattern;
+  using LOPBase::_components;
+  using LOPBase::dim;
+  using LOPBase::_phihat;
+  using LOPBase::_gradhat;
+  using LOPBase::_diffusion_gf;
+  using LOPBase::_reaction_gf;
+  using LOPBase::_jacobian_gf;
 
 public:
-  //! components
-  std::vector<std::size_t> _lfs_components;
 
-  // coefficient mapper
-  mutable CoefficientMapper _coefficient_mapper;
+  using LOPBase::_coefficient_mapper_i;
+  using LOPBase::_lfs_components;
+
+  using LOPBase::update;
 
   //! pattern assembly flags
   static constexpr bool doPatternVolume = true;
@@ -133,123 +87,18 @@ public:
    * @param[in]  finite_element  The local finite element
    * @param[in]  id_operator     The index of this operator
    */
+  template<class LocalFiniteElement>
   LocalOperatorDiffusionReactionCG(GridView grid_view,
                                    const ParameterTree& config,
                                    const LocalFiniteElement& finite_element,
                                    std::size_t id_operator)
-    : _basis_size(finite_element.localBasis().size())
-    , _components(config.sub("reaction").getValueKeys().size())
-    , _rule(QuadratureRules<RF, dim>::rule(finite_element.type(), 3))
-    , _diffusion_gf(_components)
-    , _reaction_gf(_components)
-    , _jacobian_gf(_components * _components)
-    , _logger(Logging::Logging::componentLogger(config, "model"))
-    , _coefficient_mapper(config.sub("operator"), id_operator)
+    : LOPBase(config,id_operator,grid_view,finite_element,3)
+  {}
+
+  void setTime(double t)
   {
-
-    auto& config_operator = config.sub("operator");
-    auto comp_names = config_operator.getValueKeys();
-    std::sort(comp_names.begin(), comp_names.end());
-
-    for (std::size_t j = 0; j < comp_names.size(); j++) {
-      std::size_t k = config_operator.template get<std::size_t>(comp_names[j]);
-      if (k == id_operator)
-        _lfs_components.push_back(j);
-    }
-
-    assert(_components == config.sub("diffusion").getValueKeys().size());
-    assert((_components * _components) ==
-           config.sub("reaction.jacobian").getValueKeys().size());
-
-    _logger.trace("cache finite element evaluations on reference element"_fmt);
-    std::vector<Range> phi(_basis_size);
-    std::vector<Jacobian> jac(_basis_size);
-    for (const auto& point : _rule) {
-      const auto& position = point.position();
-      _logger.trace("position: {}"_fmt, position);
-
-      const auto& local_basis = finite_element.localBasis();
-      local_basis.evaluateFunction(position, phi);
-      local_basis.evaluateJacobian(position, jac);
-
-      for (std::size_t i = 0; i < _basis_size; ++i) {
-        _logger.trace(" value[{}]: {}"_fmt, i, phi[i]);
-        _logger.trace(" jacobian[{}]: {}"_fmt, i, jac[i]);
-      }
-      _phihat.push_back(phi);
-      phi.clear();
-      _gradhat.push_back(jac);
-      jac.clear();
-    }
-
-    auto diffusion_config = config.sub("diffusion");
-    auto reaction_config = config.sub("reaction");
-    auto jacobian_config = config.sub("reaction.jacobian");
-
-    auto diffusion_keys = diffusion_config.getValueKeys();
-    auto reaction_keys = reaction_config.getValueKeys();
-    auto jacobian_keys = jacobian_config.getValueKeys();
-
-    std::sort(diffusion_keys.begin(), diffusion_keys.end());
-    std::sort(reaction_keys.begin(), reaction_keys.end());
-    std::sort(jacobian_keys.begin(), jacobian_keys.end());
-
-    assert(diffusion_keys.size() == reaction_keys.size());
-    for (size_t i = 0; i < diffusion_keys.size(); i++)
-      assert(diffusion_keys[i] == reaction_keys[i]);
-
-    for (std::size_t k = 0; k < _lfs_components.size(); k++) {
-      std::string var = reaction_keys[_lfs_components[k]];
-
-      std::string d_eq = diffusion_config.template get<std::string>(var);
-      std::string r_eq = reaction_config.template get<std::string>(var);
-
-      _diffusion_gf[k] =
-        std::make_shared<ExpressionToGridFunctionAdapter<GridView, RF>>(
-          grid_view, d_eq);
-      _reaction_gf[k] =
-        std::make_shared<ExpressionToGridFunctionAdapter<GridView, RF>>(
-          grid_view, r_eq, true, reaction_keys);
-
-      for (std::size_t l = 0; l < _lfs_components.size(); l++) {
-        const auto j = _lfs_components.size() * k + l;
-        std::string j_eq =
-          jacobian_config.template get<std::string>(jacobian_keys[j]);
-
-        _jacobian_gf[j] =
-          std::make_shared<ExpressionToGridFunctionAdapter<GridView, RF>>(
-            grid_view, j_eq, true, reaction_keys);
-        if (k == l) {
-          _component_pattern.insert(std::make_pair(k, l));
-          continue;
-        }
-
-        bool do_pattern = true;
-        do_pattern &= (j_eq != "0");
-        do_pattern &= (j_eq != "0.0");
-        do_pattern &= (j_eq != ".0");
-        do_pattern &= (j_eq != "0.");
-        if (do_pattern)
-          _component_pattern.insert(std::make_pair(k, l));
-      }
-    }
-
-    for (auto i : _component_pattern) {
-      _logger.trace("pattern <{},{}>"_fmt, i.first, i.second);
-    }
-  }
-
-  /**
-   * @brief      Updates the coefficient mapper with given states.
-   *
-   * @param[in]  states  A map from operator index to states
-   *
-   * @tparam     States  Map from index to states
-   */
-  template<class States>
-  void update(const States& states)
-  {
-    _coefficient_mapper.update(states);
+    Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>::setTime(t);
+    LOPBase::setTime(t);
   }
 
   /**
@@ -280,25 +129,6 @@ public:
           for (std::size_t k = 0; k < lfsv.child(i).size(); ++k)
             for (std::size_t l = 0; l < lfsu.child(j).size(); ++l)
               pattern.addLink(lfsv.child(i), k, lfsu.child(j), l);
-  }
-
-  /**
-   * @brief      Sets the time.
-   *
-   * @param[in]  t     The new time
-   */
-  void setTime(double t)
-  {
-    Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>::setTime(t);
-    for (auto& gf : _jacobian_gf)
-      if (gf)
-        gf->set_time(t);
-    for (auto& gf : _reaction_gf)
-      if (gf)
-        gf->set_time(t);
-    for (auto& gf : _diffusion_gf)
-      if (gf)
-        gf->set_time(t);
   }
 
   /**
@@ -417,17 +247,22 @@ public:
     // get geometry
     const auto geo = eg.geometry();
 
-    _coefficient_mapper.bind(entity);
+    _coefficient_mapper_i.bind(entity);
+
+    const auto basis_size = _phihat.size();
 
     DynamicVector<RF> u(_components);
     DynamicVector<RF> diffusion(_lfs_components.size());
     DynamicVector<RF> reaction(_lfs_components.size());
-    DynamicVector<FieldVector<RF, dim>> grad(_basis_size);
+    DynamicVector<FieldVector<RF, dim>> grad(basis_size);
+
+    // TODO: check geometry type
+    const auto& rule = QuadratureRules<RF, dim>::rule(geo.type(),3);
 
     // loop over quadrature points
-    for (std::size_t q = 0; q < _rule.size(); q++) {
+    for (std::size_t q = 0; q < rule.size(); q++) {
 
-      const auto& position = _rule[q].position();
+      const auto& position = rule[q].position();
 
       std::fill(u.begin(), u.end(), 0.);
       std::fill(diffusion.begin(), diffusion.end(), 0.);
@@ -440,12 +275,12 @@ public:
 
       // get jacobian and determinant
       FieldMatrix<DF, dim, dim> S = geo.jacobianInverseTransposed(position);
-      RF factor = _rule[q].weight() * geo.integrationElement(position);
+      RF factor = rule[q].weight() * geo.integrationElement(position);
 
       // evaluate concentrations at quadrature point
       for (std::size_t k = 0; k < _components; k++)
-        for (std::size_t j = 0; j < _basis_size; j++) // ansatz func. loop
-          u[k] += _coefficient_mapper(x_coeff_local, k, j) * _phihat[q][j];
+        for (std::size_t j = 0; j < basis_size; j++) // ansatz func. loop
+          u[k] += _coefficient_mapper_i(x_coeff_local, k, j) * _phihat[q][j];
 
       // get reaction term
       for (std::size_t k = 0; k < _lfs_components.size(); k++) {
@@ -457,7 +292,7 @@ public:
       // (independent of component)
       for (std::size_t i = 0; i < dim; i++)             // rows of S
         for (std::size_t k = 0; k < dim; k++)           // columns of S
-          for (std::size_t j = 0; j < _basis_size; j++) // columns of _gradhat
+          for (std::size_t j = 0; j < basis_size; j++) // columns of _gradhat
             grad[j][i] += S[i][k] * _gradhat[q][j][0][k];
 
       // contribution for each component
@@ -465,11 +300,11 @@ public:
         // compute gradient u_h
         FieldVector<RF, dim> graduh(.0);
         for (std::size_t d = 0; d < dim; d++)           // rows of grad
-          for (std::size_t j = 0; j < _basis_size; j++) // columns of grad
+          for (std::size_t j = 0; j < basis_size; j++) // columns of grad
             graduh[d] += grad[j][d] * z_coeff_local(k, j);
 
         // scalar products
-        for (std::size_t i = 0; i < _basis_size; i++) // test func. loop
+        for (std::size_t i = 0; i < basis_size; i++) // test func. loop
         {
           typename R::value_type rhs = -reaction[k] * _phihat[q][i];
           for (std::size_t d = 0; d < dim; d++) // rows of grad
@@ -528,17 +363,21 @@ public:
     // get geometry
     const auto geo = eg.geometry();
 
-    _coefficient_mapper.bind(entity);
+    _coefficient_mapper_i.bind(entity);
+
+    const auto basis_size = _phihat.size();
 
     DynamicVector<RF> u(_components);
     DynamicVector<RF> diffusion(_lfs_components.size());
     DynamicVector<RF> jacobian(_lfs_components.size() * _lfs_components.size());
-    DynamicVector<FieldVector<RF, dim>> grad(_basis_size);
+    DynamicVector<FieldVector<RF, dim>> grad(basis_size);
+
+    const auto& rule = QuadratureRules<RF, dim>::rule(geo.type(),3);
 
     // loop over quadrature points
-    for (std::size_t q = 0; q < _rule.size(); q++) {
+    for (std::size_t q = 0; q < rule.size(); q++) {
 
-      const auto& position = _rule[q].position();
+      const auto& position = rule[q].position();
 
       std::fill(u.begin(), u.end(), 0.);
       std::fill(diffusion.begin(), diffusion.end(), 0.);
@@ -551,8 +390,8 @@ public:
 
       // evaluate concentrations at quadrature point
       for (std::size_t k = 0; k < _components; k++)
-        for (std::size_t j = 0; j < _basis_size; j++) //  ansatz func. loop
-          u[k] += _coefficient_mapper(x_coeff_local, k, j) * _phihat[q][j];
+        for (std::size_t j = 0; j < basis_size; j++) //  ansatz func. loop
+          u[k] += _coefficient_mapper_i(x_coeff_local, k, j) * _phihat[q][j];
 
       // evaluate reaction term
       for (std::size_t k = 0; k < _lfs_components.size(); k++) {
@@ -565,13 +404,13 @@ public:
 
       // get jacobian and determinant
       FieldMatrix<DF, dim, dim> S = geo.jacobianInverseTransposed(position);
-      RF factor = _rule[q].weight() * geo.integrationElement(position);
+      RF factor = rule[q].weight() * geo.integrationElement(position);
 
       // compute gradients of basis functions in transformed element
       // (independent of component)
       for (std::size_t i = 0; i < dim; i++)             // rows of S
         for (std::size_t k = 0; k < dim; k++)           // columns of S
-          for (std::size_t j = 0; j < _basis_size; j++) // columns of _gradhat
+          for (std::size_t j = 0; j < basis_size; j++) // columns of _gradhat
             grad[j][i] += S[i][k] * _gradhat[q][j][0][k];
 
       auto do_link = [&](std::size_t comp_i, std::size_t comp_j) {
@@ -585,8 +424,8 @@ public:
           if (not do_link(k, l))
             continue;
           const auto j = _lfs_components.size() * k + l;
-          for (std::size_t m = 0; m < _basis_size; m++) {
-            for (std::size_t n = 0; n < _basis_size; n++) {
+          for (std::size_t m = 0; m < basis_size; m++) {
+            for (std::size_t n = 0; n < basis_size; n++) {
               typename M::value_type jac =
                 -jacobian[j] * _phihat[q][m] * _phihat[q][n];
               if (l == k)
@@ -636,67 +475,30 @@ public:
  *             method switches between numerical and analytical jacobians.
  *
  * @tparam     GV    Grid View
- * @tparam     LFE   Local Finite Element
+ * @tparam     LBT   Local Finite Element
  * @tparam     JM    Jacobian Method
  */
-template<class GV, class LFE, JacobianMethod JM = JacobianMethod::Analytical>
+template<class GV, class LBT, JacobianMethod JM = JacobianMethod::Analytical>
 class TemporalLocalOperatorDiffusionReactionCG
   : public Dune::PDELab::LocalOperatorDefaultFlags
   , public Dune::PDELab::FullVolumePattern
   , public Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>
+  , protected LocalOperatorDiffusionReactionBase<GV,LBT>
   , public Dune::PDELab::NumericalJacobianVolume<
-      TemporalLocalOperatorDiffusionReactionCG<GV, LFE, JM>>
+      TemporalLocalOperatorDiffusionReactionCG<GV, LBT, JM>>
   , public Dune::PDELab::NumericalJacobianApplyVolume<
-      TemporalLocalOperatorDiffusionReactionCG<GV, LFE, JM>>
+      TemporalLocalOperatorDiffusionReactionCG<GV, LBT, JM>>
 {
   //! grid view
   using GridView = GV;
 
-  //! local finite element
-  using LocalFiniteElement = LFE;
+  using LOPBase = LocalOperatorDiffusionReactionBase<GV,LBT>;
 
-  //! local basis
-  using LocalBasis = typename LocalFiniteElement::Traits::LocalBasisType;
+  using RF = typename LOPBase::RF;
+  using LOPBase::_lfs_components;
+  using LOPBase::dim;
+  using LOPBase::_phihat;
 
-  //! domain field
-  using DF = typename LocalBasis::Traits::DomainFieldType;
-
-  //! coordinates type
-  using Domain = typename LocalBasis::Traits::DomainType;
-
-  //! range field
-  using RF = typename LocalBasis::Traits::RangeFieldType;
-
-  //! range type (for the local finite element)
-  using Range = typename LocalBasis::Traits::RangeType;
-
-  //! jacobian tpye
-  using Jacobian = typename LocalBasis::Traits::JacobianType;
-
-  //! world dimension
-  static constexpr int dim = LocalBasis::Traits::dimDomain;
-
-  //! range dimension
-  static constexpr int dim_range = LocalBasis::Traits::dimRange;
-
-  // this operator only support scalar ranges
-  static_assert(dim_range == 1);
-
-  //! number of basis per component
-  const std::size_t _basis_size;
-  //! components
-  std::size_t _components;
-  //! components
-  std::vector<std::size_t> _lfs_components;
-  //! reference to a quadrature rule
-  const QuadratureRule<RF, dim>& _rule;
-
-  //! basis functions at quadrature points
-  std::vector<std::vector<Range>> _phihat;
-
-  Logging::Logger _logger;
-
-  std::set<std::pair<std::size_t, std::size_t>> _component_pattern;
 
 public:
   //! pattern assembly flags
@@ -717,43 +519,19 @@ public:
    * @param[in]  finite_element  The local finite element
    * @param[in]  id_operator     The index of this operator
    */
+  template<class LocalFiniteElement>
   TemporalLocalOperatorDiffusionReactionCG(
     GridView grid_view,
     const ParameterTree& config,
     const LocalFiniteElement& finite_element,
     std::size_t id_operator)
-    : _basis_size(finite_element.size())
-    , _components(config.sub("reaction").getValueKeys().size())
-    , _rule(QuadratureRules<RF, dim>::rule(finite_element.type(), 3))
-    , _logger(Logging::Logging::componentLogger(config, "model"))
+    : LOPBase(config,id_operator,grid_view,finite_element,3)
+  {}
+
+  void setTime(double t)
   {
-    auto& config_operator = config.sub("operator");
-    auto comp_names = config_operator.getValueKeys();
-    std::sort(comp_names.begin(), comp_names.end());
-
-    for (std::size_t j = 0; j < comp_names.size(); j++) {
-      std::size_t k = config_operator.template get<std::size_t>(comp_names[j]);
-      if (k == id_operator)
-        _lfs_components.push_back(j);
-    }
-
-    assert(_components == config.sub("diffusion").getValueKeys().size());
-
-    _logger.trace("cache finite element evaluations on reference element"_fmt);
-    std::vector<Range> phi(_basis_size);
-    for (const auto& point : _rule) {
-      const auto& position = point.position();
-      _logger.trace("position: {}"_fmt, position);
-
-      const auto& local_basis = finite_element.localBasis();
-      local_basis.evaluateFunction(position, phi);
-
-      for (std::size_t i = 0; i < _basis_size; ++i)
-        _logger.trace(" value[{}]: {}"_fmt, i, phi[i]);
-
-      _phihat.push_back(phi);
-      phi.clear();
-    }
+    Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>::setTime(t);
+    LOPBase::setTime(t);
   }
 
   /**
@@ -778,9 +556,11 @@ public:
                     const LFSV& lfsv,
                     R& r) const
   {
+    const auto basis_size = _phihat[0].size();
+
     auto x_coeff_local = [&](const std::size_t& component,
                              const std::size_t& dof) {
-      return x(lfsu, component * _basis_size + dof);
+      return x(lfsu.child(component), dof);
     };
     auto accumulate = [&](const std::size_t& component,
                           const std::size_t& dof,
@@ -791,11 +571,14 @@ public:
     // get geometry
     const auto geo = eg.geometry();
 
+    // TODO: check geometry type
+    const auto& rule = QuadratureRules<RF, dim>::rule(geo.type(),3);
+
     // loop over quadrature points
-    for (std::size_t q = 0; q < _rule.size(); q++) {
-      const auto& position = _rule[q].position();
+    for (std::size_t q = 0; q < rule.size(); q++) {
+      const auto& position = rule[q].position();
       // get Jacobian and determinant
-      RF factor = _rule[q].weight() * geo.integrationElement(position);
+      RF factor = rule[q].weight() * geo.integrationElement(position);
 
       // contribution for each component
       for (std::size_t k = 0; k < _lfs_components.size();
@@ -803,10 +586,10 @@ public:
       {
         // compute value of component
         double u = 0.0;
-        for (std::size_t j = 0; j < _basis_size; j++) // ansatz func. loop
+        for (std::size_t j = 0; j < basis_size; j++) // ansatz func. loop
           u += x_coeff_local(k, j) * _phihat[q][j];
 
-        for (std::size_t i = 0; i < _basis_size; i++) // test func. loop
+        for (std::size_t i = 0; i < basis_size; i++) // test func. loop
           accumulate(k, i, u * _phihat[q][i] * factor);
       }
     }
@@ -856,17 +639,22 @@ public:
     // get geometry
     const auto geo = eg.geometry();
 
+    const auto basis_size = _phihat[0].size();
+
+    // TODO: check geometry type
+    const auto& rule = QuadratureRules<RF, dim>::rule(geo.type(),3);
+
     // loop over quadrature points
-    for (std::size_t q = 0; q < _rule.size(); q++) {
-      const auto& position = _rule[q].position();
+    for (std::size_t q = 0; q < rule.size(); q++) {
+      const auto& position = rule[q].position();
       // get Jacobian and determinant
-      RF factor = _rule[q].weight() * geo.integrationElement(position);
+      RF factor = rule[q].weight() * geo.integrationElement(position);
 
       // integrate mass matrix
       for (std::size_t k = 0; k < _lfs_components.size();
            k++) // loop over components
-        for (std::size_t i = 0; i < _basis_size; i++)
-          for (std::size_t j = 0; j < _basis_size; j++)
+        for (std::size_t i = 0; i < basis_size; i++)
+          for (std::size_t j = 0; j < basis_size; j++)
             accumulate(k, i, k, j, _phihat[q][i] * _phihat[q][j] * factor);
     }
   }
@@ -951,4 +739,4 @@ public:
 
 } // namespace Dune::Copasi
 
-#endif // DUNE_COPASI_LOCAL_OPERATOR_DIFFUSION_REACTION_HH
+#endif // DUNE_COPASI_LOCAL_OPERATOR_DIFFUSION_REACTION_CG_HH

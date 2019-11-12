@@ -149,7 +149,7 @@ ModelDiffusionReaction<Traits>::setup_component_grid_function_space(
   _logger.trace("create a finite element map"_fmt);
 
   // @todo make factory for fem classes
-  typename Traits::BaseFEM base_fem(_grid->leafGridView());
+  typename Traits::BaseFEM base_fem(GeometryTypes::cube(Grid::dimension));
 
   std::shared_ptr<FEM> finite_element_map;
   if constexpr (Traits::is_sub_model)
@@ -161,7 +161,8 @@ ModelDiffusionReaction<Traits>::setup_component_grid_function_space(
   const ES entity_set(_grid->leafGridView());
   auto comp_gfs = std::make_shared<LGFS>(entity_set, finite_element_map);
   comp_gfs->name(name);
-
+  comp_gfs->setDataSetType(
+    PDELab::GridFunctionOutputParameters::Output::cellData);
   return comp_gfs;
 }
 
@@ -261,7 +262,9 @@ ModelDiffusionReaction<Traits>::setup_local_operator(std::size_t i) const
   _logger.trace("setup local operators {}"_fmt, i);
 
   _logger.trace("create spatial local operator {}"_fmt, i);
-  typename Traits::BaseFEM::Traits::FiniteElement finite_element;
+  // @todo create a factory of this
+  typename Traits::BaseFEM::Traits::FiniteElement finite_element(
+    GeometryTypes::cube(Grid::dimension));
 
   auto local_operator =
     std::make_shared<LOP>(_grid_view, _config, finite_element, i);

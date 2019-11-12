@@ -7,12 +7,16 @@
 #include <dune/copasi/finite_element/dynamic_power_local_finite_element_map.hh>
 #include <dune/copasi/finite_element/multidomain_local_finite_element_map.hh>
 #include <dune/copasi/model/base.hh>
+#include <dune/copasi/model/local_operator_base.hh>
+#include <dune/copasi/model/local_operator_FV.hh>
 #include <dune/copasi/model/local_operator_CG.hh>
 #include <dune/copasi/model/state.hh>
 
 #include <dune/pdelab/backend/istl.hh>
 #include <dune/pdelab/constraints/conforming.hh>
+#include <dune/pdelab/constraints/p0.hh>
 #include <dune/pdelab/finiteelementmap/pkfem.hh>
+#include <dune/pdelab/finiteelementmap/p0fem.hh>
 #include <dune/pdelab/function/discretegridviewfunction.hh>
 #include <dune/pdelab/gridfunctionspace/dynamicpowergridfunctionspace.hh>
 #include <dune/pdelab/gridfunctionspace/gridfunctionspace.hh>
@@ -46,10 +50,8 @@ struct ModelPkDiffusionReactionTraits
   using Grid = G;
   using GridView = GV;
   using BaseFEM =
-    PDELab::PkLocalFiniteElementMap<typename Grid::Traits::LeafGridView,
-                                    typename Grid::ctype,
-                                    double,
-                                    FEMorder>;
+    PDELab::P0LocalFiniteElementMap<typename Grid::ctype,
+                                    double,2>;
 
   static constexpr bool is_sub_model = not std::is_same_v<typename Grid::Traits::LeafGridView,GridView>;
 
@@ -62,6 +64,22 @@ struct ModelPkDiffusionReactionTraits
 
   using OrderingTag = OT;
   static constexpr JacobianMethod jacobian_method = JM;
+
+  //! Local operator
+  template <class CoefficientMapper>
+  using LocalOperator = LocalOperatorDiffusionReactionFV<
+    GridView,
+    typename BaseFEM::Traits::FiniteElement::Traits::LocalBasisType::Traits,
+    CoefficientMapper,
+    jacobian_method>;
+
+  //! Temporal local operator
+  template <class CoefficientMapper>
+  using TemporalLocalOperator = TemporalLocalOperatorDiffusionReactionCG<
+    GridView,
+    typename BaseFEM::Traits::FiniteElement::Traits::LocalBasisType::Traits,
+    jacobian_method>;
+
 };
 
 /**
@@ -99,10 +117,10 @@ public:
     LocalBasisType::Traits::RangeFieldType;
 
   //! Constraints builder
-  using CON = PDELab::ConformingDirichletConstraints;
+  using CON = PDELab::P0ParallelConstraints;
 
   //! Entity set
-  using ES = Dune::PDELab::NonOverlappingEntitySet<HGV>;
+  using ES = Dune::PDELab::OverlappingEntitySet<HGV>;
 
   //! Leaf vector backend
   using LVBE = PDELab::ISTL::VectorBackend<>;
@@ -134,17 +152,10 @@ private:
   using CM = Dune::Copasi::ModelCoefficientMapper<ConstState>;
 
   //! Local operator
-  using LOP = LocalOperatorDiffusionReactionCG<
-    GV,
-    typename Traits::BaseFEM::Traits::FiniteElement,
-    CM,
-    JM>;
+  using LOP = typename Traits::template LocalOperator<CM>;
 
   //! Temporal local operator
-  using TLOP = TemporalLocalOperatorDiffusionReactionCG<
-    GV,
-    typename Traits::BaseFEM::Traits::FiniteElement,
-    JM>;
+  using TLOP = typename Traits::template TemporalLocalOperator<CM>;
 
   //! Matrix backend
   using MBE = Dune::PDELab::ISTL::BCRSMatrixBackend<>;
