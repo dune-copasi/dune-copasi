@@ -26,6 +26,10 @@ class LocalOperatorDiffusionReactionFV
       LocalOperatorDiffusionReactionFV<GV, LBT, CM, JM>>
   , public PDELab::NumericalJacobianApplyVolume<
       LocalOperatorDiffusionReactionFV<GV, LBT, CM, JM>>
+  , public PDELab::NumericalJacobianSkeleton<
+      LocalOperatorDiffusionReactionFV<GV, LBT, CM, JM>>
+  , public PDELab::NumericalJacobianApplySkeleton<
+      LocalOperatorDiffusionReactionFV<GV, LBT, CM, JM>>
   , public PDELab::FullSkeletonPattern
   , public PDELab::FullVolumePattern
 {
@@ -420,8 +424,8 @@ public:
     const auto& entity_o = ig.outside();
     const auto& entity_f = ig.intersection();
 
-    assert(lfsu_i.degree() == 1);
-    assert(lfsu_o.degree() == 1);
+    assert(lfsu_i.degree() == _lfs_components.size());
+    assert(lfsu_o.degree() == _lfs_components.size());
 
     auto geo_i = entity_i.geometry();
     auto geo_o = entity_o.geometry();
@@ -443,8 +447,8 @@ public:
     auto position_g_i = geo_i.center();
     auto position_g_o = geo_o.center();
     // distance between the two cell centers
-    position_g_i -= position_g_o;
-    auto distance = position_g_i.two_norm();
+    position_g_o -= position_g_i;
+    auto distance = position_g_o.two_norm();
 
     // get diffusion coefficient
     for (std::size_t k = 0; k < _lfs_components.size(); k++) {
@@ -453,13 +457,13 @@ public:
       _diffusion_gf[k]->evaluate(entity_o, position_o, diffusion_o);
       RF diffusion =
         2.0 / (1.0 / (diffusion_i + 1E-30) + 1.0 / (diffusion_o + 1E-30));
-      RF gradu = _coefficient_mapper_i(x_coeff_local_i, k, 0) -
-                 _coefficient_mapper_o(x_coeff_local_o, k, 0);
+      RF gradu = _coefficient_mapper_o(x_coeff_local_o, k, 0) -
+                 _coefficient_mapper_i(x_coeff_local_i, k, 0);
       gradu /= distance;
       // contribution to residual on inside element, other residual is computed
       // by symmetric call
-      accumulate_i(k, 0, diffusion * gradu * geo_f.volume());
-      accumulate_o(k, 0, diffusion * gradu * geo_f.volume());
+      accumulate_i(k, 0, - diffusion * gradu * geo_f.volume());
+      accumulate_o(k, 0,   diffusion * gradu * geo_f.volume());
     }
   }
 
@@ -569,6 +573,8 @@ public:
     assert(lfsu_i.degree() == 1);
     assert(lfsu_o.degree() == 1);
 
+    auto geo_i = entity_i.geometry();
+    auto geo_o = entity_o.geometry();
     auto geo_f = entity_f.geometry();
     auto geo_in_i = entity_f.geometryInInside();
     auto geo_in_o = entity_f.geometryInOutside();
@@ -583,6 +589,13 @@ public:
     auto position_i = geo_in_i.global(position_f_i);
     auto position_o = geo_in_o.global(position_f_o);
 
+    // cell centers in global coordinates reference element (cube)
+    auto position_g_i = geo_i.center();
+    auto position_g_o = geo_o.center();
+    // distance between the two cell centers
+    position_g_o -= position_g_i;
+    auto distance = position_g_o.two_norm();
+
     // get diffusion coefficient
     for (std::size_t k = 0; k < _lfs_components.size(); k++) {
       RF diffusion_i(0.), diffusion_o(0.);
@@ -593,10 +606,10 @@ public:
 
       // contribution to residual on inside element, other residual is computed
       // by symmetric call
-      accumulate_ii(k, 0, k, 0, diffusion * geo_f.volume());
-      accumulate_io(k, 0, k, 0, -diffusion * geo_f.volume());
-      accumulate_oo(k, 0, k, 0, diffusion * geo_f.volume());
-      accumulate_oi(k, 0, k, 0, -diffusion * geo_f.volume());
+      accumulate_ii(k, 0, k, 0,   diffusion * geo_f.volume() / distance);
+      accumulate_io(k, 0, k, 0, - diffusion * geo_f.volume() / distance);
+      accumulate_oo(k, 0, k, 0,   diffusion * geo_f.volume() / distance);
+      accumulate_oi(k, 0, k, 0, - diffusion * geo_f.volume() / distance);
     }
   }
 };
