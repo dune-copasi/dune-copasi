@@ -190,6 +190,17 @@ private:
   //! Sequential writer
   using SW = Dune::VTKSequenceWriter<GV>;
 
+  using DataHandler =
+    PDELab::vtk::DGFTreeCommonData<GFS,
+                                   X,
+                                   PDELab::vtk::DefaultPredicate,
+                                   GV>;
+  using ComponentLFS =
+    typename PDELab::LocalFunctionSpace<GFS>::ChildType;
+
+  using ComponentGridFunction = PDELab::vtk::
+    DGFTreeLeafFunction<ComponentLFS, DataHandler, GV>;
+
 public:
   /**
    * @brief      Constructs the model
@@ -302,6 +313,19 @@ public:
   template<class GF>
   void set_initial(const std::vector<std::shared_ptr<GF>>& initial);
 
+  auto get_data_handler(std::map<std::size_t, State> states) const;
+
+  void update_data_handler();
+
+  auto get_grid_function(const std::map<std::size_t, State>& states,
+                         std::size_t comp) const;
+
+  auto get_grid_function(std::size_t comp) const;
+
+  auto get_grid_functions(const std::map<std::size_t, State>& states) const;
+
+  auto get_grid_functions() const;
+
 protected:
   auto setup_component_grid_function_space(std::string) const;
   auto setup_domain_grid_function_space(std::vector<std::string>) const;
@@ -331,6 +355,8 @@ private:
   std::multimap<std::size_t, std::string> _operator_splitting;
 
   std::shared_ptr<Grid> _grid;
+
+  std::map<std::size_t, std::shared_ptr<DataHandler>> _data;
 
   std::map<std::size_t, std::unique_ptr<CC>> _constraints;
   std::map<std::size_t, std::shared_ptr<LOP>> _local_operators;

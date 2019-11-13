@@ -457,6 +457,74 @@ ModelDiffusionReaction<Traits>::step()
 }
 
 template<class Traits>
+auto
+ModelDiffusionReaction<Traits>::get_data_handler(
+  std::map<std::size_t, State> states) const
+{
+  std::map<std::size_t, std::shared_ptr<DataHandler>> data;
+  for (auto& [op, state] : states) {
+    data[op] = std::make_shared<DataHandler>(
+      *state.grid_function_space, *state.coefficients, _grid_view);
+  }
+  return data;
+}
+
+template<class Traits>
+void
+ModelDiffusionReaction<Traits>::update_data_handler()
+{
+  _data = get_data_handler(_states);
+}
+
+template<class Traits>
+auto
+ModelDiffusionReaction<Traits>::get_grid_function(
+  const std::map<std::size_t, State>& states,
+  std::size_t comp) const
+{
+  auto data = get_data_handler(states);
+  auto& operator_config = _config.sub("operator");
+  auto op_keys = operator_config.getValueKeys();
+  std::sort(op_keys.begin(), op_keys.end());
+  std::size_t op = operator_config.template get<std::size_t>(op_keys[comp]);
+  std::size_t gfs_comp = 0;
+
+  for (std::size_t i = 0; i < comp; i++)
+    if (op == operator_config.template get<std::size_t>(op_keys[i]))
+      gfs_comp++;
+
+  const auto& data_comp = data.at(op);
+  return std::make_shared<ComponentGridFunction>(
+    data_comp->_lfs.child(gfs_comp), data_comp);
+}
+
+template<class Traits>
+auto
+ModelDiffusionReaction<Traits>::get_grid_function(std::size_t comp) const
+{
+  return get_grid_function(_states, comp);
+}
+
+template<class Traits>
+auto
+ModelDiffusionReaction<Traits>::get_grid_functions(
+  const std::map<std::size_t, State>& states) const
+{
+  std::size_t size = _config.sub("operator").getValueKeys().size();
+  std::vector<std::shared_ptr<ComponentGridFunction>> grid_functions(size);
+  for (std::size_t i = 0; i < size; i++) {
+    grid_functions[i] = get_grid_function(states, i);
+  }
+  return grid_functions;
+}
+
+template<class Traits>
+auto
+ModelDiffusionReaction<Traits>::get_grid_functions() const
+{
+  return get_grid_functions(_states);
+}
+template<class Traits>
 void
 ModelDiffusionReaction<Traits>::write_states() const
 {
