@@ -14,7 +14,7 @@ ModelBase::ModelBase(const Dune::ParameterTree& config)
   , _adapt_policy(AdaptivityPolicy::None)
   , _begin_time(config.template get<double>("begin_time"))
   , _end_time(config.template get<double>("end_time"))
-  , _current_time(config.template get<double>("current_time", 0.))
+  , _current_time(config.template get<double>("begin_time"))
 {
   _logger.debug("ModelBase constructed"_fmt);
 }

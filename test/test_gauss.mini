@@ -1,15 +1,16 @@
-__name = test_exp
+__name = test_gauss
 
-_grow_rate = 0.2
-_initial = 1
+_diffusion = 0.01
+_t0 = 1.
+_gauss_eq = exp(-((x-0.5)^2+(y-0.5)^2)/(2.*t*{_diffusion})) / (2*pi*t*{_diffusion})
 
 [grid]
 file = grids/square_cubes.msh
-initial_level = 0
+initial_level = 4
 
 [model]
-begin_time = 0.
-end_time = 10
+begin_time = {_t0}
+end_time = 3
 time_step = 0.1
 order = 1
 
@@ -21,25 +22,25 @@ domain     = 0
 u = 0
 
 [model.domain.initial]
-u = {_initial}
+u = {_gauss_eq}
 
 [model.domain.reaction]
-u = {_grow_rate}*u
+u = 0
 
 [model.domain.reaction.jacobian]
-du_du = {_grow_rate}
+du_du = 0
 
 [model.domain.diffusion]
-u = 0.
+u = {_diffusion}
 
 [model.domain.writer]
 file_name = {__name}
 
 #### compare against a known solution
 [model.domain.compare.expression]
-u = exp({_grow_rate}*t)
+u = {_gauss_eq}
 [model.domain.compare.l2_error]
-u = 1e-3
+u = 0.55
 
 ######################### Compare with analytic vtk #########################
 [wrapper.vtkcompare]
