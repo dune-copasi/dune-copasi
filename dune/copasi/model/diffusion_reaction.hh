@@ -23,6 +23,7 @@
 #include <dune/pdelab/gridoperator/gridoperator.hh>
 #include <dune/pdelab/gridoperator/onestep.hh>
 #include <dune/pdelab/newton/newton.hh>
+#include <dune/pdelab/gridfunctionspace/vtk.hh>
 
 #include <dune/grid/io/file/vtk/vtksequencewriter.hh>
 #include <dune/grid/io/file/vtk/vtkwriter.hh>
@@ -246,7 +247,12 @@ public:
    *
    * @return     Model states
    */
-  std::map<std::size_t, State> states() { return _states; }
+  std::map<std::size_t, State> states()
+  {
+    for (auto& [op, state] : _states)
+      state.time = current_time();
+    return _states;
+  }
 
   /**
    * @brief      Get constat model states
@@ -277,6 +283,11 @@ public:
   static auto get_muparser_initial(const ParameterTree& model_config,
                                    const GFGridView& gf_grid_view, bool compile = true);
 
+
+  template<class GFGridView>
+  static auto get_muparser_expressions(const ParameterTree& expresssions_config,
+                                       const std::string& sub_section,
+                                       const GFGridView& gf_grid_view, bool compile = true);
   /**
    * @brief      Sets the initial state of the model
    * @details    The input vector should have the same size as the number of
