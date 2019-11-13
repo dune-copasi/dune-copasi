@@ -25,6 +25,11 @@ dune_add_test(NAME            test_tiff_grayscale
               LINK_LIBRARIES  TIFF::TIFF
               LABELS          unit)
 
+add_custom_target(build_system_tests DEPENDS dune_copasi)
+add_executable(dune_copasi_sd_compare EXCLUDE_FROM_ALL dune_copasi_sd_compare.cc)
+target_link_libraries(dune_copasi_sd_compare PRIVATE dune_copasi_sd_lib)
+add_dependencies(build_system_tests dune_copasi_sd_compare)
+
 if (dune-testtools_FOUND)
 
   add_system_test_per_target(
