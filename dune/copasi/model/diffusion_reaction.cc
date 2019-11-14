@@ -71,38 +71,11 @@ ModelDiffusionReaction<Traits>::get_muparser_initial(
   const GFGridView& gf_grid_view,
   bool compile)
 {
-  return get_muparser_expressions(
-    model_config, "initial", gf_grid_view, compile);
-}
-
-template<class Traits>
-template<class GFGridView>
-auto
-ModelDiffusionReaction<Traits>::get_muparser_expressions(
-  const ParameterTree& model_config,
-  const std::string& sub_section,
-  const GFGridView& gf_grid_view,
-  bool compile)
-{
-  if (not model_config.hasSub(sub_section))
+  if (not model_config.hasSub("initial"))
     DUNE_THROW(IOError, "configuration file does not have initial section");
 
-  const auto& expressions_config = model_config.sub(sub_section);
-  const auto& vars = expressions_config.getValueKeys();
-
-  using GridFunction = ExpressionToGridFunctionAdapter<GFGridView, RF>;
-  std::vector<std::shared_ptr<GridFunction>> functions;
-
-  for (std::size_t i = 0; i < vars.size(); i++) {
-    auto gf = std::make_shared<GridFunction>(
-      gf_grid_view, expressions_config[vars[i]], compile);
-    functions.emplace_back(gf);
-    assert(functions.size() == i + 1);
-    if (compile)
-      functions[i]->compile_parser();
-  }
-
-  return functions;
+  return get_muparser_expressions(
+    model_config.sub("initial"), gf_grid_view, compile);
 }
 
 template<class Traits>

@@ -201,6 +201,29 @@ private:
   bool _compiled;
 };
 
+template<class GFGridView, class RF = double>
+auto get_muparser_expressions(
+  const ParameterTree& expressions_config,
+  const GFGridView& gf_grid_view,
+  bool compile = true)
+{
+  const auto& vars = expressions_config.getValueKeys();
+
+  using GridFunction = ExpressionToGridFunctionAdapter<GFGridView, RF>;
+  std::vector<std::shared_ptr<GridFunction>> functions;
+
+  for (std::size_t i = 0; i < vars.size(); i++) {
+    auto gf = std::make_shared<GridFunction>(
+      gf_grid_view, expressions_config[vars[i]], compile);
+    functions.emplace_back(gf);
+    assert(functions.size() == i + 1);
+    if (compile)
+      functions[i]->compile_parser();
+  }
+
+  return functions;
+}
+
 } // namespace Dune::Copasi
 
 #endif // DUNE_COPASI_GRID_FUNCTION_EXPRESSION_ADAPTER_HH

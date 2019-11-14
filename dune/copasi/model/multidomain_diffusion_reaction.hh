@@ -12,6 +12,7 @@
 #include <dune/pdelab/backend/istl.hh>
 #include <dune/pdelab/backend/istl/novlpistlsolverbackend.hh>
 #include <dune/pdelab/gridfunctionspace/dynamicpowergridfunctionspace.hh>
+#include <dune/pdelab/gridfunctionspace/vtk.hh>
 
 #include <dune/common/parametertree.hh>
 
@@ -58,9 +59,13 @@ struct ModelMultiDomainPkDiffusionReactionTraits
  *
  * @tparam     Traits  Class that define static policies on the model
  */
-template<class Traits>
+template<class Traits_>
 class ModelMultiDomainDiffusionReaction : public ModelBase
 {
+public:
+  using Traits = Traits_;
+
+private:
   using Grid = typename Traits::Grid;
 
   using OT = typename Traits::OrderingTag;

@@ -40,9 +40,9 @@ ModelMultiDomainDiffusionReaction<Traits>::ModelMultiDomainDiffusionReaction(
 
     for (auto&& sd_grid_function : initial_muparser) {
       for (auto&& mu_grid_function : sd_grid_function) {
-        mu_data_handler.set_functions(mu_grid_function.parser());
-        mu_grid_function.compile_parser();
-        mu_grid_function.set_time(current_time());
+        mu_data_handler.set_functions(mu_grid_function->parser());
+        mu_grid_function->compile_parser();
+        mu_grid_function->set_time(current_time());
       }
     }
     set_initial(initial_muparser);
@@ -194,6 +194,7 @@ ModelMultiDomainDiffusionReaction<Traits>::setup_grid_function_spaces()
 
     assert(gfs_vector.size() == _domains);
     _states[op].grid_function_space = std::make_shared<GFS>(gfs_vector);
+    _states[op].grid = _grid;
   }
 }
 
@@ -460,7 +461,7 @@ ModelMultiDomainDiffusionReaction<Traits>::step()
           auto gf_after = get_grid_function(states_after, i, j);
           PDELab::DifferenceSquaredAdapter<ComponentGridFunction,
                                            ComponentGridFunction>
-            err(gf_before, gf_after);
+            err(*gf_before, *gf_after);
           FieldVector<double, 1> split_error;
           PDELab::integrateGridFunction(err, split_error, 1);
           split_error = err.getGridView().comm().sum(std::sqrt(split_error));
