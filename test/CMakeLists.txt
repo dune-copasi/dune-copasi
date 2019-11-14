@@ -25,20 +25,26 @@ dune_add_test(NAME            test_tiff_grayscale
               LINK_LIBRARIES  TIFF::TIFF
               LABELS          unit)
 
+#dune_add_test(NAME            test_parameter_tree_check
+#              SOURCES         test_parameter_tree_check.cc
+#              LABELS          unit)
+
 add_custom_target(build_system_tests DEPENDS dune_copasi)
 add_executable(dune_copasi_sd_compare EXCLUDE_FROM_ALL dune_copasi_sd_compare.cc)
+add_executable(dune_copasi_md_compare EXCLUDE_FROM_ALL dune_copasi_md_compare.cc)
 target_link_libraries(dune_copasi_sd_compare PRIVATE dune_copasi_sd_lib)
-add_dependencies(build_system_tests dune_copasi_sd_compare)
+target_link_libraries(dune_copasi_md_compare PRIVATE dune_copasi_md_lib)
+add_dependencies(build_system_tests dune_copasi_sd_compare dune_copasi_md_compare)
 
 if (dune-testtools_FOUND)
 
   add_system_test_per_target(
-    TARGET          dune_copasi_sd
+    TARGET          dune_copasi_sd_compare
     SCRIPT          dune_vtkcompare.py
     INIFILE         test_exp.mini)
 
   add_system_test_per_target(
-    TARGET          dune_copasi_md
+    TARGET          dune_copasi_md # todo: use md compare
     SCRIPT          dune_vtkcompare.py
     INIFILE         test_exp.mini)
 
@@ -82,5 +88,3 @@ if (dune-testtools_FOUND)
   set_property(TARGET dune_copasi_sd PROPERTY EXCLUDE_FROM_ALL 0)
   set_property(TARGET dune_copasi_md PROPERTY EXCLUDE_FROM_ALL 0)
 endif()
-
-add_custom_target(build_system_tests DEPENDS dune_copasi)

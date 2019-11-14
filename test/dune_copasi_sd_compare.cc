@@ -33,7 +33,7 @@ model_compare(const Dune::ParameterTree& param, Model& model)
   auto grid = model.states().begin()->second.grid;
   auto gv = grid->leafGridView();
   auto gf_expressions =
-    model.get_muparser_expressions(param, "compare.expression", gv);
+    Dune::Copasi::get_muparser_expressions(param.sub("compare.expression"), gv);
 
   auto compare = [&]() {
     auto setup_param = [&](auto var) {
