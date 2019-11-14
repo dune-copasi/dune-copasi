@@ -140,12 +140,16 @@ ModelDiffusionReaction<Traits>::setup_component_grid_function_space(
 {
   _logger.trace("create a finite element map"_fmt);
 
+  // @todo create a factory of this
+  typename Traits::BaseFEM::Traits::FiniteElement base_fe(
+    GeometryTypes::cube(Grid::dimension));
+
   // @todo make factory for fem classes
   typename Traits::BaseFEM base_fem(GeometryTypes::cube(Grid::dimension));
 
   std::shared_ptr<FEM> finite_element_map;
   if constexpr (Traits::is_sub_model)
-    finite_element_map = std::make_shared<FEM>(_grid_view, base_fem);
+    finite_element_map = std::make_shared<FEM>(_grid_view, base_fem, base_fe);
   else
     finite_element_map = std::make_shared<FEM>(base_fem);
 

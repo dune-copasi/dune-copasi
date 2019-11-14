@@ -70,8 +70,8 @@ public:
    *                         base finite element constructor. Internal use only
    */
   template<
-    typename =
-      std::enable_if_t<std::is_default_constructible_v<BaseFiniteElement>, int>>
+    bool default_constructible = std::is_default_constructible_v<BaseFiniteElement>,
+    class = std::enable_if_t<default_constructible>>
   MultiDomainLocalFiniteElementMap(GridView grid_view,
                                    FiniteElementMap fem,
                                    std::size_t power_size = 1)

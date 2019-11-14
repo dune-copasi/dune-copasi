@@ -252,7 +252,7 @@ ModelMultiDomainDiffusionReaction<Traits>::setup_local_operator(
 
   _logger.trace("create spatial local operator {}"_fmt, i);
   typename Traits::SubModelTraits::BaseFEM::Traits::FiniteElement
-    finite_element;
+    finite_element(GeometryTypes::cube(Grid::dimension));
 
   auto local_operator =
     std::make_shared<LOP>(_grid, _config, finite_element, i);
@@ -540,9 +540,48 @@ ModelMultiDomainDiffusionReaction<Traits>::get_grid_function(
       gfs_comp++;
 
   const auto& data_comp = data[domain].at(op);
-  ComponentGridFunction gf(data_comp->_lfs.child(domain).child(gfs_comp),
-                           data_comp);
-  return gf;
+  return std::make_shared<ComponentGridFunction>(
+    data_comp->_lfs.child(domain).child(gfs_comp), data_comp);
+}
+
+template<class Traits>
+auto
+ModelMultiDomainDiffusionReaction<Traits>::get_grid_function(
+  std::size_t domain,
+  std::size_t comp) const
+{
+  return get_grid_function(_states, domain, comp);
+}
+
+template<class Traits>
+auto
+ModelMultiDomainDiffusionReaction<Traits>::get_grid_functions(
+  const std::map<std::size_t, State>& states) const
+{
+  const auto& compartments = _config.sub("compartments").getValueKeys();
+  std::vector<std::vector<std::shared_ptr<ComponentGridFunction>>>
+    grid_functions(_domains);
+
+  for (std::size_t domain_i = 0; domain_i < _domains; domain_i++) {
+    const std::string compartement = compartments[domain_i];
+    std::size_t domain =
+      _config.sub("compartments").template get<std::size_t>(compartement);
+    const auto& model_config = _config.sub(compartments[domain_i]);
+    const auto& vars = model_config.sub("diffusion");
+    grid_functions[domain_i].resize(vars.getValueKeys().size());
+    for (std::size_t var_i = 0; var_i < vars.getValueKeys().size(); var_i++) {
+      grid_functions[domain_i][var_i] =
+        get_grid_function(states, domain, var_i);
+    }
+  }
+  return grid_functions;
+}
+
+template<class Traits>
+auto
+ModelMultiDomainDiffusionReaction<Traits>::get_grid_functions() const
+{
+  return get_grid_functions(_states);
 }
 
 template<class Traits>

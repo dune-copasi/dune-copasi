@@ -295,6 +295,12 @@ public:
                          std::size_t domain,
                          std::size_t comp) const;
 
+  auto get_grid_function(std::size_t domain, std::size_t comp) const;
+
+  auto get_grid_functions(const std::map<std::size_t, State>& states) const;
+
+  auto get_grid_functions() const;
+
 protected:
   void setup_grid_function_spaces();
   void setup_coefficient_vectors();
