@@ -96,8 +96,8 @@ class LocalOperatorMultiDomainDiffusionReaction
   std::map<std::array<std::size_t, 3>, std::size_t> _component_offset;
 
 public:
-  //! visit skeleton from the two sides
-  static constexpr bool doSkeletonTwoSided = true;
+
+  static_assert(not SubLOP::doSkeletonTwoSided);
 
   //! pattern assembly flags
   static constexpr bool doPatternVolume = SubLOP::doPatternVolume;
@@ -216,6 +216,77 @@ public:
    * @tparam     LocalPattern  The local pattern
    */
   template<typename LFSU, typename LFSV, typename LocalPattern>
+  void interface_pattern_skeleton(std::size_t domain_i, std::size_t domain_o,
+                        const LFSU& lfsu_di,
+                        const LFSV& lfsv_di,
+                        const LFSU& lfsu_do,
+                        const LFSV& lfsv_do,
+                        LocalPattern& pattern_io,
+                        LocalPattern& pattern_oi) const
+  {
+    auto lfs_size_i = lfsu_di.degree();
+    for (std::size_t i = 0; i < lfs_size_i; ++i) {
+      const std::size_t comp_i = _local_operator[domain_i]->_lfs_components[i];
+      std::array<std::size_t, 3> inside_comp{ domain_i, domain_o, comp_i };
+      auto it = _component_offset.find(inside_comp);
+      if (it != _component_offset.end()) {
+        auto comp_o = it->second;
+        const auto& lfs_comp_o = _local_operator[domain_o]->_lfs_components;
+        auto o_it = std::find(lfs_comp_o.begin(), lfs_comp_o.end(), comp_o);
+        if (o_it != lfs_comp_o.end()) {
+          auto lfsv_ci = lfsv_di.child(i);
+          std::size_t o = std::distance(lfs_comp_o.begin(), o_it);
+          auto lfsu_co = lfsu_do.child(o);
+          for (std::size_t dof_i = 0; dof_i < lfsv_ci.size(); dof_i++) {
+            for (std::size_t dof_o = 0; dof_o < lfsu_co.size(); dof_o++) {
+              pattern_io.addLink(lfsv_ci, dof_i, lfsu_co, dof_o);
+            }
+          }
+        }
+      }
+    }
+
+    auto lfs_size_o = lfsu_do.degree();
+    for (std::size_t o = 0; o < lfs_size_o; ++o) {
+      const std::size_t comp_o = _local_operator[domain_o]->_lfs_components[o];
+      std::array<std::size_t, 3> outside_comp{ domain_o, domain_i, comp_o };
+      auto it = _component_offset.find(outside_comp);
+      if (it != _component_offset.end()) {
+        auto comp_i = it->second;
+        const auto& lfs_comp_i = _local_operator[domain_i]->_lfs_components;
+        auto i_it = std::find(lfs_comp_i.begin(), lfs_comp_i.end(), comp_i);
+        if (i_it != lfs_comp_i.end()) {
+          auto lfsv_co = lfsv_do.child(o);
+          std::size_t i = std::distance(lfs_comp_i.begin(), i_it);
+          auto lfsu_ci = lfsu_di.child(i);
+          for (std::size_t dof_o = 0; dof_o < lfsv_co.size(); dof_o++) {
+            for (std::size_t dof_i = 0; dof_i < lfsu_ci.size(); dof_i++) {
+              pattern_oi.addLink(lfsv_co, dof_o, lfsu_ci, dof_i);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * @brief      Pattern sckeleton
+   * @details    This method links degrees of freedom between trial and test
+   *             spaces at entities intersection taking into account the
+   *             structure of the reaction term
+   *
+   * @param[in]  lfsu_i        The inside trial local function space
+   * @param[in]  lfsv_i        The inside test local function space
+   * @param[in]  lfsu_o        The outside trial local function space
+   * @param[in]  lfsv_o        The outside test local function space
+   * @param      pattern_io    The inside-outside local pattern
+   * @param      pattern_oi    The outside-inside local pattern
+   *
+   * @tparam     LFSU          The trial local function space
+   * @tparam     LFSV          The test local function space
+   * @tparam     LocalPattern  The local pattern
+   */
+  template<typename LFSU, typename LFSV, typename LocalPattern>
   void pattern_skeleton(const LFSU& lfsu_i,
                         const LFSV& lfsv_i,
                         const LFSU& lfsu_o,
@@ -231,59 +302,22 @@ public:
         domain_o = k;
     }
 
-    if (domain_i == domain_o)
-      return;
     if ((domain_i == unused_domain) or (domain_o == unused_domain))
       return;
 
+    const auto& lfsu_di = lfsu_i.child(domain_i);
+    const auto& lfsv_di = lfsv_i.child(domain_i);
+    const auto& lfsu_do = lfsu_o.child(domain_o);
+    const auto& lfsv_do = lfsv_o.child(domain_o);
+
     assert(lfsu_i.degree() == _size);
-    assert(lfsu_i.child(domain_i).degree() == lfsv_i.child(domain_i).degree());
-    assert(lfsu_o.child(domain_o).degree() == lfsv_o.child(domain_o).degree());
+    assert(lfsu_di.degree() == lfsv_di.degree());
+    assert(lfsu_do.degree() == lfsv_do.degree());
 
-    auto lfs_size_i = lfsu_i.child(domain_i).degree();
-
-    for (std::size_t i = 0; i < lfs_size_i; ++i) {
-      const std::size_t comp_i = _local_operator[domain_i]->_lfs_components[i];
-      std::array<std::size_t, 3> inside_comp{ domain_i, domain_o, comp_i };
-      auto it = _component_offset.find(inside_comp);
-      if (it != _component_offset.end()) {
-        auto comp_o = it->second;
-        const auto& lfs_comp_o = _local_operator[domain_o]->_lfs_components;
-        auto o_it = std::find(lfs_comp_o.begin(), lfs_comp_o.end(), comp_o);
-        if (o_it != lfs_comp_o.end()) {
-          auto lfsv_ci = lfsv_i.child(domain_i).child(i);
-          std::size_t o = std::distance(lfs_comp_o.begin(), o_it);
-          auto lfsu_co = lfsu_o.child(domain_o).child(o);
-          for (std::size_t dof_i = 0; dof_i < lfsv_ci.size(); dof_i++) {
-            for (std::size_t dof_o = 0; dof_o < lfsu_co.size(); dof_o++) {
-              pattern_io.addLink(lfsv_ci, dof_i, lfsu_co, dof_o);
-            }
-          }
-        }
-      }
-    }
-
-    auto lfs_size_o = lfsu_o.child(domain_o).degree();
-    for (std::size_t o = 0; o < lfs_size_o; ++o) {
-      const std::size_t comp_o = _local_operator[domain_o]->_lfs_components[o];
-      std::array<std::size_t, 3> outside_comp{ domain_o, domain_i, comp_o };
-      auto it = _component_offset.find(outside_comp);
-      if (it != _component_offset.end()) {
-        auto comp_i = it->second;
-        const auto& lfs_comp_i = _local_operator[domain_i]->_lfs_components;
-        auto i_it = std::find(lfs_comp_i.begin(), lfs_comp_i.end(), comp_i);
-        if (i_it != lfs_comp_i.end()) {
-          auto lfsv_co = lfsv_o.child(domain_o).child(o);
-          std::size_t i = std::distance(lfs_comp_i.begin(), i_it);
-          auto lfsu_ci = lfsu_i.child(domain_i).child(i);
-          for (std::size_t dof_o = 0; dof_o < lfsv_co.size(); dof_o++) {
-            for (std::size_t dof_i = 0; dof_i < lfsu_ci.size(); dof_i++) {
-              pattern_oi.addLink(lfsv_co, dof_o, lfsu_ci, dof_i);
-            }
-          }
-        }
-      }
-    }
+    if (domain_i == domain_o)
+      _local_operator[domain_i]->pattern_skeleton(lfsu_di,lfsv_di,lfsu_do,lfsv_do,pattern_io,pattern_oi);
+    else
+      interface_pattern_skeleton(domain_i,domain_o,lfsu_di,lfsv_di,lfsu_do,lfsv_do,pattern_io,pattern_oi);
   }
 
   /**
@@ -430,12 +464,10 @@ public:
                       R& r_i,
                       R& r_o) const
   {
-
-    const auto& entity_f = ig.intersection();
     const auto& entity_i = ig.inside();
     const auto& entity_o = ig.outside();
 
-    assert(lfsu_i.degree() == _size);
+    assert(_size == lfsu_i.degree() == lfsu_o.degree() == lfsv_i.degree() == lfsv_o.degree());
 
     auto domain_set_i = _index_set.subDomains(entity_i);
     auto domain_set_o = _index_set.subDomains(entity_o);
@@ -446,18 +478,64 @@ public:
     std::size_t domain_i = *(domain_set_i.begin());
     std::size_t domain_o = *(domain_set_o.begin());
 
-    if (domain_i == domain_o)
-      return;
+    const auto& lfsu_di = lfsu_i.child(domain_i);
+    const auto& lfsv_di = lfsv_i.child(domain_i);
+    const auto& lfsu_do = lfsu_o.child(domain_o);
+    const auto& lfsv_do = lfsv_o.child(domain_o);
 
-    assert(lfsu_i.child(domain_i).size() == lfsv_i.child(domain_i).size());
-    assert(lfsu_o.child(domain_o).size() == lfsv_o.child(domain_o).size());
+    assert(lfsu_di.size() == lfsv_di.size());
+    assert(lfsu_do.size() == lfsv_do.size());
+
+    if (domain_i == domain_o)
+      _local_operator[domain_i]->alpha_skeleton(ig,lfsu_di,x_i,lfsv_di,lfsu_do,x_o,lfsv_do,r_i,r_o);
+    else
+      interface_alpha_skeleton(domain_i,domain_o,ig,lfsu_di,x_i,lfsv_di,lfsu_do,x_o,lfsv_do,r_i,r_o);
+  }
+
+  /**
+   * @brief      The skeleton integral
+   * @details    This integral is only performed at the interface between
+   *             different domains. Currently it has the form of
+   *             dichlet-dirichlet boundary condition between domains
+   *
+   * @param[in]  ig      The intersection
+   * @param[in]  lfsu_i  The inside trial local function space
+   * @param[in]  x_i     The inside local coefficient vector
+   * @param[in]  lfsv_i  The inside test local function space
+   * @param[in]  lfsu_o  The outside trial local function space
+   * @param[in]  x_o     The outside local coefficient vector
+   * @param[in]  lfsv_o  The outside test local function space
+   * @param      r_i     The inside residual vector
+   * @param      r_o     The outside residual vector
+   *
+   * @tparam     IG      The indersection
+   * @tparam     LFSU    The trial local function space
+   * @tparam     X       The local coefficient vector
+   * @tparam     LFSV    The test local function space
+   * @tparam     R       The residual vector
+   */
+  template<typename IG, typename LFSU, typename X, typename LFSV, typename R>
+  void interface_alpha_skeleton(std::size_t domain_i, std::size_t domain_o,
+                      const IG& ig,
+                      const LFSU& lfsu_di,
+                      const X& x_i,
+                      const LFSV& lfsv_di,
+                      const LFSU& lfsu_do,
+                      const X& x_o,
+                      const LFSV& lfsv_do,
+                      R& r_i,
+                      R& r_o) const
+  {
+    assert(lfsu_di.size() == lfsv_di.size());
+    assert(lfsu_do.size() == lfsv_do.size());
+
+    const auto& entity_f = ig.intersection();
+    const auto& entity_i = ig.inside();
+    const auto& entity_o = ig.outside();
 
     auto geo_f = entity_f.geometry();
     auto geo_in_i = entity_f.geometryInInside();
     auto geo_in_o = entity_f.geometryInOutside();
-
-    const auto& lfsu_di = lfsu_i.child(domain_i);
-    const auto& lfsu_do = lfsu_o.child(domain_o);
 
     std::size_t components_i = _component_name[domain_i].size();
     std::size_t components_o = _component_name[domain_o].size();
@@ -483,10 +561,10 @@ public:
       r_o.accumulate(lfsu_do.child(component), dof, value);
     };
 
-    auto& coefficient_mapper_i = _local_operator[domain_i]->_coefficient_mapper;
+    auto& coefficient_mapper_i = _local_operator[domain_i]->_coefficient_mapper_i;
     coefficient_mapper_i.bind(entity_i);
 
-    auto& coefficient_mapper_o = _local_operator[domain_o]->_coefficient_mapper;
+    auto& coefficient_mapper_o = _local_operator[domain_o]->_coefficient_mapper_o;
     coefficient_mapper_o.bind(entity_o);
 
     for (const auto& it : quadratureRule(geo_f, 3)) {
@@ -495,8 +573,8 @@ public:
       const auto position_i = geo_in_i.global(position_f);
       const auto position_o = geo_in_o.global(position_f);
 
-      std::vector<Range> phiu_i(lfsu_i.size());
-      std::vector<Range> phiu_o(lfsu_o.size());
+      std::vector<Range> phiu_i(lfsu_di.size());
+      std::vector<Range> phiu_o(lfsu_do.size());
 
       // evaluate basis functions
       _local_basis.evaluateFunction(position_i, phiu_i);
@@ -583,7 +661,31 @@ public:
                          J& mat_oi,
                          J& mat_oo) const
   {
-    if constexpr (JM == JacobianMethod::Numerical) {
+    assert(_size == lfsu_i.degree() == lfsu_o.degree() == lfsv_i.degree() == lfsv_o.degree());
+
+    const auto& entity_i = ig.inside();
+    const auto& entity_o = ig.outside();
+
+    auto domain_set_i = _index_set.subDomains(entity_i);
+    auto domain_set_o = _index_set.subDomains(entity_o);
+
+    assert(domain_set_i.size() == 1);
+    assert(domain_set_o.size() == 1);
+
+    std::size_t domain_i = *(domain_set_i.begin());
+    std::size_t domain_o = *(domain_set_o.begin());
+
+    const auto& lfsu_di = lfsu_i.child(domain_i);
+    const auto& lfsv_di = lfsv_i.child(domain_i);
+    const auto& lfsu_do = lfsu_o.child(domain_o);
+    const auto& lfsv_do = lfsv_o.child(domain_o);
+
+    assert(lfsu_di.size() == lfsv_di.size());
+    assert(lfsu_do.size() == lfsv_do.size());
+
+    if (domain_i == domain_o)
+      _local_operator[domain_i]->jacobian_skeleton(ig,lfsu_di,x_i,lfsv_di,lfsu_do,x_o,lfsv_do,mat_ii,mat_io,mat_oi,mat_oo);
+    else if constexpr (JM == JacobianMethod::Numerical)
       PDELab::NumericalJacobianSkeleton<
         LocalOperatorMultiDomainDiffusionReaction>::jacobian_skeleton(ig,
                                                                       lfsu_i,
@@ -596,36 +698,55 @@ public:
                                                                       mat_io,
                                                                       mat_oi,
                                                                       mat_oo);
-      return;
-    }
+    else
+      interface_jacobian_skeleton(domain_i,domain_o,ig,lfsu_di,x_i,lfsv_di,lfsu_do,x_o,lfsv_do,mat_ii,mat_io,mat_oi,mat_oo);
+
+  }
+
+  /**
+   * @brief      The jacobian skeleton integral
+   * @copydetails alpha_skeleton
+   *
+   * @param[in]  ig      The intersection
+   * @param[in]  lfsu_i  The inside trial local function space
+   * @param[in]  x_i     The inside local coefficient vector
+   * @param[in]  lfsv_i  The inside test local function space
+   * @param[in]  lfsu_o  The outside trial local function space
+   * @param[in]  x_o     The outside local coefficient vector
+   * @param[in]  lfsv_o  The outside test local function space
+   * @param      mat_ii  The local inside-inside matrix
+   * @param      mat_io  The local inside-outside matrix
+   * @param      mat_oi  The local outside-inside matrix
+   * @param      mat_oo  The local outside-outside matrix
+   *
+   * @tparam     IG      The indersection
+   * @tparam     LFSU    The trial local function space
+   * @tparam     X       The local coefficient vector
+   * @tparam     LFSV    The test local function space
+   * @tparam     J       The local jacobian matrix
+   */
+  template<typename IG, typename LFSU, typename X, typename LFSV, typename J>
+  void interface_jacobian_skeleton(std::size_t domain_i, std::size_t domain_o,
+                         const IG& ig,
+                         const LFSU& lfsu_di,
+                         const X& x_i,
+                         const LFSV& lfsv_di,
+                         const LFSU& lfsu_do,
+                         const X& x_o,
+                         const LFSV& lfsv_do,
+                         J& mat_ii,
+                         J& mat_io,
+                         J& mat_oi,
+                         J& mat_oo) const
+  {
+    assert(lfsu_di.size() == lfsv_di.size());
+    assert(lfsu_do.size() == lfsv_do.size());
 
     const auto& entity_f = ig.intersection();
-    const auto& entity_i = ig.inside();
-    const auto& entity_o = ig.outside();
-
-    assert(lfsu_i.degree() == _size);
-
-    auto domain_set_i = _index_set.subDomains(entity_i);
-    auto domain_set_o = _index_set.subDomains(entity_o);
-
-    assert(domain_set_i.size() == 1);
-    assert(domain_set_o.size() == 1);
-
-    std::size_t domain_i = *(domain_set_i.begin());
-    std::size_t domain_o = *(domain_set_o.begin());
-
-    if (domain_i == domain_o)
-      return;
-
-    assert(lfsu_i.child(domain_i).size() == lfsv_i.child(domain_i).size());
-    assert(lfsu_o.child(domain_o).size() == lfsv_o.child(domain_o).size());
 
     auto geo_f = entity_f.geometry();
     auto geo_in_i = entity_f.geometryInInside();
     auto geo_in_o = entity_f.geometryInOutside();
-
-    const auto& lfsu_di = lfsu_i.child(domain_i);
-    const auto& lfsu_do = lfsu_o.child(domain_o);
 
     auto accumulate_ii = [&](const std::size_t& component_i,
                              const std::size_t& dof_i,
@@ -681,8 +802,8 @@ public:
       const auto position_i = geo_in_i.global(position_f);
       const auto position_o = geo_in_o.global(position_f);
 
-      std::vector<Range> phiu_i(lfsu_i.size());
-      std::vector<Range> phiu_o(lfsu_o.size());
+      std::vector<Range> phiu_i(lfsu_di.size());
+      std::vector<Range> phiu_o(lfsu_do.size());
 
       // evaluate basis functions
       _local_basis.evaluateFunction(position_i, phiu_i);
