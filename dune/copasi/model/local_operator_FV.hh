@@ -17,7 +17,7 @@ namespace Dune::Copasi {
 template<class GV,
          class LBT,
          class CM = DefaultCoefficientMapper,
-         JacobianMethod JM = JacobianMethod::Numerical>
+         JacobianMethod JM = JacobianMethod::Analytical>
 class LocalOperatorDiffusionReactionFV
   : public Dune::PDELab::LocalOperatorDefaultFlags
   , public Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>
@@ -175,7 +175,6 @@ public:
     if constexpr (JM == JacobianMethod::Numerical) {
       PDELab::NumericalJacobianApplyVolume<LocalOperatorDiffusionReactionFV>::
         jacobian_apply_volume(eg, lfsu, x, lfsv, r);
-      return;
     } else {
       _jacobian_apply_volume(eg, lfsu, x, x, lfsv, r);
     }
@@ -433,6 +432,9 @@ public:
     auto geo_in_i = entity_f.geometryInInside();
     auto geo_in_o = entity_f.geometryInOutside();
 
+    _coefficient_mapper_i.bind(entity_i);
+    _coefficient_mapper_o.bind(entity_o);
+
     // cell centers in codim 1 reference element (facet)
     auto ref_el_i = referenceElement(geo_in_i);
     auto ref_el_o = referenceElement(geo_in_o);
@@ -578,6 +580,9 @@ public:
     auto geo_f = entity_f.geometry();
     auto geo_in_i = entity_f.geometryInInside();
     auto geo_in_o = entity_f.geometryInOutside();
+
+    _coefficient_mapper_i.bind(entity_i);
+    _coefficient_mapper_o.bind(entity_o);
 
     // cell centers in codim 1 reference element (facet)
     auto ref_el_i = referenceElement(geo_in_i);
