@@ -572,8 +572,8 @@ public:
     const auto& entity_o = ig.outside();
     const auto& entity_f = ig.intersection();
 
-    assert(lfsu_i.degree() == 1);
-    assert(lfsu_o.degree() == 1);
+    assert(lfsu_i.degree() == _lfs_components.size());
+    assert(lfsu_o.degree() == _lfs_components.size());
 
     auto geo_i = entity_i.geometry();
     auto geo_o = entity_o.geometry();

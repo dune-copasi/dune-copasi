@@ -467,7 +467,10 @@ public:
     const auto& entity_i = ig.inside();
     const auto& entity_o = ig.outside();
 
-    assert(_size == lfsu_i.degree() == lfsu_o.degree() == lfsv_i.degree() == lfsv_o.degree());
+    assert(_size >= lfsu_i.degree());
+    assert(_size >= lfsu_o.degree());
+    assert(lfsu_i.degree() == lfsv_i.degree());
+    assert(lfsu_o.degree() == lfsv_o.degree());
 
     auto domain_set_i = _index_set.subDomains(entity_i);
     auto domain_set_o = _index_set.subDomains(entity_o);
@@ -661,7 +664,10 @@ public:
                          J& mat_oi,
                          J& mat_oo) const
   {
-    assert(_size == lfsu_i.degree() == lfsu_o.degree() == lfsv_i.degree() == lfsv_o.degree());
+    assert(_size >= lfsu_i.degree());
+    assert(_size >= lfsu_o.degree());
+    assert(lfsu_i.degree() == lfsv_i.degree());
+    assert(lfsu_o.degree() == lfsv_o.degree());
 
     const auto& entity_i = ig.inside();
     const auto& entity_o = ig.outside();
