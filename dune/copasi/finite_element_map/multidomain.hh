@@ -1,7 +1,7 @@
 #ifndef DUNE_COPASI_MULTIDOMAIN_LOCAL_FINITE_ELEMENT_MAP_HH
 #define DUNE_COPASI_MULTIDOMAIN_LOCAL_FINITE_ELEMENT_MAP_HH
 
-#include <dune/copasi/finite_element/dynamic_power_local_finite_element_map.hh>
+#include <dune/copasi/finite_element_map/dynamic_power.hh>
 
 namespace Dune::Copasi {
 

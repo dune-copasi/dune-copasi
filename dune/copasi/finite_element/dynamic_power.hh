@@ -1,9 +1,9 @@
 #ifndef DUNE_COPASI_DYNAMIC_POWER_LOCAL_FINITE_ELEMENT_HH
 #define DUNE_COPASI_DYNAMIC_POWER_LOCAL_FINITE_ELEMENT_HH
 
-#include <dune/copasi/finite_element/dynamic_power_local_basis.hh>
-#include <dune/copasi/finite_element/dynamic_power_local_coefficients.hh>
-#include <dune/copasi/finite_element/dynamic_power_local_interpolation.hh>
+#include <dune/copasi/finite_element/dynamic_power/local_basis.hh>
+#include <dune/copasi/finite_element/dynamic_power/local_coefficients.hh>
+#include <dune/copasi/finite_element/dynamic_power/local_interpolation.hh>
 
 #include <dune/localfunctions/common/localfiniteelementtraits.hh>
 

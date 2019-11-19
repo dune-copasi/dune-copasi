@@ -4,8 +4,8 @@
 #include <dune/copasi/common/coefficient_mapper.hh>
 #include <dune/copasi/common/enum.hh>
 #include <dune/copasi/concepts/grid.hh>
-#include <dune/copasi/finite_element/dynamic_power_local_finite_element_map.hh>
-#include <dune/copasi/finite_element/multidomain_local_finite_element_map.hh>
+#include <dune/copasi/finite_element_map/dynamic_power.hh>
+#include <dune/copasi/finite_element_map/multidomain.hh>
 #include <dune/copasi/model/base.hh>
 #include <dune/copasi/model/local_operator_base.hh>
 #include <dune/copasi/model/local_operator_FV.hh>
