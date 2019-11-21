@@ -171,6 +171,7 @@ struct LocalOperatorDiffusionReactionBase
   void cache_local_finite_element(const LocalFiniteElement& finite_element, std::size_t rule_order)
   {
     _logger.trace("caching local finite element evaluations on reference element"_fmt);
+    _logger.trace("  FE: {}"_fmt, Dune::className<LocalFiniteElement>());
 
     //! local basis
     using LocalBasis = typename LocalFiniteElement::Traits::LocalBasisType;
@@ -204,6 +205,8 @@ struct LocalOperatorDiffusionReactionBase
       _gradhat.push_back(jac);
       jac.clear();
     }
+
+    fe_cached = true;
   }
 
   void create_pattern_and_gf_expressions(const GridView& grid_view, const ParameterTree& config)

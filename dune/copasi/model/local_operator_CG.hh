@@ -65,6 +65,7 @@ class LocalOperatorDiffusionReactionCG
 public:
 
   using LOPBase::_coefficient_mapper_i;
+  using LOPBase::_coefficient_mapper_o;
   using LOPBase::_lfs_components;
 
   using LOPBase::update;
@@ -249,7 +250,8 @@ public:
 
     _coefficient_mapper_i.bind(entity);
 
-    const auto basis_size = _phihat.size();
+    assert(this->fe_cached);
+    const auto basis_size = _phihat[0].size();
 
     DynamicVector<RF> u(_components);
     DynamicVector<RF> diffusion(_lfs_components.size());
@@ -365,7 +367,8 @@ public:
 
     _coefficient_mapper_i.bind(entity);
 
-    const auto basis_size = _phihat.size();
+    assert(this->fe_cached);
+    const auto basis_size = _phihat[0].size();
 
     DynamicVector<RF> u(_components);
     DynamicVector<RF> diffusion(_lfs_components.size());
