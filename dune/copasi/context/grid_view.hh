@@ -32,6 +32,7 @@ struct GridViewCtx : public Ctx
   bind(const BindCtx& bind_ctx)
   {
     set_grid_view(bind_ctx.grid_view());
+    Ctx::bind(bind_ctx);
   }
 
 private:
@@ -46,12 +47,18 @@ struct GridViewCtx<Ctx,std::enable_if_t<Concept::has_method_grid_view<Ctx>()>> :
   {}
 };
 
+template<class Ctx, class GV>
+auto inject_grid_view(Ctx&& ctx, const GV& grid_view)
+{
+  Dune::Copasi::Context::GridViewCtx<GV,Ctx> gv_ctx{std::move(ctx)};
+  gv_ctx.set_grid_view(grid_view);
+  return gv_ctx;
+}
+
 template<class GV>
 auto make_grid_view(const GV& grid_view)
 {
-  Dune::Copasi::Context::GridViewCtx<GV,BaseCtx> gv_ctx{BaseCtx{}} ;
-  gv_ctx.set_grid_view(grid_view);
-  return gv_ctx;
+  return inject_grid_view(BaseCtx{},grid_view);
 }
 
 } // namespace Dune::Copasi::Context

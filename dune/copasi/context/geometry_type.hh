@@ -34,6 +34,7 @@ struct GeometryTypeCtx : public Ctx
   bind(const BindCtx& bind_ctx)
   {
     set_geometry_type(bind_ctx.geometry_type());
+    Ctx::bind(bind_ctx);
   }
 
 private:
@@ -48,11 +49,17 @@ struct GeometryTypeCtx<Ctx,std::enable_if_t<Concept::has_method_geometry_type<Ct
   {}
 };
 
-auto make_geometry_type(const Dune::GeometryType& geometry_type)
+template<class Ctx>
+auto inject_geometry_type(Ctx&& ctx, const Dune::GeometryType& geometry_type)
 {
-  GeometryTypeCtx<BaseCtx> gt_ctx{BaseCtx{}} ;
+  GeometryTypeCtx<Ctx> gt_ctx{std::move(ctx)};
   gt_ctx.set_geometry_type(geometry_type);
   return gt_ctx;
+}
+
+auto make_geometry_type(const Dune::GeometryType& geometry_type)
+{
+  return inject_geometry_type(BaseCtx{},geometry_type);
 }
 
 } // namespace Dune::Copasi::Context

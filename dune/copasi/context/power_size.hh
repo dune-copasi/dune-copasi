@@ -32,6 +32,7 @@ struct PowerSizeCtx : public Ctx
   bind(const BindCtx& bind_ctx)
   {
     set_power_size(bind_ctx.power_size());
+    Ctx::bind(bind_ctx);
   }
 
 private:
@@ -46,11 +47,17 @@ struct PowerSizeCtx<Ctx,std::enable_if_t<Concept::has_method_geometry_type<Ctx>(
   {}
 };
 
-auto make_power_size(std::size_t power_size)
+template<class Ctx>
+auto inject_power_size(Ctx&& ctx, std::size_t power_size)
 {
-  PowerSizeCtx<BaseCtx> ps_ctx{BaseCtx{}} ;
+  PowerSizeCtx<Ctx> ps_ctx{std::move(ctx)};
   ps_ctx.set_power_size(power_size);
   return ps_ctx;
+}
+
+auto make_power_size(std::size_t power_size)
+{
+  return inject_power_size(BaseCtx{},power_size);
 }
 
 } // namespace Dune::Copasi::Context
