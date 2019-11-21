@@ -145,7 +145,8 @@ public:
     static_assert(Concept::has_method_grid_view<Ctx>());
     static_assert(Concept::isSubDomainGrid<typename Ctx::GridView::Grid>());
 
-    auto sub_somain_ctx = Context::make_grid_view(ctx.grid_view().grid().multiDomainGrid().leafGridView());
+    auto sub_domain_gv = ctx.grid_view().grid().multiDomainGrid().leafGridView();
+    auto sub_somain_ctx = Context::make_grid_view(sub_domain_gv);
     auto base_fem = Factory<BaseLocalFiniteElementMap>::create(sub_somain_ctx);
     using FEM = MultiDomainLocalFiniteElementMap<BaseLocalFiniteElementMap,GridView>;
 
@@ -156,14 +157,13 @@ public:
 
     GeometryType gt = ctx.grid_view().template begin<0>()->geometry().type();
 
-    auto _ctx = Context::GeometryTypeCtx<Ctx>{Ctx{ctx}};
-    _ctx.set_geometry_type(gt);
-    auto base_fe = Factory<BaseFE>::create(_ctx);
+    auto gt_ctx = Context::inject_geometry_type(Ctx{ctx},gt);
+    auto base_fe = Factory<BaseFE>::create(gt_ctx);
 
     if constexpr (Concept::has_method_power_size<Ctx>())
-      return std::make_unique<FEM>(_ctx.grid_view(),*base_fem,*base_fe,_ctx.power_size());
+      return std::make_unique<FEM>(gt_ctx.grid_view(),*base_fem,*base_fe,gt_ctx.power_size());
     else
-      return std::make_unique<FEM>(_ctx.grid_view(),*base_fem,*base_fe);
+      return std::make_unique<FEM>(gt_ctx.grid_view(),*base_fem,*base_fe);
   }
 };
 
