@@ -31,7 +31,6 @@ class LocalOperatorDiffusionReactionFV
   , public PDELab::NumericalJacobianApplySkeleton<
       LocalOperatorDiffusionReactionFV<GV, LBT, CM, JM>>
   , public PDELab::FullSkeletonPattern
-  , public PDELab::FullVolumePattern
 {
   using GridView = GV;
   using LOPBase = LocalOperatorDiffusionReactionBase<GV,LBT,CM>;
@@ -95,22 +94,22 @@ public:
    * @tparam     LFSV          The test local function space
    * @tparam     LocalPattern  The local pattern
    */
-  // template<typename LFSU, typename LFSV, typename LocalPattern>
-  // void pattern_volume(const LFSU& lfsu,
-  //                     const LFSV& lfsv,
-  //                     LocalPattern& pattern) const
-  // {
-  //   auto do_link = [&](std::size_t comp_i, std::size_t comp_j) {
-  //     auto it = _component_pattern.find(std::make_pair(comp_i, comp_j));
-  //     return (it != _component_pattern.end());
-  //   };
-  //   for (std::size_t i = 0; i < lfsv.degree(); ++i)
-  //     for (std::size_t j = 0; j < lfsu.degree(); ++j)
-  //       if (do_link(i, j))
-  //         for (std::size_t k = 0; k < lfsv.child(i).size(); ++k)
-  //           for (std::size_t l = 0; l < lfsu.child(j).size(); ++l)
-  //             pattern.addLink(lfsv.child(i), k, lfsu.child(j), l);
-  // }
+  template<typename LFSU, typename LFSV, typename LocalPattern>
+  void pattern_volume(const LFSU& lfsu,
+                      const LFSV& lfsv,
+                      LocalPattern& pattern) const
+  {
+    auto do_link = [&](std::size_t comp_i, std::size_t comp_j) {
+      auto it = _component_pattern.find(std::make_pair(comp_i, comp_j));
+      return (it != _component_pattern.end());
+    };
+    for (std::size_t i = 0; i < lfsv.degree(); ++i)
+      for (std::size_t j = 0; j < lfsu.degree(); ++j)
+        if (do_link(i, j))
+          for (std::size_t k = 0; k < lfsv.child(i).size(); ++k)
+            for (std::size_t l = 0; l < lfsu.child(j).size(); ++l)
+              pattern.addLink(lfsv.child(i), k, lfsu.child(j), l);
+  }
 
   /**
    * @brief      The jacobian volume integral for matrix free operations
