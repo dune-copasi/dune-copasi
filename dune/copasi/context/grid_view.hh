@@ -31,7 +31,7 @@ struct GridViewCtx : public Ctx
   std::enable_if_t<Concept::has_method_grid_view<BindCtx>()>
   bind(const BindCtx& bind_ctx)
   {
-    grid_view() = bind_ctx.grid_view();
+    set_grid_view(bind_ctx.grid_view());
   }
 
 private:
