@@ -1,6 +1,8 @@
 #ifndef DUNE_COPASI_DYNAMIC_POWER_LOCAL_FINITE_ELEMENT_HH
 #define DUNE_COPASI_DYNAMIC_POWER_LOCAL_FINITE_ELEMENT_HH
 
+#include <dune/copasi/concepts/has_method.hh>
+#include <dune/copasi/common/factory.hh>
 #include <dune/copasi/finite_element/dynamic_power/local_basis.hh>
 #include <dune/copasi/finite_element/dynamic_power/local_coefficients.hh>
 #include <dune/copasi/finite_element/dynamic_power/local_interpolation.hh>
@@ -128,6 +130,23 @@ private:
   LocalBasis _basis;
   LocalCoefficients _coefficients;
   LocalInterpolation _interpolation;
+};
+
+
+template<class BaseLocalFiniteElement>
+struct Factory<DynamicPowerLocalFiniteElement<BaseLocalFiniteElement>>
+{
+public:
+  template<class Context>
+  static auto create(const Context& ctx)
+  {
+    auto base_fe = Factory<BaseLocalFiniteElement>::create(ctx);
+    using FE = DynamicPowerLocalFiniteElement<BaseLocalFiniteElement>;
+    if constexpr (Concept::has_method_power_size<Context>())
+      return std::make_unique<FE>(*base_fe,ctx.power_size());
+    else
+      return std::make_unique<FE>(*base_fe);
+  }
 };
 
 } // namespace Dune::Copasi

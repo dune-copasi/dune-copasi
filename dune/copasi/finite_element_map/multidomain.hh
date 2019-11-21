@@ -1,7 +1,9 @@
 #ifndef DUNE_COPASI_MULTIDOMAIN_LOCAL_FINITE_ELEMENT_MAP_HH
 #define DUNE_COPASI_MULTIDOMAIN_LOCAL_FINITE_ELEMENT_MAP_HH
 
+#include <dune/copasi/common/factory.hh>
 #include <dune/copasi/finite_element_map/dynamic_power.hh>
+#include <dune/copasi/grid/has_single_geometry_type.hh>
 
 namespace Dune::Copasi {
 
@@ -47,7 +49,7 @@ public:
    *                                  (this is always 0 outside of the
    *                                  subdomain)
    */
-  MultiDomainLocalFiniteElementMap(GridView grid_view,
+  MultiDomainLocalFiniteElementMap(const GridView& grid_view,
                                    FiniteElementMap fem,
                                    BaseFiniteElement base_finite_element,
                                    std::size_t power_size = 1)
@@ -72,7 +74,7 @@ public:
   template<
     bool default_constructible = std::is_default_constructible_v<BaseFiniteElement>,
     class = std::enable_if_t<default_constructible>>
-  MultiDomainLocalFiniteElementMap(GridView grid_view,
+  MultiDomainLocalFiniteElementMap(const GridView& grid_view,
                                    FiniteElementMap fem,
                                    std::size_t power_size = 1)
     : MultiDomainLocalFiniteElementMap(grid_view,
@@ -113,10 +115,6 @@ public:
       in_grid_view = md_grid.leafIndexSet()
                        .subDomains(md_grid.multiDomainEntity(e))
                        .contains(sub_domain);
-    } else {
-      static_assert(
-        AlwaysFalse<EntityType>::value,
-        "Method not implemented for subdomain or other types of entites");
     }
 
     if (in_grid_view)
@@ -135,6 +133,38 @@ public:
 private:
   GridView _grid_view;
   const FiniteElement _fe_null;
+};
+
+template<class BaseLocalFiniteElementMap, class GridView>
+struct Factory<MultiDomainLocalFiniteElementMap<BaseLocalFiniteElementMap,GridView>>
+{
+public:
+  template<class Ctx>
+  static auto create(const Ctx& ctx)
+  {
+    static_assert(Concept::has_method_grid_view<Ctx>());
+    static_assert(Concept::isSubDomainGrid<typename Ctx::GridView::Grid>());
+
+    auto sub_somain_ctx = Context::make_grid_view(ctx.grid_view().grid().multiDomainGrid().leafGridView());
+    auto base_fem = Factory<BaseLocalFiniteElementMap>::create(sub_somain_ctx);
+    using FEM = MultiDomainLocalFiniteElementMap<BaseLocalFiniteElementMap,GridView>;
+
+    using BaseFE = typename BaseLocalFiniteElementMap::Traits::FiniteElement;
+
+    if (not has_single_geometry_type(ctx.grid_view()))
+      DUNE_THROW(InvalidStateException,"Grid view has to have only one grid view");
+
+    GeometryType gt = ctx.grid_view().template begin<0>()->geometry().type();
+
+    auto _ctx = Context::GeometryTypeCtx<Ctx>{Ctx{ctx}};
+    _ctx.set_geometry_type(gt);
+    auto base_fe = Factory<BaseFE>::create(_ctx);
+
+    if constexpr (Concept::has_method_power_size<Ctx>())
+      return std::make_unique<FEM>(_ctx.grid_view(),*base_fem,*base_fe,_ctx.power_size());
+    else
+      return std::make_unique<FEM>(_ctx.grid_view(),*base_fem,*base_fe);
+  }
 };
 
 } // namespace Dune::Copasi

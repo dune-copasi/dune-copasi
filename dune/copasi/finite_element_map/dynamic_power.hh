@@ -1,6 +1,7 @@
 #ifndef DUNE_COPASI_DYNAMIC_POWER_LOCAL_FINITE_ELEMENT_MAP_HH
 #define DUNE_COPASI_DYNAMIC_POWER_LOCAL_FINITE_ELEMENT_MAP_HH
 
+#include <dune/copasi/common/factory.hh>
 #include <dune/copasi/finite_element/dynamic_power.hh>
 
 #include <dune/pdelab/finiteelementmap/finiteelementmap.hh>
@@ -51,6 +52,9 @@ public:
 
   /**
    * @brief      Searches for the finite element for entity e.
+   * @warning    The return value is valid until the next entity
+   *             tries to find another finite element. Hence, not
+   *             suitable for concurrency
    * @todo       Cache more than one finite element
    *
    * @param[in]  e           The entity
@@ -68,7 +72,7 @@ public:
     // cache the last used base finite element
     if (_base_fe_cache != &base_fe) {
       _base_fe_cache = &base_fe;
-      if (_fe_cache != NULL)
+      if (_fe_cache != nullptr)
         delete _fe_cache;
       _fe_cache = new FiniteElement(base_fe, _power_size);
     }
@@ -118,6 +122,22 @@ private:
   FiniteElementMap _fem;
   mutable BaseFiniteElement* _base_fe_cache;
   mutable FiniteElement* _fe_cache;
+};
+
+template<class BaseLocalFiniteElementMap>
+struct Factory<DynamicPowerLocalFiniteElementMap<BaseLocalFiniteElementMap>>
+{
+public:
+  template<class Context>
+  static auto create(const Context& ctx)
+  {
+    auto base_fem = Factory<BaseLocalFiniteElementMap>::create(ctx);
+    using FEM = DynamicPowerLocalFiniteElementMap<BaseLocalFiniteElementMap>;
+    if constexpr (Concept::has_method_power_size<Context>())
+      return std::make_unique<FEM>(*base_fem,ctx.power_size());
+    else
+      return std::make_unique<FEM>(*base_fem);
+  }
 };
 
 } // namespace Dune::Copasi
