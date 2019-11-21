@@ -314,10 +314,10 @@ public:
     assert(lfsu_di.degree() == lfsv_di.degree());
     assert(lfsu_do.degree() == lfsv_do.degree());
 
-    if (domain_i == domain_o)
-      _local_operator[domain_i]->pattern_skeleton(lfsu_di,lfsv_di,lfsu_do,lfsv_do,pattern_io,pattern_oi);
-    else
+    if (domain_i != domain_o)
       interface_pattern_skeleton(domain_i,domain_o,lfsu_di,lfsv_di,lfsu_do,lfsv_do,pattern_io,pattern_oi);
+    else if constexpr (SubLOP::doPatternSkeleton)
+      _local_operator[domain_i]->pattern_skeleton(lfsu_di,lfsv_di,lfsu_do,lfsv_do,pattern_io,pattern_oi);
   }
 
   /**
@@ -489,10 +489,10 @@ public:
     assert(lfsu_di.size() == lfsv_di.size());
     assert(lfsu_do.size() == lfsv_do.size());
 
-    if (domain_i == domain_o)
-      _local_operator[domain_i]->alpha_skeleton(ig,lfsu_di,x_i,lfsv_di,lfsu_do,x_o,lfsv_do,r_i,r_o);
-    else
+    if (domain_i != domain_o)
       interface_alpha_skeleton(domain_i,domain_o,ig,lfsu_di,x_i,lfsv_di,lfsu_do,x_o,lfsv_do,r_i,r_o);
+    else if constexpr (SubLocalOperator::doAlphaSkeleton)
+      _local_operator[domain_i]->alpha_skeleton(ig,lfsu_di,x_i,lfsv_di,lfsu_do,x_o,lfsv_do,r_i,r_o);
   }
 
   /**
@@ -689,8 +689,13 @@ public:
     assert(lfsu_di.size() == lfsv_di.size());
     assert(lfsu_do.size() == lfsv_do.size());
 
-    if (domain_i == domain_o)
-      _local_operator[domain_i]->jacobian_skeleton(ig,lfsu_di,x_i,lfsv_di,lfsu_do,x_o,lfsv_do,mat_ii,mat_io,mat_oi,mat_oo);
+    if (domain_i != domain_o)
+    {
+      if constexpr (SubLocalOperator::doAlphaSkeleton)
+      {
+        _local_operator[domain_i]->jacobian_skeleton(ig,lfsu_di,x_i,lfsv_di,lfsu_do,x_o,lfsv_do,mat_ii,mat_io,mat_oi,mat_oo);
+      }
+    }
     else if constexpr (JM == JacobianMethod::Numerical)
       PDELab::NumericalJacobianSkeleton<
         LocalOperatorMultiDomainDiffusionReaction>::jacobian_skeleton(ig,
@@ -706,6 +711,7 @@ public:
                                                                       mat_oo);
     else
       interface_jacobian_skeleton(domain_i,domain_o,ig,lfsu_di,x_i,lfsv_di,lfsu_do,x_o,lfsv_do,mat_ii,mat_io,mat_oi,mat_oo);
+
 
   }
 
