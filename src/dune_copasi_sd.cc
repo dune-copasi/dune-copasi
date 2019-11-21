@@ -118,7 +118,14 @@ main(int argc, char** argv)
           compartment_config["data." + key] = data_config[key];
       }
 
-      if (order == 1) {
+      if (order == 0) {
+        constexpr int Order = 0;
+        using ModelTraits =
+          Dune::Copasi::ModelPkDiffusionReactionTraits<Grid, GridView, Order>;
+        Dune::Copasi::ModelDiffusionReaction<ModelTraits> model(
+          grid_ptr, compartment_config);
+        model.run();
+      } else if (order == 1) {
         constexpr int Order = 1;
         using ModelTraits =
           Dune::Copasi::ModelPkDiffusionReactionTraits<Grid, GridView, Order>;
