@@ -11,6 +11,10 @@
 #include <dune/copasi/model/local_operator_FV.hh>
 #include <dune/copasi/model/local_operator_CG.hh>
 #include <dune/copasi/model/state.hh>
+#include <dune/copasi/finite_element/p0.hh>
+#include <dune/copasi/finite_element/pk.hh>
+#include <dune/copasi/finite_element_map/p0.hh>
+#include <dune/copasi/finite_element_map/pk.hh>
 
 #include <dune/pdelab/backend/istl.hh>
 #include <dune/pdelab/constraints/conforming.hh>
@@ -43,10 +47,9 @@ namespace Dune::Copasi {
  */
 template<class G,
          class GV = typename G::Traits::LeafGridView,
-         int FEMorder = 1,
          class OT = PDELab::EntityBlockedOrderingTag,
          JacobianMethod JM = JacobianMethod::Analytical>
-struct ModelPkDiffusionReactionTraits
+struct ModelP0DiffusionReactionTraits
 {
   using Grid = G;
   using GridView = GV;
@@ -60,7 +63,7 @@ struct ModelPkDiffusionReactionTraits
   using FEM = std::conditional_t<
                   is_sub_model,
                   MultiDomainLocalFiniteElementMap<BaseFEM,GridView>,
-                  DynamicPowerLocalFiniteElementMap<BaseFEM>
+                  BaseFEM
                 >;
 
   using OrderingTag = OT;
@@ -80,8 +83,50 @@ struct ModelPkDiffusionReactionTraits
     GridView,
     typename BaseFEM::Traits::FiniteElement::Traits::LocalBasisType::Traits,
     jacobian_method>;
-
 };
+
+template<class G,
+         class GV = typename G::Traits::LeafGridView,
+         int FEMorder = 1,
+         class OT = PDELab::EntityBlockedOrderingTag,
+         JacobianMethod JM = JacobianMethod::Analytical>
+struct ModelPkDiffusionReactionTraits
+{
+  using Grid = G;
+  using GridView = GV;
+  using BaseFEM =
+    PDELab::PkLocalFiniteElementMap<typename G::LeafGridView, double,double,FEMorder>;
+
+  static constexpr bool is_sub_model = not std::is_same_v<typename Grid::Traits::LeafGridView,GridView>;
+
+  //! Finite element map
+  using FEM = std::conditional_t<
+                  is_sub_model,
+                  MultiDomainLocalFiniteElementMap<BaseFEM,GridView>,
+                  BaseFEM
+                >;
+
+  using OrderingTag = OT;
+  static constexpr JacobianMethod jacobian_method = JM;
+
+  //! Local operator
+  template <class CoefficientMapper>
+  using LocalOperator = LocalOperatorDiffusionReactionCG<
+    GridView,
+    typename BaseFEM::Traits::FiniteElement::Traits::LocalBasisType::Traits,
+    CoefficientMapper,
+    jacobian_method>;
+
+  //! Temporal local operator
+  template <class CoefficientMapper>
+  using TemporalLocalOperator = TemporalLocalOperatorDiffusionReactionCG<
+    GridView,
+    typename BaseFEM::Traits::FiniteElement::Traits::LocalBasisType::Traits,
+    jacobian_method>;
+};
+
+template<class G, class GV, class OT, JacobianMethod JM>
+struct ModelPkDiffusionReactionTraits<G,GV,0,OT,JM> : public ModelP0DiffusionReactionTraits<G,GV,OT,JM> {};
 
 /**
  * @brief      Class for diffusion-reaction models.

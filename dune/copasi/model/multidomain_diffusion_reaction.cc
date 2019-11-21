@@ -251,15 +251,18 @@ ModelMultiDomainDiffusionReaction<Traits>::setup_local_operator(
   _logger.trace("setup local operators {}"_fmt, i);
 
   _logger.trace("create spatial local operator {}"_fmt, i);
-  typename Traits::SubModelTraits::BaseFEM::Traits::FiniteElement
-    finite_element(GeometryTypes::cube(Grid::dimension));
+
+  auto gt = _grid_view.template begin<0>()->geometry().type();
+  auto gt_ctx = Context::make_geometry_type(gt);
+  using FE = typename Traits::SubModelTraits::BaseFEM::Traits::FiniteElement;
+  auto finite_element = Factory<FE>::create(gt_ctx);
 
   auto local_operator =
-    std::make_shared<LOP>(_grid, _config, finite_element, i);
+    std::make_shared<LOP>(_grid, _config, *finite_element, i);
 
   _logger.trace("create temporal local operator {}"_fmt, i);
   auto temporal_local_operator =
-    std::make_shared<TLOP>(_grid, _config, finite_element, i);
+    std::make_shared<TLOP>(_grid, _config, *finite_element, i);
 
   return std::make_pair(local_operator, temporal_local_operator);
 }

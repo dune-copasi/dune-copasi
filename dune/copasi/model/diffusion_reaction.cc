@@ -10,6 +10,8 @@
 #include <dune/copasi/common/muparser_data_handler.hh>
 #include <dune/copasi/common/pdelab_expression_adapter.hh>
 #include <dune/copasi/concepts/pdelab.hh>
+#include <dune/copasi/context/geometry_type.hh>
+#include <dune/copasi/context/grid_view.hh>
 #include <dune/copasi/model/diffusion_reaction.hh>
 
 #include <dune/pdelab/function/callableadapter.hh>
@@ -140,18 +142,8 @@ ModelDiffusionReaction<Traits>::setup_component_grid_function_space(
 {
   _logger.trace("create a finite element map"_fmt);
 
-  // @todo create a factory of this
-  typename Traits::BaseFEM::Traits::FiniteElement base_fe(
-    GeometryTypes::cube(Grid::dimension));
-
-  // @todo make factory for fem classes
-  typename Traits::BaseFEM base_fem(GeometryTypes::cube(Grid::dimension));
-
-  std::shared_ptr<FEM> finite_element_map;
-  if constexpr (Traits::is_sub_model)
-    finite_element_map = std::make_shared<FEM>(_grid_view, base_fem, base_fe);
-  else
-    finite_element_map = std::make_shared<FEM>(base_fem);
+  auto gv_ctx = Context::make_grid_view(_grid_view);
+  std::shared_ptr<FEM> finite_element_map = Factory<FEM>::create(gv_ctx);
 
   _logger.trace("setup grid function space for component {}"_fmt, name);
   const ES entity_set(_grid->leafGridView());
@@ -258,16 +250,18 @@ ModelDiffusionReaction<Traits>::setup_local_operator(std::size_t i) const
   _logger.trace("setup local operators {}"_fmt, i);
 
   _logger.trace("create spatial local operator {}"_fmt, i);
-  // @todo create a factory of this
-  typename Traits::BaseFEM::Traits::FiniteElement finite_element(
-    GeometryTypes::cube(Grid::dimension));
+
+  auto gt = _grid_view.template begin<0>()->geometry().type();
+  auto gt_ctx = Context::make_geometry_type(gt);
+  using FE = typename Traits::BaseFEM::Traits::FiniteElement;
+  auto finite_element = Factory<FE>::create(gt_ctx);
 
   auto local_operator =
-    std::make_shared<LOP>(_grid_view, _config, finite_element, i);
+    std::make_shared<LOP>(_grid_view, _config, *finite_element, i);
 
   _logger.trace("create temporal local operator {}"_fmt, i);
   auto temporal_local_operator =
-    std::make_shared<TLOP>(_grid_view, _config, finite_element, i);
+    std::make_shared<TLOP>(_grid_view, _config, *finite_element, i);
 
   return std::make_pair(local_operator, temporal_local_operator);
 }
