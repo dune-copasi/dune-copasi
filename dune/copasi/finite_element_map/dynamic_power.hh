@@ -28,6 +28,12 @@ class DynamicPowerLocalFiniteElementMap
 public:
   static const int dimension = FiniteElementMap::dimension;
 
+  DynamicPowerLocalFiniteElementMap(std::unique_ptr<FiniteElementMap>&& fem,
+                                    std::size_t power_size = 1)
+    : _power_size(power_size)
+    , _fem(fem)
+  {}
+
   /**
    * @brief      Constructs a new instance.
    *
@@ -38,17 +44,24 @@ public:
    *                                  (this is always 0 outside of the
    *                                  subdomain)
    */
-  DynamicPowerLocalFiniteElementMap(FiniteElementMap fem,
+  DynamicPowerLocalFiniteElementMap(const FiniteElementMap& fem,
                                     std::size_t power_size = 1)
     : _power_size(power_size)
-    , _fem(fem)
-    , _fe_cache(NULL)
-  {}
+  {
+    if constexpr (std::is_polymorphic_v<FiniteElementMap>)
+      _fem = std::make_unique<FiniteElementMap>(fem.clone());
+    else
+      _fem = std::make_unique<FiniteElementMap>(fem);
+  }
 
-  /**
-   * @brief      Destroys the object.
-   */
-  ~DynamicPowerLocalFiniteElementMap() { delete _fe_cache; }
+  DynamicPowerLocalFiniteElementMap(const DynamicPowerLocalFiniteElementMap& other)
+    : _power_size(other._power_size)
+  {
+    if constexpr (std::is_polymorphic_v<FiniteElementMap>)
+      _fem = std::make_unique<FiniteElementMap>(other._fem->clone());
+    else
+      _fem = std::make_unique<FiniteElementMap>(*other._fem);
+  }
 
   /**
    * @brief      Searches for the finite element for entity e.
@@ -67,16 +80,14 @@ public:
   template<class EntityType>
   const FiniteElement& find(const EntityType& e) const
   {
-    auto base_fe = _fem.find(e);
+    // get base finite element
+    const auto& base_fe = _fem->find(e);
 
-    // cache the last used base finite element
-    if (_base_fe_cache != &base_fe) {
-      _base_fe_cache = &base_fe;
-      if (_fe_cache != nullptr)
-        delete _fe_cache;
-      _fe_cache = new FiniteElement(base_fe, _power_size);
-    }
-    return *_fe_cache;
+    // wrap base finite element into a dynamic power finite element and cache it
+    if (_fe_cache.find(&base_fe) == _fe_cache.end())
+      _fe_cache[&base_fe] = std::make_unique<const FiniteElement>(base_fe, _power_size);
+
+    return *_fe_cache[&base_fe];
   }
 
   /**
@@ -84,7 +95,7 @@ public:
    *
    * @return     Always the underlaying fixed size method
    */
-  bool fixedSize() const { return _fem.fixedSize(); }
+  bool fixedSize() const { return _fem->fixedSize(); }
 
   /**
    * @brief      Size for a given geometry type
@@ -95,7 +106,7 @@ public:
    */
   std::size_t size(GeometryType gt) const
   {
-    return _power_size * _fem.size(gt);
+    return _power_size * _fem->size(gt);
   }
 
   /**
@@ -107,7 +118,7 @@ public:
    */
   bool hasDOFs(int codim) const
   {
-    return (_power_size != 0) && _fem.hasDOFs(codim);
+    return (_power_size != 0) && _fem->hasDOFs(codim);
   }
 
   /**
@@ -115,28 +126,24 @@ public:
    *
    * @return     The maximim size
    */
-  std::size_t maxLocalSize() const { return _power_size * _fem.maxLocalSize(); }
+  std::size_t maxLocalSize() const { return _power_size * _fem->maxLocalSize(); }
 
 private:
   std::size_t _power_size;
-  FiniteElementMap _fem;
-  mutable BaseFiniteElement* _base_fe_cache;
-  mutable FiniteElement* _fe_cache;
+  std::unique_ptr<const FiniteElementMap> _fem;
+  mutable BaseFiniteElement const * _base_fe_cache;
+  mutable std::map<BaseFiniteElement const *,std::unique_ptr<const FiniteElement>> _fe_cache;
 };
 
 template<class BaseLocalFiniteElementMap>
 struct Factory<DynamicPowerLocalFiniteElementMap<BaseLocalFiniteElementMap>>
 {
-public:
   template<class Context>
   static auto create(const Context& ctx)
   {
-    auto base_fem = Factory<BaseLocalFiniteElementMap>::create(ctx);
     using FEM = DynamicPowerLocalFiniteElementMap<BaseLocalFiniteElementMap>;
-    if constexpr (Concept::has_method_power_size<Context>())
-      return std::make_unique<FEM>(*base_fem,ctx.power_size());
-    else
-      return std::make_unique<FEM>(*base_fem);
+    // todo add power size
+    return std::make_unique<FEM>(Factory<BaseLocalFiniteElementMap>::create(ctx));
   }
 };
 

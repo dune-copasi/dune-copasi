@@ -1,39 +1,63 @@
 #ifndef DUNE_COPASI_CONTEXT_GEOMETRY_TYPE_HH
 #define DUNE_COPASI_CONTEXT_GEOMETRY_TYPE_HH
 
-#include <dune/copasi/concepts/has_method.hh>
+#include <dune/copasi/context/entity.hh>
 #include <dune/copasi/context/base.hh>
 
 #include <dune/geometry/type.hh>
 
+#include <dune/common/typetraits.hh>
+
 #include <type_traits>
+
+namespace Dune::Copasi::Signature {
+
+struct GeometryType {};
+constexpr GeometryType geometry_type;
+
+}
 
 namespace Dune::Copasi::Context {
 
-template<class Ctx, class = std::void_t<>>
+template<class Ctx>
 struct GeometryTypeCtx : public Ctx
 {
   using GeometryType = Dune::GeometryType;
 
+  using Ctx::has;
+  using Ctx::get;
+  using Ctx::_bound;
+
   GeometryTypeCtx(Ctx&& ctx)
     : Ctx(std::move(ctx))
+  {
+    _bound = false;
+  }
+
+  GeometryTypeCtx(Ctx&& ctx, const Dune::GeometryType& geometry_type)
+    : Ctx(std::move(ctx))
+    , _gt(geometry_type)
   {}
 
-  const Dune::GeometryType& geometry_type() const
+  static bool constexpr has(Signature::GeometryType)
+  {
+    return true;
+  }
+
+  inline const Dune::GeometryType& get(Signature::GeometryType) const
   {
     return _gt;
   }
 
-  void set_geometry_type(const Dune::GeometryType geometry_type)
-  {
-    _gt = geometry_type;
-  }
-
   template<class BindCtx>
-  std::enable_if_t<Concept::has_method_geometry_type<BindCtx>()>
-  bind(const BindCtx& bind_ctx)
+  void inline bind(const BindCtx& bind_ctx)
   {
-    set_geometry_type(bind_ctx.geometry_type());
+    if constexpr (Ctx::has(Signature::geometry_type))
+      _gt = bind_ctx.get(Signature::geometry_type);
+    else if constexpr (Ctx::has(Signature::entity))
+      _gt = bind_ctx.get(Signature::entity).geometry().type();
+    else
+      static_assert(Dune::AlwaysFalse<Ctx>::value);
     Ctx::bind(bind_ctx);
   }
 
@@ -41,25 +65,10 @@ private:
   Dune::GeometryType _gt;
 };
 
-template<class Ctx>
-struct GeometryTypeCtx<Ctx,std::enable_if_t<Concept::has_method_geometry_type<Ctx>()>> : public Ctx
+template<class GeometryType>
+auto make(Signature::GeometryType, GeometryType&& geometry_type)
 {
-  GeometryTypeCtx(Ctx&& ctx)
-    : Ctx(std::move(ctx))
-  {}
-};
-
-template<class Ctx>
-auto inject_geometry_type(Ctx&& ctx, const Dune::GeometryType& geometry_type)
-{
-  GeometryTypeCtx<Ctx> gt_ctx{std::move(ctx)};
-  gt_ctx.set_geometry_type(geometry_type);
-  return gt_ctx;
-}
-
-auto make_geometry_type(const Dune::GeometryType& geometry_type)
-{
-  return inject_geometry_type(BaseCtx{},geometry_type);
+  return GeometryTypeCtx<BaseCtx>{BaseCtx{},std::forward<GeometryType>(geometry_type)};
 }
 
 } // namespace Dune::Copasi::Context

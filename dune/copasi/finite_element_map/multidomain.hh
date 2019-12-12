@@ -50,8 +50,8 @@ public:
    *                                  subdomain)
    */
   MultiDomainLocalFiniteElementMap(const GridView& grid_view,
-                                   FiniteElementMap fem,
-                                   BaseFiniteElement base_finite_element,
+                                   const FiniteElementMap& fem,
+                                   const BaseFiniteElement& base_finite_element,
                                    std::size_t power_size = 1)
     : Base(fem, power_size)
     , _grid_view(grid_view)
@@ -75,7 +75,7 @@ public:
     bool default_constructible = std::is_default_constructible_v<BaseFiniteElement>,
     class = std::enable_if_t<default_constructible>>
   MultiDomainLocalFiniteElementMap(const GridView& grid_view,
-                                   FiniteElementMap fem,
+                                   const FiniteElementMap& fem,
                                    std::size_t power_size = 1)
     : MultiDomainLocalFiniteElementMap(grid_view,
                                        fem,
@@ -117,10 +117,7 @@ public:
                        .contains(sub_domain);
     }
 
-    if (in_grid_view)
-      return Base::find(e);
-    else
-      return _fe_null;
+    return in_grid_view ? Base::find(e) : _fe_null;
   }
 
   /**
@@ -128,7 +125,7 @@ public:
    *
    * @return     Always false for this type
    */
-  bool fixedSize() const { return false; }
+  static bool constexpr fixedSize() { return false; }
 
 private:
   GridView _grid_view;
@@ -138,32 +135,34 @@ private:
 template<class BaseLocalFiniteElementMap, class GridView>
 struct Factory<MultiDomainLocalFiniteElementMap<BaseLocalFiniteElementMap,GridView>>
 {
-public:
   template<class Ctx>
   static auto create(const Ctx& ctx)
   {
-    static_assert(Concept::has_method_grid_view<Ctx>());
+    static_assert(Ctx::has(Signature::grid_view));
     static_assert(Concept::isSubDomainGrid<typename Ctx::GridView::Grid>());
 
-    auto sub_domain_gv = ctx.grid_view().grid().multiDomainGrid().leafGridView();
-    auto sub_somain_ctx = Context::make_grid_view(sub_domain_gv);
-    auto base_fem = Factory<BaseLocalFiniteElementMap>::create(sub_somain_ctx);
-    using FEM = MultiDomainLocalFiniteElementMap<BaseLocalFiniteElementMap,GridView>;
+    const auto& sub_domain_gv = ctx.get(Signature::grid_view);
+
+    assert(sub_domain_gv.template begin<0>() != sub_domain_gv.template end<0>());
+    GeometryType gt = sub_domain_gv.template begin<0>()->geometry().type();
+    using GTCtx = Context::GeometryTypeCtx<Ctx>;
+    GTCtx gt_ctx{Ctx{ctx},gt};
+
+    auto multi_domain_gv = sub_domain_gv.grid().multiDomainGrid().leafGridView();
+    using MultiDomainGridView = std::decay_t<decltype(multi_domain_gv)>;
 
     using BaseFE = typename BaseLocalFiniteElementMap::Traits::FiniteElement;
-
-    if (not has_single_geometry_type(ctx.grid_view()))
-      DUNE_THROW(InvalidStateException,"Grid view has to have only one grid view");
-
-    GeometryType gt = ctx.grid_view().template begin<0>()->geometry().type();
-
-    auto gt_ctx = Context::inject_geometry_type(Ctx{ctx},gt);
     auto base_fe = Factory<BaseFE>::create(gt_ctx);
 
-    if constexpr (Concept::has_method_power_size<Ctx>())
-      return std::make_unique<FEM>(gt_ctx.grid_view(),*base_fem,*base_fe,gt_ctx.power_size());
-    else
-      return std::make_unique<FEM>(gt_ctx.grid_view(),*base_fem,*base_fe);
+    Context::GridViewCtx<MultiDomainGridView,GTCtx> multi_domain_ctx{std::move(gt_ctx),multi_domain_gv};
+
+    auto base_fem = Factory<BaseLocalFiniteElementMap>::create(multi_domain_ctx);
+    using FEM = MultiDomainLocalFiniteElementMap<BaseLocalFiniteElementMap,GridView>;
+
+    if (not has_single_geometry_type(sub_domain_gv))
+      DUNE_THROW(InvalidStateException,"Grid view has to have only one grid view");
+
+    return std::make_unique<FEM>(sub_domain_gv,*base_fem,*base_fe);
   }
 };
 

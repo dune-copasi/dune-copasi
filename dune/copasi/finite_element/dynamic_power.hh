@@ -1,7 +1,6 @@
 #ifndef DUNE_COPASI_DYNAMIC_POWER_LOCAL_FINITE_ELEMENT_HH
 #define DUNE_COPASI_DYNAMIC_POWER_LOCAL_FINITE_ELEMENT_HH
 
-#include <dune/copasi/concepts/has_method.hh>
 #include <dune/copasi/common/factory.hh>
 #include <dune/copasi/finite_element/dynamic_power/local_basis.hh>
 #include <dune/copasi/finite_element/dynamic_power/local_coefficients.hh>
@@ -40,24 +39,6 @@ public:
   /**
    * @brief      Constructs a new instance.
    *
-   * @param[in]  finite_element       The base local finite element
-   * @param[in]  local_basis          The base local basis
-   * @param[in]  local_coeficcients   The base local coeficcients
-   * @param[in]  local_interpolation  The base local interpolation
-   */
-  DynamicPowerLocalFiniteElement(const LocalFiniteElement& finite_element,
-                                 const LocalBasis& local_basis,
-                                 const LocalCoefficients& local_coeficcients,
-                                 const LocalInterpolation& local_interpolation)
-    : _finite_element(finite_element)
-    , _basis(local_basis)
-    , _coefficients(local_coeficcients)
-    , _interpolation(local_interpolation)
-  {}
-
-  /**
-   * @brief      Constructs a new instance.
-   *
    * @param[in]  finite_element  The base local finite element
    * @param[in]  power_size      The power size
    * @param[in]  local_basis          The base local basis
@@ -66,10 +47,10 @@ public:
    */
   DynamicPowerLocalFiniteElement(const LocalFiniteElement& finite_element,
                                  std::size_t power_size)
-    : _finite_element(finite_element)
-    , _basis(_finite_element.localBasis(), power_size)
-    , _coefficients(_finite_element.localCoefficients(), power_size)
-    , _interpolation(_finite_element.localInterpolation(), power_size)
+    : _geometry_type(finite_element.type())
+    , _basis(finite_element.localBasis(), power_size)
+    , _coefficients(finite_element.localCoefficients(), power_size)
+    , _interpolation(finite_element.localInterpolation(), power_size)
   {}
 
   /**
@@ -123,13 +104,13 @@ public:
    *
    * @return     The geometry type
    */
-  GeometryType type() const { return _finite_element.type(); }
+  GeometryType type() const { return _geometry_type; }
 
 private:
-  LocalFiniteElement _finite_element;
-  LocalBasis _basis;
-  LocalCoefficients _coefficients;
-  LocalInterpolation _interpolation;
+  const GeometryType _geometry_type;
+  const LocalBasis _basis;
+  const LocalCoefficients _coefficients;
+  const LocalInterpolation _interpolation;
 };
 
 
@@ -142,10 +123,7 @@ public:
   {
     auto base_fe = Factory<BaseLocalFiniteElement>::create(ctx);
     using FE = DynamicPowerLocalFiniteElement<BaseLocalFiniteElement>;
-    if constexpr (Concept::has_method_power_size<Context>())
-      return std::make_unique<FE>(*base_fe,ctx.power_size());
-    else
-      return std::make_unique<FE>(*base_fe);
+    return std::make_unique<FE>(*base_fe);
   }
 };
 

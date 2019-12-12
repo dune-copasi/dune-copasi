@@ -1,64 +1,82 @@
 #ifndef DUNE_COPASI_CONTEXT_GRID_VIEW_HH
 #define DUNE_COPASI_CONTEXT_GRID_VIEW_HH
 
-#include <dune/copasi/concepts/has_method.hh>
 #include <dune/copasi/context/base.hh>
 
 #include <type_traits>
+#include <memory>
+
+namespace Dune::Copasi::Signature {
+
+struct GridView {};
+constexpr GridView grid_view;
+
+}
 
 namespace Dune::Copasi::Context {
 
-template<class GV, class Ctx, class = std::void_t<>>
+template<class GV, class Ctx>
 struct GridViewCtx : public Ctx
 {
   using GridView = GV;
 
+  using Ctx::has;
+  using Ctx::get;
+  using Ctx::_bound;
+
   GridViewCtx(Ctx&& ctx)
     : Ctx(std::move(ctx))
+  {
+    _bound = false;
+  }
+
+  GridViewCtx(const GridViewCtx& other_ctx)
+    : Ctx(other_ctx)
+  {
+    _grid_view = std::make_unique<GridView>(*other_ctx._grid_view);
+  }
+
+  GridViewCtx(Ctx&& ctx, const GridView& grid_view)
+    : Ctx(std::move(ctx))
+    , _grid_view(std::make_unique<GridView>(grid_view))
   {}
 
-  const GV& grid_view() const
+  ~GridViewCtx()
+  {
+    unbind();
+  }
+
+  static bool constexpr has(Signature::GridView)
+  {
+    return true;
+  }
+
+  inline const GV& get(Signature::GridView) const
   {
     return *_grid_view;
   }
 
-  void set_grid_view(const GV& grid_view)
+  inline void unbind()
   {
-    _grid_view = &grid_view;
+    _grid_view.reset();
+    Ctx::unbind();
   }
 
   template<class BindCtx>
-  std::enable_if_t<Concept::has_method_grid_view<BindCtx>()>
-  bind(const BindCtx& bind_ctx)
+  inline void bind(const BindCtx& bind_ctx)
   {
-    set_grid_view(bind_ctx.grid_view());
+    _grid_view = std::make_unique<GridView>(bind_ctx.get(Signature::grid_view));
     Ctx::bind(bind_ctx);
   }
 
 private:
-  const GV* _grid_view;
+  std::unique_ptr<const GridView> _grid_view;
 };
 
-template<class Ctx>
-struct GridViewCtx<Ctx,std::enable_if_t<Concept::has_method_grid_view<Ctx>()>> : public Ctx
+template<class GridView>
+auto make(Signature::GridView, const GridView& grid_view)
 {
-  GridViewCtx(Ctx&& ctx)
-    : Ctx(std::move(ctx))
-  {}
-};
-
-template<class Ctx, class GV>
-auto inject_grid_view(Ctx&& ctx, const GV& grid_view)
-{
-  Dune::Copasi::Context::GridViewCtx<GV,Ctx> gv_ctx{std::move(ctx)};
-  gv_ctx.set_grid_view(grid_view);
-  return gv_ctx;
-}
-
-template<class GV>
-auto make_grid_view(const GV& grid_view)
-{
-  return inject_grid_view(BaseCtx{},grid_view);
+  return GridViewCtx<GridView,BaseCtx>{BaseCtx{},grid_view};
 }
 
 } // namespace Dune::Copasi::Context
