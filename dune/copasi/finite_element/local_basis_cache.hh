@@ -1,11 +1,12 @@
 #ifndef DUNE_COPASI_LOCAL_FINITE_ELEMENT_CACHE_HH
 #define DUNE_COPASI_LOCAL_FINITE_ELEMENT_CACHE_HH
 
-#include <dune/common/hash.hh>
-
 #include <functional>
 #include <unordered_map>
 #include <vector>
+#include <typeindex>
+
+#include <dune/common/hash.hh>
 
 namespace Dune::Copasi {
 
