@@ -58,13 +58,6 @@ struct LocalOperatorDiffusionReactionBase
   //! components
   std::size_t _components;
 
-  bool fe_cached = false;
-
-  //! basis functions at quadrature points
-  std::vector<std::vector<Range>> _phihat;
-  //! basis function gradients at quadrature points
-  std::vector<std::vector<Jacobian>> _gradhat;
-
   std::vector<std::shared_ptr<ExpressionAdapter>> _diffusion_gf;
   mutable std::vector<std::shared_ptr<ExpressionAdapter>> _reaction_gf;
   mutable std::vector<std::shared_ptr<ExpressionAdapter>> _jacobian_gf;
@@ -128,31 +121,6 @@ struct LocalOperatorDiffusionReactionBase
     create_pattern_and_gf_expressions(grid_view,config);
   }
 
-  /**
-   * @brief      Constructs a new instance.
-   *
-   * @todo       Make integration order variable depending on user requirements
-   *             and polynomail order of the local finite element
-   *
-   * @param[in]  grid_view       The grid view where this local operator is
-   *                             valid
-   * @param[in]  config          The configuration tree
-   * @param[in]  finite_element  The local finite element
-   * @param[in]  rule_order      order of the quadrature rule
-   * @param[in]  id_operator     The index of this operator
-   */
-  template<class LocalFiniteElement>
-  LocalOperatorDiffusionReactionBase(const ParameterTree& config,
-                                   std::size_t id_operator,
-                                   const GridView& grid_view,
-                                   const LocalFiniteElement& finite_element,
-                                   std::size_t rule_order)
-    : LocalOperatorDiffusionReactionBase(config,id_operator,grid_view)
-  {
-
-    cache_local_finite_element(finite_element,rule_order);
-  }
-
   void setup_lfs_components(const ParameterTree& config, std::size_t id_operator)
   {
     _logger.trace("setup lfs components"_fmt);
@@ -165,48 +133,6 @@ struct LocalOperatorDiffusionReactionBase
       if (k == id_operator)
         _lfs_components.push_back(j);
     }
-  }
-
-  template<class LocalFiniteElement>
-  void cache_local_finite_element(const LocalFiniteElement& finite_element, std::size_t rule_order)
-  {
-    _logger.trace("caching local finite element evaluations on reference element"_fmt);
-    _logger.trace("  FE: {}"_fmt, Dune::className<LocalFiniteElement>());
-
-    //! local basis
-    using LocalBasis = typename LocalFiniteElement::Traits::LocalBasisType;
-
-    static_assert(std::is_same_v<typename LocalBasis::Traits,LocalBasisTraits>);
-
-    const auto& rule = QuadratureRules<RF, dim>::rule(finite_element.type(),rule_order);
-
-    _phihat.clear();
-    _gradhat.clear();
-    _phihat.reserve(rule.size());
-    _gradhat.reserve(rule.size());
-
-    std::vector<Range> phi(finite_element.localBasis().size());
-    std::vector<Jacobian> jac(finite_element.localBasis().size());
-
-    for (const auto& point : rule) {
-      const auto& position = point.position();
-      _logger.trace("position: {}"_fmt, position);
-
-      const auto& local_basis = finite_element.localBasis();
-      local_basis.evaluateFunction(position, phi);
-      local_basis.evaluateJacobian(position, jac);
-
-      for (std::size_t i = 0; i < finite_element.localBasis().size(); ++i) {
-        _logger.trace(" value[{}]: {}"_fmt, i, phi[i]);
-        _logger.trace(" jacobian[{}]: {}"_fmt, i, jac[i]);
-      }
-      _phihat.push_back(phi);
-      phi.clear();
-      _gradhat.push_back(jac);
-      jac.clear();
-    }
-
-    fe_cached = true;
   }
 
   void create_pattern_and_gf_expressions(const GridView& grid_view, const ParameterTree& config)
@@ -283,6 +209,26 @@ struct LocalOperatorDiffusionReactionBase
   {
     _coefficient_mapper_i.update(states);
     _coefficient_mapper_o.update(states);
+  }
+
+  template<class Entity>
+  const auto& coefficient_mapper_inside(const Entity& entity_inside) const
+  {
+    _coefficient_mapper_i.bind(entity_inside);
+    return _coefficient_mapper_i;
+  }
+
+  template<class Entity>
+  const auto& coefficient_mapper_outside(const Entity& entity_outside) const
+  {
+    _coefficient_mapper_o.bind(entity_outside);
+    return _coefficient_mapper_o;
+  }
+
+  template<class LFSU, class LFSV>
+  const auto& lfs_components(const LFSU& lfsu, const LFSV& lfsv) const
+  {
+    return _lfs_components;
   }
 
   /**
