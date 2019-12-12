@@ -20,22 +20,25 @@ template<class Interpolation>
 class DynamicPowerLocalInterpolation
 {
 public:
-  DynamicPowerLocalInterpolation(const Interpolation& interpolation,
-                                 std::size_t power_size)
-    : _interpolation(interpolation)
-    , _power_size(power_size)
+
+  DynamicPowerLocalInterpolation(std::unique_ptr<const Interpolation>&& interpolation,
+                                 std::size_t power_size = 1)
+    : _power_size(power_size)
+    , _interpolation(interpolation)
   {
     assert(_power_size >= 0);
   }
 
-  /**
-   * @brief      Constructs a new instance.
-   *
-   * @param[in]  interpolation  The base interpolation
-   */
-  DynamicPowerLocalInterpolation(const Interpolation& interpolation)
-    : DynamicPowerLocalInterpolation(interpolation, 1)
-  {}
+  DynamicPowerLocalInterpolation(const Interpolation& interpolation,
+                                 std::size_t power_size = 1)
+    : _power_size(power_size)
+  {
+    assert(_power_size >= 0);
+    if constexpr (std::is_polymorphic_v<Interpolation>)
+      _interpolation = std::unique_ptr<const Interpolation>(interpolation.clone());
+    else
+      _interpolation = std::make_unique<const Interpolation>(interpolation);
+  }
 
   /**
    * @brief      Constructs a new instance.
@@ -48,22 +51,24 @@ public:
   template<
     bool default_constructible = std::is_default_constructible_v<Interpolation>,
     class = std::enable_if_t<default_constructible>>
-  DynamicPowerLocalInterpolation(std::size_t power_size)
-    : DynamicPowerLocalInterpolation(Interpolation{}, power_size)
+  DynamicPowerLocalInterpolation(std::size_t power_size = 1)
+    : DynamicPowerLocalInterpolation(std::make_unique<Interpolation>(), power_size)
   {}
 
   /**
-   * @brief      Constructs a new instance.
+   * @brief      Copy constructor.
    *
-   * @tparam     <unnamed>   Internal template argument to allow default
-   *                         constructible base interpolations
+   * @param[in]  other  The other interpolation to be copied
+   *
    */
-  template<
-    bool default_constructible = std::is_default_constructible_v<Interpolation>,
-    class = std::enable_if_t<default_constructible>>
-  DynamicPowerLocalInterpolation()
-    : DynamicPowerLocalInterpolation(1)
-  {}
+  DynamicPowerLocalInterpolation(const DynamicPowerLocalInterpolation& other)
+    : _power_size(other._power_size)
+  {
+    if constexpr (std::is_polymorphic_v<Interpolation>)
+      _interpolation = std::unique_ptr<const Interpolation>(other._interpolation->clone());
+    else
+      _interpolation = std::make_unique<const Interpolation>(*other._interpolation);
+  }
 
   /**
    * @brief      Interpolation method
@@ -88,7 +93,7 @@ public:
     if (_power_size == 0)
       return;
     if constexpr (not dynamic_vector) {
-      _interpolation.interpolate(f, out);
+      _interpolation->interpolate(f, out);
     } else {
 
       // convert f in callable
@@ -105,7 +110,7 @@ public:
         };
 
         // evaluate component i
-        _interpolation.interpolate(callable_i, base_out);
+        _interpolation->interpolate(callable_i, base_out);
 
         // resize out vector to the correct size
         if (i == 0)
@@ -124,8 +129,8 @@ public:
   }
 
 private:
-  Interpolation _interpolation;
-  std::size_t _power_size;
+  std::unique_ptr<const Interpolation> _interpolation;
+  const std::size_t _power_size;
 };
 
 } // namespace Dune::Copasi

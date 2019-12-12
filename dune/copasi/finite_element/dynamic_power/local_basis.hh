@@ -20,16 +20,9 @@ class DynamicPowerLocalBasis
 public:
   using Traits = typename Basis::Traits;
 
-  /**
-   * @brief      Constructs a new instance.
-   *
-   * @param[in]  basis       The base local basis
-   * @param[in]  power_size  The power size
-   */
-  DynamicPowerLocalBasis(const Basis& basis, std::size_t power_size)
+  DynamicPowerLocalBasis(std::unique_ptr<Basis>&& basis, std::size_t power_size = 1)
     : _power_size(power_size)
     , _basis(basis)
-
   {
     assert(_power_size >= 0);
   }
@@ -37,11 +30,27 @@ public:
   /**
    * @brief      Constructs a new instance.
    *
-   * @param[in]  basis  The base local basis
+   * @param[in]  basis       The base local basis
+   * @param[in]  power_size  The power size
    */
-  DynamicPowerLocalBasis(const Basis& basis)
-    : DynamicPowerLocalBasis(basis, 1)
-  {}
+  DynamicPowerLocalBasis(const Basis& basis, std::size_t power_size = 1)
+    : _power_size(power_size)
+  {
+    assert(_power_size >= 0);
+    if constexpr (std::is_polymorphic_v<Basis>)
+      _basis = std::unique_ptr<const Basis>(basis.clone());
+    else
+      _basis = std::make_unique<const Basis>(basis);
+  }
+
+  DynamicPowerLocalBasis(const DynamicPowerLocalBasis& other)
+    : _power_size(other._power_size)
+  {
+    if constexpr (std::is_polymorphic_v<Basis>)
+      _basis = std::unique_ptr<const Basis>(other._basis->clone());
+    else
+      _basis = std::make_unique<const Basis>(*other._basis);
+  }
 
   /**
    * @brief      Constructs a new instance.
@@ -54,21 +63,8 @@ public:
   template<
     bool default_constructible = std::is_default_constructible_v<Basis>,
     class = std::enable_if_t<default_constructible>>
-  DynamicPowerLocalBasis(std::size_t power_size)
-    : DynamicPowerLocalBasis(Basis{}, power_size)
-  {}
-
-  /**
-   * @brief      Constructs a new instance.
-   *
-   * @tparam     <unnamed>   Internal use to allow default constructible base
-   *                         local basis
-   */
-  template<
-    bool default_constructible = std::is_default_constructible_v<Basis>,
-    class = std::enable_if_t<default_constructible>>
-  DynamicPowerLocalBasis()
-    : DynamicPowerLocalBasis(1)
+  DynamicPowerLocalBasis(std::size_t power_size = 1)
+    : DynamicPowerLocalBasis(std::make_unique<const Basis>(), power_size)
   {}
 
   /**
@@ -77,7 +73,7 @@ public:
    *
    * @return     The number of shape functions
    */
-  unsigned int size() const { return _power_size * _basis.size(); }
+  unsigned int size() const { return _power_size * _basis->size(); }
 
   /**
    * @brief      Evaluation function for a given local coordinate
@@ -89,7 +85,7 @@ public:
     const typename Traits::DomainType& in,
     std::vector<typename Traits::RangeType>& out) const
   {
-    auto f = [&](const auto& i, auto& o) { _basis.evaluateFunction(i, o); };
+    auto f = [&](const auto& i, auto& o) { _basis->evaluateFunction(i, o); };
     populate_output(f, in, out);
   }
 
@@ -103,7 +99,7 @@ public:
     const typename Traits::DomainType& in,
     std::vector<typename Traits::JacobianType>& out) const
   {
-    auto f = [&](const auto& i, auto& o) { _basis.evaluateJacobian(i, o); };
+    auto f = [&](const auto& i, auto& o) { _basis->evaluateJacobian(i, o); };
     populate_output(f, in, out);
   }
 
@@ -119,12 +115,11 @@ public:
    *
    * @tparam     dim    The grid entity dimension
    */
-  template<int dim>
-  void partial(const std::array<unsigned int, dim>& order,
+  void partial(const std::array<unsigned int, Traits::dimDomain>& order,
                const typename Traits::DomainType& in,
                std::vector<typename Traits::RangeType>& out) const
   {
-    auto f = [&](const auto& i, auto& o) { _basis.partial(order, i, o); };
+    auto f = [&](const auto& i, auto& o) { _basis->partial(order, i, o); };
     populate_output(f, in, out);
   }
 
@@ -133,7 +128,7 @@ public:
    *
    * @return     The polynomal order of the shape functions
    */
-  unsigned int order() const { return _basis.order(); }
+  unsigned int order() const { return _basis->order(); }
 
 private:
   /**
@@ -150,32 +145,34 @@ private:
    * @tparam     Out   The result populated type
    */
   template<class F, class In, class Out>
-  void populate_output(const F& f, const In& in, Out& out) const
+  inline void populate_output(const F& f, const In& in, Out& out) const
   {
+    out.resize(_power_size * _basis->size());
     if (_power_size == 0)
       return;
 
     f(in, out);
+    assert(out.size() == _basis->size());
 
-    assert(out.size() == _basis.size());
-    out.resize(_power_size * _basis.size());
+    if (_power_size == 1)
+      return;
 
     auto it = out.begin();
     auto copy_begin = it;
 
     // skip the first n values because they were already evaluated
-    std::advance(it, _basis.size());
+    std::advance(it, _basis->size());
     auto copy_end = it;
 
     while (it != out.end()) {
       std::copy(copy_begin, copy_end, it);
-      std::advance(it, _basis.size());
+      std::advance(it, _basis->size());
     }
   }
 
 private:
-  std::size_t _power_size;
-  Basis _basis;
+  std::unique_ptr<const Basis> _basis;
+  const std::size_t _power_size;
 };
 
 } // namespace Dune::Copasi
