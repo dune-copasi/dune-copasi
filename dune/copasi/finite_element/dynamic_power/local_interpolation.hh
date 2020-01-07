@@ -24,7 +24,7 @@ public:
   DynamicPowerLocalInterpolation(std::unique_ptr<const Interpolation>&& interpolation,
                                  std::size_t power_size = 1)
     : _power_size(power_size)
-    , _interpolation(interpolation)
+    , _interpolation(std::move(interpolation))
   {
     assert(_power_size >= 0);
   }
@@ -75,7 +75,7 @@ public:
    *
    * @param[in]  f     Function to be interpolated. If its return type is a
    *                   dynamic vector, it has to have a size equal or greater
-   *                   than the power size set to this ibject
+   *                   than the power size set to this object
    * @param      out   The vector of coefficients for the local finite element
    *
    * @tparam     F     The function type
@@ -86,13 +86,24 @@ public:
   {
     out.clear();
 
-    static_assert(IsIndexable<typename F::RangeType>::value);
-    constexpr bool dynamic_vector =
-      IsIndexable<decltype(std::declval<typename F::RangeType>()[0])>::value;
+    // the range of the function must be indexable
+    using Range = typename F::RangeType;
+    static_assert(IsIndexable<Range>::value);
+
+    // if field on the range is indexable, we assume they correspond to the 
+    // components of a dynamic power finite element. 
+    using RangeField = decltype(std::declval<Range>()[0]);
+    
+    constexpr bool dynamic_vector = IsIndexable<RangeField>::value;
 
     if (_power_size == 0)
+    {
+      out.resize(0);
       return;
+    }
+
     if constexpr (not dynamic_vector) {
+      assert(_power_size == 1);
       _interpolation->interpolate(f, out);
     } else {
 
@@ -129,8 +140,8 @@ public:
   }
 
 private:
-  std::unique_ptr<const Interpolation> _interpolation;
   const std::size_t _power_size;
+  std::unique_ptr<const Interpolation> _interpolation;
 };
 
 } // namespace Dune::Copasi
