@@ -9,7 +9,9 @@
 
 #include <dune/copasi/common/muparser_data_handler.hh>
 #include <dune/copasi/common/pdelab_expression_adapter.hh>
+#include <dune/copasi/common/tiff_grayscale.hh>
 #include <dune/copasi/concepts/pdelab.hh>
+#include <dune/copasi/context/entity_mapper.hh>
 #include <dune/copasi/context/geometry_type.hh>
 #include <dune/copasi/context/grid_view.hh>
 #include <dune/copasi/model/diffusion_reaction.hh>
@@ -142,15 +144,38 @@ ModelDiffusionReaction<Traits>::setup_component_grid_function_space(
 {
   _logger.trace("create a finite element map"_fmt);
 
-  auto gv_ctx = Context::make_grid_view(_grid_view);
-  std::shared_ptr<FEM> finite_element_map = Factory<FEM>::create(gv_ctx);
+  // create entity mapper context
+  auto em = [](const auto entity) {
+    return entity.geometry().type().isCube() ? 0 : 1;
+  };
+  using Entity = typename Traits::Grid::LeafGridView::template Codim<0>::Entity;
+  auto em_ctx = Context::make<Entity>(Signature::entity_mapper, em);
+
+  // add grid view to the context
+  auto ctx =
+    Context::GridViewCtx<GV, decltype(em_ctx)>(std::move(em_ctx), _grid_view);
+
+  // create fem from factory
+  std::shared_ptr<FEM> finite_element_map(Factory<FEM>::create(ctx));
+
+  std::size_t order;
+  if constexpr (Concept::isMultiDomainGrid<typename Traits::Grid>()) {
+    order = finite_element_map
+              ->find(_grid->multiDomainEntity(*_grid_view.template begin<0>()))
+              .localBasis()
+              .order();
+  } else
+    order = finite_element_map->find(*_grid_view.template begin<0>())
+              .localBasis()
+              .order();
 
   _logger.trace("setup grid function space for component {}"_fmt, name);
   const ES entity_set(_grid->leafGridView());
   auto comp_gfs = std::make_shared<LGFS>(entity_set, finite_element_map);
   comp_gfs->name(name);
   comp_gfs->setDataSetType(
-    PDELab::GridFunctionOutputParameters::Output::cellData);
+    order == 0 ? PDELab::GridFunctionOutputParameters::Output::cellData
+               : PDELab::GridFunctionOutputParameters::Output::vertexData);
   return comp_gfs;
 }
 
@@ -251,17 +276,10 @@ ModelDiffusionReaction<Traits>::setup_local_operator(std::size_t i) const
 
   _logger.trace("create spatial local operator {}"_fmt, i);
 
-  auto gt = _grid_view.template begin<0>()->geometry().type();
-  auto gt_ctx = Context::make_geometry_type(gt);
-  using FE = typename Traits::BaseFEM::Traits::FiniteElement;
-  auto finite_element = Factory<FE>::create(gt_ctx);
-
-  auto local_operator =
-    std::make_shared<LOP>(_grid_view, _config, *finite_element, i);
+  auto local_operator = std::make_shared<LOP>(_grid_view, _config, i);
 
   _logger.trace("create temporal local operator {}"_fmt, i);
-  auto temporal_local_operator =
-    std::make_shared<TLOP>(_grid_view, _config, *finite_element, i);
+  auto temporal_local_operator = std::make_shared<TLOP>(_grid_view, _config, i);
 
   return std::make_pair(local_operator, temporal_local_operator);
 }
