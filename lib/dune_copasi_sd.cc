@@ -20,6 +20,14 @@ using MDGrid = Dune::mdgrid::MultiDomainGrid<HostGrid, MDGTraits>;
 using Grid = typename MDGrid::SubDomainGrid;
 using GridView = typename Grid::Traits::LeafGridView;
 
+// only FV
+
+using ModelTraits0 =
+  Dune::Copasi::ModelPkDiffusionReactionTraits<Grid, GridView, 0>;
+template class ModelDiffusionReaction<ModelTraits0>;
+
+// only CG
+
 using ModelTraits1 =
   Dune::Copasi::ModelPkDiffusionReactionTraits<Grid, GridView, 1>;
 template class ModelDiffusionReaction<ModelTraits1>;
@@ -27,6 +35,16 @@ template class ModelDiffusionReaction<ModelTraits1>;
 using ModelTraits2 =
   Dune::Copasi::ModelPkDiffusionReactionTraits<Grid, GridView, 2>;
 template class ModelDiffusionReaction<ModelTraits2>;
+
+// mixed FV and CG
+
+using ModelTraits01 =
+  Dune::Copasi::ModelP0PkDiffusionReactionTraits<Grid, GridView, 1>;
+template class ModelDiffusionReaction<ModelTraits01>;
+
+using ModelTraits02 =
+  Dune::Copasi::ModelP0PkDiffusionReactionTraits<Grid, GridView, 2>;
+template class ModelDiffusionReaction<ModelTraits02>;
 
 } // namespace Dorie
 } // namespace Dune

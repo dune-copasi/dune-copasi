@@ -82,14 +82,14 @@ main(int argc, char** argv)
     } else if (order == 1) {
       constexpr int Order = 1;
       using ModelTraits =
-        Dune::Copasi::ModelMultiDomainPkDiffusionReactionTraits<Grid, Order>;
+        Dune::Copasi::ModelMultiDomainP0PkDiffusionReactionTraits<Grid, Order>;
       Dune::Copasi::ModelMultiDomainDiffusionReaction<ModelTraits> model(
         grid_ptr, model_config);
       model.run();
     } else if (order == 2) {
       constexpr int Order = 2;
       using ModelTraits =
-        Dune::Copasi::ModelMultiDomainPkDiffusionReactionTraits<Grid, Order>;
+        Dune::Copasi::ModelMultiDomainP0PkDiffusionReactionTraits<Grid, Order>;
       Dune::Copasi::ModelMultiDomainDiffusionReaction<ModelTraits> model(
         grid_ptr, model_config);
       model.run();

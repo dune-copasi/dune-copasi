@@ -1,27 +1,29 @@
-__name = test_tiff
+_diffusion = 0.01
+_t0 = 1.
+_gauss_eq = exp(-((x-0.5)^2+(y-0.5)^2)/(2.*t*{_diffusion})) / (2*pi*t*{_diffusion})
+_geometry_type = cubes, triangles | expand geometry_type
+
+__name = test_initial_{_geometry_type}
 
 [grid]
-file = grids/square_triangles.msh
-initial_level = 3
+file = grids/square_{_geometry_type}.msh
+initial_level = 6
 
 [model]
-begin_time = 0.
-end_time = 0.
+begin_time = {_t0}
+end_time = {_t0}
 time_step = 0.1
-order = 1
-
-[model.data]
-flowers = data/tiff/flower-minisblack-16.tif
+order = 0, 1 | expand geometry_type
 
 [model.compartments]
-domain     = 0
+domain = 0
 
 ############################ Model for domain ############################
 [model.domain.operator]
 u = 0
 
 [model.domain.initial]
-u = flowers(x,y-0.25)
+u = {_gauss_eq}
 
 [model.domain.reaction]
 u = 0
@@ -30,18 +32,16 @@ u = 0
 du_du = 0
 
 [model.domain.diffusion]
-u = 1e-3
+u = {_diffusion}
 
 [model.domain.writer]
 file_name = {__name}
 
-######################### Compare with analytic vtk #########################
-[wrapper.vtkcompare]
-name = {__name}/{__name}-00000
-reference = reference/{__name}-00000
-extension = vtu
-relative = 2e-2
-absolute = 1e-9
+#### compare against a known solution
+[model.domain.compare.expression]
+u = {_gauss_eq}
+[model.domain.compare.l2_error]
+u = 7e-2, 5e-3 | expand geometry_type
 
 ############################ Logging settings #################################
 # levels = off, critical, error, waring, notice, info, debug, trace, all

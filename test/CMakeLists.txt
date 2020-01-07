@@ -40,23 +40,35 @@ if (dune-testtools_FOUND)
 
   add_system_test_per_target(
     TARGET          dune_copasi_sd_compare
-    SCRIPT          dune_vtkcompare.py
     INIFILE         test_exp.mini)
 
   add_system_test_per_target(
-    TARGET          dune_copasi_md # todo: use md compare
-    SCRIPT          dune_vtkcompare.py
+    TARGET          dune_copasi_md_compare
     INIFILE         test_exp.mini)
 
   add_system_test_per_target(
     TARGET          dune_copasi_sd_compare
-    SCRIPT          dune_vtkcompare.py
+    INIFILE         test_initial.mini)
+
+  add_system_test_per_target(
+    TARGET          dune_copasi_md_compare
+    INIFILE         test_initial.mini)
+
+  add_system_test_per_target(
+    TARGET          dune_copasi_sd_compare
     INIFILE         test_gauss.mini)
 
   add_system_test_per_target(
-    TARGET          dune_copasi_md # todo: use md compare
-    SCRIPT          dune_vtkcompare.py
+    TARGET          dune_copasi_md_compare
     INIFILE         test_gauss.mini)
+
+  add_system_test_per_target(
+    TARGET          dune_copasi_sd_compare
+    INIFILE         test_gauss_mixed_geometry.mini)
+
+  add_system_test_per_target(
+    TARGET          dune_copasi_md_compare
+    INIFILE         test_gauss_mixed_geometry.mini)
 
   add_system_test_per_target(
     TARGET          dune_copasi_sd

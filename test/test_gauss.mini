@@ -1,21 +1,22 @@
-__name = test_gauss
-
 _diffusion = 0.01
 _t0 = 1.
 _gauss_eq = exp(-((x-0.5)^2+(y-0.5)^2)/(2.*t*{_diffusion})) / (2*pi*t*{_diffusion})
+_geometry_type = cubes, triangles | expand geometry_type
+
+__name = test_gauss_{_geometry_type}
 
 [grid]
-file = grids/square_cubes.msh
+file = grids/square_{_geometry_type}.msh
 initial_level = 4
 
 [model]
 begin_time = {_t0}
 end_time = 3
 time_step = 0.1
-order = 1
+order = 0, 1 | expand geometry_type
 
 [model.compartments]
-domain     = 0
+domain = 0
 
 ############################ Model for domain ############################
 [model.domain.operator]
@@ -40,15 +41,7 @@ file_name = {__name}
 [model.domain.compare.expression]
 u = {_gauss_eq}
 [model.domain.compare.l2_error]
-u = 0.55
-
-######################### Compare with analytic vtk #########################
-[wrapper.vtkcompare]
-name = {__name}/{__name}-00101
-reference = reference/{__name}-00101
-extension = vtu
-relative = 2e-2
-absolute = 1e-9
+u = 0.6
 
 ############################ Logging settings #################################
 # levels = off, critical, error, waring, notice, info, debug, trace, all
