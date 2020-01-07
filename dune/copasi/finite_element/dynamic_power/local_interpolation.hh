@@ -90,10 +90,9 @@ public:
     using Range = typename F::RangeType;
     static_assert(IsIndexable<Range>::value);
 
-    // if field on the range is indexable, we assume they correspond to the 
-    // components of a dynamic power finite element. 
+    // if field on the range is indexable, we assume that they correspond to the
+    // components of a dynamic power finite element.
     using RangeField = decltype(std::declval<Range>()[0]);
-    
     constexpr bool dynamic_vector = IsIndexable<RangeField>::value;
 
     if (_power_size == 0)
