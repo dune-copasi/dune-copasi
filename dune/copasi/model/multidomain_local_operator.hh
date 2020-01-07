@@ -34,7 +34,6 @@ namespace Dune::Copasi {
  * @tparam     JM                  Jacobian Method
  */
 template<class Grid,
-         class LocalFiniteElement,
          class SubLocalOperator,
          JacobianMethod JM = JacobianMethod::Analytical>
 class LocalOperatorMultiDomainDiffusionReaction
@@ -42,40 +41,17 @@ class LocalOperatorMultiDomainDiffusionReaction
   , public Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>
   , public Dune::PDELab::NumericalJacobianSkeleton<
       LocalOperatorMultiDomainDiffusionReaction<Grid,
-                                                LocalFiniteElement,
                                                 SubLocalOperator,
                                                 JM>>
   , public Dune::PDELab::NumericalJacobianApplySkeleton<
       LocalOperatorMultiDomainDiffusionReaction<Grid,
-                                                LocalFiniteElement,
                                                 SubLocalOperator,
                                                 JM>>
 {
   static_assert(Concept::isMultiDomainGrid<Grid>());
 
-  //! local basis
-  using LocalBasis = typename LocalFiniteElement::Traits::LocalBasisType;
-
-  //! domain field
-  using DF = typename LocalBasis::Traits::DomainFieldType;
-
-  //! coordinates type
-  using Domain = typename LocalBasis::Traits::DomainType;
-
-  //! range field
-  using RF = typename LocalBasis::Traits::RangeFieldType;
-
-  //! range type (for the local finite element)
-  using Range = typename LocalBasis::Traits::RangeType;
-
-  //! jacobian tpye
-  using Jacobian = typename LocalBasis::Traits::JacobianType;
-
   //! jacobian tpye
   using IndexSet = typename Grid::LeafGridView::IndexSet;
-
-  //! world dimension
-  static constexpr int dim = LocalBasis::Traits::dimDomain;
 
   static constexpr std::size_t unused_domain = ~std::size_t(0);
 
@@ -83,8 +59,6 @@ class LocalOperatorMultiDomainDiffusionReaction
   using SubLOP = SubLocalOperator;
 
   const IndexSet& _index_set;
-
-  const LocalBasis _local_basis;
 
   const std::size_t _size;
 
@@ -122,10 +96,8 @@ public:
   LocalOperatorMultiDomainDiffusionReaction(
     std::shared_ptr<const Grid> grid,
     const ParameterTree& config,
-    const LocalFiniteElement& finite_element,
     std::size_t id_operator)
     : _index_set(grid->leafGridView().indexSet())
-    , _local_basis(finite_element.localBasis())
     , _size(config.sub("compartments").getValueKeys().size())
     , _local_operator(_size)
     , _component_name(_size)
@@ -146,7 +118,7 @@ public:
       std::sort(_component_name[i].begin(), _component_name[i].end());
 
       auto lp = std::make_shared<SubLOP>(
-        sub_grid_view, sub_config, finite_element, id_operator);
+        sub_grid_view, sub_config, id_operator);
       _local_operator[i] = lp;
     }
 
@@ -226,12 +198,12 @@ public:
   {
     auto lfs_size_i = lfsu_di.degree();
     for (std::size_t i = 0; i < lfs_size_i; ++i) {
-      const std::size_t comp_i = _local_operator[domain_i]->_lfs_components[i];
+      const std::size_t comp_i = _local_operator[domain_i]->lfs_components(lfsu_di,lfsv_di)[i];
       std::array<std::size_t, 3> inside_comp{ domain_i, domain_o, comp_i };
       auto it = _component_offset.find(inside_comp);
       if (it != _component_offset.end()) {
         auto comp_o = it->second;
-        const auto& lfs_comp_o = _local_operator[domain_o]->_lfs_components;
+        const auto& lfs_comp_o = _local_operator[domain_o]->lfs_components(lfsu_do,lfsv_do);
         auto o_it = std::find(lfs_comp_o.begin(), lfs_comp_o.end(), comp_o);
         if (o_it != lfs_comp_o.end()) {
           auto lfsv_ci = lfsv_di.child(i);
@@ -248,12 +220,12 @@ public:
 
     auto lfs_size_o = lfsu_do.degree();
     for (std::size_t o = 0; o < lfs_size_o; ++o) {
-      const std::size_t comp_o = _local_operator[domain_o]->_lfs_components[o];
+      const std::size_t comp_o = _local_operator[domain_o]->lfs_components(lfsu_do,lfsv_do)[o];
       std::array<std::size_t, 3> outside_comp{ domain_o, domain_i, comp_o };
       auto it = _component_offset.find(outside_comp);
       if (it != _component_offset.end()) {
         auto comp_i = it->second;
-        const auto& lfs_comp_i = _local_operator[domain_i]->_lfs_components;
+        const auto& lfs_comp_i = _local_operator[domain_i]->lfs_components(lfsu_do,lfsv_do);
         auto i_it = std::find(lfs_comp_i.begin(), lfs_comp_i.end(), comp_i);
         if (i_it != lfs_comp_i.end()) {
           auto lfsv_co = lfsv_do.child(o);
@@ -350,8 +322,6 @@ public:
       if (lfsu.child(i).size() > 0) {
         const auto& sub_lfsu = lfsu.child(i);
         const auto& sub_lfsv = lfsv.child(i);
-        if (sub_lfsu.size() == 0)
-          continue;
         _local_operator[i]->jacobian_apply_volume(
           eg, sub_lfsu, x, z, sub_lfsv, r);
       }
@@ -375,8 +345,6 @@ public:
       if (lfsu.child(i).size() > 0) {
         const auto& sub_lfsu = lfsu.child(i);
         const auto& sub_lfsv = lfsv.child(i);
-        if (sub_lfsu.size() == 0)
-          continue;
         _local_operator[i]->jacobian_apply_volume(eg, sub_lfsu, x, sub_lfsv, r);
       }
     }
@@ -399,8 +367,6 @@ public:
       if (lfsu.child(i).size() > 0) {
         const auto& sub_lfsu = lfsu.child(i);
         const auto& sub_lfsv = lfsv.child(i);
-        if (sub_lfsu.size() == 0)
-          continue;
         _local_operator[i]->jacobian_volume(eg, sub_lfsu, x, sub_lfsv, mat);
       }
     }
@@ -424,8 +390,6 @@ public:
       if (lfsu.child(i).size() > 0) {
         const auto& sub_lfsu = lfsu.child(i);
         const auto& sub_lfsv = lfsv.child(i);
-        if (sub_lfsu.size() == 0)
-          continue;
         _local_operator[i]->alpha_volume(eg, sub_lfsu, x, sub_lfsv, r);
       }
     }
@@ -564,11 +528,20 @@ public:
       r_o.accumulate(lfsu_do.child(component), dof, value);
     };
 
-    auto& coefficient_mapper_i = _local_operator[domain_i]->_coefficient_mapper_i;
-    coefficient_mapper_i.bind(entity_i);
+    const auto& coeff_mapper_i = _local_operator[domain_i]->coefficient_mapper_inside(entity_i);
+    const auto& coeff_mapper_o = _local_operator[domain_o]->coefficient_mapper_outside(entity_o);
 
-    auto& coefficient_mapper_o = _local_operator[domain_o]->_coefficient_mapper_o;
-    coefficient_mapper_o.bind(entity_o);
+    const auto& local_basis_i = lfsu_di.child(0).finiteElement().localBasis();
+    const auto& local_basis_o = lfsu_do.child(0).finiteElement().localBasis();
+
+    using LocalBasis = std::decay_t<decltype(local_basis_i)>;
+    using Range = typename LocalBasis::Traits::RangeType;
+    using RF = typename LocalBasis::Traits::RangeFieldType;
+
+    std::vector<Range> phiu_i(lfsu_di.size());
+    std::vector<Range> phiu_o(lfsu_do.size());
+
+    std::vector<RF> u_i(components_i), u_o(components_o);
 
     for (const auto& it : quadratureRule(geo_f, 3)) {
       const auto& position_f = it.position();
@@ -576,23 +549,21 @@ public:
       const auto position_i = geo_in_i.global(position_f);
       const auto position_o = geo_in_o.global(position_f);
 
-      std::vector<Range> phiu_i(lfsu_di.size());
-      std::vector<Range> phiu_o(lfsu_do.size());
-
       // evaluate basis functions
-      _local_basis.evaluateFunction(position_i, phiu_i);
-      _local_basis.evaluateFunction(position_o, phiu_o);
+      phiu_i.clear(), phiu_o.clear();
+      local_basis_i.evaluateFunction(position_i, phiu_i);
+      local_basis_o.evaluateFunction(position_o, phiu_o);
 
       // evaluate concentrations at quadrature point
-      DynamicVector<RF> u_i(components_i), u_o(components_o);
 
+      u_i.clear(), u_o.clear();
       for (std::size_t k = 0; k < components_i; k++) // loop over components
-        for (std::size_t j = 0; j < _local_basis.size(); j++)
-          u_i[k] += coefficient_mapper_i(x_coeff_local_i, k, j) * phiu_i[j];
+        for (std::size_t j = 0; j < local_basis_i.size(); j++)
+          u_i[k] += coeff_mapper_i(x_coeff_local_i, k, j) * phiu_i[j];
 
       for (std::size_t k = 0; k < components_o; k++) // loop over components
-        for (std::size_t j = 0; j < _local_basis.size(); j++)
-          u_o[k] += coefficient_mapper_o(x_coeff_local_o, k, j) * phiu_o[j];
+        for (std::size_t j = 0; j < local_basis_o.size(); j++)
+          u_o[k] += coeff_mapper_o(x_coeff_local_o, k, j) * phiu_o[j];
 
       // integration factor
       auto factor = it.weight() * geo_f.integrationElement(position_f);
@@ -602,7 +573,7 @@ public:
         if (lfsu_di.child(i).size() == 0)
           continue; // child space has nothing to compute
         const std::size_t comp_i =
-          _local_operator[domain_i]->_lfs_components[i];
+          _local_operator[domain_i]->lfs_components(lfsu_di,lfsv_di)[i];
         std::array<std::size_t, 3> inside_comp{ domain_i, domain_o, comp_i };
         auto it = _component_offset.find(inside_comp);
         if (it != _component_offset.end()) {
@@ -617,7 +588,7 @@ public:
         if (lfsu_do.child(o).size() == 0)
           continue; // child space has nothing to compute
         const std::size_t comp_o =
-          _local_operator[domain_o]->_lfs_components[o];
+          _local_operator[domain_o]->lfs_components(lfsu_do,lfsv_do)[o];
         std::array<std::size_t, 3> outside_comp{ domain_o, domain_i, comp_o };
         auto it = _component_offset.find(outside_comp);
         if (it != _component_offset.end()) {
@@ -689,7 +660,7 @@ public:
     assert(lfsu_di.size() == lfsv_di.size());
     assert(lfsu_do.size() == lfsv_do.size());
 
-    if (domain_i != domain_o)
+    if (domain_i == domain_o)
     {
       if constexpr (SubLocalOperator::doAlphaSkeleton)
       {
@@ -711,8 +682,6 @@ public:
                                                                       mat_oo);
     else
       interface_jacobian_skeleton(domain_i,domain_o,ig,lfsu_di,x_i,lfsv_di,lfsu_do,x_o,lfsv_do,mat_ii,mat_io,mat_oi,mat_oo);
-
-
   }
 
   /**
@@ -808,18 +777,25 @@ public:
                         value);
     };
 
+    const auto& local_basis_i = lfsu_di.child(0).finiteElement().localBasis();
+    const auto& local_basis_o = lfsu_do.child(0).finiteElement().localBasis();
+
+    using LocalBasis = std::decay_t<decltype(local_basis_i)>;
+    using Range = typename LocalBasis::Traits::RangeType;
+
+    std::vector<Range> phiu_i(lfsu_di.size());
+    std::vector<Range> phiu_o(lfsu_do.size());
+
     for (const auto& it : quadratureRule(geo_f, 3)) {
       const auto& position_f = it.position();
       // position of quadrature point in local coordinates of elements
       const auto position_i = geo_in_i.global(position_f);
       const auto position_o = geo_in_o.global(position_f);
 
-      std::vector<Range> phiu_i(lfsu_di.size());
-      std::vector<Range> phiu_o(lfsu_do.size());
-
       // evaluate basis functions
-      _local_basis.evaluateFunction(position_i, phiu_i);
-      _local_basis.evaluateFunction(position_o, phiu_o);
+      phiu_i.clear(), phiu_o.clear();
+      local_basis_i.evaluateFunction(position_i, phiu_i);
+      local_basis_o.evaluateFunction(position_o, phiu_o);
       // integration factor
       auto factor = it.weight() * geo_f.integrationElement(position_f);
 
@@ -829,7 +805,7 @@ public:
         if (lfsu_di.child(i).size() == 0)
           continue;
         const std::size_t comp_i =
-          _local_operator[domain_i]->_lfs_components[i];
+          _local_operator[domain_i]->lfs_components(lfsu_di,lfsv_di)[i];
         std::array<std::size_t, 3> inside_comp{ domain_i, domain_o, comp_i };
         auto it = _component_offset.find(inside_comp);
 
@@ -842,7 +818,7 @@ public:
 
           // find index of outside component in lfs
           const std::size_t comp_o = it->second;
-          const auto& lfs_comp_o = _local_operator[domain_o]->_lfs_components;
+          const auto& lfs_comp_o = _local_operator[domain_o]->lfs_components(lfsu_do,lfsv_do);
           auto o_it = std::find(lfs_comp_o.begin(), lfs_comp_o.end(), comp_o);
           if (o_it == lfs_comp_o.end())
             continue;
@@ -862,7 +838,7 @@ public:
         if (lfsu_do.child(o).size() == 0)
           continue;
         const std::size_t comp_o =
-          _local_operator[domain_o]->_lfs_components[o];
+          _local_operator[domain_o]->lfs_components(lfsu_do,lfsv_do)[o];
         std::array<std::size_t, 3> outside_comp{ domain_o, domain_i, comp_o };
         auto it = _component_offset.find(outside_comp);
 
@@ -875,7 +851,7 @@ public:
 
           // find index of outside component in lfs
           const std::size_t comp_i = it->second;
-          const auto& lfs_comp_i = _local_operator[domain_i]->_lfs_components;
+          const auto& lfs_comp_i = _local_operator[domain_i]->lfs_components(lfsu_di,lfsv_di);
           auto i_it = std::find(lfs_comp_i.begin(), lfs_comp_i.end(), comp_i);
           if (i_it == lfs_comp_i.end())
             continue;
@@ -909,7 +885,6 @@ public:
  * @tparam     JM                  The jacobian method
  */
 template<class Grid,
-         class LocalFiniteElement,
          class SubLocalOperator,
          JacobianMethod JM = JacobianMethod::Analytical>
 class TemporalLocalOperatorMultiDomainDiffusionReaction
@@ -943,7 +918,6 @@ public:
   TemporalLocalOperatorMultiDomainDiffusionReaction(
     std::shared_ptr<const Grid> grid,
     const ParameterTree& config,
-    const LocalFiniteElement& finite_element,
     std::size_t id_operator)
     : _size(config.sub("compartments").getValueKeys().size())
     , _local_operator(_size)
@@ -959,7 +933,7 @@ public:
 
       const auto& sub_config = config.sub(compartments[i]);
       _local_operator[i] = std::make_shared<SubLOP>(
-        sub_grid_view, sub_config, finite_element, id_operator);
+        sub_grid_view, sub_config, id_operator);
     }
   }
 
@@ -989,8 +963,6 @@ public:
       if (lfsu.child(i).size() > 0) {
         const auto& sub_lfsu = lfsu.child(i);
         const auto& sub_lfsv = lfsv.child(i);
-        if (sub_lfsu.size() == 0)
-          continue;
         _local_operator[i]->alpha_volume(eg, sub_lfsu, x, sub_lfsv, r);
       }
     }
@@ -1010,8 +982,6 @@ public:
       if (lfsu.child(i).size() > 0) {
         const auto& sub_lfsu = lfsu.child(i);
         const auto& sub_lfsv = lfsv.child(i);
-        if (sub_lfsu.size() == 0)
-          continue;
         _local_operator[i]->jacobian_volume(eg, sub_lfsu, x, sub_lfsv, mat);
       }
     }
@@ -1032,8 +1002,6 @@ public:
       if (lfsu.child(i).size() > 0) {
         const auto& sub_lfsu = lfsu.child(i);
         const auto& sub_lfsv = lfsv.child(i);
-        if (sub_lfsu.size() == 0)
-          continue;
         _local_operator[i]->jacobian_apply_volume(
           eg, sub_lfsu, x, z, sub_lfsv, r);
       }
@@ -1054,8 +1022,6 @@ public:
       if (lfsu.child(i).size() > 0) {
         const auto& sub_lfsu = lfsu.child(i);
         const auto& sub_lfsv = lfsv.child(i);
-        if (sub_lfsu.size() == 0)
-          continue;
         _local_operator[i]->jacobian_apply_volume(eg, sub_lfsu, x, sub_lfsv, r);
       }
     }
