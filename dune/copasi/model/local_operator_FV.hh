@@ -40,8 +40,6 @@ class LocalOperatorDiffusionReactionFV
   using LOPBase::_component_pattern;
   using LOPBase::_components;
   using LOPBase::dim;
-  using LOPBase::_phihat;
-  using LOPBase::_gradhat;
   using LOPBase::_diffusion_gf;
   using LOPBase::_reaction_gf;
   using LOPBase::_jacobian_gf;
@@ -60,19 +58,18 @@ public:
   //! residual assembly flags
   static constexpr bool doAlphaSkeleton = true;
 
-  using LOPBase::_coefficient_mapper_i;
-  using LOPBase::_coefficient_mapper_o;
-  using LOPBase::_lfs_components;
+  using LOPBase::lfs_components;
 
+  using LOPBase::coefficient_mapper_inside;
+  using LOPBase::coefficient_mapper_outside;
   using LOPBase::update;
 
-  template<class LocalFiniteElement>
   LocalOperatorDiffusionReactionFV(GridView grid_view,
                                    const ParameterTree& config,
-                                   const LocalFiniteElement& finite_element,
                                    std::size_t id_operator)
     : LOPBase(config,id_operator,grid_view)
   {}
+
 
 
   void setTime(double t)
@@ -99,16 +96,18 @@ public:
                       const LFSV& lfsv,
                       LocalPattern& pattern) const
   {
+    // assert(this->cached());
     auto do_link = [&](std::size_t comp_i, std::size_t comp_j) {
       auto it = _component_pattern.find(std::make_pair(comp_i, comp_j));
       return (it != _component_pattern.end());
     };
     for (std::size_t i = 0; i < lfsv.degree(); ++i)
-      for (std::size_t j = 0; j < lfsu.degree(); ++j)
-        if (do_link(i, j))
-          for (std::size_t k = 0; k < lfsv.child(i).size(); ++k)
-            for (std::size_t l = 0; l < lfsu.child(j).size(); ++l)
-              pattern.addLink(lfsv.child(i), k, lfsu.child(j), l);
+      // if (this->cached(lfsu.child(i).finiteElement()) and this->cached(lfsv.child(i).finiteElement()))
+        for (std::size_t j = 0; j < lfsu.degree(); ++j)
+          if (do_link(i, j))
+            for (std::size_t k = 0; k < lfsv.child(i).size(); ++k)
+              for (std::size_t l = 0; l < lfsu.child(j).size(); ++l)
+                pattern.addLink(lfsv.child(i), k, lfsu.child(j), l);
   }
 
   /**
@@ -247,10 +246,11 @@ public:
     // get geometry
     const auto geo = eg.geometry();
 
-    _coefficient_mapper_i.bind(entity);
+    const auto& coeff_mapper = this->coefficient_mapper_inside(entity);
+    const auto& lfs_components = this->lfs_components(lfsu,lfsv);
 
     DynamicVector<RF> u(_components);
-    DynamicVector<RF> reaction(_lfs_components.size());
+    DynamicVector<RF> reaction(lfs_components.size());
 
     std::fill(u.begin(), u.end(), 0.);
     std::fill(reaction.begin(), reaction.end(), 0.);
@@ -261,16 +261,16 @@ public:
 
     // evaluate concentrations at quadrature point
     for (std::size_t k = 0; k < _components; k++)
-      u[k] += _coefficient_mapper_i(x_coeff_local, k, 0);
+      u[k] += coeff_mapper(x_coeff_local, k, 0);
 
     // get reaction term
-    for (std::size_t k = 0; k < _lfs_components.size(); k++) {
+    for (std::size_t k = 0; k < lfs_components.size(); k++) {
       _reaction_gf[k]->update(u);
       _reaction_gf[k]->evaluate(entity, position, reaction[k]);
     }
 
     // contribution for each component
-    for (std::size_t k = 0; k < _lfs_components.size(); k++) {
+    for (std::size_t k = 0; k < lfs_components.size(); k++) {
       accumulate(k, 0, -reaction[k] * geo.volume());
     }
   }
@@ -323,10 +323,11 @@ public:
     // get geometry
     const auto geo = eg.geometry();
 
-    _coefficient_mapper_i.bind(entity);
+    const auto& coeff_mapper = this->coefficient_mapper_inside(entity);
+    const auto& lfs_components = this->lfs_components(lfsu,lfsv);
 
     DynamicVector<RF> u(_components);
-    DynamicVector<RF> jacobian(_lfs_components.size() * _lfs_components.size());
+    DynamicVector<RF> jacobian(lfs_components.size() * lfs_components.size());
 
     // get center in local coordinates
     const auto ref_el = referenceElement(geo);
@@ -337,12 +338,12 @@ public:
 
     // evaluate concentrations at quadrature point
     for (std::size_t k = 0; k < _components; k++)
-      u[k] += _coefficient_mapper_i(x_coeff_local, k, 0);
+      u[k] += coeff_mapper(x_coeff_local, k, 0);
 
     // evaluate reaction term
-    for (std::size_t k = 0; k < _lfs_components.size(); k++) {
-      for (std::size_t l = 0; l < _lfs_components.size(); l++) {
-        const auto j = _lfs_components.size() * k + l;
+    for (std::size_t k = 0; k < lfs_components.size(); k++) {
+      for (std::size_t l = 0; l < lfs_components.size(); l++) {
+        const auto j = lfs_components.size() * k + l;
         _jacobian_gf[j]->update(u);
         _jacobian_gf[j]->evaluate(entity, position, jacobian[j]);
       }
@@ -353,11 +354,11 @@ public:
       return (it != _component_pattern.end());
     };
 
-    for (std::size_t k = 0; k < _lfs_components.size(); k++) {
-      for (std::size_t l = 0; l < _lfs_components.size(); l++) {
+    for (std::size_t k = 0; k < lfs_components.size(); k++) {
+      for (std::size_t l = 0; l < lfs_components.size(); l++) {
         if (not do_link(k, l))
           continue;
-        const auto j = _lfs_components.size() * k + l;
+        const auto j = lfs_components.size() * k + l;
         accumulate(k, 0, l, 0, -jacobian[j] * geo.volume());
       }
     }
@@ -422,8 +423,12 @@ public:
     const auto& entity_o = ig.outside();
     const auto& entity_f = ig.intersection();
 
-    assert(lfsu_i.degree() == _lfs_components.size());
-    assert(lfsu_o.degree() == _lfs_components.size());
+    const auto& lfs_components_i = this->lfs_components(lfsu_i,lfsv_i);
+    [[maybe_unused]] const auto& lfs_components_o = this->lfs_components(lfsu_o,lfsv_o);
+
+    assert(&lfs_components_i == &lfs_components_o); // this lop only works for same lfs componets in the skeleton
+    assert(lfsu_i.degree() == lfs_components_i.size());
+    assert(lfsu_o.degree() == lfs_components_o.size());
 
     auto geo_i = entity_i.geometry();
     auto geo_o = entity_o.geometry();
@@ -431,8 +436,8 @@ public:
     auto geo_in_i = entity_f.geometryInInside();
     auto geo_in_o = entity_f.geometryInOutside();
 
-    _coefficient_mapper_i.bind(entity_i);
-    _coefficient_mapper_o.bind(entity_o);
+    const auto& coeff_mapper_i = this->coefficient_mapper_inside(entity_i);
+    const auto& coeff_mapper_o = this->coefficient_mapper_outside(entity_o);
 
     // cell centers in codim 1 reference element (facet)
     auto ref_el_i = referenceElement(geo_in_i);
@@ -452,14 +457,14 @@ public:
     auto distance = position_g_o.two_norm();
 
     // get diffusion coefficient
-    for (std::size_t k = 0; k < _lfs_components.size(); k++) {
+    for (std::size_t k = 0; k < lfs_components_i.size(); k++) {
       RF diffusion_i(0.), diffusion_o(0.);
       _diffusion_gf[k]->evaluate(entity_i, position_i, diffusion_i);
       _diffusion_gf[k]->evaluate(entity_o, position_o, diffusion_o);
       RF diffusion =
         2.0 / (1.0 / (diffusion_i + 1E-30) + 1.0 / (diffusion_o + 1E-30));
-      RF gradu = _coefficient_mapper_o(x_coeff_local_o, k, 0) -
-                 _coefficient_mapper_i(x_coeff_local_i, k, 0);
+      RF gradu = coeff_mapper_o(x_coeff_local_o, k, 0) -
+                 coeff_mapper_i(x_coeff_local_i, k, 0);
       gradu /= distance;
       // contribution to residual on inside element, other residual is computed
       // by symmetric call
@@ -571,17 +576,18 @@ public:
     const auto& entity_o = ig.outside();
     const auto& entity_f = ig.intersection();
 
-    assert(lfsu_i.degree() == _lfs_components.size());
-    assert(lfsu_o.degree() == _lfs_components.size());
+    const auto& lfs_components_i = this->lfs_components(lfsu_i,lfsv_i);
+    [[maybe_unused]] const auto& lfs_components_o = this->lfs_components(lfsu_o,lfsv_o);
+
+    assert(&lfs_components_i == &lfs_components_o); // this lop only works for same lfs componets in the skeleton
+    assert(lfsu_i.degree() == lfs_components_i.size());
+    assert(lfsu_o.degree() == lfs_components_o.size());
 
     auto geo_i = entity_i.geometry();
     auto geo_o = entity_o.geometry();
     auto geo_f = entity_f.geometry();
     auto geo_in_i = entity_f.geometryInInside();
     auto geo_in_o = entity_f.geometryInOutside();
-
-    _coefficient_mapper_i.bind(entity_i);
-    _coefficient_mapper_o.bind(entity_o);
 
     // cell centers in codim 1 reference element (facet)
     auto ref_el_i = referenceElement(geo_in_i);
@@ -601,7 +607,7 @@ public:
     auto distance = position_g_o.two_norm();
 
     // get diffusion coefficient
-    for (std::size_t k = 0; k < _lfs_components.size(); k++) {
+    for (std::size_t k = 0; k < lfs_components_i.size(); k++) {
       RF diffusion_i(0.), diffusion_o(0.);
       _diffusion_gf[k]->evaluate(entity_i, position_i, diffusion_i);
       _diffusion_gf[k]->evaluate(entity_o, position_o, diffusion_o);
