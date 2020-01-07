@@ -6,6 +6,7 @@
 #include <cassert>
 #include <iterator>
 #include <vector>
+#include <memory>
 
 namespace Dune::Copasi {
 
@@ -147,9 +148,12 @@ private:
   template<class F, class In, class Out>
   inline void populate_output(const F& f, const In& in, Out& out) const
   {
-    out.resize(_power_size * _basis->size());
-    if (_power_size == 0)
+    out.reserve(_power_size * _basis->size());
+
+    if (_power_size == 0) {
+      out.resize(0);
       return;
+    }
 
     f(in, out);
     assert(out.size() == _basis->size());
@@ -157,6 +161,7 @@ private:
     if (_power_size == 1)
       return;
 
+    out.resize(_power_size * _basis->size());
     auto it = out.begin();
     auto copy_begin = it;
 
