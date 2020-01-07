@@ -1,8 +1,6 @@
 #ifndef DUNE_COPASI_GRID_FUNCTION_EXPRESSION_ADAPTER_HH
 #define DUNE_COPASI_GRID_FUNCTION_EXPRESSION_ADAPTER_HH
 
-#include <dune/copasi/common/tiff_grayscale.hh>
-
 #include <dune/pdelab/common/function.hh>
 
 #include <dune/logging/logging.hh>
@@ -12,9 +10,9 @@
 
 #include <muParser.h>
 
-#include <algorithm>
 #include <string>
 #include <type_traits>
+#include <memory>
 
 namespace Dune::Copasi {
 
@@ -48,7 +46,7 @@ public:
   ExpressionToGridFunctionAdapter(const GV& grid_view,
                                   const std::string& equation,
                                   bool do_compile_parser = true,
-                                  std::vector<std::string> other_variables = {})
+                                  const std::vector<std::string>& other_variables = {})
     : _logger(Logging::Logging::componentLogger({}, "model"))
     , _gv(grid_view)
     , _time(0.)
@@ -58,8 +56,6 @@ public:
   {
 
     constexpr int dim = Traits::dimDomain;
-
-    std::sort(other_variables.begin(), other_variables.end());
 
     _logger.trace("initialize parser with constant variables"_fmt);
     _parser.DefineConst("pi", StandardMathematicalConstants<double>::pi());
