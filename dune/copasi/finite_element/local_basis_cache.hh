@@ -143,6 +143,9 @@ public:
     : _do_function(do_function)
     , _do_jacobian(do_jacobian)
     , _bound_basis(typeid(void))
+    , _cached_rules(std::make_shared<std::unordered_set<RuleKey>>())
+    , _range(std::make_shared<std::unordered_map<PointKey,std::vector<Range>>>())
+    , _jacobian(std::make_shared<std::unordered_map<PointKey,std::vector<Jacobian>>>())
   {}
 
   template<class Basis>
@@ -158,7 +161,7 @@ public:
     RuleKey rule_key(rule,_bound_basis);
 
     // is this pair (rule,basis) already cached?
-    if (_cached_rules.find(rule_key) != _cached_rules.end())
+    if (_cached_rules->find(rule_key) != _cached_rules->end())
       return;
 
     for(auto&& point : rule)
@@ -169,7 +172,7 @@ public:
       if (_do_jacobian)
         cache_jacobian(position,basis,_bound_basis);
     }
-    _cached_rules.insert(std::move(rule_key));
+    _cached_rules->insert(std::move(rule_key));
   }
 
   void unbind()
@@ -197,7 +200,7 @@ private:
     std::vector<Range> range;
     basis.evaluateFunction(position,range);
     auto&& range_pair = std::make_pair(PointKey{position,basis_id},std::move(range));
-    auto insert_pair = _range.insert(range_pair);
+    [[maybe_unused]] auto insert_pair = _range->insert(range_pair);
     assert(insert_pair.second);
   }
 
@@ -207,32 +210,32 @@ private:
     std::vector<Jacobian> jacobian;
     basis.evaluateJacobian(position,jacobian);
     auto&& jacobian_pair = std::make_pair(PointKey{position,basis_id},std::move(jacobian));
-    auto insert_pair = _jacobian.insert(jacobian_pair);
+    [[maybe_unused]] auto insert_pair = _jacobian->insert(jacobian_pair);
     assert(insert_pair.second);
   }
 
   const std::vector<Range>& evaluateFunction(const PointKey& point_key) const
   {
     assert(_do_function);
-    auto it = _range.find(point_key);
-    assert(it != _range.end());
+    auto it = _range->find(point_key);
+    assert(it != _range->end());
     return it->second;
   }
 
   const std::vector<Jacobian>& evaluateJacobian(const PointKey& point_key) const
   {
     assert(_do_jacobian);
-    auto it = _jacobian.find(point_key);
-    assert(it != _jacobian.end());
+    auto it = _jacobian->find(point_key);
+    assert(it != _jacobian->end());
     return it->second;
   }
 
   const bool _do_function;
   const bool _do_jacobian;
   std::type_index _bound_basis;
-  std::unordered_set<RuleKey> _cached_rules;
-  std::unordered_map<PointKey,std::vector<Range>> _range;
-  std::unordered_map<PointKey,std::vector<Jacobian>> _jacobian;
+  std::shared_ptr<std::unordered_set<RuleKey>> _cached_rules;
+  std::shared_ptr<std::unordered_map<PointKey,std::vector<Range>>> _range;
+  std::shared_ptr<std::unordered_map<PointKey,std::vector<Jacobian>>> _jacobian;
 };
 
 } // namespace Dune::Copasi
