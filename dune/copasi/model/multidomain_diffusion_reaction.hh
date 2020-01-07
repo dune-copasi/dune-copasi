@@ -54,6 +54,33 @@ struct ModelMultiDomainPkDiffusionReactionTraits
                                    jacobian_method>;
 };
 
+
+template<class G,
+         int FEMorder = 1,
+         class OT = PDELab::EntityBlockedOrderingTag,
+         JacobianMethod JM = JacobianMethod::Analytical>
+struct ModelMultiDomainP0PkDiffusionReactionTraits
+{
+  using Grid = G;
+
+  // Check grid template
+  static_assert(Concept::isMultiDomainGrid<Grid>(),
+                "Provided grid type is not a multidomain grid");
+
+  static_assert(Concept::isSubDomainGrid<typename Grid::SubDomainGrid>());
+
+  using OrderingTag = OT;
+
+  static constexpr JacobianMethod jacobian_method = JM;
+
+  using SubModelTraits =
+    ModelP0PkDiffusionReactionTraits<Grid,
+                                   typename Grid::SubDomainGrid::LeafGridView,
+                                   FEMorder,
+                                   OrderingTag,
+                                   jacobian_method>;
+};
+
 /**
  * @brief      Class for diffusion-reaction models in multigrid domains.
  *
@@ -120,14 +147,12 @@ private:
   //! Local operator
   using LOP = LocalOperatorMultiDomainDiffusionReaction<
     Grid,
-    typename Traits::SubModelTraits::BaseFEM::Traits::FiniteElement,
     typename Traits::SubModelTraits::template LocalOperator<CM>,
     JM>;
 
   //! Temporal local operator
   using TLOP = TemporalLocalOperatorMultiDomainDiffusionReaction<
     Grid,
-    typename Traits::SubModelTraits::BaseFEM::Traits::FiniteElement,
     typename Traits::SubModelTraits::template TemporalLocalOperator<CM>,
     JM>;
 

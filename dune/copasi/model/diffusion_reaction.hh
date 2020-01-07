@@ -4,17 +4,20 @@
 #include <dune/copasi/common/coefficient_mapper.hh>
 #include <dune/copasi/common/enum.hh>
 #include <dune/copasi/concepts/grid.hh>
-#include <dune/copasi/finite_element_map/dynamic_power.hh>
-#include <dune/copasi/finite_element_map/multidomain.hh>
+
 #include <dune/copasi/model/base.hh>
 #include <dune/copasi/model/local_operator_base.hh>
 #include <dune/copasi/model/local_operator_FV.hh>
 #include <dune/copasi/model/local_operator_CG.hh>
+#include <dune/copasi/model/local_operator_variadic.hh>
 #include <dune/copasi/model/state.hh>
 #include <dune/copasi/finite_element/p0.hh>
 #include <dune/copasi/finite_element/pk.hh>
 #include <dune/copasi/finite_element_map/p0.hh>
 #include <dune/copasi/finite_element_map/pk.hh>
+#include <dune/copasi/finite_element_map/virtual.hh>
+#include <dune/copasi/finite_element_map/variadic.hh>
+#include <dune/copasi/finite_element_map/multidomain.hh>
 
 #include <dune/pdelab/backend/istl.hh>
 #include <dune/pdelab/constraints/conforming.hh>
@@ -53,7 +56,7 @@ struct ModelP0DiffusionReactionTraits
 {
   using Grid = G;
   using GridView = GV;
-  using BaseFEM =
+  using FEMP0 =
     PDELab::P0LocalFiniteElementMap<typename Grid::ctype,
                                     double,2>;
 
@@ -62,8 +65,8 @@ struct ModelP0DiffusionReactionTraits
   //! Finite element map
   using FEM = std::conditional_t<
                   is_sub_model,
-                  MultiDomainLocalFiniteElementMap<BaseFEM,GridView>,
-                  BaseFEM
+                  MultiDomainLocalFiniteElementMap<FEMP0,GridView>,
+                  FEMP0
                 >;
 
   using OrderingTag = OT;
@@ -73,7 +76,7 @@ struct ModelP0DiffusionReactionTraits
   template <class CoefficientMapper>
   using LocalOperator = LocalOperatorDiffusionReactionFV<
     GridView,
-    typename BaseFEM::Traits::FiniteElement::Traits::LocalBasisType::Traits,
+    typename FEM::Traits::FiniteElement::Traits::LocalBasisType::Traits,
     CoefficientMapper,
     jacobian_method>;
 
@@ -81,7 +84,7 @@ struct ModelP0DiffusionReactionTraits
   template <class CoefficientMapper>
   using TemporalLocalOperator = TemporalLocalOperatorDiffusionReactionCG<
     GridView,
-    typename BaseFEM::Traits::FiniteElement::Traits::LocalBasisType::Traits,
+    typename FEM::Traits::FiniteElement::Traits::LocalBasisType::Traits,
     jacobian_method>;
 };
 
@@ -95,7 +98,7 @@ struct ModelPkDiffusionReactionTraits
   using Grid = G;
   using GridView = GV;
   using BaseFEM =
-    PDELab::PkLocalFiniteElementMap<typename G::LeafGridView, double,double,FEMorder>;
+    PDELab::PkLocalFiniteElementMap<typename G::LeafGridView, double, double, FEMorder>;
 
   static constexpr bool is_sub_model = not std::is_same_v<typename Grid::Traits::LeafGridView,GridView>;
 
@@ -113,7 +116,7 @@ struct ModelPkDiffusionReactionTraits
   template <class CoefficientMapper>
   using LocalOperator = LocalOperatorDiffusionReactionCG<
     GridView,
-    typename BaseFEM::Traits::FiniteElement::Traits::LocalBasisType::Traits,
+    typename FEM::Traits::FiniteElement::Traits::LocalBasisType::Traits,
     CoefficientMapper,
     jacobian_method>;
 
@@ -121,12 +124,76 @@ struct ModelPkDiffusionReactionTraits
   template <class CoefficientMapper>
   using TemporalLocalOperator = TemporalLocalOperatorDiffusionReactionCG<
     GridView,
-    typename BaseFEM::Traits::FiniteElement::Traits::LocalBasisType::Traits,
+    typename FEM::Traits::FiniteElement::Traits::LocalBasisType::Traits,
     jacobian_method>;
 };
 
 template<class G, class GV, class OT, JacobianMethod JM>
 struct ModelPkDiffusionReactionTraits<G,GV,0,OT,JM> : public ModelP0DiffusionReactionTraits<G,GV,OT,JM> {};
+
+template<class G,
+         class GV = typename G::Traits::LeafGridView,
+         int PkOrder = 1,
+         class OT = PDELab::EntityBlockedOrderingTag,
+         JacobianMethod JM = JacobianMethod::Analytical>
+struct ModelP0PkDiffusionReactionTraits
+{
+  using Grid = G;
+  using GridView = GV;
+  using FEMP0 =
+    PDELab::P0LocalFiniteElementMap<typename Grid::ctype,
+                                    double,2>;
+  template<int order>
+  using FEMPk =
+    PDELab::PkLocalFiniteElementMap<typename G::LeafGridView, double, double, order>;
+
+  static constexpr bool is_sub_model = not std::is_same_v<typename Grid::Traits::LeafGridView,GridView>;
+
+  //! Finite element map
+  using FEM = std::conditional_t<
+                  is_sub_model,
+                  VariadicLocalFiniteElementMap<typename Grid::LeafGridView,MultiDomainLocalFiniteElementMap<FEMP0,GridView>,MultiDomainLocalFiniteElementMap<FEMPk<PkOrder>,GridView>>,
+                  VariadicLocalFiniteElementMap<GV,FEMP0,FEMPk<PkOrder>>
+                >;
+
+  using OrderingTag = OT;
+  static constexpr JacobianMethod jacobian_method = JM;
+
+  //! Local operator
+  template <class CoefficientMapper>
+  using LocalOperatorCG = LocalOperatorDiffusionReactionCG<
+    GridView,
+    typename FEM::Traits::FiniteElement::Traits::LocalBasisType::Traits,
+    CoefficientMapper,
+    jacobian_method>;
+
+  template <class CoefficientMapper>
+  using LocalOperatorFV = LocalOperatorDiffusionReactionFV<
+    GridView,
+    typename FEM::Traits::FiniteElement::Traits::LocalBasisType::Traits,
+    CoefficientMapper,
+    jacobian_method>;
+
+  struct TestFunctor
+  {
+    template<class T>
+    std::size_t operator()(const T& fe_v) const {return fe_v.type().isCube() ? 0 : 1;}
+    template<class T0, class T1>
+    std::size_t operator()(const T0& fe_u, const T1& fe_v) const {return fe_v.type().isCube() ? 0 : 1;}
+  };
+  template <class CoefficientMapper>
+  using LocalOperatorVariadic = VariadicLocalOperator<TestFunctor,LocalOperatorFV<CoefficientMapper>,LocalOperatorCG<CoefficientMapper>>;
+
+  template <class CoefficientMapper>
+  using LocalOperator = LocalOperatorVariadic<CoefficientMapper>;
+
+  //! Temporal local operator
+  template <class CoefficientMapper>
+  using TemporalLocalOperator = TemporalLocalOperatorDiffusionReactionCG<
+    GridView,
+    typename FEM::Traits::FiniteElement::Traits::LocalBasisType::Traits,
+    jacobian_method>;
+};
 
 /**
  * @brief      Class for diffusion-reaction models.
