@@ -253,11 +253,13 @@ public:
 
     // TODO: check geometry type
     const auto& rule = quadratureRule(geo,3);
-    const auto& trial_basis = lfsu.child(0).finiteElement().localBasis();
-    const auto& test_basis = lfsv.child(0).finiteElement().localBasis();
+    const auto& trial_finite_element = lfsu.child(0).finiteElement();
+    const auto& test_finite_element = lfsv.child(0).finiteElement();
+    const auto& trial_basis = trial_finite_element.localBasis();
+    const auto& test_basis = test_finite_element.localBasis();
 
-    _trial_cache.bind(rule,trial_basis);
-    _test_cache.bind(rule,test_basis);
+    _trial_cache.bind(trial_finite_element);
+    _test_cache.bind(test_finite_element);
 
     DynamicVector<RF> u(_components);
     DynamicVector<RF> diffusion(lfs_components.size());

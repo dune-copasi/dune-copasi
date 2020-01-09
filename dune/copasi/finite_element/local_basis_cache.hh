@@ -1,76 +1,39 @@
 #ifndef DUNE_COPASI_LOCAL_FINITE_ELEMENT_CACHE_HH
 #define DUNE_COPASI_LOCAL_FINITE_ELEMENT_CACHE_HH
 
-#include <functional>
-#include <unordered_map>
-#include <vector>
-#include <typeindex>
+#include <dune/localfunctions/common/virtualinterface.hh>
+#include <dune/localfunctions/common/virtualwrappers.hh>
 
 #include <dune/common/hash.hh>
 
+#include <functional>
+#include <unordered_map>
+#include <vector>
+#include <memory>
+#include <typeindex>
+
 namespace Dune::Copasi {
-
-template<class QuadratureRule>
-class QuadratureRuleCacheKey
-{
-public:
-
-  QuadratureRuleCacheKey(const QuadratureRule& rule, const std::type_index& basis_id)
-    : _rule(rule)
-    , _basis_id(basis_id)
-  {}
-
-  template<class LocalBasis>
-  QuadratureRuleCacheKey(const QuadratureRule& rule, const LocalBasis& basis)
-    : _rule(rule)
-    , _basis_id(typeid(basis))
-  {}
-
-  std::size_t hash_code() const noexcept
-  {
-    std::size_t seed = 1'226'688'347; // some prime number
-    Dune::hash_combine(seed,_rule);
-    Dune::hash_combine(seed,_basis_id);
-    return seed;
-  }
-
-  friend inline bool
-  operator==(const QuadratureRuleCacheKey& lhs, const QuadratureRuleCacheKey& rhs)
-  {
-    return (lhs._basis_id == rhs._basis_id) and (lhs._rule == rhs._rule);
-  }
-
-  friend inline bool
-  operator!=(const QuadratureRuleCacheKey& lhs, const QuadratureRuleCacheKey& rhs)
-  {
-    return not (lhs == rhs);
-  }
-
-private:
-  const QuadratureRule _rule;
-  const std::type_index _basis_id;
-};
 
 template<class Domain>
 class QuadraturePointCacheKey
 {
 public:
 
-  QuadraturePointCacheKey(const Domain& domain, const std::type_index& basis_id)
-    : _domain(domain)
+  QuadraturePointCacheKey(const Domain& position, const std::type_index& basis_id)
+    : _position(position)
     , _basis_id(basis_id)
   {}
 
   template<class LocalBasis>
-  QuadraturePointCacheKey(const Domain& domain, const LocalBasis& basis)
-    : QuadraturePointCacheKey(domain,typeid(basis))
+  QuadraturePointCacheKey(const Domain& position, const LocalBasis& basis)
+    : QuadraturePointCacheKey(position,typeid(basis))
   {}
 
   std::size_t hash_code() const noexcept
   {
     std::size_t seed = 46'255'207; // some prime number
     Dune::hash_combine(seed,_basis_id);
-    for (auto&& i : _domain)
+    for (auto&& i : _position)
       Dune::hash_combine(seed,i);
     return seed;
   }
@@ -78,7 +41,7 @@ public:
   friend inline bool
   operator==(const QuadraturePointCacheKey& lhs, const QuadraturePointCacheKey& rhs)
   {
-    return (lhs._basis_id == rhs._basis_id) and (lhs._domain == rhs._domain);
+    return (lhs._basis_id == rhs._basis_id) and (lhs._position == rhs._position);
   }
 
   friend inline bool
@@ -88,22 +51,13 @@ public:
   }
 
 private:
-  const Domain _domain;
+  const Domain _position;
   const std::type_index _basis_id;
 };
 
 } // namespace Dune::Copasi
 
 namespace std {
-
-  template<typename Rule>
-  struct hash<Dune::Copasi::QuadratureRuleCacheKey<Rule>>
-  {
-    std::size_t operator()(const Dune::Copasi::QuadratureRuleCacheKey<Rule>& key) const
-    {
-      return key.hash_code();
-    }
-  };
 
   template<typename Domain>
   struct hash<Dune::Copasi::QuadraturePointCacheKey<Domain>>
@@ -117,123 +71,114 @@ namespace std {
 
 namespace Dune::Copasi {
 
-// @warning This caches assumes that the quadrature rule (from dune-geometry) is using the singleton
-// pattern and its address is always the same, and that the local basis are the same iff its
-// (maybe polymorphic) type is the same.
 template<class LocalBasisTraits>
 class LocalBasisCache
 {
-  using DomainField = typename LocalBasisTraits::DomainFieldType;
-  static constexpr std::size_t dimDomain = LocalBasisTraits::dimDomain;
   using Domain = typename LocalBasisTraits::DomainType;
 
-  using Rule = Dune::QuadratureRule<DomainField,dimDomain>;
-  using RuleWrapper = Dune::PDELab::QuadratureRuleWrapper<Rule>;
-
   using BasisKey = std::type_index;
-  using RuleKey = QuadratureRuleCacheKey<RuleWrapper>;
   using PointKey = QuadraturePointCacheKey<Domain>;
 
   using Range = typename LocalBasisTraits::RangeType;
   using RangeField = typename LocalBasisTraits::RangeFieldType;
   using Jacobian = typename LocalBasisTraits::JacobianType;
 
+  using FiniteElementInterface = Dune::LocalFiniteElementVirtualInterface<LocalBasisTraits>;
+
 public:
-  LocalBasisCache(bool do_function = true, bool do_jacobian = true)
-    : _do_function(do_function)
-    , _do_jacobian(do_jacobian)
-    , _bound_basis(typeid(void))
-    , _cached_rules(std::make_shared<std::unordered_set<RuleKey>>())
+  LocalBasisCache()
+    : _bound_basis(typeid(void))
     , _range(std::make_shared<std::unordered_map<PointKey,std::vector<Range>>>())
     , _jacobian(std::make_shared<std::unordered_map<PointKey,std::vector<Jacobian>>>())
   {}
 
-  template<class Basis>
-  void bind(const Rule& rule, const Basis& basis)
+  LocalBasisCache(const LocalBasisCache& other)
+    : _bound_basis(typeid(void))
   {
-    bind(RuleWrapper(rule),basis);
+    // copy pointers to actual cache data
+    _range = other._range;
+    _jacobian = other._jacobian;
   }
 
-  template<class Basis>
-  void bind(const RuleWrapper& rule, const Basis& basis)
+  template<class FiniteElement>
+  void bind(const FiniteElement& finite_element)
   {
-    _bound_basis = typeid(basis);
-    RuleKey rule_key(rule,_bound_basis);
+    const std::type_index basis_id = typeid(finite_element.localBasis());
 
-    // is this pair (rule,basis) already cached?
-    if (_cached_rules->find(rule_key) != _cached_rules->end())
+    if (_bound_basis == basis_id)
       return;
 
-    for(auto&& point : rule)
-    {
-      const auto& position = point.position();
-      if (_do_function)
-        cache_evaluate(position,basis,_bound_basis);
-      if (_do_jacobian)
-        cache_jacobian(position,basis,_bound_basis);
-    }
-    _cached_rules->insert(std::move(rule_key));
+    _bound_basis = basis_id;
+
+    using BasisTraits = typename FiniteElement::Traits::LocalBasisType::Traits;
+    static_assert(std::is_same_v<LocalBasisTraits,BasisTraits>);
+    using FiniteElementWrapper = Dune::LocalFiniteElementVirtualImp<FiniteElement>;
+
+    _finite_element = std::make_unique<FiniteElementWrapper>(finite_element);
   }
 
   void unbind()
   {
     _bound_basis = typeid(void);
+    _finite_element.release();
   }
 
-  inline const std::vector<Range>& evaluateFunction(const Domain& domain) const
+  inline const std::vector<Range>& evaluateFunction(const Domain& position) const
   {
     assert(_bound_basis != typeid(void));
-    return evaluateFunction(PointKey{domain,_bound_basis});
+    return evaluateFunction(position,_bound_basis);
   }
 
-  inline const std::vector<Jacobian>& evaluateJacobian(const Domain& domain) const
+  inline const std::vector<Jacobian>& evaluateJacobian(const Domain& position) const
   {
     assert(_bound_basis != typeid(void));
-    return evaluateJacobian(PointKey{domain,_bound_basis});
+    return evaluateJacobian(position,_bound_basis);
   }
 
 private:
 
   template<class Basis>
-  void cache_evaluate(const Domain& position, const Basis& basis, const std::type_index& basis_id)
+  const std::vector<Range>& cache_evaluate(const Domain& position, const Basis& basis, const std::type_index& basis_id) const
   {
     std::vector<Range> range;
     basis.evaluateFunction(position,range);
     auto&& range_pair = std::make_pair(PointKey{position,basis_id},std::move(range));
-    [[maybe_unused]] auto insert_pair = _range->insert(range_pair);
+    const auto insert_pair = _range->insert(range_pair);
     assert(insert_pair.second);
+    return insert_pair.first->second;
   }
 
   template<class Basis>
-  void cache_jacobian(const Domain& position, const Basis& basis, const std::type_index& basis_id)
+  const std::vector<Jacobian>& cache_jacobian(const Domain& position, const Basis& basis, const std::type_index& basis_id) const
   {
     std::vector<Jacobian> jacobian;
     basis.evaluateJacobian(position,jacobian);
     auto&& jacobian_pair = std::make_pair(PointKey{position,basis_id},std::move(jacobian));
-    [[maybe_unused]] auto insert_pair = _jacobian->insert(jacobian_pair);
+    const auto insert_pair = _jacobian->insert(jacobian_pair);
     assert(insert_pair.second);
+    return insert_pair.first->second;
   }
 
-  const std::vector<Range>& evaluateFunction(const PointKey& point_key) const
+  const std::vector<Range>& evaluateFunction(const Domain& position, const std::type_index& basis_id) const
   {
-    assert(_do_function);
-    auto it = _range->find(point_key);
-    assert(it != _range->end());
-    return it->second;
+    auto it = _range->find(PointKey{position,basis_id});
+    if (it != _range->end())
+      return it->second;
+    else
+      return cache_evaluate(position,_finite_element->localBasis(),basis_id);
   }
 
-  const std::vector<Jacobian>& evaluateJacobian(const PointKey& point_key) const
+  const std::vector<Jacobian>& evaluateJacobian(const Domain& position, const std::type_index& basis_id) const
   {
-    assert(_do_jacobian);
-    auto it = _jacobian->find(point_key);
-    assert(it != _jacobian->end());
-    return it->second;
+    auto it = _jacobian->find(PointKey{position,basis_id});
+    if (it != _jacobian->end())
+      return it->second;
+    else
+      return cache_jacobian(position,_finite_element->localBasis(),basis_id);
   }
 
-  const bool _do_function;
-  const bool _do_jacobian;
   std::type_index _bound_basis;
-  std::shared_ptr<std::unordered_set<RuleKey>> _cached_rules;
+  std::unique_ptr<FiniteElementInterface> _finite_element;
   std::shared_ptr<std::unordered_map<PointKey,std::vector<Range>>> _range;
   std::shared_ptr<std::unordered_map<PointKey,std::vector<Jacobian>>> _jacobian;
 };
