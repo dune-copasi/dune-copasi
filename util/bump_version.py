@@ -1,4 +1,4 @@
-#!/bin/python2
+#!/bin/python3
 
 # This script updates version of the code in all places where it has to be hard coded
 # and it updates the changelog
@@ -38,10 +38,10 @@ def main(argv):
   changelog_path = os.path.join(base_path,'../CHANGELOG.md')
 
   old_version = get_version(version_path)
-  print "Old version is:", old_version
+  print("Old version is:", old_version)
 
   if len(argv) is 0:
-    new_version = raw_input("New version: ")
+    new_version = input("New version: ")
   elif len(argv) is 1:
     new_version = argv[0]
   else:
@@ -79,12 +79,12 @@ def main(argv):
   with open(changelog_path, "w") as changelog_file:
     changelog_file.write(new_changelog)
 
-  print "New version is:", new_version
+  print("New version is:", new_version)
 
-  print "Changelog was updated, check that the update is correct"
+  print("Changelog was updated, check that the update is correct")
 
-  print "If this is a definitive change, please set a new tag in the repository\n"
-  print "\tgit tag v"+new_version+"\n"
+  print("If this is a definitive change, please set a new tag in the repository\n")
+  print("\tgit tag v"+new_version+"\n")
 
 if __name__ == "__main__":
    main(sys.argv[1:])
