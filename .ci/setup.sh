@@ -1,6 +1,6 @@
 # dependencies setup script for Travis and AppVeyor CI
 
-DUNE_VERSION="master"
+DUNE_VERSION="2.7"
 
 # make sure we get the right mingw64 version of g++ on appveyor
 PATH=/mingw64/bin:$PATH
@@ -33,13 +33,13 @@ cmake --version
 
 
 # download Dune dependencies
-for repo in dune-common dune-typetree dune-pdelab dune-multidomaingrid
+for repo in core/common core/dune-geometry core/dune-grid core/dune-istl core/dune-localfunctions staging/dune-functions staging/dune-uggrid
 do
-  git clone -b support/dune-copasi --depth 1 --recursive https://gitlab.dune-project.org/santiago.ospina/$repo.git
+  git clone -b releases/$DUNE_VERSION --depth 1 --recursive https://gitlab.dune-project.org/$repo.git
 done
-for repo in core/dune-geometry core/dune-grid core/dune-istl core/dune-localfunctions staging/dune-functions staging/dune-uggrid staging/dune-logging
+for repo in dune-logging dune-typetree dune-pdelab dune-multidomaingrid
 do
-  git clone -b $DUNE_VERSION --depth 1 --recursive https://gitlab.dune-project.org/$repo.git
+  git clone -b support/dune-copasi --depth 1 --recursive https://gitlab.dune-project.org/copasi/$repo.git
 done
 
 # python virtual environment does not work in windows yet

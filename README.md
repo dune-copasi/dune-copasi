@@ -40,17 +40,17 @@ This requires that you have installed the following packages before the actual i
 | C++ compiler | [C++17](https://en.wikipedia.org/wiki/List_of_compilers#C++_compilers) | 
 | [libTIFF](http://www.libtiff.org/) | 3.6.1 |
 | [muParser](https://beltoforion.de/article.php?a=muparser) | 2.2.5 |
-| [dune-common](https://gitlab.dune-project.org/santiago.ospina/dune-common) | support/dune-copasi | https://gitlab.dune-project.org/santiago.ospina/dune-common
-| [dune-logging](https://gitlab.dune-project.org/staging/dune-logging) | master (recursive) | https://gitlab.dune-project.org/staging/dune-logging
-| [dune-geometry](https://gitlab.dune-project.org/core/dune-geometry) | master | https://gitlab.dune-project.org/core/dune-geometry
-| [dune-grid](https://gitlab.dune-project.org/core/dune-grid) | master | https://gitlab.dune-project.org/core/dune-grid
-| [dune-uggrid](https://gitlab.dune-project.org/staging/dune-uggrid) | master | https://gitlab.dune-project.org/staging/dune-uggrid
-| [dune-istl](https://gitlab.dune-project.org/core/dune-istl) | master | https://gitlab.dune-project.org/core/dune-istl
-| [dune-localfunctions](https://gitlab.dune-project.org/core/dune-localfunctions) | master | https://gitlab.dune-project.org/core/dune-localfunctions
-| [dune-functions](https://gitlab.dune-project.org/staging/dune-functions) | master | https://gitlab.dune-project.org/staging/dune-functions
-| [dune-typetree](https://gitlab.dune-project.org/santiago.ospina/dune-typetree) | support/dune-copasi | https://gitlab.dune-project.org/santiago.ospina/dune-typetree
-| [dune-pdelab](https://gitlab.dune-project.org/santiago.ospina/dune-pdelab) | support/dune-copasi | https://gitlab.dune-project.org/santiago.ospina/dune-pdelab
-| [dune-multidomaingrid](https://gitlab.dune-project.org/santiago.ospina/dune-multidomaingrid) | support/dune-copasi | https://gitlab.dune-project.org/santiago.ospina/dune-multidomaingrid
+| [dune-common](https://gitlab.dune-project.org/copasi/dune-common) | releases/2.7 | https://gitlab.dune-project.org/core/dune-common
+| [dune-geometry](https://gitlab.dune-project.org/core/dune-geometry) | releases/2.7 | https://gitlab.dune-project.org/core/dune-geometry
+| [dune-grid](https://gitlab.dune-project.org/core/dune-grid) | releases/2.7 | https://gitlab.dune-project.org/core/dune-grid
+| [dune-uggrid](https://gitlab.dune-project.org/staging/dune-uggrid) | releases/2.7 | https://gitlab.dune-project.org/staging/dune-uggrid
+| [dune-istl](https://gitlab.dune-project.org/core/dune-istl) | releases/2.7 | https://gitlab.dune-project.org/core/dune-istl
+| [dune-localfunctions](https://gitlab.dune-project.org/core/dune-localfunctions) | releases/2.7 | https://gitlab.dune-project.org/core/dune-localfunctions
+| [dune-functions](https://gitlab.dune-project.org/staging/dune-functions) | releases/2.7 | https://gitlab.dune-project.org/staging/dune-functions
+| [dune-logging](https://gitlab.dune-project.org/staging/dune-logging) | support/dune-copasi (recursive) | https://gitlab.dune-project.org/copasi/dune-logging
+| [dune-typetree](https://gitlab.dune-project.org/copasi/dune-typetree) | support/dune-copasi | https://gitlab.dune-project.org/copasi/dune-typetree
+| [dune-pdelab](https://gitlab.dune-project.org/copasi/dune-pdelab) | support/dune-copasi | https://gitlab.dune-project.org/copasi/dune-pdelab
+| [dune-multidomaingrid](https://gitlab.dune-project.org/copasi/dune-multidomaingrid) | support/dune-copasi | https://gitlab.dune-project.org/copasi/dune-multidomaingrid
 
 The first four can be obtained by your prefered package manager in unix-like operating systems. e.g.
 
@@ -72,17 +72,17 @@ Now, the dune modules (including `dune-copasi`) can be all checkout in a same fo
 mkdir ~/dune-modules && cd ~/dune-modules
 
 # fetch dependencies & dune-copasi in ~/dune-modules folder
-git clone -b support/dune-copasi https://gitlab.dune-project.org/santiago.ospina/dune-common
-git clone -b master --recursive https://gitlab.dune-project.org/staging/dune-logging
-git clone -b master https://gitlab.dune-project.org/core/dune-geometry
-git clone -b master https://gitlab.dune-project.org/core/dune-grid
-git clone -b master https://gitlab.dune-project.org/staging/dune-uggrid
-git clone -b master https://gitlab.dune-project.org/core/dune-istl
-git clone -b master https://gitlab.dune-project.org/core/dune-localfunctions
-git clone -b master https://gitlab.dune-project.org/staging/dune-functions
-git clone -b support/dune-copasi https://gitlab.dune-project.org/santiago.ospina/dune-typetree
-git clone -b support/dune-copasi https://gitlab.dune-project.org/santiago.ospina/dune-pdelab
-git clone -b support/dune-copasi https://gitlab.dune-project.org/santiago.ospina/dune-multidomaingrid
+git clone -b releases/2.7 https://gitlab.dune-project.org/core/dune-common
+git clone -b releases/2.7 https://gitlab.dune-project.org/core/dune-geometry
+git clone -b releases/2.7 https://gitlab.dune-project.org/core/dune-grid
+git clone -b releases/2.7 https://gitlab.dune-project.org/staging/dune-uggrid
+git clone -b releases/2.7 https://gitlab.dune-project.org/core/dune-istl
+git clone -b releases/2.7 https://gitlab.dune-project.org/core/dune-localfunctions
+git clone -b releases/2.7 https://gitlab.dune-project.org/staging/dune-functions
+git clone -b support/dune-copasi --recursive https://gitlab.dune-project.org/copasi/dune-logging
+git clone -b support/dune-copasi https://gitlab.dune-project.org/copasi/dune-typetree
+git clone -b support/dune-copasi https://gitlab.dune-project.org/copasi/dune-pdelab
+git clone -b support/dune-copasi https://gitlab.dune-project.org/copasi/dune-multidomaingrid
 git clone -b master https://gitlab.dune-project.org/copasi/dune-copasi
 
 # configure and build dune modules
