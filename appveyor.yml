@@ -6,6 +6,7 @@ clone_folder: C:\msys64\home\appveyor\dune-copasi
 
 install:
   - set PATH=C:\msys64\usr\bin;%PATH%
+  - mkdir C:\msys64\home\appveyor\ext
   - C:\msys64\home\appveyor\ext
   # download muparser, gmp and libtiff as static libraries
   - appveyor DownloadFile "https://github.com/lkeegan/libsbml-static/releases/latest/download/libsbml-static-windows.zip"
