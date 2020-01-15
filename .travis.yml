@@ -35,7 +35,7 @@ before_install:
   - cd ../ext
   # download muparser, gmp and libtiff as static libraries
   - wget "https://github.com/lkeegan/libsbml-static/releases/latest/download/libsbml-static-$TRAVIS_OS_NAME.tgz"
-  - tar xzvf libsbml-static-$TRAVIS_OS_NAME.tgz
+  - sudo tar xzvf libsbml-static-$TRAVIS_OS_NAME.tgz /
   - cd ..
 install:
   - echo 'CMAKE_FLAGS+=" -G '"'"'Unix Makefiles'"'"' "' >> dune.opts
@@ -46,7 +46,7 @@ install:
   - echo 'CMAKE_FLAGS+=" -DCMAKE_DISABLE_FIND_PACKAGE_QuadMath=TRUE -DBUILD_TESTING=OFF"' >> dune.opts
   - echo 'CMAKE_FLAGS+=" -DDUNE_USE_ONLY_STATIC_LIBS=ON -DCMAKE_BUILD_TYPE=Release"' >> dune.opts
   - echo 'CMAKE_FLAGS+=" -DCMAKE_PREFIX_PATH='"$PWD"'/ext -DF77=true "' >> dune.opts
-  - echo 'CMAKE_FLAGS+=" -Dmuparser_ROOT='"$PWD"'/ext "' >> dune.opts
+  # - echo 'CMAKE_FLAGS+=" -Dmuparser_INCLUDE_DIR:PATH'"$PWD"'/ext/include  -Dmuparser_LIBRARY:FILEPATH='"$PWD"'/ext/lib/libmuparser.a"' >> dune.opts
   - echo 'CMAKE_FLAGS+=" -DTIFF_ROOT='"$PWD"'/ext "' >> dune.opts
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then echo 'CMAKE_FLAGS+="-DPYTHON_EXECUTABLE:FILEPATH=/usr/bin/python3"' >> dune.opts; fi
   - echo 'MAKE_FLAGS="-j2 VERBOSE=1"' >> dune.opts
