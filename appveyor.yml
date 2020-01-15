@@ -6,14 +6,14 @@ clone_folder: C:\msys64\home\appveyor\dune-copasi
 
 install:
   - set PATH=C:\msys64\usr\bin;%PATH%
-  - mkdir C:\msys64\home\appveyor\ext
-  - cd C:\msys64\home\appveyor\ext
   # download muparser, gmp and libtiff as static libraries
+  - cd C:\msys64\usr\
   - appveyor DownloadFile "https://github.com/lkeegan/libsbml-static/releases/latest/download/libsbml-static-windows.zip"
   - 7z x libsbml-static-windows.zip
   - dir
   - dir lib
   - dir include
+  - cd C:\msys64\home\appveyor
 
 before_build:
   - set DEPS_DIR=\home\appveyor\ext
@@ -24,7 +24,7 @@ before_build:
   - echo CMAKE_FLAGS+=" -DGMP_LIB:FILEPATH=%DEPS_DIR%/lib/libgmp.a -DCMAKE_DISABLE_FIND_PACKAGE_QuadMath=TRUE" >> C:\msys64\home\appveyor\dune.txt
   - echo CMAKE_FLAGS+=" -DBUILD_TESTING=OFF -DDUNE_USE_ONLY_STATIC_LIBS=ON" >> C:\msys64\home\appveyor\dune.txt
   - echo CMAKE_FLAGS+=" -DCMAKE_PREFIX_PATH=%DEPS_DIR% -Dmuparser_INCLUDE_DIR:PATH=%DEPS_DIR%/include" >> C:\msys64\home\appveyor\dune.txt
-  - echo CMAKE_FLAGS+=" -Dmuparser_LIBRARY:PATH=%DEPS_DIR%/lib/libmuparser.a -DTIFF_ROOT=%DEPS_DIR%  " >> C:\msys64\home\appveyor\dune.txt
+  # - echo CMAKE_FLAGS+=" -Dmuparser_LIBRARY:PATH=%DEPS_DIR%/lib/libmuparser.a -DTIFF_ROOT=%DEPS_DIR%  " >> C:\msys64\home\appveyor\dune.txt
   - echo CMAKE_FLAGS+=" -DF77=true -DCMAKE_CXX_FLAGS='-Wa,-mbig-obj -static -static-libgcc -static-libstdc++' " >> C:\msys64\home\appveyor\dune.txt
   - echo MAKE_FLAGS="-j2 VERBOSE=1" >> C:\msys64\home\appveyor\dune.txt
   - type C:\msys64\home\appveyor\dune.txt
