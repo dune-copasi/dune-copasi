@@ -7,7 +7,7 @@ clone_folder: C:\msys64\home\appveyor\dune-copasi
 install:
   - set PATH=C:\msys64\usr\bin;%PATH%
   - mkdir C:\msys64\home\appveyor\ext
-  - C:\msys64\home\appveyor\ext
+  - cd C:\msys64\home\appveyor\ext
   # download muparser, gmp and libtiff as static libraries
   - appveyor DownloadFile "https://github.com/lkeegan/libsbml-static/releases/latest/download/libsbml-static-windows.zip"
   - 7z x libsbml-static-windows.zip
@@ -16,7 +16,8 @@ install:
   - dir include
 
 before_build:
-  - set DEPS_DIR=/home/appveyor/ext
+  - set DEPS_DIR=\home\appveyor\ext
+  - cd \home\appveyor
   - echo CMAKE_FLAGS="-G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=Release  -DCMAKE_VERBOSE_MAKEFILE=1 " > C:\msys64\home\appveyor\dune.txt
   - echo CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_SETUP=0 -DDUNE_PYTHON_ALLOW_GET_PIP=0" >> C:\msys64\home\appveyor\dune.txt
   - echo CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_PATH=%DEPS_DIR%/dune-python-venv" >> C:\msys64\home\appveyor\dune.txt

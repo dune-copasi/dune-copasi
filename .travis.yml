@@ -38,11 +38,11 @@ before_install:
   - tar xzvf libsbml-static-$TRAVIS_OS_NAME.tgz
   - cd ..
 install:
-  - set DEPS_DIR=${PWD}/ext
+  - set DEPS_DIR="${PWD}/ext"
   - echo 'CMAKE_FLAGS+=" -G '"'"'Unix Makefiles'"'"' "' >> dune.opts
   - echo 'CMAKE_FLAGS+=" -DCMAKE_CXX_STANDARD=17"' >> dune.opts
   - echo 'CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_SETUP=1 -DDUNE_PYTHON_ALLOW_GET_PIP=1 "' >> dune.opts
-  - echo 'CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_PATH='"$DEPS_DIR"'/dune-python-venv"' >> dune.opts
+  - echo 'CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_PATH='"$PWD"'/dune-python-venv"' >> dune.opts
   - echo 'CMAKE_FLAGS+=" -DGMPXX_INCLUDE_DIR:PATH='"$DEPS_DIR"'/include -DGMPXX_LIB:FILEPATH='"$DEPS_DIR"'/lib/libgmpxx.a -DGMP_LIB:FILEPATH='"$DEPS_DIR"'/lib/libgmp.a"' >> dune.opts
   - echo 'CMAKE_FLAGS+=" -DCMAKE_DISABLE_FIND_PACKAGE_QuadMath=TRUE -DBUILD_TESTING=OFF"' >> dune.opts
   - echo 'CMAKE_FLAGS+=" -DDUNE_USE_ONLY_STATIC_LIBS=ON -DCMAKE_BUILD_TYPE=Release"' >> dune.opts
