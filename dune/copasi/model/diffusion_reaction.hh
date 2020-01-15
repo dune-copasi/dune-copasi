@@ -22,8 +22,6 @@
 #include <dune/pdelab/backend/istl.hh>
 #include <dune/pdelab/constraints/conforming.hh>
 #include <dune/pdelab/constraints/p0.hh>
-#include <dune/pdelab/finiteelementmap/pkfem.hh>
-#include <dune/pdelab/finiteelementmap/p0fem.hh>
 #include <dune/pdelab/function/discretegridviewfunction.hh>
 #include <dune/pdelab/gridfunctionspace/dynamicpowergridfunctionspace.hh>
 #include <dune/pdelab/gridfunctionspace/gridfunctionspace.hh>

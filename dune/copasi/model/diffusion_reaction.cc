@@ -156,7 +156,8 @@ ModelDiffusionReaction<Traits>::setup_component_grid_function_space(
     Context::GridViewCtx<GV, decltype(em_ctx)>(std::move(em_ctx), _grid_view);
 
   // create fem from factory
-  std::shared_ptr<FEM> finite_element_map(Factory<FEM>::create(ctx));
+  std::shared_ptr<FEM> finite_element_map(
+    Factory<FEM>::template create<decltype(ctx)>(ctx));
 
   std::size_t order;
   if constexpr (Concept::isMultiDomainGrid<typename Traits::Grid>()) {
