@@ -17,7 +17,6 @@ install:
 
 before_build:
   - set DEPS_DIR=\home\appveyor\ext
-  - cd \home\appveyor
   - echo CMAKE_FLAGS="-G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=Release  -DCMAKE_VERBOSE_MAKEFILE=1 " > C:\msys64\home\appveyor\dune.txt
   - echo CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_SETUP=0 -DDUNE_PYTHON_ALLOW_GET_PIP=0" >> C:\msys64\home\appveyor\dune.txt
   - echo CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_PATH=%DEPS_DIR%/dune-python-venv" >> C:\msys64\home\appveyor\dune.txt
