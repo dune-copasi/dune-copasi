@@ -35,7 +35,7 @@ before_install:
   - cd ../ext
   # download muparser, gmp and libtiff as static libraries
   - wget "https://github.com/lkeegan/libsbml-static/releases/latest/download/libsbml-static-$TRAVIS_OS_NAME.tgz"
-  - sudo tar xzvf libsbml-static-$TRAVIS_OS_NAME.tgz /
+  - sudo tar xzvf libsbml-static-$TRAVIS_OS_NAME.tgz -C /
   - cd ..
 install:
   - echo 'CMAKE_FLAGS+=" -G '"'"'Unix Makefiles'"'"' "' >> dune.opts
