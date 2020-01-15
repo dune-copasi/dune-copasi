@@ -5,6 +5,7 @@
 #include "grid_function_compare.hh"
 
 #include <dune/copasi/common/enum.hh>
+#include <dune/copasi/grid/mark_stripes.hh>
 #include <dune/copasi/grid/multidomain_gmsh_reader.hh>
 #include <dune/copasi/model/diffusion_reaction.cc>
 #include <dune/copasi/model/diffusion_reaction.hh>
@@ -135,8 +136,15 @@ main(int argc, char** argv)
     using Grid = typename MDGrid::SubDomainGrid;
     using GridView = typename Grid::Traits::LeafGridView;
 
-    log.debug("Applying global refinement of level: {}"_fmt, level);
-    md_grid_ptr->globalRefine(level);
+    log.debug("Applying refinement of level: {}"_fmt, level);
+
+    for (int i = 1; i <= level; i++) {
+      Dune::Copasi::mark_stripes(*host_grid_ptr);
+
+      md_grid_ptr->preAdapt();
+      md_grid_ptr->adapt();
+      md_grid_ptr->postAdapt();
+    }
 
     auto& model_config = config.sub("model");
     auto& compartments_map = model_config.sub("compartments");

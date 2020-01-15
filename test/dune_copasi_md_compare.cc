@@ -5,6 +5,7 @@
 #include "grid_function_compare.hh"
 
 #include <dune/copasi/common/enum.hh>
+#include <dune/copasi/grid/mark_stripes.hh>
 #include <dune/copasi/grid/multidomain_gmsh_reader.hh>
 #include <dune/copasi/model/diffusion_reaction.cc>
 #include <dune/copasi/model/diffusion_reaction.hh>
@@ -152,11 +153,18 @@ main(int argc, char** argv)
 
     auto grid_file = grid_config.get<std::string>("file");
 
-    auto [grid_ptr, host_grid_ptr] =
+    auto [md_grid_ptr, host_grid_ptr] =
       Dune::Copasi::MultiDomainGmshReader<Grid>::read(grid_file, config);
 
-    log.debug("Applying global refinement of level: {}"_fmt, level);
-    grid_ptr->globalRefine(level);
+    log.debug("Applying refinement of level: {}"_fmt, level);
+
+    for (int i = 1; i <= level; i++) {
+      Dune::Copasi::mark_stripes(*host_grid_ptr);
+
+      md_grid_ptr->preAdapt();
+      md_grid_ptr->adapt();
+      md_grid_ptr->postAdapt();
+    }
 
     auto& model_config = config.sub("model");
     int order = model_config.get<int>("order");
@@ -166,21 +174,21 @@ main(int argc, char** argv)
       using ModelTraits =
         Dune::Copasi::ModelMultiDomainPkDiffusionReactionTraits<Grid, Order>;
       Dune::Copasi::ModelMultiDomainDiffusionReaction<ModelTraits> model(
-        grid_ptr, model_config);
+        md_grid_ptr, model_config);
       model_compare(model_config, model);
     } else if (order == 1) {
       constexpr int Order = 1;
       using ModelTraits =
         Dune::Copasi::ModelMultiDomainP0PkDiffusionReactionTraits<Grid, Order>;
       Dune::Copasi::ModelMultiDomainDiffusionReaction<ModelTraits> model(
-        grid_ptr, model_config);
+        md_grid_ptr, model_config);
       model_compare(model_config, model);
     } else if (order == 2) {
       constexpr int Order = 2;
       using ModelTraits =
         Dune::Copasi::ModelMultiDomainP0PkDiffusionReactionTraits<Grid, Order>;
       Dune::Copasi::ModelMultiDomainDiffusionReaction<ModelTraits> model(
-        grid_ptr, model_config);
+        md_grid_ptr, model_config);
       model_compare(model_config, model);
     } else {
       DUNE_THROW(Dune::IOError,
