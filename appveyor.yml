@@ -6,22 +6,23 @@ clone_folder: C:\msys64\home\appveyor\dune-copasi
 
 install:
   - set PATH=C:\msys64\usr\bin;%PATH%
+  - C:\msys64\home\appveyor\ext
   # download muparser, gmp and libtiff as static libraries
   - appveyor DownloadFile "https://github.com/lkeegan/libsbml-static/releases/latest/download/libsbml-static-windows.zip"
   - 7z x libsbml-static-windows.zip
-  - mv muparser C:\msys64\home\appveyor\.
-  - mv gmp C:\msys64\home\appveyor\.
-  - mv libtiff C:\msys64\home\appveyor\.
+  - dir
+  - dir lib
+  - dir include
 
 before_build:
-  - set DEPS_DIR=/home/appveyor
+  - set DEPS_DIR=/home/appveyor/ext
   - echo CMAKE_FLAGS="-G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=Release  -DCMAKE_VERBOSE_MAKEFILE=1 " > C:\msys64\home\appveyor\dune.txt
   - echo CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_SETUP=0 -DDUNE_PYTHON_ALLOW_GET_PIP=0" >> C:\msys64\home\appveyor\dune.txt
   - echo CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_PATH=%DEPS_DIR%/dune-python-venv" >> C:\msys64\home\appveyor\dune.txt
-  - echo CMAKE_FLAGS+=" -DGMPXX_INCLUDE_DIR:PATH=%DEPS_DIR%/gmp/include -DGMPXX_LIB:FILEPATH=%DEPS_DIR%/gmp/lib/libgmpxx.a" >> C:\msys64\home\appveyor\dune.txt
-  - echo CMAKE_FLAGS+=" -DGMP_LIB:FILEPATH=%DEPS_DIR%/gmp/lib/libgmp.a -DCMAKE_DISABLE_FIND_PACKAGE_QuadMath=TRUE" >> C:\msys64\home\appveyor\dune.txt
+  - echo CMAKE_FLAGS+=" -DGMPXX_INCLUDE_DIR:PATH=%DEPS_DIR%/include -DGMPXX_LIB:FILEPATH=%DEPS_DIR%/lib/libgmpxx.a" >> C:\msys64\home\appveyor\dune.txt
+  - echo CMAKE_FLAGS+=" -DGMP_LIB:FILEPATH=%DEPS_DIR%/lib/libgmp.a -DCMAKE_DISABLE_FIND_PACKAGE_QuadMath=TRUE" >> C:\msys64\home\appveyor\dune.txt
   - echo CMAKE_FLAGS+=" -DBUILD_TESTING=OFF -DDUNE_USE_ONLY_STATIC_LIBS=ON" >> C:\msys64\home\appveyor\dune.txt
-  - echo CMAKE_FLAGS+=" -DCMAKE_PREFIX_PATH=%DEPS_DIR% -Dmuparser_ROOT=%DEPS_DIR%/muparser -DTIFF_ROOT=%DEPS_DIR%/libtiff " >> C:\msys64\home\appveyor\dune.txt
+  - echo CMAKE_FLAGS+=" -DCMAKE_PREFIX_PATH=%DEPS_DIR% -Dmuparser_ROOT=%DEPS_DIR% -DTIFF_ROOT=%DEPS_DIR% " >> C:\msys64\home\appveyor\dune.txt
   - echo CMAKE_FLAGS+=" -DF77=true -DCMAKE_CXX_FLAGS='-Wa,-mbig-obj -static -static-libgcc -static-libstdc++' " >> C:\msys64\home\appveyor\dune.txt
   - echo MAKE_FLAGS="-j2 VERBOSE=1" >> C:\msys64\home\appveyor\dune.txt
   - type C:\msys64\home\appveyor\dune.txt
