@@ -36,9 +36,9 @@ before_install:
   # download muparser, gmp and libtiff as static libraries
   - wget "https://github.com/lkeegan/libsbml-static/releases/latest/download/libsbml-static-$TRAVIS_OS_NAME.tgz"
   - tar xzvf libsbml-static-$TRAVIS_OS_NAME.tgz
-  - set DEPS_DIR=${PWD}
   - cd ..
 install:
+  - set DEPS_DIR=${PWD}/ext
   - echo 'CMAKE_FLAGS+=" -G '"'"'Unix Makefiles'"'"' "' >> dune.opts
   - echo 'CMAKE_FLAGS+=" -DCMAKE_CXX_STANDARD=17"' >> dune.opts
   - echo 'CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_SETUP=1 -DDUNE_PYTHON_ALLOW_GET_PIP=1 "' >> dune.opts
