@@ -23,7 +23,7 @@ before_build:
   # - echo CMAKE_FLAGS+=" -DGMPXX_INCLUDE_DIR:PATH=%DEPS_DIR%/include -DGMPXX_LIB:FILEPATH=%DEPS_DIR%/lib/libgmpxx.a -DGMP_LIB:FILEPATH=%DEPS_DIR%/lib/libgmp.a" >> C:\msys64\home\appveyor\dune.txt
   - echo CMAKE_FLAGS+=" -DCMAKE_DISABLE_FIND_PACKAGE_QuadMath=TRUE" >> C:\msys64\home\appveyor\dune.txt
   - echo CMAKE_FLAGS+=" -DBUILD_TESTING=OFF -DDUNE_USE_ONLY_STATIC_LIBS=ON" >> C:\msys64\home\appveyor\dune.txt
-  # - echo CMAKE_FLAGS+=" -DCMAKE_PREFIX_PATH=%DEPS_DIR%" >> C:\msys64\home\appveyor\dune.txt
+  - echo CMAKE_FLAGS+=" -DCMAKE_PREFIX_PATH=/ >> C:\msys64\home\appveyor\dune.txt
   # - echo CMAKE_FLAGS+=" -Dmuparser_INCLUDE_DIR:PATH=%DEPS_DIR%/include -Dmuparser_LIBRARY:PATH=%DEPS_DIR%/lib/libmuparser.a -DTIFF_ROOT=%DEPS_DIR%  " >> C:\msys64\home\appveyor\dune.txt
   - echo CMAKE_FLAGS+=" -DF77=true -DCMAKE_CXX_FLAGS='-Wa,-mbig-obj -static -static-libgcc -static-libstdc++' " >> C:\msys64\home\appveyor\dune.txt
   - echo MAKE_FLAGS="-j2 VERBOSE=1" >> C:\msys64\home\appveyor\dune.txt
