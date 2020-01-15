@@ -9,7 +9,7 @@ install:
   # download muparser, gmp and libtiff as static libraries
   - cd C:\msys64\usr\
   - appveyor DownloadFile "https://github.com/lkeegan/libsbml-static/releases/latest/download/libsbml-static-windows.zip"
-  - 7z x libsbml-static-windows.zip
+  - 7z x libsbml-static-windows.zip -aos
   - dir
   - dir lib
   - dir include
