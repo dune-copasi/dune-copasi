@@ -19,10 +19,13 @@ std::enable_if_t<not Capabilities::hasSingleGeometryType<typename GridView::Grid
 has_single_geometry_type(const GridView& grid_view)
 {
   GeometryType gt = grid_view.template begin<0>()->geometry().type();
-  bool result = true;
   for (auto&& element : elements(grid_view))
-    result &= (gt == element.geometry().type());
-  return result;
+    if (gt != element.geometry().type())
+    {
+      std::cout << element.geometry().type() << std::endl;
+      return false;
+    }
+  return true;
 }
 
 } // namespace Dune::Copasi
