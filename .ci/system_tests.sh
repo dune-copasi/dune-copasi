@@ -15,5 +15,5 @@ g++ --version
 gcc --version
 cmake --version
 
-${DUNECONTROL} --opts=${DUNE_OPTIONS_FILE} --only=dune-copasi make --target make build_system_tests
+${DUNECONTROL} --opts=${DUNE_OPTIONS_FILE} --only=dune-copasi make --target build_system_tests
 ${DUNECONTROL} --opts=${DUNE_OPTIONS_FILE} --only=dune-copasi bexec ctest -j4 -L "DUNE_SYSTEMTEST" --output-on-failure
