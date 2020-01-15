@@ -160,7 +160,7 @@ struct Factory<MultiDomainLocalFiniteElementMap<BaseLocalFiniteElementMap,GridVi
     using FEM = MultiDomainLocalFiniteElementMap<BaseLocalFiniteElementMap,GridView>;
 
     if (not has_single_geometry_type(sub_domain_gv))
-      DUNE_THROW(InvalidStateException,"Grid view has to have only one grid view");
+      DUNE_THROW(InvalidStateException,"Grid view has to have only one geometry type");
 
     return std::make_unique<FEM>(sub_domain_gv,*base_fem,*base_fe);
   }
