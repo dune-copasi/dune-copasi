@@ -33,7 +33,7 @@ cmake --version
 
 
 # download Dune dependencies
-for repo in core/common core/dune-geometry core/dune-grid core/dune-istl core/dune-localfunctions staging/dune-functions staging/dune-uggrid
+for repo in core/dune-common core/dune-geometry core/dune-grid core/dune-istl core/dune-localfunctions staging/dune-functions staging/dune-uggrid
 do
   git clone -b releases/$DUNE_VERSION --depth 1 --recursive https://gitlab.dune-project.org/$repo.git
 done
