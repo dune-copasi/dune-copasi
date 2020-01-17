@@ -2,8 +2,8 @@
 #include "config.h"
 #endif
 
-#include <dune/copasi/model/diffusion_reaction.cc>
 #include <dune/copasi/model/diffusion_reaction.hh>
+#include <dune/copasi/model/diffusion_reaction.cc>
 
 #include <dune/grid/multidomaingrid.hh>
 
