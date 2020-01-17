@@ -76,6 +76,8 @@ cd dune-common
 wget https://gist.githubusercontent.com/lkeegan/059984b71f8aeb0bbc062e85ad7ee377/raw/e9c7af42c47fe765547e60833a72b5ff1e78123c/cmake-patch.txt
 echo '' >> cmake-patch.txt
 git apply cmake-patch.txt
+# another patch for missing header in cmake install list
+git apply ../dune-copasi/.ci/dune-common.patch
 cd ../
 
 cd dune-logging
