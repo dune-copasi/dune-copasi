@@ -30,7 +30,9 @@ before_build:
   - type C:\msys64\home\appveyor\dune.txt
   - set DUNE_OPTIONS_FILE=dune.txt
   - set DUNECONTROL=./dune-common/bin/dunecontrol
+  - dir
   - bash -l C:\msys64\home\appveyor\dune-copasi\.ci\setup.sh
+  - type C:/msys64/home/appveyor/dune-copasi/build-cmake/CMakeFiles/CMakeOutput.log
 
 build_script:
   - bash -l C:\msys64\home\appveyor\dune-copasi\.ci\build.sh
