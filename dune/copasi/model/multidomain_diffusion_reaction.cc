@@ -520,7 +520,7 @@ auto
 ModelMultiDomainDiffusionReaction<Traits>::get_grid_function(
   const std::map<std::size_t, State>& states,
   std::size_t domain,
-  std::size_t comp) const
+  std::size_t comp) const -> std::shared_ptr<ComponentGridFunction>
 {
   auto data = get_data_handler(states);
   const auto& compartments = _config.sub("compartments").getValueKeys();
@@ -544,7 +544,7 @@ template<class Traits>
 auto
 ModelMultiDomainDiffusionReaction<Traits>::get_grid_function(
   std::size_t domain,
-  std::size_t comp) const
+  std::size_t comp) const -> std::shared_ptr<ComponentGridFunction>
 {
   return get_grid_function(_states, domain, comp);
 }
@@ -553,6 +553,7 @@ template<class Traits>
 auto
 ModelMultiDomainDiffusionReaction<Traits>::get_grid_functions(
   const std::map<std::size_t, State>& states) const
+  -> std::vector<std::shared_ptr<ComponentGridFunction>>
 {
   const auto& compartments = _config.sub("compartments").getValueKeys();
   std::vector<std::vector<std::shared_ptr<ComponentGridFunction>>>
@@ -576,6 +577,7 @@ ModelMultiDomainDiffusionReaction<Traits>::get_grid_functions(
 template<class Traits>
 auto
 ModelMultiDomainDiffusionReaction<Traits>::get_grid_functions() const
+  -> std::vector<std::shared_ptr<ComponentGridFunction>>
 {
   return get_grid_functions(_states);
 }

@@ -422,14 +422,16 @@ public:
 
   void update_data_handler();
 
-  auto get_grid_function(const std::map<std::size_t, State>& states,
+  std::shared_ptr<ComponentGridFunction> get_grid_function(const std::map<std::size_t, State>& states,
                          std::size_t comp) const;
 
-  auto get_grid_function(std::size_t comp) const;
+  std::shared_ptr<ComponentGridFunction> get_grid_function(std::size_t comp) const;
 
-  auto get_grid_functions(const std::map<std::size_t, State>& states) const;
+  std::vector<std::shared_ptr<ComponentGridFunction>>
+  get_grid_functions(const std::map<std::size_t, State>& states) const;
 
-  auto get_grid_functions() const;
+  std::vector<std::shared_ptr<ComponentGridFunction>>
+  get_grid_functions() const;
 
 protected:
   auto setup_component_grid_function_space(std::string) const;

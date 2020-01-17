@@ -96,7 +96,8 @@ if (dune-testtools_FOUND)
   set_property(TEST "dune_copasi_test_jacobian_analytical" PROPERTY LABELS unit)
   set_property(TEST "dune_copasi_test_jacobian_numerical" PROPERTY LABELS unit)
 
-  # make sure dune_copasi executables are built by default
-  set_property(TARGET dune_copasi_sd PROPERTY EXCLUDE_FROM_ALL 0)
-  set_property(TARGET dune_copasi_md PROPERTY EXCLUDE_FROM_ALL 0)
 endif()
+
+# make sure dune_copasi executables are built by default
+set_property(TARGET dune_copasi_sd PROPERTY EXCLUDE_FROM_ALL 0)
+set_property(TARGET dune_copasi_md PROPERTY EXCLUDE_FROM_ALL 0)
