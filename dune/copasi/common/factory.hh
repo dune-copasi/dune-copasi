@@ -1,6 +1,8 @@
 #ifndef DUNE_COPASI_FACTORY_HH
 #define DUNE_COPASI_FACTORY_HH
 
+#include <dune/common/typetraits.hh>
+
 namespace Dune::Copasi {
 
 // class has to be specializated to be a factory of T!
