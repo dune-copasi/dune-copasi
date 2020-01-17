@@ -16,3 +16,6 @@ gcc --version
 cmake --version
 
 ${DUNECONTROL} --opts=${DUNE_OPTIONS_FILE} --only=dune-copasi all
+
+# debug travis
+cat /home/travis/build/SoilRos/dune-copasi/build-cmake/src/CMakeFiles/dune_copasi_sd.dir/build.make
