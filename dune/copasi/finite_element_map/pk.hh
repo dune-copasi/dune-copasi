@@ -2,8 +2,7 @@
 #define DUNE_COPASI_LOCAL_FINITE_ELEMENT_MAP_PK_HH
 
 #include <dune/copasi/common/factory.hh>
-#include <dune/copasi/grid/has_single_geometry_type.hh>
-#include <dune/copasi/context/geometry_type.hh>
+#include <dune/copasi/context/grid_view.hh>
 
 #include <dune/pdelab/finiteelementmap/pkfem.hh>
 
@@ -12,8 +11,8 @@
 
 namespace Dune::Copasi {
 
-template<class GV, class DF, class RF, int k>
-struct Factory<PDELab::PkLocalFiniteElementMap<GV,DF,RF,k>>
+template<class GV, class DF, class RF, unsigned int k>
+struct Factory<Dune::PDELab::PkLocalFiniteElementMap<GV,DF,RF,k>>
 {
   template<class Ctx>
   static auto create(const Ctx& ctx)

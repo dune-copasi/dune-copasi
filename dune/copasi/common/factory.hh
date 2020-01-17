@@ -5,7 +5,9 @@ namespace Dune::Copasi {
 
 // class has to be specializated to be a factory of T!
 template<class T>
-struct Factory {};
+struct Factory {
+  static_assert(Dune::AlwaysFalse<T>::value, "Factory does not exist");
+};
 
 } // namespace Dune::Copasi
 

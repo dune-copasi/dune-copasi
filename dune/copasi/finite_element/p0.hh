@@ -2,6 +2,7 @@
 #define DUNE_COPASI_LOCAL_FINITE_ELEMENT_P0_HH
 
 #include <dune/copasi/common/factory.hh>
+#include <dune/copasi/context/geometry_type.hh>
 
 #include <dune/localfunctions/lagrange/p0.hh>
 

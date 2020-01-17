@@ -118,8 +118,8 @@ template<class BaseLocalFiniteElement>
 struct Factory<DynamicPowerLocalFiniteElement<BaseLocalFiniteElement>>
 {
 public:
-  template<class Context>
-  static auto create(const Context& ctx)
+  template<class Ctx>
+  static auto create(const Ctx& ctx)
   {
     auto base_fe = Factory<BaseLocalFiniteElement>::create(ctx);
     using FE = DynamicPowerLocalFiniteElement<BaseLocalFiniteElement>;
