@@ -163,9 +163,7 @@ public:
             DUNE_THROW(MathError,
               "Variadic local operator cannot handle one sided skeleton when mappers have different indices");
 
-          // ensure that outside part is const if necessary
-          using LocalPatternRef = std::conditional_t<doSkeletonTwoSided,LocalPattern&,std::add_const_t<LocalPattern&>>;
-          lop->pattern_skeleton(lfsu_s,lfsv_s,lfsu_n,lfsv_n,pattern_sn,LocalPatternRef{pattern_ns});
+          lop->pattern_skeleton(lfsu_s,lfsv_s,lfsu_n,lfsv_n,pattern_sn,pattern_ns);
         }
       }
     });
@@ -243,9 +241,7 @@ public:
             DUNE_THROW(MathError,
               "Variadic local operator cannot handle one sided skeleton when mappers have different indices");
 
-          // ensure that outside part is const if necessary
-          using ResidualRef = std::conditional_t<doSkeletonTwoSided,R&,std::add_const_t<R&>>;
-          lop->alpha_skeleton(ig,lfsu_s,x_s,lfsv_s,lfsu_n,x_n,lfsv_n,r_s,ResidualRef{r_n});
+          lop->alpha_skeleton(ig,lfsu_s,x_s,lfsv_s,lfsu_n,x_n,lfsv_n,r_s,r_n);
         }
       }
     });
@@ -314,9 +310,7 @@ public:
             DUNE_THROW(MathError,
               "Variadic local operator cannot handle one sided skeleton when mappers have different indices");
 
-          // ensure that outside part is const if necessary
-          using ResidualRef = std::conditional_t<doSkeletonTwoSided,R&,std::add_const_t<R&>>;
-          lop->lambda_skeleton(ig,lfsv_s,lfsv_n,r_s,ResidualRef{r_n});
+          lop->lambda_skeleton(ig,lfsv_s,lfsv_n,r_s,r_n);
         }
       }
     });
@@ -392,9 +386,7 @@ public:
             DUNE_THROW(MathError,
               "Variadic local operator cannot handle one sided skeleton when mappers have different indices");
 
-          // ensure that outside part is const if necessary
-          using YRef = std::conditional_t<doSkeletonTwoSided,Y&,std::add_const_t<Y&>>;
-          lop->jacobian_apply_skeleton(ig,lfsu_s,z_s,lfsv_s,lfsu_n,z_n,lfsv_n,y_s,YRef{y_n});
+          lop->jacobian_apply_skeleton(ig,lfsu_s,z_s,lfsv_s,lfsu_n,z_n,lfsv_n,y_s,y_n);
         }
       }
     });
@@ -474,9 +466,7 @@ public:
             DUNE_THROW(MathError,
               "Variadic local operator cannot handle one sided skeleton when mappers have different indices");
 
-          // ensure that outside part is const if necessary
-          using YRef = std::conditional_t<doSkeletonTwoSided,Y&,std::add_const_t<Y&>>;
-          lop->jacobian_apply_skeleton(ig,lfsu_s,x_s,z_s,lfsv_s,lfsu_n,x_n,z_n,lfsv_n,y_s,YRef{y_n});
+          lop->jacobian_apply_skeleton(ig,lfsu_s,x_s,z_s,lfsv_s,lfsu_n,x_n,z_n,lfsv_n,y_s,y_n);
         }
       }
     });
@@ -557,9 +547,7 @@ public:
             DUNE_THROW(MathError,
               "Variadic local operator cannot handle one sided skeleton when mappers have different indices");
 
-          // ensure that outside part is const if necessary
-          using LocalMatrixRef = std::conditional_t<doSkeletonTwoSided,LocalMatrix&,std::add_const_t<LocalMatrix&>>;
-          lop->jacobian_skeleton(ig,lfsu_s,x_s,lfsv_s,lfsu_n,x_n,lfsv_n,mat_ss,mat_sn,LocalMatrixRef{mat_ns},LocalMatrixRef{mat_nn});
+          lop->jacobian_skeleton(ig,lfsu_s,x_s,lfsv_s,lfsu_n,x_n,lfsv_n,mat_ss,mat_sn,mat_ns,mat_nn);
         }
       }
     });
