@@ -6,6 +6,163 @@
 
 namespace Dune::Copasi {
 
+//! Helper lambda functions which apply functions to local operators
+namespace LocalOperatorApply {
+
+// Pattern helepers
+
+auto patternVolume = [](const auto& lop, auto&... args)
+{
+  using LOP = std::decay_t<decltype(lop)>;
+  if constexpr (LOP::doPatternVolume)
+    lop.pattern_volume(args...);
+};
+
+auto patternVolumePostSkeleton = [](const auto& lop, auto&... args)
+{
+  using LOP = std::decay_t<decltype(lop)>;
+  if constexpr (LOP::doPatternVolumePostSkeleton)
+    lop.pattern_volume_post_skeleton(args...);
+};
+
+auto patternSkeleton = [](const auto& lop, auto&... args)
+{
+  using LOP = std::decay_t<decltype(lop)>;
+  if constexpr (LOP::doPatternSkeleton)
+    lop.pattern_skeleton(args...);
+};
+
+auto patternBoundary = [](const auto& lop, auto&... args)
+{
+  using LOP = std::decay_t<decltype(lop)>;
+  if constexpr (LOP::doPatternBoundary)
+    lop.pattern_boundary(args...);
+};
+
+// Alpha helepers
+
+auto alphaVolume = [](const auto& lop, auto&... args)
+{
+  using LOP = std::decay_t<decltype(lop)>;
+  if constexpr (LOP::doAlphaVolume)
+    lop.alpha_volume(args...);
+};
+
+auto alphaVolumePostSkeleton = [](const auto& lop, auto&... args)
+{
+  using LOP = std::decay_t<decltype(lop)>;
+  if constexpr (LOP::doAlphaVolumePostSkeleton)
+    lop.alpha_volume_post_skeleton(args...);
+};
+
+auto alphaSkeleton = [](const auto& lop, auto&... args)
+{
+  using LOP = std::decay_t<decltype(lop)>;
+  if constexpr (LOP::doAlphaSkeleton)
+    lop.alpha_skeleton(args...);
+};
+
+auto alphaBoundary = [](const auto& lop, auto&... args)
+{
+  using LOP = std::decay_t<decltype(lop)>;
+  if constexpr (LOP::doAlphaBoundary)
+    lop.alpha_boundary(args...);
+};
+
+
+// Lambda helepers
+
+auto lambdaVolume = [](const auto& lop, auto&... args)
+{
+  using LOP = std::decay_t<decltype(lop)>;
+  if constexpr (LOP::doLambdaVolume)
+    lop.lambda_volume(args...);
+};
+
+auto lambdaVolumePostSkeleton = [](const auto& lop, auto&... args)
+{
+  using LOP = std::decay_t<decltype(lop)>;
+  if constexpr (LOP::doLambdaVolumePostSkeleton)
+    lop.lambda_volume_post_skeleton(args...);
+};
+
+auto lambdaSkeleton = [](const auto& lop, auto&... args)
+{
+  using LOP = std::decay_t<decltype(lop)>;
+  if constexpr (LOP::doLambdaSkeleton)
+    lop.lambda_skeleton(args...);
+};
+
+auto lambdaBoundary = [](const auto& lop, auto&... args)
+{
+  using LOP = std::decay_t<decltype(lop)>;
+  if constexpr (LOP::doLambdaBoundary)
+    lop.lambda_boundary(args...);
+};
+
+
+// Jacobian helepers
+
+auto jacobianVolume = [](const auto& lop, auto&... args)
+{
+  using LOP = std::decay_t<decltype(lop)>;
+  if constexpr (LOP::doAlphaVolume)
+    lop.jacobian_volume(args...);
+};
+
+auto jacobianVolumePostSkeleton = [](const auto& lop, auto&... args)
+{
+  using LOP = std::decay_t<decltype(lop)>;
+  if constexpr (LOP::doAlphaVolumePostSkeleton)
+    lop.jacobian_volume_post_skeleton(args...);
+};
+
+auto jacobianSkeleton = [](const auto& lop, auto&... args)
+{
+  using LOP = std::decay_t<decltype(lop)>;
+  if constexpr (LOP::doAlphaSkeleton)
+    lop.jacobian_skeleton(args...);
+};
+
+auto jacobianBoundary = [](const auto& lop, auto&... args)
+{
+  using LOP = std::decay_t<decltype(lop)>;
+  if constexpr (LOP::doAlphaBoundary)
+    lop.jacobian_boundary(args...);
+};
+
+
+// Jacobian apply helepers
+
+auto jacobianApplyVolume = [](const auto& lop, auto&... args)
+{
+  using LOP = std::decay_t<decltype(lop)>;
+  if constexpr (LOP::doAlphaVolume)
+    lop.jacobian_apply_volume(args...);
+};
+
+auto jacobianApplyVolumePostSkeleton = [](const auto& lop, auto&... args)
+{
+  using LOP = std::decay_t<decltype(lop)>;
+  if constexpr (LOP::doAlphaVolumePostSkeleton)
+    lop.jacobian_apply_volume_post_skeleton(args...);
+};
+
+auto jacobianApplySkeleton = [](const auto& lop, auto&... args)
+{
+  using LOP = std::decay_t<decltype(lop)>;
+  if constexpr (LOP::doAlphaSkeleton)
+    lop.jacobian_apply_skeleton(args...);
+};
+
+auto jacobianApplyBoundary = [](const auto& lop, auto&... args)
+{
+  using LOP = std::decay_t<decltype(lop)>;
+  if constexpr (LOP::doAlphaBoundary)
+    lop.jacobian_apply_boundary(args...);
+};
+
+} // namespace LocalOperatorApply
 
 // this class helps to forward different (dynamic) finite elements to different (static) local operators.
 // In case that skeleton terms appear on different operators (e.g. inside -> DGP2, outside-> DGP1) such
@@ -25,6 +182,17 @@ class VariadicLocalOperator
   bool constexpr static conjunction()
   {
     return std::conjunction_v<std::bool_constant<Args>...>;
+  }
+
+  template<class P, class F, class... Args>
+  void applyLops(P && p, F&& f, Args&&... args) const
+  {
+    Hybrid::forEach(Dune::range(_integral_size{}),
+      [&](auto i){
+        if (p(i))
+          f(*Hybrid::elementAt(_lops, i), args...);
+      }
+    );
   }
 
   struct BilinearMapperVisitor
@@ -107,7 +275,7 @@ public:
     Dune::Hybrid::forEach(Dune::range(_integral_size{}), [&](auto i) {
       auto& lop = std::get<i>(_lops);
       using LOP = std::decay_t<decltype(*lop)>;
-      lop = std::make_unique<LOP>(std::forward<Args>(args)...);
+      lop = std::make_unique<LOP>(args...);
     });
   }
 
@@ -115,15 +283,10 @@ public:
   void pattern_volume( const LFSU& lfsu, const LFSV& lfsv, LocalPattern& pattern) const
   {
     auto index_set = indices(lfsu,lfsv);
-    Dune::Hybrid::forEach(Dune::range(_integral_size{}), [&](auto i) {
-      const auto& lop = std::get<i>(_lops);
-      using LOP = std::decay_t<decltype(*lop)>;
-      if constexpr (LOP::doPatternVolume)
-      {
-        if (index_set.find(i) != index_set.end())
-          lop->pattern_volume(lfsu,lfsv,pattern);
-      }
-    });
+
+    auto predicate = [&](auto i) { return index_set.find(i) != index_set.end(); };
+
+    applyLops(predicate,LocalOperatorApply::patternVolume,lfsu,lfsv,pattern);
   }
 
   template<typename LFSU, typename LFSV, typename LocalPattern>
@@ -132,13 +295,10 @@ public:
     LocalPattern& pattern) const
   {
     auto index_set = indices(lfsu,lfsv);
-    Dune::Hybrid::forEach(Dune::range(_integral_size{}), [&](auto i) {
-      const auto& lop = std::get<i>(_lops);
-      using LOP = std::decay_t<decltype(*lop)>;
-      if constexpr (LOP::doPatternVolumePostSkeleton)
-        if (index_set.find(i) != index_set.end())
-          lop->pattern_volume_post_skeleton(lfsu,lfsv,pattern);
-    });
+
+    auto predicate = [&](auto i) { return index_set.find(i) != index_set.end(); };
+
+    applyLops(predicate,LocalOperatorApply::patternVolumePostSkeleton,lfsu,lfsv,pattern);
   }
 
   template<typename LFSU, typename LFSV, typename LocalPattern>
@@ -150,23 +310,18 @@ public:
   {
     auto index_set_s = indices(lfsu_s,lfsv_s);
     auto index_set_n = indices(lfsu_n,lfsv_n);
-    Dune::Hybrid::forEach(Dune::range(_integral_size{}), [&](auto i) {
-      const auto& lop = std::get<i>(_lops);
-      using LOP = std::decay_t<decltype(*lop)>;
-      if constexpr (LOP::doPatternSkeleton)
-      {
-        auto inside_i = *index_set_s.find(i);
-        if (i == inside_i)
-        {
-          auto outside_i = *index_set_n.find(i);
-          if (not doSkeletonTwoSided and (inside_i != outside_i))
-            DUNE_THROW(MathError,
-              "Variadic local operator cannot handle one sided skeleton when mappers have different indices");
 
-          lop->pattern_skeleton(lfsu_s,lfsv_s,lfsu_n,lfsv_n,pattern_sn,pattern_ns);
-        }
-      }
-    });
+    auto predicate = [&](auto i) {
+      auto inside_i = index_set_s.find(i) != index_set_s.end();
+      auto outside_i = index_set_n.find(i) != index_set_n.end();
+
+      if (inside_i xor outside_i)
+        DUNE_THROW(MathError,
+          "Variadic local operator cannot handle skeleton integrals when mappers have different indices");
+      return (inside_i and outside_i);
+    };
+
+    applyLops(predicate,LocalOperatorApply::patternSkeleton,lfsu_s,lfsv_s,lfsu_n,lfsv_n,pattern_sn,pattern_ns);
   }
 
   template<typename LFSU, typename LFSV, typename LocalPattern>
@@ -175,13 +330,10 @@ public:
     LocalPattern& pattern_ss) const
   {
     auto index_set = indices(lfsu_s,lfsv_s);
-    Dune::Hybrid::forEach(Dune::range(_integral_size{}), [&](auto i) {
-      const auto& lop = std::get<i>(_lops);
-      using LOP = std::decay_t<decltype(*lop)>;
-      if constexpr (LOP::doPatternBoundary)
-        if (index_set.find(i) != index_set.end())
-          lop->pattern_boundary(lfsu_s,lfsv_s,pattern_ss);
-    });
+
+    auto predicate = [&](auto i) { return index_set.find(i) != index_set.end(); };
+
+    applyLops(predicate,LocalOperatorApply::patternBoundary,lfsu_s,lfsv_s,pattern_ss);
   }
 
   template<typename EG, typename LFSU, typename X, typename LFSV,
@@ -192,13 +344,10 @@ public:
     R& r) const
   {
     auto index_set = indices(lfsu,lfsv);
-    Dune::Hybrid::forEach(Dune::range(_integral_size{}), [&](auto i) {
-      const auto& lop = std::get<i>(_lops);
-      using LOP = std::decay_t<decltype(*lop)>;
-      if constexpr (LOP::doAlphaVolume)
-        if (index_set.find(i) != index_set.end())
-          lop->alpha_volume(eg,lfsu,x,lfsv,r);
-    });
+
+    auto predicate = [&](auto i) { return index_set.find(i) != index_set.end(); };
+
+    applyLops(predicate,LocalOperatorApply::alphaVolume,eg,lfsu,x,lfsv,r);
   }
 
   template<typename EG, typename LFSU, typename X, typename LFSV,
@@ -209,13 +358,10 @@ public:
     R& r) const
   {
     auto index_set = indices(lfsu,lfsv);
-    Dune::Hybrid::forEach(Dune::range(_integral_size{}), [&](auto i) {
-      const auto& lop = std::get<i>(_lops);
-      using LOP = std::decay_t<decltype(*lop)>;
-      if constexpr (LOP::doAlphaVolumePostSkeleton)
-        if (index_set.find(i) != index_set.end())
-          lop->alpha_volume_post_skeleton(eg,lfsu,x,lfsv,r);
-    });
+
+    auto predicate = [&](auto i) { return index_set.find(i) != index_set.end(); };
+
+    applyLops(predicate,LocalOperatorApply::alphaVolumePostSkeleton,eg,lfsu,x,lfsv,r);
   }
 
   template<typename IG, typename LFSU, typename X, typename LFSV,
@@ -228,23 +374,18 @@ public:
   {
     auto index_set_s = indices(lfsu_s,lfsv_s);
     auto index_set_n = indices(lfsu_n,lfsv_n);
-    Dune::Hybrid::forEach(Dune::range(_integral_size{}), [&](auto i) {
-      const auto& lop = std::get<i>(_lops);
-      using LOP = std::decay_t<decltype(*lop)>;
-      if constexpr (LOP::doAlphaSkeleton)
-      {
-        auto inside_i = *index_set_s.find(i);
-        if (i == inside_i)
-        {
-          auto outside_i = *index_set_n.find(i);
-          if (not doSkeletonTwoSided and (inside_i != outside_i))
-            DUNE_THROW(MathError,
-              "Variadic local operator cannot handle one sided skeleton when mappers have different indices");
 
-          lop->alpha_skeleton(ig,lfsu_s,x_s,lfsv_s,lfsu_n,x_n,lfsv_n,r_s,r_n);
-        }
-      }
-    });
+    auto predicate = [&](auto i) {
+      auto inside_i = index_set_s.find(i) != index_set_s.end();
+      auto outside_i = index_set_n.find(i) != index_set_n.end();
+
+      if (inside_i xor outside_i)
+        DUNE_THROW(MathError,
+          "Variadic local operator cannot handle skeleton integrals when mappers have different indices");
+      return (inside_i and outside_i);
+    };
+
+    applyLops(predicate,LocalOperatorApply::alphaSkeleton,ig,lfsu_s,x_s,lfsv_s,lfsu_n,x_n,lfsv_n,r_s,r_n);
   }
 
   template<typename IG, typename LFSU, typename X, typename LFSV,
@@ -255,39 +396,30 @@ public:
     R& r_s) const
   {
     auto index_set = indices(lfsu_s,lfsv_s);
-    Dune::Hybrid::forEach(Dune::range(_integral_size{}), [&](auto i) {
-      const auto& lop = std::get<i>(_lops);
-      using LOP = std::decay_t<decltype(*lop)>;
-      if constexpr (LOP::doAlphaBoundary)
-        if (index_set.find(i) != index_set.end())
-          lop->alpha_boundary(ig,lfsu_s,x_s,lfsv_s,r_s);
-    });
+
+    auto predicate = [&](auto i) { return index_set.find(i) != index_set.end(); };
+
+    applyLops(predicate,LocalOperatorApply::patternBoundary,ig,lfsu_s,x_s,lfsv_s,r_s);
   }
 
   template<typename EG, typename LFSV, typename R>
   void lambda_volume(const EG& eg, const LFSV& lfsv, R& r) const
   {
     auto index_set = indices(lfsv);
-    Dune::Hybrid::forEach(Dune::range(_integral_size{}), [&](auto i) {
-      const auto& lop = std::get<i>(_lops);
-      using LOP = std::decay_t<decltype(*lop)>;
-      if constexpr (LOP::doLambdaVolume)
-        if (index_set.find(i) != index_set.end())
-          lop->lambda_volume(eg,lfsv,r);
-    });
+
+    auto predicate = [&](auto i) { return index_set.find(i) != index_set.end(); };
+
+    applyLops(predicate,LocalOperatorApply::lambdaVolume,eg,lfsv,r);
   }
 
   template<typename EG, typename LFSV, typename R>
   void lambda_volume_post_skeleton(const EG& eg, const LFSV& lfsv, R& r) const
   {
     auto index_set = indices(lfsv);
-    Dune::Hybrid::forEach(Dune::range(_integral_size{}), [&](auto i) {
-      const auto& lop = std::get<i>(_lops);
-      using LOP = std::decay_t<decltype(*lop)>;
-      if constexpr (LOP::doLambdaVolumePostSkeleton)
-        if (index_set.find(i) != index_set.end())
-          lop->lambda_volume_post_skeleton(eg,lfsv,r);
-    });
+
+    auto predicate = [&](auto i) { return index_set.find(i) != index_set.end(); };
+
+    applyLops(predicate,LocalOperatorApply::lambdaVolumePostSkeleton,eg,lfsv,r);
   }
 
   template<typename IG, typename LFSV, typename R>
@@ -297,36 +429,28 @@ public:
   {
     auto index_set_s = indices(lfsv_s);
     auto index_set_n = indices(lfsv_n);
-    Dune::Hybrid::forEach(Dune::range(_integral_size{}), [&](auto i) {
-      const auto& lop = std::get<i>(_lops);
-      using LOP = std::decay_t<decltype(*lop)>;
-      if constexpr (LOP::doLambdaSkeleton)
-      {
-        auto inside_i = *index_set_s.find(i);
-        if (i == inside_i)
-        {
-          auto outside_i = *index_set_n.find(i);
-          if (not doSkeletonTwoSided and (inside_i != outside_i))
-            DUNE_THROW(MathError,
-              "Variadic local operator cannot handle one sided skeleton when mappers have different indices");
 
-          lop->lambda_skeleton(ig,lfsv_s,lfsv_n,r_s,r_n);
-        }
-      }
-    });
+    auto predicate = [&](auto i) {
+      auto inside_i = index_set_s.find(i) != index_set_s.end();
+      auto outside_i = index_set_n.find(i) != index_set_n.end();
+
+      if (inside_i xor outside_i)
+        DUNE_THROW(MathError,
+          "Variadic local operator cannot handle skeleton integrals when mappers have different indices");
+      return (inside_i and outside_i);
+    };
+
+    applyLops(predicate,LocalOperatorApply::lambdaSkeleton,ig,lfsv_s,lfsv_n,r_s,r_n);
   }
 
   template<typename IG, typename LFSV, typename R>
   void lambda_boundary(const IG& ig, const LFSV& lfsv_s, R& r_s) const
   {
     auto index_set = indices(lfsv_s);
-    Dune::Hybrid::forEach(Dune::range(_integral_size{}), [&](auto i) {
-      const auto& lop = std::get<i>(_lops);
-      using LOP = std::decay_t<decltype(*lop)>;
-      if constexpr (LOP::doLambdaVolumePostSkeleton)
-        if (index_set.find(i) != index_set.end())
-          lop->lambda_boundary(ig,lfsv_s,r_s);
-    });
+
+    auto predicate = [&](auto i) { return index_set.find(i) != index_set.end(); };
+
+    applyLops(predicate,LocalOperatorApply::lambdaBoundary,ig,lfsv_s,r_s);
   }
 
   template<typename EG, typename LFSU, typename X, typename LFSV,
@@ -336,14 +460,11 @@ public:
     const LFSU& lfsu, const X& z, const LFSV& lfsv,
     Y& y) const
   {
-    auto index_set = indices(lfsu,lfsv);
-    Dune::Hybrid::forEach(Dune::range(_integral_size{}), [&](auto i) {
-      const auto& lop = std::get<i>(_lops);
-      using LOP = std::decay_t<decltype(*lop)>;
-      if constexpr (LOP::doAlphaVolume)
-        if (index_set.find(i) != index_set.end())
-          lop->jacobian_apply_volume(eg,lfsu,z,lfsv,y);
-    });
+    auto index_set = indices(lfsv);
+
+    auto predicate = [&](auto i) { return index_set.find(i) != index_set.end(); };
+
+    applyLops(predicate,LocalOperatorApply::jacobianApplyVolume,eg,lfsu,z,lfsv,y);
   }
 
   template<typename EG, typename LFSU, typename X, typename LFSV,
@@ -353,14 +474,11 @@ public:
     const LFSU& lfsu, const X& z, const LFSV& lfsv,
     Y& y) const
   {
-    auto index_set = indices(lfsu,lfsv);
-    Dune::Hybrid::forEach(Dune::range(_integral_size{}), [&](auto i) {
-      const auto& lop = std::get<i>(_lops);
-      using LOP = std::decay_t<decltype(*lop)>;
-      if constexpr (LOP::doAlphaVolumePostSkeleton)
-        if (index_set.find(i) != index_set.end())
-          lop->jacobian_apply_volume_post_skeleton(eg,lfsu,z,lfsv,y);
-    });
+    auto index_set = indices(lfsv);
+
+    auto predicate = [&](auto i) { return index_set.find(i) != index_set.end(); };
+
+    applyLops(predicate,LocalOperatorApply::jacobianApplyVolumePostSkeleton,eg,lfsu,z,lfsv,y);
   }
 
   template<typename IG, typename LFSU, typename X, typename LFSV,
@@ -373,23 +491,18 @@ public:
   {
     auto index_set_s = indices(lfsu_s,lfsv_s);
     auto index_set_n = indices(lfsu_n,lfsv_n);
-    Dune::Hybrid::forEach(Dune::range(_integral_size{}), [&](auto i) {
-      const auto& lop = std::get<i>(_lops);
-      using LOP = std::decay_t<decltype(*lop)>;
-      if constexpr (LOP::doAlphaSkeleton)
-      {
-        auto inside_i = *index_set_s.find(i);
-        if (i == inside_i)
-        {
-          auto outside_i = *index_set_n.find(i);
-          if (not doSkeletonTwoSided and (inside_i != outside_i))
-            DUNE_THROW(MathError,
-              "Variadic local operator cannot handle one sided skeleton when mappers have different indices");
 
-          lop->jacobian_apply_skeleton(ig,lfsu_s,z_s,lfsv_s,lfsu_n,z_n,lfsv_n,y_s,y_n);
-        }
-      }
-    });
+    auto predicate = [&](auto i) {
+      auto inside_i = index_set_s.find(i) != index_set_s.end();
+      auto outside_i = index_set_n.find(i) != index_set_n.end();
+
+      if (inside_i xor outside_i)
+        DUNE_THROW(MathError,
+          "Variadic local operator cannot handle skeleton integrals when mappers have different indices");
+      return (inside_i and outside_i);
+    };
+
+    applyLops(predicate,LocalOperatorApply::jacobianApplySkeleton,ig,lfsu_s,z_s,lfsv_s,lfsu_n,z_n,lfsv_n,y_s,y_n);
   }
 
   template<typename IG, typename LFSU, typename X, typename LFSV,
@@ -399,14 +512,11 @@ public:
     const LFSU& lfsu_s, const X& z_s, const LFSV& lfsv_s,
     Y& y_s) const
   {
-    auto index_set = indices(lfsu_s,lfsv_s);
-    Dune::Hybrid::forEach(Dune::range(_integral_size{}), [&](auto i) {
-      const auto& lop = std::get<i>(_lops);
-      using LOP = std::decay_t<decltype(*lop)>;
-      if constexpr (LOP::doAlphaBoundary)
-        if (index_set.find(i) != index_set.end())
-          lop->jacobian_apply_boundary(ig,lfsu_s,z_s,lfsv_s,y_s);
-    });
+    auto index_set = indices(lfsv_s);
+
+    auto predicate = [&](auto i) { return index_set.find(i) != index_set.end(); };
+
+    applyLops(predicate,LocalOperatorApply::jacobianApplyBoundary,ig,lfsu_s,z_s,lfsv_s,y_s);
   }
 
   template<typename EG, typename LFSU, typename X, typename LFSV,
@@ -417,13 +527,10 @@ public:
     Y& y) const
   {
     auto index_set = indices(lfsu,lfsv);
-    Dune::Hybrid::forEach(Dune::range(_integral_size{}), [&](auto i) {
-      const auto& lop = std::get<i>(_lops);
-      using LOP = std::decay_t<decltype(*lop)>;
-      if constexpr (LOP::doAlphaVolume)
-        if (index_set.find(i) != index_set.end())
-          lop->jacobian_apply_volume(eg,lfsu,x,z,lfsv,y);
-    });
+
+    auto predicate = [&](auto i) { return index_set.find(i) != index_set.end(); };
+
+    applyLops(predicate,LocalOperatorApply::jacobianApplyVolume,eg,lfsu,x,z,lfsv,y);
   }
 
   template<typename EG, typename LFSU, typename X, typename LFSV,
@@ -434,13 +541,10 @@ public:
     Y& y) const
   {
     auto index_set = indices(lfsu,lfsv);
-    Dune::Hybrid::forEach(Dune::range(_integral_size{}), [&](auto i) {
-      const auto& lop = std::get<i>(_lops);
-      using LOP = std::decay_t<decltype(*lop)>;
-      if constexpr (LOP::doAlphaVolumePostSkeleton)
-        if (index_set.find(i) != index_set.end())
-          lop->jacobian_apply_volume_post_skeleton(eg,lfsu,x,z,lfsv,y);
-    });
+
+    auto predicate = [&](auto i) { return index_set.find(i) != index_set.end(); };
+
+    applyLops(predicate,LocalOperatorApply::jacobianApplyVolumePostSkeleton,eg,lfsu,x,z,lfsv,y);
   }
 
   template<typename IG, typename LFSU, typename X, typename LFSV,
@@ -453,23 +557,18 @@ public:
   {
     auto index_set_s = indices(lfsu_s,lfsv_s);
     auto index_set_n = indices(lfsu_n,lfsv_n);
-    Dune::Hybrid::forEach(Dune::range(_integral_size{}), [&](auto i) {
-      const auto& lop = std::get<i>(_lops);
-      using LOP = std::decay_t<decltype(*lop)>;
-      if constexpr (LOP::doAlphaSkeleton)
-      {
-        auto inside_i = *index_set_s.find(i);
-        if (i == inside_i)
-        {
-          auto outside_i = *index_set_n.find(i);
-          if (not doSkeletonTwoSided and (inside_i != outside_i))
-            DUNE_THROW(MathError,
-              "Variadic local operator cannot handle one sided skeleton when mappers have different indices");
 
-          lop->jacobian_apply_skeleton(ig,lfsu_s,x_s,z_s,lfsv_s,lfsu_n,x_n,z_n,lfsv_n,y_s,y_n);
-        }
-      }
-    });
+    auto predicate = [&](auto i) {
+      auto inside_i = index_set_s.find(i) != index_set_s.end();
+      auto outside_i = index_set_n.find(i) != index_set_n.end();
+
+      if (inside_i xor outside_i)
+        DUNE_THROW(MathError,
+          "Variadic local operator cannot handle skeleton integrals when mappers have different indices");
+      return (inside_i and outside_i);
+    };
+
+    applyLops(predicate,LocalOperatorApply::jacobianApplySkeleton,ig,lfsu_s,x_s,z_s,lfsv_s,lfsu_n,x_n,z_n,lfsv_n,y_s,y_n);
   }
 
   template<typename IG, typename LFSU, typename X, typename LFSV,
@@ -480,13 +579,10 @@ public:
     Y& y_s) const
   {
     auto index_set = indices(lfsu_s,lfsv_s);
-    Dune::Hybrid::forEach(Dune::range(_integral_size{}), [&](auto i) {
-      const auto& lop = std::get<i>(_lops);
-      using LOP = std::decay_t<decltype(*lop)>;
-      if constexpr (LOP::doAlphaBoundary)
-        if (index_set.find(i) != index_set.end())
-          lop->jacobian_apply_boundary(ig,lfsu_s,x_s,z_s,lfsv_s,y_s);
-    });
+
+    auto predicate = [&](auto i) { return index_set.find(i) != index_set.end(); };
+
+    applyLops(predicate,LocalOperatorApply::jacobianApplyBoundary,ig,lfsu_s,x_s,z_s,lfsv_s,y_s);
   }
 
   template<typename EG, typename LFSU, typename X, typename LFSV,
@@ -497,13 +593,10 @@ public:
     LocalMatrix& mat) const
   {
     auto index_set = indices(lfsu,lfsv);
-    Dune::Hybrid::forEach(Dune::range(_integral_size{}), [&](auto i) {
-      const auto& lop = std::get<i>(_lops);
-      using LOP = std::decay_t<decltype(*lop)>;
-      if constexpr (LOP::doAlphaVolume)
-        if (index_set.find(i) != index_set.end())
-          lop->jacobian_volume(eg,lfsu,x,lfsv,mat);
-    });
+
+    auto predicate = [&](auto i) { return index_set.find(i) != index_set.end(); };
+
+    applyLops(predicate,LocalOperatorApply::jacobianVolume,eg,lfsu,x,lfsv,mat);
   }
 
   template<typename EG, typename LFSU, typename X, typename LFSV,
@@ -514,13 +607,10 @@ public:
     LocalMatrix& mat) const
   {
     auto index_set = indices(lfsu,lfsv);
-    Dune::Hybrid::forEach(Dune::range(_integral_size{}), [&](auto i) {
-      const auto& lop = std::get<i>(_lops);
-      using LOP = std::decay_t<decltype(*lop)>;
-      if constexpr (LOP::doAlphaVolumePostSkeleton)
-        if (index_set.find(i) != index_set.end())
-          lop->jacobian_volume_post_skeleton(eg,lfsu,x,lfsv,mat);
-    });
+
+    auto predicate = [&](auto i) { return index_set.find(i) != index_set.end(); };
+
+    applyLops(predicate,LocalOperatorApply::jacobianVolumePostSkeleton,eg,lfsu,x,lfsv,mat);
   }
 
   template<typename IG, typename LFSU, typename X, typename LFSV,
@@ -534,23 +624,18 @@ public:
   {
     auto index_set_s = indices(lfsu_s,lfsv_s);
     auto index_set_n = indices(lfsu_n,lfsv_n);
-    Dune::Hybrid::forEach(Dune::range(_integral_size{}), [&](auto i) {
-      const auto& lop = std::get<i>(_lops);
-      using LOP = std::decay_t<decltype(*lop)>;
-      if constexpr (LOP::doAlphaSkeleton)
-      {
-        auto inside_i = *index_set_s.find(i);
-        if (i == inside_i)
-        {
-          auto outside_i = *index_set_n.find(i);
-          if (not doSkeletonTwoSided and (inside_i != outside_i))
-            DUNE_THROW(MathError,
-              "Variadic local operator cannot handle one sided skeleton when mappers have different indices");
 
-          lop->jacobian_skeleton(ig,lfsu_s,x_s,lfsv_s,lfsu_n,x_n,lfsv_n,mat_ss,mat_sn,mat_ns,mat_nn);
-        }
-      }
-    });
+    auto predicate = [&](auto i) {
+      auto inside_i = index_set_s.find(i) != index_set_s.end();
+      auto outside_i = index_set_n.find(i) != index_set_n.end();
+
+      if (inside_i xor outside_i)
+        DUNE_THROW(MathError,
+          "Variadic local operator cannot handle skeleton integrals when mappers have different indices");
+      return (inside_i and outside_i);
+    };
+
+    applyLops(predicate,LocalOperatorApply::jacobianSkeleton,ig,lfsu_s,x_s,lfsv_s,lfsu_n,x_n,lfsv_n,mat_ss,mat_sn,mat_ns,mat_nn);
   }
 
   template<typename IG, typename LFSU, typename X, typename LFSV,
@@ -561,13 +646,10 @@ public:
     LocalMatrix& mat_ss) const
   {
     auto index_set = indices(lfsu_s,lfsv_s);
-    Dune::Hybrid::forEach(Dune::range(_integral_size{}), [&](auto i) {
-      const auto& lop = std::get<i>(_lops);
-      using LOP = std::decay_t<decltype(*lop)>;
-      if constexpr (LOP::doAlphaBoundary)
-        if (index_set.find(i) != index_set.end())
-          lop->jacobian_boundary(ig,lfsu_s,x_s,lfsv_s,mat_ss);
-    });
+
+    auto predicate = [&](auto i) { return index_set.find(i) != index_set.end(); };
+
+    applyLops(predicate,LocalOperatorApply::jacobianBoundary,ig,lfsu_s,x_s,lfsv_s,mat_ss);
   }
 
   template<class T>
@@ -638,7 +720,7 @@ public:
   {
     Dune::Hybrid::forEach(Dune::range(_integral_size{}), [&](auto i) {
       auto& lop = std::get<i>(_lops);
-      lop->update(std::forward<T>(args)...); // todo: check whether lop has update method
+      lop->update(args...); // todo: check whether lop has update method
     });
   }
 
