@@ -138,8 +138,8 @@ private:
 template<class BaseLocalFiniteElementMap>
 struct Factory<DynamicPowerLocalFiniteElementMap<BaseLocalFiniteElementMap>>
 {
-  template<class Context>
-  static auto create(const Context& ctx)
+  template<class Ctx>
+  static auto create(const Ctx& ctx)
   {
     using FEM = DynamicPowerLocalFiniteElementMap<BaseLocalFiniteElementMap>;
     // todo add power size

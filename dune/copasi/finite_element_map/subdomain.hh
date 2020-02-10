@@ -2,11 +2,9 @@
 #define DUNE_COPASI_MULTIDOMAIN_LOCAL_FINITE_ELEMENT_MAP_HH
 
 #include <dune/copasi/common/factory.hh>
+#include <dune/copasi/common/data_context.hh>
 #include <dune/copasi/finite_element_map/dynamic_power.hh>
 #include <dune/copasi/grid/has_single_geometry_type.hh>
-
-#include <dune/copasi/context/grid_view.hh>
-#include <dune/copasi/context/entity.hh>
 
 namespace Dune::Copasi {
 

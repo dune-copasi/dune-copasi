@@ -7,13 +7,11 @@
  * file but a header which has to be included when compiling.
  */
 
+#include <dune/copasi/common/data_context.hh>
 #include <dune/copasi/common/muparser_data_handler.hh>
 #include <dune/copasi/common/pdelab_expression_adapter.hh>
 #include <dune/copasi/common/tiff_grayscale.hh>
 #include <dune/copasi/concepts/pdelab.hh>
-#include <dune/copasi/context/entity_mapper.hh>
-#include <dune/copasi/context/geometry_type.hh>
-#include <dune/copasi/context/grid_view.hh>
 #include <dune/copasi/model/diffusion_reaction.hh>
 
 #include <dune/pdelab/function/callableadapter.hh>

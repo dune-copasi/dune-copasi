@@ -3,8 +3,7 @@
 
 #include <dune/copasi/common/factory.hh>
 #include <dune/copasi/grid/has_single_geometry_type.hh>
-#include <dune/copasi/context/geometry_type.hh>
-#include <dune/copasi/context/grid_view.hh>
+#include <dune/copasi/common/data_context.hh>
 
 #include <dune/pdelab/finiteelementmap/p0fem.hh>
 

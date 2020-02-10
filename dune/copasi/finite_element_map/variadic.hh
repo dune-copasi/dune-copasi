@@ -2,7 +2,7 @@
 #define DUNE_COPASI_VARIADIC_LOCAL_FINITE_ELEMENT_HH
 
 #include <dune/copasi/common/factory.hh>
-#include <dune/copasi/context/entity_mapper.hh>
+#include <dune/copasi/common/data_context.hh>
 #include <dune/copasi/finite_element_map/virtual.hh>
 
 #include <dune/localfunctions/common/virtualinterface.hh>

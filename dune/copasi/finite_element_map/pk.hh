@@ -2,7 +2,7 @@
 #define DUNE_COPASI_LOCAL_FINITE_ELEMENT_MAP_PK_HH
 
 #include <dune/copasi/common/factory.hh>
-#include <dune/copasi/context/grid_view.hh>
+#include <dune/copasi/common/data_context.hh>
 
 #include <dune/pdelab/finiteelementmap/pkfem.hh>
 
