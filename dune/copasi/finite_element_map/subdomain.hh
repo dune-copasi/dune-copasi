@@ -5,10 +5,13 @@
 #include <dune/copasi/finite_element_map/dynamic_power.hh>
 #include <dune/copasi/grid/has_single_geometry_type.hh>
 
+#include <dune/copasi/context/grid_view.hh>
+#include <dune/copasi/context/entity.hh>
+
 namespace Dune::Copasi {
 
 /**
- * @brief      This class describes a multi domain local finite element map.
+ * @brief      This class describes a sub domain local finite element map.
  * @details    This class wrapps a usual PDELab finite element map into a
  *             dynamic power finite element map. If the entity to be map does
  *             not belong to the grid view, it will return a 0 power element map
@@ -18,11 +21,11 @@ namespace Dune::Copasi {
  *             different finite elements per sub domain.
  *
  * @tparam     FiniteElementMap  The original finite element map to wrap
- * @tparam     GridView          The grid view where the finite element will be
+ * @tparam     SubGridView       The grid view where the finite element will be
  *                               not zero
  */
-template<class FiniteElementMap, class GridView>
-class MultiDomainLocalFiniteElementMap
+template<class FiniteElementMap, class SubGridView>
+class SubDomainLocalFiniteElementMap
   : public DynamicPowerLocalFiniteElementMap<FiniteElementMap>
 {
   using Base = DynamicPowerLocalFiniteElementMap<FiniteElementMap>;
@@ -30,18 +33,18 @@ class MultiDomainLocalFiniteElementMap
   using BaseFiniteElement = typename FiniteElementMap::Traits::FiniteElement;
   using FiniteElement = DynamicPowerLocalFiniteElement<BaseFiniteElement>;
 
-  using SubDomainGrid = typename GridView::Grid;
-  using MultiDomainGrid = typename SubDomainGrid::MultiDomainGrid;
-
-  static_assert(Concept::isSubDomainGrid<typename GridView::Grid>(),
+  static_assert(Concept::isSubDomainGrid<typename SubGridView::Grid>(),
                 "This class is only meant to be used for multidomain grids and "
                 "its subdomains");
+
+  using SubDomainGrid = typename SubGridView::Grid;
+  using MultiDomainGrid = typename SubDomainGrid::MultiDomainGrid;
 
 public:
   /**
    * @brief      Constructs a new instance.
    *
-   * @param[in]  grid_view            The grid view (may be a sub domain)
+   * @param[in]  grid_view            The sub grid view
    * @param[in]  fem                  The finite element map to wrap
    * @param[in]  base_finite_element  The base finite element of the finite
    *                                  element map
@@ -49,7 +52,7 @@ public:
    *                                  (this is always 0 outside of the
    *                                  subdomain)
    */
-  MultiDomainLocalFiniteElementMap(const GridView& grid_view,
+  SubDomainLocalFiniteElementMap(const SubGridView& grid_view,
                                    const FiniteElementMap& fem,
                                    const BaseFiniteElement& base_finite_element,
                                    std::size_t power_size = 1)
@@ -74,10 +77,10 @@ public:
   template<
     bool default_constructible = std::is_default_constructible_v<BaseFiniteElement>,
     class = std::enable_if_t<default_constructible>>
-  MultiDomainLocalFiniteElementMap(const GridView& grid_view,
+  SubDomainLocalFiniteElementMap(const SubGridView& grid_view,
                                    const FiniteElementMap& fem,
                                    std::size_t power_size = 1)
-    : MultiDomainLocalFiniteElementMap(grid_view,
+    : SubDomainLocalFiniteElementMap(grid_view,
                                        fem,
                                        BaseFiniteElement{},
                                        power_size)
@@ -128,40 +131,34 @@ public:
   static bool constexpr fixedSize() { return false; }
 
 private:
-  GridView _grid_view;
+  SubGridView _grid_view;
   const FiniteElement _fe_null;
 };
 
-template<class BaseLocalFiniteElementMap, class GridView>
-struct Factory<MultiDomainLocalFiniteElementMap<BaseLocalFiniteElementMap,GridView>>
+template<class BaseLocalFiniteElementMap, class SubGridView>
+struct Factory<SubDomainLocalFiniteElementMap<BaseLocalFiniteElementMap,SubGridView>>
 {
   template<class Ctx>
   static auto create(const Ctx& ctx)
   {
-    static_assert(Ctx::has(Signature::grid_view));
-    static_assert(Concept::isSubDomainGrid<typename Ctx::GridView::Grid>());
+    static_assert(Ctx::has( Context::Tag<SubGridView>{} ));
 
-    const auto& sub_domain_gv = ctx.get(Signature::grid_view);
+    const auto& sub_domain_gv = ctx.view( Context::Tag<SubGridView>{} );
 
-    assert(sub_domain_gv.template begin<0>() != sub_domain_gv.template end<0>());
-    GeometryType gt = sub_domain_gv.template begin<0>()->geometry().type();
-    using GTCtx = Context::GeometryTypeCtx<Ctx>;
-    GTCtx gt_ctx{Ctx{ctx},gt};
-
+    // create a multi domain context
     auto multi_domain_gv = sub_domain_gv.grid().multiDomainGrid().leafGridView();
     using MultiDomainGridView = std::decay_t<decltype(multi_domain_gv)>;
 
-    using BaseFE = typename BaseLocalFiniteElementMap::Traits::FiniteElement;
-    auto base_fe = Factory<BaseFE>::create(gt_ctx);
+    auto multi_domain_ctx = Context::DataContext<MultiDomainGridView,Ctx>(multi_domain_gv,ctx);
 
-    Context::GridViewCtx<MultiDomainGridView,GTCtx> multi_domain_ctx{std::move(gt_ctx),multi_domain_gv};
+    // base finite element and finite element map are created with multidomain contex
+    using BaseFE = typename BaseLocalFiniteElementMap::Traits::FiniteElement;
+    auto base_fe = Factory<BaseFE>::create(multi_domain_ctx);
 
     auto base_fem = Factory<BaseLocalFiniteElementMap>::create(multi_domain_ctx);
-    using FEM = MultiDomainLocalFiniteElementMap<BaseLocalFiniteElementMap,GridView>;
+    using FEM = SubDomainLocalFiniteElementMap<BaseLocalFiniteElementMap,SubGridView>;
 
-    if (not has_single_geometry_type(sub_domain_gv))
-      DUNE_THROW(InvalidStateException,"Grid view has to have only one geometry type");
-
+    // final finite element map is created with sub domain context
     return std::make_unique<FEM>(sub_domain_gv,*base_fem,*base_fe);
   }
 };

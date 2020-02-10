@@ -26,13 +26,13 @@ struct GeometryTypeCtx : public Ctx
 
   using Ctx::has;
   using Ctx::get;
-  using Ctx::_bound;
 
-  GeometryTypeCtx(Ctx&& ctx)
-    : Ctx(std::move(ctx))
-  {
-    _bound = false;
-  }
+  static_assert(not Ctx::has(Signature::geometry_type));
+
+  GeometryTypeCtx(const Ctx& ctx, const Dune::GeometryType& geometry_type)
+    : Ctx(ctx)
+    , _gt(geometry_type)
+  {}
 
   GeometryTypeCtx(Ctx&& ctx, const Dune::GeometryType& geometry_type)
     : Ctx(std::move(ctx))
@@ -49,27 +49,15 @@ struct GeometryTypeCtx : public Ctx
     return _gt;
   }
 
-  template<class BindCtx>
-  void inline bind(const BindCtx& bind_ctx)
+
+  const Dune::GeometryType& geometry_type() const
   {
-    if constexpr (Ctx::has(Signature::geometry_type))
-      _gt = bind_ctx.get(Signature::geometry_type);
-    else if constexpr (Ctx::has(Signature::entity))
-      _gt = bind_ctx.get(Signature::entity).geometry().type();
-    else
-      static_assert(Dune::AlwaysFalse<Ctx>::value);
-    Ctx::bind(bind_ctx);
+    return get(Signature::geometry_type);
   }
 
 private:
   Dune::GeometryType _gt;
 };
-
-template<class GeometryType>
-auto make(Signature::GeometryType, GeometryType&& geometry_type)
-{
-  return GeometryTypeCtx<BaseCtx>{BaseCtx{},std::forward<GeometryType>(geometry_type)};
-}
 
 } // namespace Dune::Copasi::Context
 

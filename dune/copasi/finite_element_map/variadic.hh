@@ -123,9 +123,13 @@ struct Factory<VariadicLocalFiniteElementMap<GV,LocalFiniteElementMaps...>>
   static auto create(const Ctx& ctx)
   {
     using FEM = VariadicLocalFiniteElementMap<GV,LocalFiniteElementMaps...>;
-    static_assert(Ctx::has(Signature::entity_mapper), "Invalid provided context");
 
-    return std::make_unique<FEM>(ctx.get(Signature::entity_mapper),
+    using Entity = typename GV::template Codim<0>::Entity;
+    using Index = int; // TODO
+    using EntityMapper = std::function<Index(Entity)>;
+    static_assert(Ctx::has( Context::Tag<EntityMapper>{} ), "Invalid provided context");
+
+    return std::make_unique<FEM>(ctx.view( Context::Tag<EntityMapper>{} ),
                                  std::forward_as_tuple(Factory<LocalFiniteElementMaps>::create(ctx)...));
   }
 };

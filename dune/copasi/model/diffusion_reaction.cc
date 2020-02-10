@@ -145,19 +145,28 @@ ModelDiffusionReaction<Traits>::setup_component_grid_function_space(
   _logger.trace("create a finite element map"_fmt);
 
   // create entity mapper context
-  auto em = [](const auto entity) {
+  using Entity = typename Traits::Grid::LeafGridView::template Codim<0>::Entity;
+  using Index = int; // TODO
+  using EntityMapper = std::function<Index(Entity)>;
+  EntityMapper em = [](const auto entity) {
     return entity.geometry().type().isCube() ? 0 : 1;
   };
-  using Entity = typename Traits::Grid::LeafGridView::template Codim<0>::Entity;
-  auto em_ctx = Context::make<Entity>(Signature::entity_mapper, em);
+  auto em_ctx = Context::DataContext<EntityMapper>(em);
+
+  if (not has_single_geometry_type(_grid_view))
+    DUNE_THROW(InvalidStateException,
+               "Grid view has to have only one geometry type");
+
+  GeometryType gt = _grid_view.template begin<0>()->geometry().type();
+  auto gt_ctx =
+    Context::DataContext<GeometryType, decltype(em_ctx)>(gt, std::move(em_ctx));
 
   // add grid view to the context
   auto ctx =
-    Context::GridViewCtx<GV, decltype(em_ctx)>(std::move(em_ctx), _grid_view);
+    Context::DataContext<GV, decltype(gt_ctx)>(_grid_view, std::move(gt_ctx));
 
   // create fem from factory
-  std::shared_ptr<FEM> finite_element_map(
-    Factory<FEM>::template create<decltype(ctx)>(ctx));
+  std::shared_ptr<FEM> finite_element_map(Factory<FEM>::create(ctx));
 
   std::size_t order;
   if constexpr (Concept::isMultiDomainGrid<typename Traits::Grid>()) {

@@ -15,20 +15,20 @@ constexpr Entity entity;
 
 namespace Dune::Copasi::Context {
 
-template<class E, class Ctx>
+template<class Ctx, class E>
 struct EntityCtx : public Ctx
 {
   using Entity = E;
 
   using Ctx::has;
   using Ctx::get;
-  using Ctx::_bound;
 
-  EntityCtx(Ctx&& ctx)
-    : Ctx(std::move(ctx))
-  {
-    _bound = false;
-  }
+  static_assert(not Ctx::has(Signature::entity));
+
+  EntityCtx(const Ctx& ctx, const Entity& entity)
+    : Ctx(ctx)
+    , _entity(entity)
+  {}
 
   EntityCtx(Ctx&& ctx, const Entity& entity)
     : Ctx(std::move(ctx))
@@ -45,30 +45,9 @@ struct EntityCtx : public Ctx
     return get(Signature::entity);
   }
 
-  template<class BindCtx>
-  void bind(const BindCtx& bind_ctx)
-  {
-    _entity = bind_ctx.get(Signature::entity);
-    Ctx::bind(bind_ctx);
-  }
-
-  void unbind()
-  {
-#ifndef NDEBUG
-    _entity = Entity{};
-#endif
-    Ctx::unbind();
-  }
-
 private:
   Entity _entity;
 };
-
-template<class Entity>
-auto make(Signature::Entity, Entity&& entity)
-{
-  return EntityCtx<Entity,BaseCtx>{BaseCtx{},std::forward<Entity>(entity)};
-}
 
 } // namespace Dune::Copasi::Context
 

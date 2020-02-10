@@ -19,20 +19,10 @@ struct Factory<PDELab::P0LocalFiniteElementMap<DF,RF,dim>>
   template<class Ctx>
   static auto create(const Ctx& ctx)
   {
-    using FEM = PDELab::P0LocalFiniteElementMap<DF,RF,dim>;
-    if constexpr (Ctx::has(Signature::geometry_type))
-      return std::make_unique<FEM>(ctx.get(Signature::geometry_type));
-    else if constexpr (Ctx::has(Signature::grid_view))
-    {
-      const auto& gv = ctx.get(Signature::grid_view);
-      if (not has_single_geometry_type(gv))
-        DUNE_THROW(InvalidStateException,"Grid view has to have only one geometry type");
+    static_assert(Ctx::has( Context::Tag<GeometryType>{} ));
 
-      GeometryType gt = gv.template begin<0>()->geometry().type();
-      return std::make_unique<FEM>(gt);
-    }
-    else
-      static_assert(AlwaysFalse<Ctx>::value, "Invalid Context");
+    using FEM = PDELab::P0LocalFiniteElementMap<DF,RF,dim>;
+    return std::make_unique<FEM>(ctx.view( Context::Tag<GeometryType>{} ));
   }
 };
 

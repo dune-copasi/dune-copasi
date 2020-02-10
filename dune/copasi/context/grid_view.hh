@@ -15,20 +15,20 @@ constexpr GridView grid_view;
 
 namespace Dune::Copasi::Context {
 
-template<class GV, class Ctx>
+template<class Ctx, class GV>
 struct GridViewCtx : public Ctx
 {
   using GridView = GV;
 
   using Ctx::has;
   using Ctx::get;
-  using Ctx::_bound;
 
-  GridViewCtx(Ctx&& ctx)
-    : Ctx(std::move(ctx))
-  {
-    _bound = false;
-  }
+  static_assert(not Ctx::has(Signature::grid_view));
+
+  GridViewCtx(const Ctx& ctx, const GridView& grid_view)
+    : Ctx(ctx)
+    , _grid_view(std::make_unique<GridView>(grid_view))
+  {}
 
   GridViewCtx(const GridViewCtx& other_ctx)
     : Ctx(other_ctx)
@@ -41,10 +41,9 @@ struct GridViewCtx : public Ctx
     , _grid_view(std::make_unique<GridView>(grid_view))
   {}
 
+
   ~GridViewCtx()
-  {
-    unbind();
-  }
+  {}
 
   static bool constexpr has(Signature::GridView)
   {
@@ -56,28 +55,14 @@ struct GridViewCtx : public Ctx
     return *_grid_view;
   }
 
-  inline void unbind()
+  inline const GV& grid_view() const
   {
-    _grid_view.reset();
-    Ctx::unbind();
-  }
-
-  template<class BindCtx>
-  inline void bind(const BindCtx& bind_ctx)
-  {
-    _grid_view = std::make_unique<GridView>(bind_ctx.get(Signature::grid_view));
-    Ctx::bind(bind_ctx);
+    return get(Signature::grid_view);
   }
 
 private:
   std::unique_ptr<const GridView> _grid_view;
 };
-
-template<class GridView>
-auto make(Signature::GridView, const GridView& grid_view)
-{
-  return GridViewCtx<GridView,BaseCtx>{BaseCtx{},grid_view};
-}
 
 } // namespace Dune::Copasi::Context
 

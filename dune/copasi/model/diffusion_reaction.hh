@@ -15,7 +15,7 @@
 #include <dune/copasi/finite_element/pk.hh>
 #include <dune/copasi/finite_element_map/p0.hh>
 #include <dune/copasi/finite_element_map/pk.hh>
-#include <dune/copasi/finite_element_map/multidomain.hh>
+#include <dune/copasi/finite_element_map/subdomain.hh>
 #include <dune/copasi/finite_element_map/virtual.hh>
 #include <dune/copasi/finite_element_map/variadic.hh>
 
@@ -63,7 +63,7 @@ struct ModelP0DiffusionReactionTraits
   //! Finite element map
   using FEM = std::conditional_t<
                   is_sub_model,
-                  MultiDomainLocalFiniteElementMap<FEMP0,GridView>,
+                  SubDomainLocalFiniteElementMap<FEMP0,GridView>,
                   FEMP0
                 >;
 
@@ -103,7 +103,7 @@ struct ModelPkDiffusionReactionTraits
   //! Finite element map
   using FEM = std::conditional_t<
                   is_sub_model,
-                  MultiDomainLocalFiniteElementMap<BaseFEM,GridView>,
+                  SubDomainLocalFiniteElementMap<BaseFEM,GridView>,
                   BaseFEM
                 >;
 
@@ -150,7 +150,7 @@ struct ModelP0PkDiffusionReactionTraits
   //! Finite element map
   using FEM = std::conditional_t<
                   is_sub_model,
-                  VariadicLocalFiniteElementMap<typename Grid::LeafGridView,MultiDomainLocalFiniteElementMap<FEMP0,GridView>,MultiDomainLocalFiniteElementMap<FEMPk<PkOrder>,GridView>>,
+                  VariadicLocalFiniteElementMap<typename Grid::LeafGridView,SubDomainLocalFiniteElementMap<FEMP0,GridView>,SubDomainLocalFiniteElementMap<FEMPk<PkOrder>,GridView>>,
                   VariadicLocalFiniteElementMap<GV,FEMP0,FEMPk<PkOrder>>
                 >;
 

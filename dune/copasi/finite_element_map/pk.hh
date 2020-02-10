@@ -18,8 +18,8 @@ struct Factory<Dune::PDELab::PkLocalFiniteElementMap<GV,DF,RF,k>>
   static auto create(const Ctx& ctx)
   {
     using FEM = PDELab::PkLocalFiniteElementMap<GV,DF,RF,k>;
-    static_assert(Ctx::has(Signature::grid_view));
-    return std::make_unique<FEM>(ctx.get(Signature::grid_view));
+    static_assert(Ctx::has( Context::Tag<GV>{} ));
+    return std::make_unique<FEM>(ctx.view( Context::Tag<GV>{} ));
   }
 };
 

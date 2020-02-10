@@ -13,11 +13,12 @@ namespace Dune::Copasi {
 template<class D, class R, int d>
 struct Factory<Dune::P0LocalFiniteElement<D,R,d>>
 {
-  template<class Context>
-  static auto create(const Context& ctx)
+  template<class Ctx>
+  static auto create(const Ctx& ctx)
   {
-    static_assert(Context::has(Signature::geometry_type));
-    return std::make_unique<Dune::P0LocalFiniteElement<D,R,d>>(ctx.get(Signature::geometry_type));
+    static_assert(Ctx::has( Context::Tag<GeometryType>{} ));
+    const auto& gt = ctx.view( Context::Tag<GeometryType>{} );
+    return std::make_unique<Dune::P0LocalFiniteElement<D,R,d>>(gt);
   }
 };
 
