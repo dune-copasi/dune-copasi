@@ -388,7 +388,7 @@ void
 ModelMultiDomainDiffusionReaction<Traits>::suggest_timestep(double dt)
 {
   // @todo do time addaptivity
-  _config["time_step"] = dt;
+  _config["time_step"] = fmt::format("{:.17e}", dt);
 }
 
 template<class Traits>
