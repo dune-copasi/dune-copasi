@@ -13,7 +13,7 @@ namespace Dune::Copasi {
 
 /**
  * @brief      Factory for PkLocalFiniteElementMap instances
- * @ingroup    Factory
+ * @ingroup    Factory, FiniteElementMap
  * @tparam     <unnamed>  Template paramenters of the PkLocalFiniteElementMap
  */
 template<class GV, class DF, class RF, unsigned int k>

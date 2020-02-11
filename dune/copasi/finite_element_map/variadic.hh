@@ -17,16 +17,17 @@ namespace Dune::Copasi {
 /**
  * @brief      This class describes a variadic local finite element map.
  * @details    The idea is that this class models a local finite element map
- *             and returns one of the variadic types depending on the requested 
- *             entity. For doing so, this class virtualize every argument of the 
- *             variadic local finite element map and returns a (polymorphic) 
+ *             and returns one of the variadic types depending on the requested
+ *             entity. For doing so, this class virtualize every argument of the
+ *             variadic local finite element map and returns a (polymorphic)
  *             reference of the base interface depending on the entity mapper.
  *             The entity mapper is a function that receives an entity and returns an
  *             index that correspond to the i-th variadic local finite element map.
  *             For example, this class could be used to return Pk finite elements on simplices
  *             and Qk for cubes. Another example would be to return P0 on cubes and Pk on simplices.
+ * @ingroup    FiniteElementMap
  *
- * @tparam     Entity                  Entity type 
+ * @tparam     Entity                  Entity type
  * @tparam     LocalFiniteElementMaps  Local finite element maps
  */
 template<class Entity, class... LocalFiniteElementMaps>
@@ -37,7 +38,7 @@ class VariadicLocalFiniteElementMap
 
   //! Number of local finite elements
   static constexpr std::size_t _size = sizeof...(LocalFiniteElementMaps);
-  
+
   //! size for static loops
   using _integral_size = std::integral_constant<std::size_t,_size>;
 
@@ -212,7 +213,7 @@ private:
 
 /**
  * @brief      Factory for SubDomainLocalFiniteElementMap instances
- * @ingroup    Factory
+ * @ingroup    Factory, FiniteElementMap
  * @tparam     <unnamed>  Template paramenters of the SubDomainLocalFiniteElementMap
  */
 template<class Entity, class... LocalFiniteElementMaps>

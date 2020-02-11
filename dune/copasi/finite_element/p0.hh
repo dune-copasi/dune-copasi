@@ -12,7 +12,7 @@ namespace Dune::Copasi {
 
 /**
  * @brief      Factory for P0LocalFiniteElement instances
- * @ingroup    Factory
+ * @ingroup    Factory, FiniteElement
  * @tparam     <unnamed>  Template paramenters of the P0LocalFiniteElement
  */
 template<class D, class R, int d>

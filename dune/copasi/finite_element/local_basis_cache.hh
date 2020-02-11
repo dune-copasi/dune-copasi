@@ -121,6 +121,7 @@ namespace Dune::Copasi {
  * @details    This class cache results of the local basis for different local basis with same traits.
  * @warning    First tests show that this is relatively slower that the local basis cache provided by PDELab.
  * @todo       Improve preformance!
+ * @ingroup    FiniteElement
  *
  * @tparam     LocalBasisTraits  Local basis traits
  */

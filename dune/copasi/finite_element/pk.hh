@@ -11,7 +11,7 @@ namespace Dune::Copasi {
 
 /**
  * @brief      Factory for PkLocalFiniteElement instances
- * @ingroup    Factory
+ * @ingroup    Factory, FiniteElement
  * @tparam     <unnamed>  Template paramenters of the PkLocalFiniteElement
  */
 template<class D, class R, int d, int k>

@@ -17,7 +17,8 @@ namespace Dune::Copasi {
  *             This behaviour is useful when the pdelab machinary is operating
  *             in the whole grid (e.g. multidomain grid) but you want to have
  *             different finite elements per sub domain.
- *
+ * @ingroup    FiniteElementMap
+ * 
  * @tparam     FiniteElementMap  The original finite element map to wrap
  * @tparam     SubGridView       The grid view where the finite element will be
  *                               not zero
@@ -135,7 +136,7 @@ private:
 
 /**
  * @brief      Factory for SubDomainLocalFiniteElementMap instances
- * @ingroup    Factory
+ * @ingroup    Factory, FiniteElementMap
  * @tparam     <unnamed>  Template paramenters of the SubDomainLocalFiniteElementMap
  */
 template<class BaseLocalFiniteElementMap, class SubGridView>

@@ -6,4 +6,24 @@
 
 /**
 
+@defgroup FiniteElement Finite Element
+@{
+  @brief Finite element extentions for dune-copasi
+
+  Finite elements here are simple extentions of the interface
+  defined by dune. Some are just wrappers while others allow to
+  have dynamic number degrees of freedom. See classes in this group
+  to understand the details.
+@}
+
+@defgroup FiniteElementMap Finite Element Map
+@{
+  @brief Finite element map extentions for dune-copasi
+
+  Finite elements here are simple extentions of the interface
+  defined by PDELab. Some are just wrappers while others allow to
+  have different finte element maps on different entities. See
+  classes in this group to understand the details.
+@}
+
 */

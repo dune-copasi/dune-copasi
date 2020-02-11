@@ -14,7 +14,7 @@ namespace Dune::Copasi {
 
 /**
  * @brief      This class describes a dynamic power local finite element.
- *
+ * @ingroup    FiniteElement
  * @tparam     LocalFiniteElement  The base local finite element
  */
 template<class LocalFiniteElement>
@@ -115,7 +115,7 @@ private:
 
 /**
  * @brief      Factory for DynamicPowerLocalFiniteElement instances
- * @ingroup    Factory
+ * @ingroup    Factory, FiniteElement
  * @tparam     BaseLocalFiniteElement  Base local finite element
  */
 template<class BaseLocalFiniteElement>

@@ -12,7 +12,7 @@ namespace Dune::Copasi {
  * @brief      This class describes a dynamic power local finite element map.
  * @details    This class wrapps a usual PDELab finite element map into a
  *             dynamic power finite element map.
- *
+ * @ingroup    FiniteElementMap
  * @tparam     FiniteElementMap  The original finite element map to wrap
  */
 template<class FiniteElementMap>
@@ -132,7 +132,7 @@ private:
 
 /**
  * @brief      Factory for DynamicPowerLocalFiniteElementMap instances
- * @ingroup    Factory
+ * @ingroup    Factory, FiniteElementMap
  * @tparam     <unnamed>  Template paramenters of the DynamicPowerLocalFiniteElementMap
  */
 template<class BaseLocalFiniteElementMap>

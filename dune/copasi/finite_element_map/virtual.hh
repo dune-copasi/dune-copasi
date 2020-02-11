@@ -17,6 +17,7 @@ namespace Dune::Copasi {
 /**
  * @brief      Virtual local finite element traits
  * @details    Injects the entity type to the LocalFiniteElementMapTraits
+ * @ingroup    FiniteElementMap
  *
  * @tparam     LBT     Local Basis Traits
  * @tparam     Entity  Entity Type
@@ -223,7 +224,7 @@ protected:
 
 /**
  * @brief      Factory for VirtualLocalFiniteElementMapWrapper instances
- * @ingroup    Factory
+ * @ingroup    Factory, FiniteElementMap
  * @tparam     <unnamed>  Template paramenters of the VirtualLocalFiniteElementMapWrapper
  */
 template<class FEM, class Entity>
