@@ -65,10 +65,6 @@ public:
 
   /**
    * @brief      Searches for the finite element for entity e.
-   * @warning    The return value is valid until the next entity
-   *             tries to find another finite element. Hence, not
-   *             suitable for concurrency
-   * @todo       Cache more than one finite element
    *
    * @param[in]  e           The entity
    *
@@ -131,7 +127,6 @@ public:
 private:
   std::size_t _power_size;
   std::unique_ptr<const FiniteElementMap> _fem;
-  mutable BaseFiniteElement const * _base_fe_cache;
   mutable std::map<BaseFiniteElement const *,std::unique_ptr<const FiniteElement>> _fe_cache;
 };
 
