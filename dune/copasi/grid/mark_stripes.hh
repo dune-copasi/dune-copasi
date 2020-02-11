@@ -7,8 +7,21 @@
 
 namespace Dune::Copasi {
 
-
-
+/**
+ * @brief      Mark stripes for refinement
+ * @details    If a cube element is surrounded by simplicies in oposite sides
+ *             such cube is understood to be part of a stripe of cubes. In such
+ *             case, this method should mark the grid such that a stripe is a stripe
+ *             after refinment (e.g. refine in the direction of perpendicular to the simplices)
+ * 
+ * @warning    Grid type should be UGGrid
+ * @warning    Many edge cases have not been tested, if you find a such a case, please report it as a bug
+ * 
+ * @param      grid         The grid
+ * @param[in]  mark_others  If true, mark other type of entities for refinment.
+ *
+ * @tparam     Grid         The grid type
+ */
 template<class Grid>
 void mark_stripes(Grid& grid, bool mark_others = true)
 {
@@ -39,7 +52,7 @@ void mark_stripes(Grid& grid, bool mark_others = true)
         int side = *(simplex_side.begin());
         // side to refine (permendicular)
         side = not side;
-        // mark entity with a blute type refinment
+        // mark entity with a blue type refinment
         grid.mark(entity,RuleType::BLUE,side);
       }
       else if (mark_others)
