@@ -8,6 +8,7 @@ echo "DUNECONTROL: ${DUNECONTROL}"
 echo "DUNE_OPTIONS_FILE: ${DUNE_OPTIONS_FILE}"
 cat ${DUNE_OPTIONS_FILE}
 echo "PWD: $PWD"
+tree || la
 
 which g++
 which python
@@ -22,7 +23,7 @@ cmake --version
 # note msys defines MSYSTEM variable: use this to check if we are on msys/windows
 if [[ $MSYSTEM ]]; then
 	rootdir=$(pwd)
-		for repo in $(ls -d *)
+		for repo in $(ls -d dune-copasi)
 		do
 			echo "repo: $repo"
 			cd $rootdir/$repo

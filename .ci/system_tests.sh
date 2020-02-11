@@ -8,6 +8,7 @@ echo "DUNECONTROL: ${DUNECONTROL}"
 echo "DUNE_OPTIONS_FILE: ${DUNE_OPTIONS_FILE}"
 cat ${DUNE_OPTIONS_FILE}
 echo "PWD: $PWD"
+tree || la
 
 which g++
 which python
