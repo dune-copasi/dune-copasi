@@ -93,6 +93,7 @@ if (dune-testtools_FOUND)
     INIFILE         test_jacobian.mini)
 
   target_link_libraries(dune_copasi_test_jacobian PRIVATE dune_copasi_lib)
+  add_dependencies(build_unit_tests dune_copasi_sd)
   add_dependencies(build_unit_tests dune_copasi_test_jacobian)
   set_property(TEST "dune_copasi_test_jacobian_analytical" PROPERTY LABELS unit)
   set_property(TEST "dune_copasi_test_jacobian_numerical" PROPERTY LABELS unit)
