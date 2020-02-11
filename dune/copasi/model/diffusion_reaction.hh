@@ -147,11 +147,12 @@ struct ModelP0PkDiffusionReactionTraits
 
   static constexpr bool is_sub_model = not std::is_same_v<typename Grid::Traits::LeafGridView,GridView>;
 
+  using FEMEntity = typename Grid::LeafGridView::template Codim<0>::Entity;
   //! Finite element map
   using FEM = std::conditional_t<
                   is_sub_model,
-                  VariadicLocalFiniteElementMap<typename Grid::LeafGridView,SubDomainLocalFiniteElementMap<FEMP0,GridView>,SubDomainLocalFiniteElementMap<FEMPk<PkOrder>,GridView>>,
-                  VariadicLocalFiniteElementMap<GV,FEMP0,FEMPk<PkOrder>>
+                  VariadicLocalFiniteElementMap<FEMEntity,SubDomainLocalFiniteElementMap<FEMP0,GridView>,SubDomainLocalFiniteElementMap<FEMPk<PkOrder>,GridView>>,
+                  VariadicLocalFiniteElementMap<FEMEntity,FEMP0,FEMPk<PkOrder>>
                 >;
 
   using OrderingTag = OT;

@@ -113,11 +113,24 @@ private:
   const LocalInterpolation _interpolation;
 };
 
-
+/**
+ * @brief      Factory for DynamicPowerLocalFiniteElement instances
+ * @ingroup    Factory
+ * @tparam     BaseLocalFiniteElement  Base local finite element
+ */
 template<class BaseLocalFiniteElement>
 struct Factory<DynamicPowerLocalFiniteElement<BaseLocalFiniteElement>>
 {
 public:
+  /**
+   * @brief      Create method
+   *
+   * @param      ctx   @ref DataContext containing the base finite element
+   *
+   * @tparam     Ctx   Universal reference to the @ref DataContext
+   *
+   * @return     Instance of DynamicPowerLocalFiniteElement
+   */
   template<class Ctx>
   static auto create(Ctx&& ctx)
   {

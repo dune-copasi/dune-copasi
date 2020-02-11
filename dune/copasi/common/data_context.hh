@@ -3,6 +3,56 @@
 
 #include <type_traits>
 
+/**
+@defgroup DataContext Data Context
+@{
+  @brief Generalized and extensible static polymorphic data holder.
+
+  A data context is a generic form to pass around arbitrary unique amount of data following
+  a defined interface. Moreover, a data context is always extensible to hold more data
+  at compile time. It has a very similar concept and use cases as `**kwargs` in python.
+  It is called context because the content of the object depends on the context where it was called.
+
+  A data context knows at comile-time whether it contains a type identified
+  with certain signature.
+
+  @code{.cpp}
+  template<class Ctx>
+  void foo(Ctx&& ctx)
+  {
+    using GV = ...;
+    // check whether context contains the type GV
+    constexpr bool result = Ctx::has( Context::Tag<GV>{} );
+
+    // Get a view on the value GV contained in the context
+    const auto& view = ctx.view( Context::Tag<GV>{} );
+
+    // Create a new context containing a value 10 for the type `int`
+    // Notice that the old context can be moved into the new one if possible
+    auto new_ctx = Context::DataContext<Ctx,int>{10,std::forward<Ctx>(ctx))};
+
+    // move the value contained in `int` outside of the context
+    auto value = new_ctx.get( Context::Tag<int>{} );
+
+    // If not sure what types a data context contain, one can print them with
+    // Notice that it does not give information whether the data is valid or not
+    std::cout << "Output: " << new_ctx << std::endl
+    // Output: <data contained in ctx>, int;
+  }
+  @endcode
+
+  It's important to notice that this is also possible with variadic templates or
+  tuples, however, they usually involve a lot of template metaprogramming to identify
+  types and to add more types to it.
+
+  An easy way to create a data context with different values is using the method Context::data_context
+
+  @code{.cpp}
+  auto ctx = Context::data_context(int(1), double(2.0), std::string("I'm stored in a context"));
+  @endcode
+@}
+*/
+
 namespace Dune::Copasi::Context {
 
 /**

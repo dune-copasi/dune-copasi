@@ -14,10 +14,10 @@
 
 namespace Dune::Copasi {
 
-template<class GV, class... LocalFiniteElementMaps>
+template<class Entity, class... LocalFiniteElementMaps>
 class VariadicLocalFiniteElementMap
 {
-  using Interface = std::common_type_t<typename VirtualLocalFiniteElementMapWrapper<LocalFiniteElementMaps, GV>::Interface...>;
+  using Interface = std::common_type_t<typename VirtualLocalFiniteElementMapWrapper<LocalFiniteElementMaps, Entity>::Interface...>;
   static constexpr std::size_t _size = sizeof...(LocalFiniteElementMaps);
   using _integral_size = std::integral_constant<std::size_t,_size>;
 
@@ -34,7 +34,7 @@ class VariadicLocalFiniteElementMap
       static_assert(std::is_same_v<FEM,VariadicFEM>,
         "Arguments for the VariadicLocalFiniteElementMap constructor should be the same as the variadic types");
       static_assert(not std::is_polymorphic_v<FEM>);
-      fem_unique_array[i] = std::make_unique<VirtualLocalFiniteElementMapWrapper<FEM, GV>>(std::move(fem));
+      fem_unique_array[i] = std::make_unique<VirtualLocalFiniteElementMapWrapper<FEM, Entity>>(std::move(fem));
     });
     return fem_unique_array;
   }
@@ -114,19 +114,34 @@ private:
   std::array<std::unique_ptr<const Interface>,_size> _finite_element_maps;
 };
 
-template<class GV, class... LocalFiniteElementMaps>
-struct Factory<VariadicLocalFiniteElementMap<GV,LocalFiniteElementMaps...>>
+/**
+ * @brief      Factory for SubDomainLocalFiniteElementMap instances
+ * @ingroup    Factory
+ * @tparam     <unnamed>  Template paramenters of the SubDomainLocalFiniteElementMap
+ */
+template<class Entity, class... LocalFiniteElementMaps>
+struct Factory<VariadicLocalFiniteElementMap<Entity,LocalFiniteElementMaps...>>
 {
+  /**
+   * @brief      Create method
+   *
+   * @param      ctx   @ref DataContext containing a entity mapper and sufficient data to 
+   *                   create finite element maps of the type LocalFiniteElementMaps... from
+   *                   another factory.
+   *
+   * @tparam     Ctx   Universal reference to the @ref DataContext
+   *
+   * @return     Instance of SubDomainLocalFiniteElementMap
+   */
   template<class Ctx>
   static auto create(Ctx&& ctx)
   {
-    using FEM = VariadicLocalFiniteElementMap<GV,LocalFiniteElementMaps...>;
+    using FEM = VariadicLocalFiniteElementMap<Entity,LocalFiniteElementMaps...>;
 
-    using Entity = typename GV::template Codim<0>::Entity;
-    using Index = int; // TODO
+    using Index = std::size_t;
     using EntityMapper = std::function<Index(Entity)>;
     using dCtx = std::decay_t<Ctx>;
-    static_assert(dCtx::has( Context::Tag<EntityMapper>{} ), "Invalid provided context");
+    static_assert(dCtx::has( Context::Tag<EntityMapper>{} ), "Context does not contain a EntityMapper");
 
     return std::make_unique<FEM>(ctx.view( Context::Tag<EntityMapper>{} ),
                                  std::forward_as_tuple(Factory<LocalFiniteElementMaps>::create(ctx)...));

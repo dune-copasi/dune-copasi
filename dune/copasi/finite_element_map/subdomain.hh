@@ -133,9 +133,25 @@ private:
   const FiniteElement _fe_null;
 };
 
+/**
+ * @brief      Factory for SubDomainLocalFiniteElementMap instances
+ * @ingroup    Factory
+ * @tparam     <unnamed>  Template paramenters of the SubDomainLocalFiniteElementMap
+ */
 template<class BaseLocalFiniteElementMap, class SubGridView>
 struct Factory<SubDomainLocalFiniteElementMap<BaseLocalFiniteElementMap,SubGridView>>
 {
+  /**
+   * @brief      Create method
+   *
+   * @param      ctx   @ref DataContext containing a grid view of the type SubGridView and
+   *                   sufficient data to create the base finite element map and its base finite element
+   *                   from another factory
+   *
+   * @tparam     Ctx   Universal reference to the @ref DataContext
+   *
+   * @return     Instance of SubDomainLocalFiniteElementMap
+   */
   template<class Ctx>
   static auto create(Ctx&& ctx)
   {

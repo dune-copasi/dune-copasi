@@ -12,9 +12,23 @@
 
 namespace Dune::Copasi {
 
+/**
+ * @brief      Factory for P0LocalFiniteElementMap instances
+ * @ingroup    Factory
+ * @tparam     <unnamed>  Template paramenters of the P0LocalFiniteElementMap
+ */
 template<class DF, class RF, int dim>
 struct Factory<PDELab::P0LocalFiniteElementMap<DF,RF,dim>>
 {
+  /**
+   * @brief      Create method
+   *
+   * @param      ctx   @ref DataContext containing a geometry type
+   *
+   * @tparam     Ctx   Universal reference to the @ref DataContext
+   *
+   * @return     Instance of DynamicPowerLocalFiniteElementMap
+   */
   template<class Ctx>
   static auto create(Ctx&& ctx)
   {

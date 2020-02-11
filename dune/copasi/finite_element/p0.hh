@@ -10,9 +10,23 @@
 
 namespace Dune::Copasi {
 
+/**
+ * @brief      Factory for P0LocalFiniteElement instances
+ * @ingroup    Factory
+ * @tparam     <unnamed>  Template paramenters of the P0LocalFiniteElement
+ */
 template<class D, class R, int d>
 struct Factory<Dune::P0LocalFiniteElement<D,R,d>>
 {
+  /**
+   * @brief      Create method
+   *
+   * @param      ctx   @ref DataContext containing the geometry type
+   *
+   * @tparam     Ctx   Universal reference to the @ref DataContext
+   *
+   * @return     Instance of P0LocalFiniteElement
+   */
   template<class Ctx>
   static auto create(Ctx&& ctx)
   {

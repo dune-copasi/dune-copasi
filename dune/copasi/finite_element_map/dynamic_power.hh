@@ -135,14 +135,28 @@ private:
   mutable std::map<BaseFiniteElement const *,std::unique_ptr<const FiniteElement>> _fe_cache;
 };
 
+/**
+ * @brief      Factory for DynamicPowerLocalFiniteElementMap instances
+ * @ingroup    Factory
+ * @tparam     <unnamed>  Template paramenters of the DynamicPowerLocalFiniteElementMap
+ */
 template<class BaseLocalFiniteElementMap>
 struct Factory<DynamicPowerLocalFiniteElementMap<BaseLocalFiniteElementMap>>
 {
+  /**
+   * @brief      Create method
+   * @todo       Add power size
+   *
+   * @param      ctx   @ref DataContext containing sufficient data to construct a BaseLocalFiniteElementMap
+   *
+   * @tparam     Ctx   Universal reference to the @ref DataContext
+   *
+   * @return     Instance of DynamicPowerLocalFiniteElementMap
+   */
   template<class Ctx>
   static auto create(Ctx&& ctx)
   {
     using FEM = DynamicPowerLocalFiniteElementMap<BaseLocalFiniteElementMap>;
-    // todo add power size
     return std::make_unique<FEM>(Factory<BaseLocalFiniteElementMap>::create(std::forward<Ctx>(ctx)));
   }
 };

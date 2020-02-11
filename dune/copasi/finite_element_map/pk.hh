@@ -11,9 +11,23 @@
 
 namespace Dune::Copasi {
 
+/**
+ * @brief      Factory for PkLocalFiniteElementMap instances
+ * @ingroup    Factory
+ * @tparam     <unnamed>  Template paramenters of the PkLocalFiniteElementMap
+ */
 template<class GV, class DF, class RF, unsigned int k>
 struct Factory<Dune::PDELab::PkLocalFiniteElementMap<GV,DF,RF,k>>
 {
+  /**
+   * @brief      Create method
+   *
+   * @param      ctx   @ref DataContext containing a grid view of the type GV
+   *
+   * @tparam     Ctx   Universal reference to the @ref DataContext
+   *
+   * @return     Instance of PkLocalFiniteElementMap
+   */
   template<class Ctx>
   static auto create(Ctx&& ctx)
   {

@@ -144,7 +144,7 @@ ModelDiffusionReaction<Traits>::setup_component_grid_function_space(
 
   // create entity mapper context
   using Entity = typename Traits::Grid::LeafGridView::template Codim<0>::Entity;
-  using Index = int; // TODO
+  using Index = std::size_t;
   using EntityMapper = std::function<Index(Entity)>;
   EntityMapper&& em = [](const auto entity) {
     return entity.geometry().type().isCube() ? 0 : 1;
