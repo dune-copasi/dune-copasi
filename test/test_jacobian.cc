@@ -71,7 +71,7 @@ main(int argc, char** argv)
     std::string jacobian = model_config.get<std::string>("jacobian_type");
 
     if (order == 1) {
-      using Ordering = Dune::PDELab::EntityBlockedOrderingTag;
+      using Ordering = Dune::PDELab::LexicographicOrderingTag;
       constexpr int Order = 1;
       if (jacobian == "analytical") {
         constexpr Dune::Copasi::JacobianMethod Jac =
