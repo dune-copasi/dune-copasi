@@ -20,18 +20,14 @@ target_link_libraries(dune_copasi_sd_lib-shared PUBLIC dune_copasi_lib)
 install(
   TARGETS dune_copasi_lib
           dune_copasi_md_lib-static
+          dune_copasi_md_lib-shared
           dune_copasi_sd_lib-static
-  ARCHIVE
-  OPTIONAL
-    COMPONENT Library
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}
-)
-
-install(
-  TARGETS dune_copasi_md_lib-shared
           dune_copasi_sd_lib-shared
-  LIBRARY
   OPTIONAL
-    COMPONENT Library
+  EXPORT dune_copasi-export
+  COMPONENT Library
+  ARCHIVE
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  LIBRARY
     DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )

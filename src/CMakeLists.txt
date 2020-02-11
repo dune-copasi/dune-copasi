@@ -8,13 +8,15 @@ add_custom_target(dune_copasi ALL DEPENDS dune_copasi_md)
 
 install(
 TARGETS dune_copasi_md
+EXPORT dune_copasi-export
+COMPONENT Runtime
 RUNTIME
-  COMPONENT Executable
   DESTINATION "${CMAKE_INSTALL_BINDIR}/")
 
 install(
 TARGETS dune_copasi_sd
-RUNTIME
+EXPORT dune_copasi-export
 OPTIONAL
-  COMPONENT Executable
+COMPONENT Runtime
+RUNTIME
   DESTINATION "${CMAKE_INSTALL_BINDIR}/")
