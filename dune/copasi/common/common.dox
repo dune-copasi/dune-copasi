@@ -17,7 +17,8 @@
 
   A data context knows at comile-time whether it contains a type identified
   with certain signature.
-  ```c++
+
+  @code{.cpp}
   template<class Ctx>
   void foo(Ctx&& ctx)
   {
@@ -40,11 +41,17 @@
     std::cout << "Output: " << new_ctx << std::endl
     // Output: <data contained in ctx>, int;
   }
-  ```
+  @endcode
 
   It's important to notice that this is also possible with variadic templates or
   tuples, however, they usually involve a lot of template metaprogramming to identify
   types and to add more types to it.
+
+  An easy way to create a data context with different values is using the method Context::data_context
+
+  @code{.cpp}
+  auto ctx = Context::data_context(int(1), double(2.0), std::string("I'm stored in a context"));
+  @endcode
 @}
 
 */
