@@ -149,6 +149,11 @@ public:
     _compiled = true;
   }
 
+  /**
+   * @brief      Get parser
+   *
+   * @return     Reference to internal parser
+   */
   mu::Parser& parser()
   {
     assert(not _compiled);
@@ -197,6 +202,18 @@ private:
   bool _compiled;
 };
 
+/**
+ * @brief      Gets the muparser expressions.
+ *
+ * @param[in]  expressions_config  The expressions configuration
+ * @param[in]  gf_grid_view        The grid view for the grid function
+ * @param[in]  compile             True to compile expression at construction
+ *
+ * @tparam     GFGridView          Grid view type
+ * @tparam     RF                  Range field type
+ *
+ * @return     Vector with muparser expressions pointers
+ */
 template<class GFGridView, class RF = double>
 auto get_muparser_expressions(
   const ParameterTree& expressions_config,
