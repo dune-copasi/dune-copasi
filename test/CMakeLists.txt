@@ -28,8 +28,8 @@ dune_add_test(NAME            test_tiff_grayscale
 add_custom_target(build_system_tests DEPENDS dune_copasi)
 add_executable(dune_copasi_sd_compare EXCLUDE_FROM_ALL dune_copasi_sd_compare.cc)
 add_executable(dune_copasi_md_compare EXCLUDE_FROM_ALL dune_copasi_md_compare.cc)
-target_link_libraries(dune_copasi_sd_compare PRIVATE dune_copasi_sd_lib)
-target_link_libraries(dune_copasi_md_compare PRIVATE dune_copasi_md_lib)
+target_link_libraries(dune_copasi_sd_compare PRIVATE dune_copasi_sd_lib-static)
+target_link_libraries(dune_copasi_md_compare PRIVATE dune_copasi_md_lib-static)
 add_dependencies(build_system_tests dune_copasi_sd_compare dune_copasi_md_compare)
 
 if (dune-testtools_FOUND)
@@ -80,11 +80,6 @@ if (dune-testtools_FOUND)
     TARGET          dune_copasi_md
     SCRIPT          dune_vtkcompare.py
     INIFILE         test_cell.mini)
-
-  add_system_test_per_target(
-    TARGET          dune_copasi_md
-    SCRIPT          dune_vtkcompare.py
-    INIFILE         test_liver.mini)
 
   dune_add_system_test(
     SOURCE          test_jacobian.cc
