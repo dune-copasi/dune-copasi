@@ -139,11 +139,11 @@ template<class BaseLocalFiniteElementMap>
 struct Factory<DynamicPowerLocalFiniteElementMap<BaseLocalFiniteElementMap>>
 {
   template<class Ctx>
-  static auto create(const Ctx& ctx)
+  static auto create(Ctx&& ctx)
   {
     using FEM = DynamicPowerLocalFiniteElementMap<BaseLocalFiniteElementMap>;
     // todo add power size
-    return std::make_unique<FEM>(Factory<BaseLocalFiniteElementMap>::create(ctx));
+    return std::make_unique<FEM>(Factory<BaseLocalFiniteElementMap>::create(std::forward<Ctx>(ctx)));
   }
 };
 

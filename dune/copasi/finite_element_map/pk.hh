@@ -15,10 +15,11 @@ template<class GV, class DF, class RF, unsigned int k>
 struct Factory<Dune::PDELab::PkLocalFiniteElementMap<GV,DF,RF,k>>
 {
   template<class Ctx>
-  static auto create(const Ctx& ctx)
+  static auto create(Ctx&& ctx)
   {
+    using dCtx = std::decay_t<Ctx>;
     using FEM = PDELab::PkLocalFiniteElementMap<GV,DF,RF,k>;
-    static_assert(Ctx::has( Context::Tag<GV>{} ));
+    static_assert(dCtx::has( Context::Tag<GV>{} ));
     return std::make_unique<FEM>(ctx.view( Context::Tag<GV>{} ));
   }
 };

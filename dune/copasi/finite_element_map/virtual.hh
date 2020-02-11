@@ -122,9 +122,9 @@ template<class FEM, class GV>
 struct Factory<VirtualLocalFiniteElementMapWrapper<FEM,GV>>
 {
   template<class Ctx>
-  static auto create(const Ctx& ctx)
+  static auto create(Ctx&& ctx)
   {
-    auto fem = Factory<FEM>::create(ctx);
+    auto fem = Factory<FEM>::create(std::forward<Ctx>(ctx));
     return std::make_unique<VirtualLocalFiniteElementMapWrapper<FEM,GV>>(*fem);
   }
 };

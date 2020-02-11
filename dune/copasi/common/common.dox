@@ -8,12 +8,12 @@
 
 @defgroup DataContext Data Context
 @{
-  @brief Generalized and extensible static polymorphisc data holder.
+  @brief Generalized and extensible static polymorphic data holder.
 
-  A data context is a generic form to pass around arbitrary amount of data following
-  a defined interface. Moreover, a data context is always extensible to hold more data.
-  It has a very similar concept and use cases as `**kwargs` in python. It is called
-  context because the content of the object depends on the context where it was called.
+  A data context is a generic form to pass around arbitrary unique amount of data following
+  a defined interface. Moreover, a data context is always extensible to hold more data
+  at compile time. It has a very similar concept and use cases as `**kwargs` in python.
+  It is called context because the content of the object depends on the context where it was called.
 
   A data context knows at comile-time whether it contains a type identified
   with certain signature.
@@ -29,8 +29,8 @@
     const auto& view = ctx.view( Context::Tag<GV>{} );
 
     // Create a new context containing a value 10 for the type `int`
-    // Notice that the old context got moved into the new one
-    auto new_ctx = Context::DataContext<Ctx,int>{10,std::move(ctx)};
+    // Notice that the old context can be moved into the new one if possible
+    auto new_ctx = Context::DataContext<Ctx,int>{10,std::forward<Ctx>(ctx))};
 
     // move the value contained in `int` outside of the context
     auto value = new_ctx.get( Context::Tag<int>{} );

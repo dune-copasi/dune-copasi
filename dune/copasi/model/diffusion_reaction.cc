@@ -146,22 +146,18 @@ ModelDiffusionReaction<Traits>::setup_component_grid_function_space(
   using Entity = typename Traits::Grid::LeafGridView::template Codim<0>::Entity;
   using Index = int; // TODO
   using EntityMapper = std::function<Index(Entity)>;
-  EntityMapper em = [](const auto entity) {
+  EntityMapper&& em = [](const auto entity) {
     return entity.geometry().type().isCube() ? 0 : 1;
   };
-  auto em_ctx = Context::DataContext<EntityMapper>(em);
 
+  // get common geometry type on gridview
   if (not has_single_geometry_type(_grid_view))
     DUNE_THROW(InvalidStateException,
                "Grid view has to have only one geometry type");
+  GeometryType&& gt = _grid_view.template begin<0>()->geometry().type();
 
-  GeometryType gt = _grid_view.template begin<0>()->geometry().type();
-  auto gt_ctx =
-    Context::DataContext<GeometryType, decltype(em_ctx)>(gt, std::move(em_ctx));
-
-  // add grid view to the context
-  auto ctx =
-    Context::DataContext<GV, decltype(gt_ctx)>(_grid_view, std::move(gt_ctx));
+  // create data context with entity mapper, geometry type and grid view
+  auto&& ctx = Context::data_context(em, gt, _grid_view);
 
   // create fem from factory
   std::shared_ptr<FEM> finite_element_map(Factory<FEM>::create(ctx));

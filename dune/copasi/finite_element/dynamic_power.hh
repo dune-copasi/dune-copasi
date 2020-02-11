@@ -119,9 +119,9 @@ struct Factory<DynamicPowerLocalFiniteElement<BaseLocalFiniteElement>>
 {
 public:
   template<class Ctx>
-  static auto create(const Ctx& ctx)
+  static auto create(Ctx&& ctx)
   {
-    auto base_fe = Factory<BaseLocalFiniteElement>::create(ctx);
+    auto base_fe = Factory<BaseLocalFiniteElement>::create(std::forward<Ctx>(ctx));
     using FE = DynamicPowerLocalFiniteElement<BaseLocalFiniteElement>;
     return std::make_unique<FE>(*base_fe);
   }

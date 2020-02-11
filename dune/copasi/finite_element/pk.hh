@@ -12,8 +12,8 @@ namespace Dune::Copasi {
 template<class D, class R, int d, int k>
 struct Factory<Dune::PkLocalFiniteElement<D,R,d,k>>
 {
-  template<class Context>
-  static auto create(const Context& ctx)
+  template<class Ctx>
+  static auto create(Ctx&& ctx)
   {
     return std::make_unique<Dune::PkLocalFiniteElement<D,R,d,k>>();
   }

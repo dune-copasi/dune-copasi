@@ -137,9 +137,10 @@ template<class BaseLocalFiniteElementMap, class SubGridView>
 struct Factory<SubDomainLocalFiniteElementMap<BaseLocalFiniteElementMap,SubGridView>>
 {
   template<class Ctx>
-  static auto create(const Ctx& ctx)
+  static auto create(Ctx&& ctx)
   {
-    static_assert(Ctx::has( Context::Tag<SubGridView>{} ));
+    using dCtx = std::decay_t<Ctx>;
+    static_assert(dCtx::has( Context::Tag<SubGridView>{} ));
 
     const auto& sub_domain_gv = ctx.view( Context::Tag<SubGridView>{} );
 
@@ -147,13 +148,13 @@ struct Factory<SubDomainLocalFiniteElementMap<BaseLocalFiniteElementMap,SubGridV
     auto multi_domain_gv = sub_domain_gv.grid().multiDomainGrid().leafGridView();
     using MultiDomainGridView = std::decay_t<decltype(multi_domain_gv)>;
 
-    auto multi_domain_ctx = Context::DataContext<MultiDomainGridView,Ctx>(multi_domain_gv,ctx);
+    auto multi_domain_ctx = Context::DataContext<MultiDomainGridView,dCtx>(multi_domain_gv,std::forward<Ctx>(ctx));
 
     // base finite element and finite element map are created with multidomain contex
     using BaseFE = typename BaseLocalFiniteElementMap::Traits::FiniteElement;
     auto base_fe = Factory<BaseFE>::create(multi_domain_ctx);
 
-    auto base_fem = Factory<BaseLocalFiniteElementMap>::create(multi_domain_ctx);
+    auto base_fem = Factory<BaseLocalFiniteElementMap>::create(std::move(multi_domain_ctx));
     using FEM = SubDomainLocalFiniteElementMap<BaseLocalFiniteElementMap,SubGridView>;
 
     // final finite element map is created with sub domain context

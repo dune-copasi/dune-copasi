@@ -16,9 +16,10 @@ template<class DF, class RF, int dim>
 struct Factory<PDELab::P0LocalFiniteElementMap<DF,RF,dim>>
 {
   template<class Ctx>
-  static auto create(const Ctx& ctx)
+  static auto create(Ctx&& ctx)
   {
-    static_assert(Ctx::has( Context::Tag<GeometryType>{} ));
+    using dCtx = std::decay_t<Ctx>;
+    static_assert(dCtx::has( Context::Tag<GeometryType>{} ));
 
     using FEM = PDELab::P0LocalFiniteElementMap<DF,RF,dim>;
     return std::make_unique<FEM>(ctx.view( Context::Tag<GeometryType>{} ));

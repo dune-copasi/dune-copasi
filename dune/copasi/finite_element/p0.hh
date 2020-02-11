@@ -14,9 +14,10 @@ template<class D, class R, int d>
 struct Factory<Dune::P0LocalFiniteElement<D,R,d>>
 {
   template<class Ctx>
-  static auto create(const Ctx& ctx)
+  static auto create(Ctx&& ctx)
   {
-    static_assert(Ctx::has( Context::Tag<GeometryType>{} ));
+    using dCtx = std::decay_t<Ctx>;
+    static_assert(dCtx::has( Context::Tag<GeometryType>{} ));
     const auto& gt = ctx.view( Context::Tag<GeometryType>{} );
     return std::make_unique<Dune::P0LocalFiniteElement<D,R,d>>(gt);
   }

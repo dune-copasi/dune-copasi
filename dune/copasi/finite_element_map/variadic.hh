@@ -28,7 +28,7 @@ class VariadicLocalFiniteElementMap
     using VariadicFEMs = std::tuple<std::decay_t<LocalFiniteElementMaps>...>;
     std::array<std::unique_ptr<const Interface>,_size>  fem_unique_array;
     Dune::Hybrid::forEach(Dune::range(_integral_size{}), [&](auto i) {
-      auto&& fem = std::get<i>(finite_element_maps);
+      auto& fem = std::get<i>(finite_element_maps);
       using FEM = std::decay_t<decltype(*fem)>;
       using VariadicFEM = std::tuple_element_t<i,VariadicFEMs>;
       static_assert(std::is_same_v<FEM,VariadicFEM>,
@@ -69,9 +69,7 @@ public:
   // {}
 
   ~VariadicLocalFiniteElementMap()
-  {
-    std::cout << "Deconstruct " << className<decltype(*this)>() << std::endl;
-  }
+  {}
 
   const typename Traits::FiniteElementType&
   find (const typename Traits::EntityType& e) const
@@ -120,14 +118,15 @@ template<class GV, class... LocalFiniteElementMaps>
 struct Factory<VariadicLocalFiniteElementMap<GV,LocalFiniteElementMaps...>>
 {
   template<class Ctx>
-  static auto create(const Ctx& ctx)
+  static auto create(Ctx&& ctx)
   {
     using FEM = VariadicLocalFiniteElementMap<GV,LocalFiniteElementMaps...>;
 
     using Entity = typename GV::template Codim<0>::Entity;
     using Index = int; // TODO
     using EntityMapper = std::function<Index(Entity)>;
-    static_assert(Ctx::has( Context::Tag<EntityMapper>{} ), "Invalid provided context");
+    using dCtx = std::decay_t<Ctx>;
+    static_assert(dCtx::has( Context::Tag<EntityMapper>{} ), "Invalid provided context");
 
     return std::make_unique<FEM>(ctx.view( Context::Tag<EntityMapper>{} ),
                                  std::forward_as_tuple(Factory<LocalFiniteElementMaps>::create(ctx)...));
