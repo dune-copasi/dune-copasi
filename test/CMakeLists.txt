@@ -4,6 +4,11 @@ dune_symlink_to_source_files(FILES "grids" DESTINATION "." )
 dune_symlink_to_source_files(FILES "reference" DESTINATION "." )
 dune_symlink_to_source_files(FILES "data" DESTINATION "." )
 
+# Some dune tests modify the EXCLUDE_FROM_ALL propertie of targets
+# Therefore, we store them temporally and set them back after seting up the tests
+get_target_property(TMP_SD_EFA dune_copasi_sd EXCLUDE_FROM_ALL)
+get_target_property(TMP_MD_EFA dune_copasi_md EXCLUDE_FROM_ALL)
+
 dune_add_test(NAME            test_dynamic_power_local_finite_element
               SOURCES         test_dynamic_power_local_finite_element.cc
               LABELS          unit)
@@ -94,5 +99,6 @@ if (dune-testtools_FOUND)
 
 endif()
 
-# make sure dune_copasi executables are built by default
-set_property(TARGET dune_copasi_md PROPERTY EXCLUDE_FROM_ALL 0)
+# Set back EXCLUDE_FROM_ALL target properties
+set_target_properties(dune_copasi_sd PROPERTIES EXCLUDE_FROM_ALL ${TMP_SD_EFA})
+set_target_properties(dune_copasi_md PROPERTIES EXCLUDE_FROM_ALL ${TMP_MD_EFA})
