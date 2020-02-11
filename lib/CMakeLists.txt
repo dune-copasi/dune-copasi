@@ -5,7 +5,7 @@ target_include_directories(dune_copasi_lib INTERFACE
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-add_library(dune_copasi_md_lib-static STATIC dune_copasi_md.cc)
+add_library(dune_copasi_md_lib-static EXCLUDE_FROM_ALL STATIC dune_copasi_md.cc)
 target_link_libraries(dune_copasi_md_lib-static PUBLIC dune_copasi_lib)
 
 add_library(dune_copasi_md_lib-shared EXCLUDE_FROM_ALL SHARED dune_copasi_md.cc)
