@@ -9,6 +9,7 @@ echo "MSYSTEM: $MSYSTEM"
 echo "DUNECONTROL: ${DUNECONTROL}"
 echo "DUNE_OPTIONS_FILE: ${DUNE_OPTIONS_FILE}"
 cat ${DUNE_OPTIONS_FILE}
+echo "PWD: $PWD"
 
 which g++
 g++ --version
