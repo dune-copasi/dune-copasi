@@ -11,6 +11,6 @@ target_link_libraries(dune_copasi_md_lib PUBLIC dune_copasi_lib)
 add_library(dune_copasi_sd_lib STATIC dune_copasi_sd.cc)
 target_link_libraries(dune_copasi_sd_lib PUBLIC dune_copasi_lib)
 
-install(TARGETS dune_copasi_lib dune_copasi_md_lib dune_copasi_sd_lib
+install(TARGETS dune_copasi_lib dune_copasi_md_lib
         ARCHIVE
           DESTINATION ${CMAKE_INSTALL_LIBDIR})

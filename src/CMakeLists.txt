@@ -4,7 +4,7 @@ target_link_libraries(dune_copasi_md PRIVATE dune_copasi_md_lib)
 add_executable(dune_copasi_sd dune_copasi_sd.cc)
 target_link_libraries(dune_copasi_sd PRIVATE dune_copasi_sd_lib)
 
-add_custom_target(dune_copasi ALL DEPENDS dune_copasi_sd dune_copasi_md)
+add_custom_target(dune_copasi ALL DEPENDS dune_copasi_md)
 
 install(TARGETS dune_copasi_md RUNTIME DESTINATION
         "${CMAKE_INSTALL_BINDIR}/")

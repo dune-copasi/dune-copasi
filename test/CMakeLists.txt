@@ -25,10 +25,6 @@ dune_add_test(NAME            test_tiff_grayscale
               LINK_LIBRARIES  TIFF::TIFF
               LABELS          unit)
 
-#dune_add_test(NAME            test_parameter_tree_check
-#              SOURCES         test_parameter_tree_check.cc
-#              LABELS          unit)
-
 add_custom_target(build_system_tests DEPENDS dune_copasi)
 add_executable(dune_copasi_sd_compare EXCLUDE_FROM_ALL dune_copasi_sd_compare.cc)
 add_executable(dune_copasi_md_compare EXCLUDE_FROM_ALL dune_copasi_md_compare.cc)
@@ -85,6 +81,11 @@ if (dune-testtools_FOUND)
     SCRIPT          dune_vtkcompare.py
     INIFILE         test_cell.mini)
 
+  add_system_test_per_target(
+    TARGET          dune_copasi_md
+    SCRIPT          dune_vtkcompare.py
+    INIFILE         test_liver.mini)
+
   dune_add_system_test(
     SOURCE          test_jacobian.cc
     BASENAME        dune_copasi_test_jacobian
@@ -99,5 +100,4 @@ if (dune-testtools_FOUND)
 endif()
 
 # make sure dune_copasi executables are built by default
-set_property(TARGET dune_copasi_sd PROPERTY EXCLUDE_FROM_ALL 0)
 set_property(TARGET dune_copasi_md PROPERTY EXCLUDE_FROM_ALL 0)
