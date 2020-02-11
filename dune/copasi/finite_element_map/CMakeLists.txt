@@ -1,6 +1,6 @@
 install(
   FILES dynamic_power.hh
-        multidomain.hh
+        subdomain.hh
         p0.hh
         pk.hh
         variadic.hh
