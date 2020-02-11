@@ -6,10 +6,11 @@
 #include <dune/copasi/concepts/grid.hh>
 
 #include <dune/copasi/model/base.hh>
-#include <dune/copasi/model/local_operator_base.hh>
-#include <dune/copasi/model/local_operator_FV.hh>
-#include <dune/copasi/model/local_operator_CG.hh>
-#include <dune/copasi/model/local_operator_variadic.hh>
+#include <dune/copasi/local_operator/diffusion_reaction/base.hh>
+#include <dune/copasi/local_operator/diffusion_reaction/continuous_galerkin.hh>
+#include <dune/copasi/local_operator/diffusion_reaction/finite_volume.hh>
+#include <dune/copasi/local_operator/diffusion_reaction/multidomain.hh>
+#include <dune/copasi/local_operator/variadic.hh>
 #include <dune/copasi/model/state.hh>
 #include <dune/copasi/finite_element/p0.hh>
 #include <dune/copasi/finite_element/pk.hh>

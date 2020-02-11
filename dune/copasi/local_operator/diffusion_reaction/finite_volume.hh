@@ -4,6 +4,7 @@
 #include <dune/copasi/common/coefficient_mapper.hh>
 #include <dune/copasi/common/enum.hh>
 #include <dune/copasi/common/pdelab_expression_adapter.hh>
+#include <dune/copasi/local_operator/diffusion_reaction/base.hh>
 
 #include <dune/pdelab/localoperator/numericaljacobian.hh>
 #include <dune/pdelab/localoperator/numericaljacobianapply.hh>

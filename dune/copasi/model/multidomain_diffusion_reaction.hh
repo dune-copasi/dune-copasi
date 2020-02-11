@@ -7,7 +7,7 @@
 #include <dune/copasi/model/base.hh>
 #include <dune/copasi/model/diffusion_reaction.cc>
 #include <dune/copasi/model/diffusion_reaction.hh>
-#include <dune/copasi/model/multidomain_local_operator.hh>
+#include <dune/copasi/local_operator/diffusion_reaction/multidomain.hh>
 
 #include <dune/pdelab/backend/istl.hh>
 #include <dune/pdelab/backend/istl/novlpistlsolverbackend.hh>
