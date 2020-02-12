@@ -12,6 +12,15 @@ cat ${DUNE_OPTIONS_FILE}
 echo "PWD: $PWD"
 ls -R | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/   /' -e 's/-/|/'
 
+# <temp>
+cd dune-copasi
+pwd
+ls
+git status
+git log | head
+git remote -v
+# </temp>
+
 which g++
 g++ --version
 
