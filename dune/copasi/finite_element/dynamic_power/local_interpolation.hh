@@ -21,6 +21,12 @@ class DynamicPowerLocalInterpolation
 {
 public:
 
+  /**
+   * @brief      Constructs a new instance.
+   *
+   * @param[in]  basis       Pointer to the base local interpolation
+   * @param[in]  power_size  The power size
+   */
   DynamicPowerLocalInterpolation(std::unique_ptr<const Interpolation>&& interpolation,
                                  std::size_t power_size = 1)
     : _power_size(power_size)
@@ -29,6 +35,13 @@ public:
     assert(_power_size >= 0);
   }
 
+  /**
+   * @brief      Constructs a new instance.
+   * @details    If the base basis is polymorphic, this attempts to clone it.
+   *
+   * @param[in]  basis       The base local interpolation
+   * @param[in]  power_size  The power size
+   */
   DynamicPowerLocalInterpolation(const Interpolation& interpolation,
                                  std::size_t power_size = 1)
     : _power_size(power_size)
@@ -57,6 +70,7 @@ public:
 
   /**
    * @brief      Copy constructor.
+   * @details    If the base basis is polymorphic, this attempts to clone it.
    *
    * @param[in]  other  The other interpolation to be copied
    *

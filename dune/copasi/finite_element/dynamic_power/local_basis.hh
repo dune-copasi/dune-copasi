@@ -21,6 +21,12 @@ class DynamicPowerLocalBasis
 public:
   using Traits = typename Basis::Traits;
 
+  /**
+   * @brief      Constructs a new instance.
+   *
+   * @param[in]  basis       Pointer to the base local basis
+   * @param[in]  power_size  The power size
+   */
   DynamicPowerLocalBasis(std::unique_ptr<Basis>&& basis, std::size_t power_size = 1)
     : _power_size(power_size)
     , _basis(basis)
@@ -30,6 +36,7 @@ public:
 
   /**
    * @brief      Constructs a new instance.
+   * @details    If the base basis is polymorphic, this attempts to clone it.
    *
    * @param[in]  basis       The base local basis
    * @param[in]  power_size  The power size
@@ -44,6 +51,12 @@ public:
       _basis = std::make_unique<const Basis>(basis);
   }
 
+  /**
+   * @brief      Constructs a new instance (copy) from other instance.
+   * @details    If the base basis is polymorphic, this attempts to clone it.
+   *
+   * @param[in]  other       Another dynamic power local basis
+   */
   DynamicPowerLocalBasis(const DynamicPowerLocalBasis& other)
     : _power_size(other._power_size)
   {
