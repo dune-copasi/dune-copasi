@@ -10,7 +10,6 @@ echo "DUNECONTROL: ${DUNECONTROL}"
 echo "DUNE_OPTIONS_FILE: ${DUNE_OPTIONS_FILE}"
 cat ${DUNE_OPTIONS_FILE}
 echo "PWD: $PWD"
-ls -R | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/   /' -e 's/-/|/'
 
 which g++
 g++ --version
