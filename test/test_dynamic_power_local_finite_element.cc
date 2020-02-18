@@ -2,9 +2,9 @@
 #include "config.h"
 #endif
 
-#include <dune/copasi/finite_element/dynamic_local_basis.hh>
-#include <dune/copasi/finite_element/dynamic_local_coefficients.hh>
-#include <dune/copasi/finite_element/dynamic_local_finite_element.hh>
+#include <dune/copasi/finite_element/dynamic_power.hh>
+#include <dune/copasi/finite_element/dynamic_power/local_basis.hh>
+#include <dune/copasi/finite_element/dynamic_power/local_coefficients.hh>
 
 #include <dune/localfunctions/common/localkey.hh>
 #include <dune/localfunctions/lagrange.hh>
@@ -42,13 +42,17 @@ test_power_local_basis(const Basis& basis, std::size_t power_size)
   basis.evaluateJacobian(in, jout);
   power_basis.evaluateJacobian(in, power_jout);
 
-  for (std::size_t i = 0; i < basis.size(); ++i)
+  assert(power_size * out.size() == power_out.size());
+  assert(power_size * jout.size() == power_jout.size());
+
+  for (std::size_t i = 0; i < basis.size(); ++i) {
     for (std::size_t j = 0; j < power_size; ++j) {
       // output of the blocked basis must be blocked by the size of the original
       // basis
       assert(out[i] == power_out[basis.size() * j + i]);
       assert(jout[i] == power_jout[basis.size() * j + i]);
     }
+  }
 
   return false;
 }
@@ -69,7 +73,8 @@ test_power_local_coefficients(const Coefficients& coefficients,
     auto t = unique_key.insert(key);
 
     // ensure that the key is unique
-    assert(t.second);
+    if (not t.second)
+      DUNE_THROW(Dune::RangeError, "Key is not unique");
   }
 
   // check that local keys are ordered

@@ -1,10 +1,10 @@
-__name = test_exp
-
 _grow_rate = 0.2
 _initial = 1
+_geometry_type = cubes, triangles | expand geometry_type
+__name = test_exp_{_geometry_type}
 
 [grid]
-file = grids/square.msh
+file = grids/square_{_geometry_type}.msh
 initial_level = 0
 
 [model]
@@ -35,13 +35,11 @@ u = 0.
 [model.domain.writer]
 file_name = {__name}
 
-######################### Compare with analytic vtk ######################### 
-[wrapper.vtkcompare]
-name = {__name}/{__name}-00101
-reference = reference/{__name}-00101
-extension = vtu
-relative = 2e-2
-absolute = 1e-9
+#### compare against a known solution
+[model.domain.compare.expression]
+u = exp({_grow_rate}*t)
+[model.domain.compare.l2_error]
+u = 1e-3
 
 ############################ Logging settings #################################
 # levels = off, critical, error, waring, notice, info, debug, trace, all

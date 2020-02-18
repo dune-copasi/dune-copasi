@@ -31,22 +31,20 @@ before_install:
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 100; fi
   - gcc --version
   - g++ --version
-  - cd ..
   # download muparser, gmp and libtiff as static libraries
   - wget "https://github.com/lkeegan/libsbml-static/releases/latest/download/libsbml-static-$TRAVIS_OS_NAME.tgz"
-  - tar xzvf libsbml-static-$TRAVIS_OS_NAME.tgz
+  - sudo tar xzvf libsbml-static-$TRAVIS_OS_NAME.tgz -C /
+  - cd ..
 install:
   - echo 'CMAKE_FLAGS+=" -G '"'"'Unix Makefiles'"'"' "' >> dune.opts
   - echo 'CMAKE_FLAGS+=" -DCMAKE_CXX_STANDARD=17"' >> dune.opts
   - echo 'CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_SETUP=1 -DDUNE_PYTHON_ALLOW_GET_PIP=1 "' >> dune.opts
-  - echo 'CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_PATH='"$PWD"'/dune-python-venv"' >> dune.opts
-  - echo 'CMAKE_FLAGS+=" -DGMPXX_INCLUDE_DIR:PATH='"$PWD"'/gmp/include -DGMPXX_LIB:FILEPATH='"$PWD"'/gmp/lib/libgmpxx.a -DGMP_LIB:FILEPATH='"$PWD"'/gmp/lib/libgmp.a"' >> dune.opts
+  - echo 'CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_PATH='"$PWD"'/ext/dune-python-venv"' >> dune.opts
   - echo 'CMAKE_FLAGS+=" -DCMAKE_DISABLE_FIND_PACKAGE_QuadMath=TRUE -DBUILD_TESTING=OFF"' >> dune.opts
   - echo 'CMAKE_FLAGS+=" -DDUNE_USE_ONLY_STATIC_LIBS=ON -DCMAKE_BUILD_TYPE=Release"' >> dune.opts
-  - echo 'CMAKE_FLAGS+=" -DCMAKE_PREFIX_PATH='"$PWD"' -DF77=true "' >> dune.opts
-  - echo 'CMAKE_FLAGS+=" -Dmuparser_ROOT='"$PWD"'/muparser "' >> dune.opts
-  - echo 'CMAKE_FLAGS+=" -DTIFF_ROOT='"$PWD"'/libtiff "' >> dune.opts
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then echo 'CMAKE_FLAGS+="-DPYTHON_EXECUTABLE:FILEPATH=/usr/bin/python3"' >> dune.opts; fi
+  - echo 'CMAKE_FLAGS+=" -DF77=true -DCMAKE_PREFIX_PATH=/opt/libs"' >> dune.opts
+  - echo 'CMAKE_FLAGS+=" -Dmuparser_INCLUDE_DIR:PATH=/opt/libs/include -Dmuparser_LIBRARIES:FILEPATH=opt/libs/lib/libmuparser.a"' >> dune.opts
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then echo 'CMAKE_FLAGS+=" -DPYTHON_EXECUTABLE:FILEPATH=/usr/bin/python3"' >> dune.opts; fi
   - echo 'MAKE_FLAGS="-j2 VERBOSE=1"' >> dune.opts
   - export DUNE_OPTIONS_FILE="dune.opts"
   - export DUNECONTROL=./dune-common/bin/dunecontrol

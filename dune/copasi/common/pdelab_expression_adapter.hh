@@ -1,8 +1,6 @@
 #ifndef DUNE_COPASI_GRID_FUNCTION_EXPRESSION_ADAPTER_HH
 #define DUNE_COPASI_GRID_FUNCTION_EXPRESSION_ADAPTER_HH
 
-#include <dune/copasi/common/tiff_grayscale.hh>
-
 #include <dune/pdelab/common/function.hh>
 
 #include <dune/logging/logging.hh>
@@ -12,9 +10,9 @@
 
 #include <muParser.h>
 
-#include <algorithm>
 #include <string>
 #include <type_traits>
+#include <memory>
 
 namespace Dune::Copasi {
 
@@ -48,7 +46,7 @@ public:
   ExpressionToGridFunctionAdapter(const GV& grid_view,
                                   const std::string& equation,
                                   bool do_compile_parser = true,
-                                  std::vector<std::string> other_variables = {})
+                                  const std::vector<std::string>& other_variables = {})
     : _logger(Logging::Logging::componentLogger({}, "model"))
     , _gv(grid_view)
     , _time(0.)
@@ -58,8 +56,6 @@ public:
   {
 
     constexpr int dim = Traits::dimDomain;
-
-    std::sort(other_variables.begin(), other_variables.end());
 
     _logger.trace("initialize parser with constant variables"_fmt);
     _parser.DefineConst("pi", StandardMathematicalConstants<double>::pi());
@@ -153,6 +149,11 @@ public:
     _compiled = true;
   }
 
+  /**
+   * @brief      Get parser
+   *
+   * @return     Reference to internal parser
+   */
   mu::Parser& parser()
   {
     assert(not _compiled);
@@ -200,6 +201,41 @@ private:
   std::string _expr;
   bool _compiled;
 };
+
+/**
+ * @brief      Gets the muparser expressions.
+ *
+ * @param[in]  expressions_config  The expressions configuration
+ * @param[in]  gf_grid_view        The grid view for the grid function
+ * @param[in]  compile             True to compile expression at construction
+ *
+ * @tparam     GFGridView          Grid view type
+ * @tparam     RF                  Range field type
+ *
+ * @return     Vector with muparser expressions pointers
+ */
+template<class GFGridView, class RF = double>
+auto get_muparser_expressions(
+  const ParameterTree& expressions_config,
+  const GFGridView& gf_grid_view,
+  bool compile = true)
+{
+  const auto& vars = expressions_config.getValueKeys();
+
+  using GridFunction = ExpressionToGridFunctionAdapter<GFGridView, RF>;
+  std::vector<std::shared_ptr<GridFunction>> functions;
+
+  for (std::size_t i = 0; i < vars.size(); i++) {
+    auto gf = std::make_shared<GridFunction>(
+      gf_grid_view, expressions_config[vars[i]], compile);
+    functions.emplace_back(gf);
+    assert(functions.size() == i + 1);
+    if (compile)
+      functions[i]->compile_parser();
+  }
+
+  return functions;
+}
 
 } // namespace Dune::Copasi
 

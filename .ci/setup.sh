@@ -1,6 +1,6 @@
 # dependencies setup script for Travis and AppVeyor CI
 
-DUNE_VERSION="master"
+DUNE_VERSION="2.7"
 
 # make sure we get the right mingw64 version of g++ on appveyor
 PATH=/mingw64/bin:$PATH
@@ -9,6 +9,7 @@ echo "MSYSTEM: $MSYSTEM"
 echo "DUNECONTROL: ${DUNECONTROL}"
 echo "DUNE_OPTIONS_FILE: ${DUNE_OPTIONS_FILE}"
 cat ${DUNE_OPTIONS_FILE}
+echo "PWD: $PWD"
 
 which g++
 g++ --version
@@ -33,13 +34,13 @@ cmake --version
 
 
 # download Dune dependencies
-for repo in dune-common dune-typetree dune-pdelab dune-multidomaingrid
+for repo in core/dune-common core/dune-geometry core/dune-grid core/dune-istl core/dune-localfunctions staging/dune-functions staging/dune-uggrid
 do
-  git clone -b support/dune-copasi --depth 1 --recursive https://gitlab.dune-project.org/santiago.ospina/$repo.git
+  git clone -b releases/$DUNE_VERSION --depth 1 --recursive https://gitlab.dune-project.org/$repo.git
 done
-for repo in core/dune-geometry core/dune-grid core/dune-istl core/dune-localfunctions staging/dune-functions staging/dune-uggrid staging/dune-logging
+for repo in dune-logging dune-typetree dune-pdelab dune-multidomaingrid
 do
-  git clone -b $DUNE_VERSION --depth 1 --recursive https://gitlab.dune-project.org/$repo.git
+  git clone -b support/dune-copasi --depth 1 --recursive https://gitlab.dune-project.org/copasi/$repo.git
 done
 
 # python virtual environment does not work in windows yet
@@ -76,6 +77,8 @@ cd dune-common
 wget https://gist.githubusercontent.com/lkeegan/059984b71f8aeb0bbc062e85ad7ee377/raw/e9c7af42c47fe765547e60833a72b5ff1e78123c/cmake-patch.txt
 echo '' >> cmake-patch.txt
 git apply cmake-patch.txt
+# another patch for missing header in cmake install list
+git apply ../dune-copasi/.ci/dune-common.patch
 cd ../
 
 cd dune-logging

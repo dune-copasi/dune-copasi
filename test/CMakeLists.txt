@@ -4,8 +4,13 @@ dune_symlink_to_source_files(FILES "grids" DESTINATION "." )
 dune_symlink_to_source_files(FILES "reference" DESTINATION "." )
 dune_symlink_to_source_files(FILES "data" DESTINATION "." )
 
-dune_add_test(NAME            test_dynamic_local_finite_element
-              SOURCES         test_dynamic_local_finite_element.cc
+# Some dune tests modify the EXCLUDE_FROM_ALL propertie of targets
+# Therefore, we store them temporally and set them back after seting up the tests
+get_target_property(TMP_SD_EFA dune_copasi_sd EXCLUDE_FROM_ALL)
+get_target_property(TMP_MD_EFA dune_copasi_md EXCLUDE_FROM_ALL)
+
+dune_add_test(NAME            test_dynamic_power_local_finite_element
+              SOURCES         test_dynamic_power_local_finite_element.cc
               LABELS          unit)
 
 dune_add_test(NAME            test_concepts_pdelab
@@ -25,22 +30,61 @@ dune_add_test(NAME            test_tiff_grayscale
               LINK_LIBRARIES  TIFF::TIFF
               LABELS          unit)
 
+add_custom_target(build_system_tests DEPENDS dune_copasi)
+add_executable(dune_copasi_sd_compare EXCLUDE_FROM_ALL dune_copasi_sd_compare.cc)
+add_executable(dune_copasi_md_compare EXCLUDE_FROM_ALL dune_copasi_md_compare.cc)
+target_link_libraries(dune_copasi_sd_compare PRIVATE dune_copasi_sd_lib)
+target_link_libraries(dune_copasi_md_compare PRIVATE dune_copasi_md_lib)
+add_dependencies(build_system_tests dune_copasi_sd_compare dune_copasi_md_compare)
+
 if (dune-testtools_FOUND)
 
   add_system_test_per_target(
-    TARGET          dune_copasi
-    SCRIPT          dune_vtkcompare.py
-    INIFILE         test_cell.mini)
-
-  add_system_test_per_target(
-    TARGET          dune_copasi
-    SCRIPT          dune_vtkcompare.py
+    TARGET          dune_copasi_sd_compare
     INIFILE         test_exp.mini)
 
-    add_system_test_per_target(
-      TARGET          dune_copasi
-      SCRIPT          dune_vtkcompare.py
-      INIFILE         test_tiff.mini)
+  add_system_test_per_target(
+    TARGET          dune_copasi_md_compare
+    INIFILE         test_exp.mini)
+
+  add_system_test_per_target(
+    TARGET          dune_copasi_sd_compare
+    INIFILE         test_initial.mini)
+
+  add_system_test_per_target(
+    TARGET          dune_copasi_md_compare
+    INIFILE         test_initial.mini)
+
+  add_system_test_per_target(
+    TARGET          dune_copasi_sd_compare
+    INIFILE         test_gauss.mini)
+
+  add_system_test_per_target(
+    TARGET          dune_copasi_md_compare
+    INIFILE         test_gauss.mini)
+
+  add_system_test_per_target(
+    TARGET          dune_copasi_sd_compare
+    INIFILE         test_gauss_mixed_geometry.mini)
+
+  add_system_test_per_target(
+    TARGET          dune_copasi_md_compare
+    INIFILE         test_gauss_mixed_geometry.mini)
+
+  add_system_test_per_target(
+    TARGET          dune_copasi_sd
+    SCRIPT          dune_vtkcompare.py
+    INIFILE         test_tiff.mini)
+
+  add_system_test_per_target(
+    TARGET          dune_copasi_md
+    SCRIPT          dune_vtkcompare.py
+    INIFILE         test_tiff.mini)
+
+  add_system_test_per_target(
+    TARGET          dune_copasi_md
+    SCRIPT          dune_vtkcompare.py
+    INIFILE         test_cell.mini)
 
   dune_add_system_test(
     SOURCE          test_jacobian.cc
@@ -49,13 +93,13 @@ if (dune-testtools_FOUND)
     INIFILE         test_jacobian.mini)
 
   target_link_libraries(dune_copasi_test_jacobian PRIVATE dune_copasi_lib)
+  add_dependencies(build_system_tests dune_copasi_sd)
   add_dependencies(build_unit_tests dune_copasi_test_jacobian)
   set_property(TEST "dune_copasi_test_jacobian_analytical" PROPERTY LABELS unit)
   set_property(TEST "dune_copasi_test_jacobian_numerical" PROPERTY LABELS unit)
 
-  # make sure dune_copasi is built by default
-  set_property(TARGET dune_copasi PROPERTY EXCLUDE_FROM_ALL 0)
-
 endif()
 
-add_custom_target(build_system_tests DEPENDS dune_copasi)
+# Set back EXCLUDE_FROM_ALL target properties
+set_target_properties(dune_copasi_sd PROPERTIES EXCLUDE_FROM_ALL ${TMP_SD_EFA})
+set_target_properties(dune_copasi_md PROPERTIES EXCLUDE_FROM_ALL ${TMP_MD_EFA})

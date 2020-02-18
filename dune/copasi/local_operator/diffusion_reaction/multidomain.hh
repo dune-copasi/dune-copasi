@@ -3,7 +3,6 @@
 
 #include <dune/copasi/common/enum.hh>
 #include <dune/copasi/concepts/grid.hh>
-#include <dune/copasi/model/local_operator.hh>
 
 #include <dune/pdelab/localoperator/numericaljacobian.hh>
 #include <dune/pdelab/localoperator/numericaljacobianapply.hh>
@@ -34,62 +33,35 @@ namespace Dune::Copasi {
  * @tparam     JM                  Jacobian Method
  */
 template<class Grid,
-         class LocalFiniteElement,
-         class CM = DefaultCoefficientMapper,
+         class SubLocalOperator,
          JacobianMethod JM = JacobianMethod::Analytical>
 class LocalOperatorMultiDomainDiffusionReaction
   : public Dune::PDELab::LocalOperatorDefaultFlags
   , public Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>
   , public Dune::PDELab::NumericalJacobianSkeleton<
       LocalOperatorMultiDomainDiffusionReaction<Grid,
-                                                LocalFiniteElement,
-                                                CM,
+                                                SubLocalOperator,
                                                 JM>>
   , public Dune::PDELab::NumericalJacobianApplySkeleton<
       LocalOperatorMultiDomainDiffusionReaction<Grid,
-                                                LocalFiniteElement,
-                                                CM,
+                                                SubLocalOperator,
                                                 JM>>
 {
   static_assert(Concept::isMultiDomainGrid<Grid>());
 
-  //! local basis
-  using LocalBasis = typename LocalFiniteElement::Traits::LocalBasisType;
-
-  //! domain field
-  using DF = typename LocalBasis::Traits::DomainFieldType;
-
-  //! coordinates type
-  using Domain = typename LocalBasis::Traits::DomainType;
-
-  //! range field
-  using RF = typename LocalBasis::Traits::RangeFieldType;
-
-  //! range type (for the local finite element)
-  using Range = typename LocalBasis::Traits::RangeType;
-
-  //! jacobian tpye
-  using Jacobian = typename LocalBasis::Traits::JacobianType;
-
   //! jacobian tpye
   using IndexSet = typename Grid::LeafGridView::IndexSet;
-
-  //! world dimension
-  static constexpr int dim = LocalBasis::Traits::dimDomain;
 
   static constexpr std::size_t unused_domain = ~std::size_t(0);
 
   using GridView = typename Grid::SubDomainGrid::LeafGridView;
-  using BaseLOP =
-    LocalOperatorDiffusionReaction<GridView, LocalFiniteElement, CM, JM>;
+  using SubLOP = SubLocalOperator;
 
   const IndexSet& _index_set;
 
-  const LocalBasis _local_basis;
-
   const std::size_t _size;
 
-  mutable std::vector<std::shared_ptr<BaseLOP>> _local_operator;
+  mutable std::vector<std::shared_ptr<SubLOP>> _local_operator;
 
   std::vector<std::vector<std::string>> _component_name;
 
@@ -97,17 +69,17 @@ class LocalOperatorMultiDomainDiffusionReaction
   std::map<std::array<std::size_t, 3>, std::size_t> _component_offset;
 
 public:
-  //! visit skeleton from the two sides
-  static constexpr bool doSkeletonTwoSided = true;
+
+  static_assert(not SubLOP::doSkeletonTwoSided);
 
   //! pattern assembly flags
-  static constexpr bool doPatternVolume = BaseLOP::doPatternVolume;
+  static constexpr bool doPatternVolume = SubLOP::doPatternVolume;
 
   //! pattern assembly flags
   static constexpr bool doPatternSkeleton = true;
 
   //! residual assembly flags
-  static constexpr bool doAlphaVolume = BaseLOP::doAlphaVolume;
+  static constexpr bool doAlphaVolume = SubLOP::doAlphaVolume;
 
   //! residual assembly flags
   static constexpr bool doAlphaSkeleton = true;
@@ -123,10 +95,8 @@ public:
   LocalOperatorMultiDomainDiffusionReaction(
     std::shared_ptr<const Grid> grid,
     const ParameterTree& config,
-    const LocalFiniteElement& finite_element,
     std::size_t id_operator)
     : _index_set(grid->leafGridView().indexSet())
-    , _local_basis(finite_element.localBasis())
     , _size(config.sub("compartments").getValueKeys().size())
     , _local_operator(_size)
     , _component_name(_size)
@@ -146,8 +116,8 @@ public:
       _component_name[i] = sub_config.sub("reaction").getValueKeys();
       std::sort(_component_name[i].begin(), _component_name[i].end());
 
-      auto lp = std::make_shared<BaseLOP>(
-        sub_grid_view, sub_config, finite_element, id_operator);
+      auto lp = std::make_shared<SubLOP>(
+        sub_grid_view, sub_config, id_operator);
       _local_operator[i] = lp;
     }
 
@@ -187,7 +157,7 @@ public:
   }
 
   /**
-   * @copydoc LocalOperatorDiffusionReaction::pattern_volume
+   * @copydoc LocalOperatorDiffusionReactionCG::pattern_volume
    */
   template<typename LFSU, typename LFSV, typename LocalPattern>
   void pattern_volume(const LFSU& lfsu,
@@ -196,6 +166,77 @@ public:
   {
     for (std::size_t i = 0; i < lfsu.degree(); ++i) {
       _local_operator[i]->pattern_volume(lfsu.child(i), lfsv.child(i), pattern);
+    }
+  }
+
+  /**
+   * @brief      Pattern sckeleton
+   * @details    This method links degrees of freedom between trial and test
+   *             spaces at entities intersection taking into account the
+   *             structure of the reaction term
+   *
+   * @param[in]  lfsu_i        The inside trial local function space
+   * @param[in]  lfsv_i        The inside test local function space
+   * @param[in]  lfsu_o        The outside trial local function space
+   * @param[in]  lfsv_o        The outside test local function space
+   * @param      pattern_io    The inside-outside local pattern
+   * @param      pattern_oi    The outside-inside local pattern
+   *
+   * @tparam     LFSU          The trial local function space
+   * @tparam     LFSV          The test local function space
+   * @tparam     LocalPattern  The local pattern
+   */
+  template<typename LFSU, typename LFSV, typename LocalPattern>
+  void interface_pattern_skeleton(std::size_t domain_i, std::size_t domain_o,
+                        const LFSU& lfsu_di,
+                        const LFSV& lfsv_di,
+                        const LFSU& lfsu_do,
+                        const LFSV& lfsv_do,
+                        LocalPattern& pattern_io,
+                        LocalPattern& pattern_oi) const
+  {
+    auto lfs_size_i = lfsu_di.degree();
+    for (std::size_t i = 0; i < lfs_size_i; ++i) {
+      const std::size_t comp_i = _local_operator[domain_i]->lfs_components(lfsu_di,lfsv_di)[i];
+      std::array<std::size_t, 3> inside_comp{ domain_i, domain_o, comp_i };
+      auto it = _component_offset.find(inside_comp);
+      if (it != _component_offset.end()) {
+        auto comp_o = it->second;
+        const auto& lfs_comp_o = _local_operator[domain_o]->lfs_components(lfsu_do,lfsv_do);
+        auto o_it = std::find(lfs_comp_o.begin(), lfs_comp_o.end(), comp_o);
+        if (o_it != lfs_comp_o.end()) {
+          auto lfsv_ci = lfsv_di.child(i);
+          std::size_t o = std::distance(lfs_comp_o.begin(), o_it);
+          auto lfsu_co = lfsu_do.child(o);
+          for (std::size_t dof_i = 0; dof_i < lfsv_ci.size(); dof_i++) {
+            for (std::size_t dof_o = 0; dof_o < lfsu_co.size(); dof_o++) {
+              pattern_io.addLink(lfsv_ci, dof_i, lfsu_co, dof_o);
+            }
+          }
+        }
+      }
+    }
+
+    auto lfs_size_o = lfsu_do.degree();
+    for (std::size_t o = 0; o < lfs_size_o; ++o) {
+      const std::size_t comp_o = _local_operator[domain_o]->lfs_components(lfsu_do,lfsv_do)[o];
+      std::array<std::size_t, 3> outside_comp{ domain_o, domain_i, comp_o };
+      auto it = _component_offset.find(outside_comp);
+      if (it != _component_offset.end()) {
+        auto comp_i = it->second;
+        const auto& lfs_comp_i = _local_operator[domain_i]->lfs_components(lfsu_do,lfsv_do);
+        auto i_it = std::find(lfs_comp_i.begin(), lfs_comp_i.end(), comp_i);
+        if (i_it != lfs_comp_i.end()) {
+          auto lfsv_co = lfsv_do.child(o);
+          std::size_t i = std::distance(lfs_comp_i.begin(), i_it);
+          auto lfsu_ci = lfsu_di.child(i);
+          for (std::size_t dof_o = 0; dof_o < lfsv_co.size(); dof_o++) {
+            for (std::size_t dof_i = 0; dof_i < lfsu_ci.size(); dof_i++) {
+              pattern_oi.addLink(lfsv_co, dof_o, lfsu_ci, dof_i);
+            }
+          }
+        }
+      }
     }
   }
 
@@ -232,59 +273,22 @@ public:
         domain_o = k;
     }
 
-    if (domain_i == domain_o)
-      return;
     if ((domain_i == unused_domain) or (domain_o == unused_domain))
       return;
 
+    const auto& lfsu_di = lfsu_i.child(domain_i);
+    const auto& lfsv_di = lfsv_i.child(domain_i);
+    const auto& lfsu_do = lfsu_o.child(domain_o);
+    const auto& lfsv_do = lfsv_o.child(domain_o);
+
     assert(lfsu_i.degree() == _size);
-    assert(lfsu_i.child(domain_i).degree() == lfsv_i.child(domain_i).degree());
-    assert(lfsu_o.child(domain_o).degree() == lfsv_o.child(domain_o).degree());
+    assert(lfsu_di.degree() == lfsv_di.degree());
+    assert(lfsu_do.degree() == lfsv_do.degree());
 
-    auto lfs_size_i = lfsu_i.child(domain_i).degree();
-
-    for (std::size_t i = 0; i < lfs_size_i; ++i) {
-      const std::size_t comp_i = _local_operator[domain_i]->_lfs_components[i];
-      std::array<std::size_t, 3> inside_comp{ domain_i, domain_o, comp_i };
-      auto it = _component_offset.find(inside_comp);
-      if (it != _component_offset.end()) {
-        auto comp_o = it->second;
-        const auto& lfs_comp_o = _local_operator[domain_o]->_lfs_components;
-        auto o_it = std::find(lfs_comp_o.begin(), lfs_comp_o.end(), comp_o);
-        if (o_it != lfs_comp_o.end()) {
-          auto lfsv_ci = lfsv_i.child(domain_i).child(i);
-          std::size_t o = std::distance(lfs_comp_o.begin(), o_it);
-          auto lfsu_co = lfsu_o.child(domain_o).child(o);
-          for (std::size_t dof_i = 0; dof_i < lfsv_ci.size(); dof_i++) {
-            for (std::size_t dof_o = 0; dof_o < lfsu_co.size(); dof_o++) {
-              pattern_io.addLink(lfsv_ci, dof_i, lfsu_co, dof_o);
-            }
-          }
-        }
-      }
-    }
-
-    auto lfs_size_o = lfsu_o.child(domain_o).degree();
-    for (std::size_t o = 0; o < lfs_size_o; ++o) {
-      const std::size_t comp_o = _local_operator[domain_o]->_lfs_components[o];
-      std::array<std::size_t, 3> outside_comp{ domain_o, domain_i, comp_o };
-      auto it = _component_offset.find(outside_comp);
-      if (it != _component_offset.end()) {
-        auto comp_i = it->second;
-        const auto& lfs_comp_i = _local_operator[domain_i]->_lfs_components;
-        auto i_it = std::find(lfs_comp_i.begin(), lfs_comp_i.end(), comp_i);
-        if (i_it != lfs_comp_i.end()) {
-          auto lfsv_co = lfsv_o.child(domain_o).child(o);
-          std::size_t i = std::distance(lfs_comp_i.begin(), i_it);
-          auto lfsu_ci = lfsu_i.child(domain_i).child(i);
-          for (std::size_t dof_o = 0; dof_o < lfsv_co.size(); dof_o++) {
-            for (std::size_t dof_i = 0; dof_i < lfsu_ci.size(); dof_i++) {
-              pattern_oi.addLink(lfsv_co, dof_o, lfsu_ci, dof_i);
-            }
-          }
-        }
-      }
-    }
+    if (domain_i != domain_o)
+      interface_pattern_skeleton(domain_i,domain_o,lfsu_di,lfsv_di,lfsu_do,lfsv_do,pattern_io,pattern_oi);
+    else if constexpr (SubLOP::doPatternSkeleton)
+      _local_operator[domain_i]->pattern_skeleton(lfsu_di,lfsv_di,lfsu_do,lfsv_do,pattern_io,pattern_oi);
   }
 
   /**
@@ -300,9 +304,10 @@ public:
   }
 
   /**
-   * @copydoc LocalOperatorDiffusionReaction::jacobian_apply_volume
+   * @copydoc LocalOperatorDiffusionReactionCG::jacobian_apply_volume
    * @details    This particular operator does a jacobian apply volume for the
-   *             LocalOperatorDiffusionReaction corresponding to incoming entity
+   *             LocalOperatorDiffusionReactionCG corresponding to incoming
+   * entity
    */
   template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
   void jacobian_apply_volume(const EG& eg,
@@ -316,8 +321,6 @@ public:
       if (lfsu.child(i).size() > 0) {
         const auto& sub_lfsu = lfsu.child(i);
         const auto& sub_lfsv = lfsv.child(i);
-        if (sub_lfsu.size() == 0)
-          continue;
         _local_operator[i]->jacobian_apply_volume(
           eg, sub_lfsu, x, z, sub_lfsv, r);
       }
@@ -325,9 +328,10 @@ public:
   }
 
   /**
-   * @copydoc LocalOperatorDiffusionReaction::jacobian_apply_volume
+   * @copydoc LocalOperatorDiffusionReactionCG::jacobian_apply_volume
    * @details    This particular operator does a jacobian apply volume for the
-   *             LocalOperatorDiffusionReaction corresponding to incoming entity
+   *             LocalOperatorDiffusionReactionCG corresponding to incoming
+   * entity
    */
   template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
   void jacobian_apply_volume(const EG& eg,
@@ -340,17 +344,16 @@ public:
       if (lfsu.child(i).size() > 0) {
         const auto& sub_lfsu = lfsu.child(i);
         const auto& sub_lfsv = lfsv.child(i);
-        if (sub_lfsu.size() == 0)
-          continue;
         _local_operator[i]->jacobian_apply_volume(eg, sub_lfsu, x, sub_lfsv, r);
       }
     }
   }
 
   /**
-   * @copydoc LocalOperatorDiffusionReaction::jacobian_volume
+   * @copydoc LocalOperatorDiffusionReactionCG::jacobian_volume
    * @details    This particular operator does a jacobian volume for the
-   *             LocalOperatorDiffusionReaction corresponding to incoming entity
+   *             LocalOperatorDiffusionReactionCG corresponding to incoming
+   * entity
    */
   template<typename EG, typename LFSU, typename X, typename LFSV, typename M>
   void jacobian_volume(const EG& eg,
@@ -363,17 +366,16 @@ public:
       if (lfsu.child(i).size() > 0) {
         const auto& sub_lfsu = lfsu.child(i);
         const auto& sub_lfsv = lfsv.child(i);
-        if (sub_lfsu.size() == 0)
-          continue;
         _local_operator[i]->jacobian_volume(eg, sub_lfsu, x, sub_lfsv, mat);
       }
     }
   }
 
   /**
-   * @copydoc LocalOperatorDiffusionReaction::alpha_volume
+   * @copydoc LocalOperatorDiffusionReactionCG::alpha_volume
    * @details    This particular operator does a alpha volume for the
-   *             LocalOperatorDiffusionReaction corresponding to incoming entity
+   *             LocalOperatorDiffusionReactionCG corresponding to incoming
+   * entity
    */
   template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
   void alpha_volume(const EG& eg,
@@ -387,8 +389,6 @@ public:
       if (lfsu.child(i).size() > 0) {
         const auto& sub_lfsu = lfsu.child(i);
         const auto& sub_lfsv = lfsv.child(i);
-        if (sub_lfsu.size() == 0)
-          continue;
         _local_operator[i]->alpha_volume(eg, sub_lfsu, x, sub_lfsv, r);
       }
     }
@@ -427,12 +427,13 @@ public:
                       R& r_i,
                       R& r_o) const
   {
-
-    const auto& entity_f = ig.intersection();
     const auto& entity_i = ig.inside();
     const auto& entity_o = ig.outside();
 
-    assert(lfsu_i.degree() == _size);
+    assert(_size >= lfsu_i.degree());
+    assert(_size >= lfsu_o.degree());
+    assert(lfsu_i.degree() == lfsv_i.degree());
+    assert(lfsu_o.degree() == lfsv_o.degree());
 
     auto domain_set_i = _index_set.subDomains(entity_i);
     auto domain_set_o = _index_set.subDomains(entity_o);
@@ -443,18 +444,64 @@ public:
     std::size_t domain_i = *(domain_set_i.begin());
     std::size_t domain_o = *(domain_set_o.begin());
 
-    if (domain_i == domain_o)
-      return;
+    const auto& lfsu_di = lfsu_i.child(domain_i);
+    const auto& lfsv_di = lfsv_i.child(domain_i);
+    const auto& lfsu_do = lfsu_o.child(domain_o);
+    const auto& lfsv_do = lfsv_o.child(domain_o);
 
-    assert(lfsu_i.child(domain_i).size() == lfsv_i.child(domain_i).size());
-    assert(lfsu_o.child(domain_o).size() == lfsv_o.child(domain_o).size());
+    assert(lfsu_di.size() == lfsv_di.size());
+    assert(lfsu_do.size() == lfsv_do.size());
+
+    if (domain_i != domain_o)
+      interface_alpha_skeleton(domain_i,domain_o,ig,lfsu_di,x_i,lfsv_di,lfsu_do,x_o,lfsv_do,r_i,r_o);
+    else if constexpr (SubLocalOperator::doAlphaSkeleton)
+      _local_operator[domain_i]->alpha_skeleton(ig,lfsu_di,x_i,lfsv_di,lfsu_do,x_o,lfsv_do,r_i,r_o);
+  }
+
+  /**
+   * @brief      The skeleton integral
+   * @details    This integral is only performed at the interface between
+   *             different domains. Currently it has the form of
+   *             dichlet-dirichlet boundary condition between domains
+   *
+   * @param[in]  ig      The intersection
+   * @param[in]  lfsu_i  The inside trial local function space
+   * @param[in]  x_i     The inside local coefficient vector
+   * @param[in]  lfsv_i  The inside test local function space
+   * @param[in]  lfsu_o  The outside trial local function space
+   * @param[in]  x_o     The outside local coefficient vector
+   * @param[in]  lfsv_o  The outside test local function space
+   * @param      r_i     The inside residual vector
+   * @param      r_o     The outside residual vector
+   *
+   * @tparam     IG      The indersection
+   * @tparam     LFSU    The trial local function space
+   * @tparam     X       The local coefficient vector
+   * @tparam     LFSV    The test local function space
+   * @tparam     R       The residual vector
+   */
+  template<typename IG, typename LFSU, typename X, typename LFSV, typename R>
+  void interface_alpha_skeleton(std::size_t domain_i, std::size_t domain_o,
+                      const IG& ig,
+                      const LFSU& lfsu_di,
+                      const X& x_i,
+                      const LFSV& lfsv_di,
+                      const LFSU& lfsu_do,
+                      const X& x_o,
+                      const LFSV& lfsv_do,
+                      R& r_i,
+                      R& r_o) const
+  {
+    assert(lfsu_di.size() == lfsv_di.size());
+    assert(lfsu_do.size() == lfsv_do.size());
+
+    const auto& entity_f = ig.intersection();
+    const auto& entity_i = ig.inside();
+    const auto& entity_o = ig.outside();
 
     auto geo_f = entity_f.geometry();
     auto geo_in_i = entity_f.geometryInInside();
     auto geo_in_o = entity_f.geometryInOutside();
-
-    const auto& lfsu_di = lfsu_i.child(domain_i);
-    const auto& lfsu_do = lfsu_o.child(domain_o);
 
     std::size_t components_i = _component_name[domain_i].size();
     std::size_t components_o = _component_name[domain_o].size();
@@ -480,13 +527,20 @@ public:
       r_o.accumulate(lfsu_do.child(component), dof, value);
     };
 
-    typename IG::Entity::Geometry::JacobianInverseTransposed jac;
+    const auto& coeff_mapper_i = _local_operator[domain_i]->coefficient_mapper_inside(entity_i);
+    const auto& coeff_mapper_o = _local_operator[domain_o]->coefficient_mapper_outside(entity_o);
 
-    auto& coefficient_mapper_i = _local_operator[domain_i]->_coefficient_mapper;
-    coefficient_mapper_i.bind(entity_i);
+    const auto& local_basis_i = lfsu_di.child(0).finiteElement().localBasis();
+    const auto& local_basis_o = lfsu_do.child(0).finiteElement().localBasis();
 
-    auto& coefficient_mapper_o = _local_operator[domain_o]->_coefficient_mapper;
-    coefficient_mapper_o.bind(entity_o);
+    using LocalBasis = std::decay_t<decltype(local_basis_i)>;
+    using Range = typename LocalBasis::Traits::RangeType;
+    using RF = typename LocalBasis::Traits::RangeFieldType;
+
+    std::vector<Range> phiu_i(lfsu_di.size());
+    std::vector<Range> phiu_o(lfsu_do.size());
+
+    std::vector<RF> u_i(components_i), u_o(components_o);
 
     for (const auto& it : quadratureRule(geo_f, 3)) {
       const auto& position_f = it.position();
@@ -494,23 +548,21 @@ public:
       const auto position_i = geo_in_i.global(position_f);
       const auto position_o = geo_in_o.global(position_f);
 
-      std::vector<Range> phiu_i(lfsu_i.size());
-      std::vector<Range> phiu_o(lfsu_o.size());
-
       // evaluate basis functions
-      _local_basis.evaluateFunction(position_i, phiu_i);
-      _local_basis.evaluateFunction(position_o, phiu_o);
+      phiu_i.clear(), phiu_o.clear();
+      local_basis_i.evaluateFunction(position_i, phiu_i);
+      local_basis_o.evaluateFunction(position_o, phiu_o);
 
       // evaluate concentrations at quadrature point
-      DynamicVector<RF> u_i(components_i), u_o(components_o);
 
+      u_i.clear(), u_o.clear();
       for (std::size_t k = 0; k < components_i; k++) // loop over components
-        for (std::size_t j = 0; j < _local_basis.size(); j++)
-          u_i[k] += coefficient_mapper_i(x_coeff_local_i, k, j) * phiu_i[j];
+        for (std::size_t j = 0; j < local_basis_i.size(); j++)
+          u_i[k] += coeff_mapper_i(x_coeff_local_i, k, j) * phiu_i[j];
 
       for (std::size_t k = 0; k < components_o; k++) // loop over components
-        for (std::size_t j = 0; j < _local_basis.size(); j++)
-          u_o[k] += coefficient_mapper_o(x_coeff_local_o, k, j) * phiu_o[j];
+        for (std::size_t j = 0; j < local_basis_o.size(); j++)
+          u_o[k] += coeff_mapper_o(x_coeff_local_o, k, j) * phiu_o[j];
 
       // integration factor
       auto factor = it.weight() * geo_f.integrationElement(position_f);
@@ -520,7 +572,7 @@ public:
         if (lfsu_di.child(i).size() == 0)
           continue; // child space has nothing to compute
         const std::size_t comp_i =
-          _local_operator[domain_i]->_lfs_components[i];
+          _local_operator[domain_i]->lfs_components(lfsu_di,lfsv_di)[i];
         std::array<std::size_t, 3> inside_comp{ domain_i, domain_o, comp_i };
         auto it = _component_offset.find(inside_comp);
         if (it != _component_offset.end()) {
@@ -535,7 +587,7 @@ public:
         if (lfsu_do.child(o).size() == 0)
           continue; // child space has nothing to compute
         const std::size_t comp_o =
-          _local_operator[domain_o]->_lfs_components[o];
+          _local_operator[domain_o]->lfs_components(lfsu_do,lfsv_do)[o];
         std::array<std::size_t, 3> outside_comp{ domain_o, domain_i, comp_o };
         auto it = _component_offset.find(outside_comp);
         if (it != _component_offset.end()) {
@@ -582,7 +634,39 @@ public:
                          J& mat_oi,
                          J& mat_oo) const
   {
-    if constexpr (JM == JacobianMethod::Numerical) {
+    assert(_size >= lfsu_i.degree());
+    assert(_size >= lfsu_o.degree());
+    assert(lfsu_i.degree() == lfsv_i.degree());
+    assert(lfsu_o.degree() == lfsv_o.degree());
+
+    const auto& entity_i = ig.inside();
+    const auto& entity_o = ig.outside();
+
+    auto domain_set_i = _index_set.subDomains(entity_i);
+    auto domain_set_o = _index_set.subDomains(entity_o);
+
+    assert(domain_set_i.size() == 1);
+    assert(domain_set_o.size() == 1);
+
+    std::size_t domain_i = *(domain_set_i.begin());
+    std::size_t domain_o = *(domain_set_o.begin());
+
+    const auto& lfsu_di = lfsu_i.child(domain_i);
+    const auto& lfsv_di = lfsv_i.child(domain_i);
+    const auto& lfsu_do = lfsu_o.child(domain_o);
+    const auto& lfsv_do = lfsv_o.child(domain_o);
+
+    assert(lfsu_di.size() == lfsv_di.size());
+    assert(lfsu_do.size() == lfsv_do.size());
+
+    if (domain_i == domain_o)
+    {
+      if constexpr (SubLocalOperator::doAlphaSkeleton)
+      {
+        _local_operator[domain_i]->jacobian_skeleton(ig,lfsu_di,x_i,lfsv_di,lfsu_do,x_o,lfsv_do,mat_ii,mat_io,mat_oi,mat_oo);
+      }
+    }
+    else if constexpr (JM == JacobianMethod::Numerical)
       PDELab::NumericalJacobianSkeleton<
         LocalOperatorMultiDomainDiffusionReaction>::jacobian_skeleton(ig,
                                                                       lfsu_i,
@@ -595,36 +679,54 @@ public:
                                                                       mat_io,
                                                                       mat_oi,
                                                                       mat_oo);
-      return;
-    }
+    else
+      interface_jacobian_skeleton(domain_i,domain_o,ig,lfsu_di,x_i,lfsv_di,lfsu_do,x_o,lfsv_do,mat_ii,mat_io,mat_oi,mat_oo);
+  }
+
+  /**
+   * @brief      The jacobian skeleton integral
+   * @copydetails alpha_skeleton
+   *
+   * @param[in]  ig      The intersection
+   * @param[in]  lfsu_i  The inside trial local function space
+   * @param[in]  x_i     The inside local coefficient vector
+   * @param[in]  lfsv_i  The inside test local function space
+   * @param[in]  lfsu_o  The outside trial local function space
+   * @param[in]  x_o     The outside local coefficient vector
+   * @param[in]  lfsv_o  The outside test local function space
+   * @param      mat_ii  The local inside-inside matrix
+   * @param      mat_io  The local inside-outside matrix
+   * @param      mat_oi  The local outside-inside matrix
+   * @param      mat_oo  The local outside-outside matrix
+   *
+   * @tparam     IG      The indersection
+   * @tparam     LFSU    The trial local function space
+   * @tparam     X       The local coefficient vector
+   * @tparam     LFSV    The test local function space
+   * @tparam     J       The local jacobian matrix
+   */
+  template<typename IG, typename LFSU, typename X, typename LFSV, typename J>
+  void interface_jacobian_skeleton(std::size_t domain_i, std::size_t domain_o,
+                         const IG& ig,
+                         const LFSU& lfsu_di,
+                         const X& x_i,
+                         const LFSV& lfsv_di,
+                         const LFSU& lfsu_do,
+                         const X& x_o,
+                         const LFSV& lfsv_do,
+                         J& mat_ii,
+                         J& mat_io,
+                         J& mat_oi,
+                         J& mat_oo) const
+  {
+    assert(lfsu_di.size() == lfsv_di.size());
+    assert(lfsu_do.size() == lfsv_do.size());
 
     const auto& entity_f = ig.intersection();
-    const auto& entity_i = ig.inside();
-    const auto& entity_o = ig.outside();
-
-    assert(lfsu_i.degree() == _size);
-
-    auto domain_set_i = _index_set.subDomains(entity_i);
-    auto domain_set_o = _index_set.subDomains(entity_o);
-
-    assert(domain_set_i.size() == 1);
-    assert(domain_set_o.size() == 1);
-
-    std::size_t domain_i = *(domain_set_i.begin());
-    std::size_t domain_o = *(domain_set_o.begin());
-
-    if (domain_i == domain_o)
-      return;
-
-    assert(lfsu_i.child(domain_i).size() == lfsv_i.child(domain_i).size());
-    assert(lfsu_o.child(domain_o).size() == lfsv_o.child(domain_o).size());
 
     auto geo_f = entity_f.geometry();
     auto geo_in_i = entity_f.geometryInInside();
     auto geo_in_o = entity_f.geometryInOutside();
-
-    const auto& lfsu_di = lfsu_i.child(domain_i);
-    const auto& lfsu_do = lfsu_o.child(domain_o);
 
     auto accumulate_ii = [&](const std::size_t& component_i,
                              const std::size_t& dof_i,
@@ -674,7 +776,14 @@ public:
                         value);
     };
 
-    typename IG::Entity::Geometry::JacobianInverseTransposed jac;
+    const auto& local_basis_i = lfsu_di.child(0).finiteElement().localBasis();
+    const auto& local_basis_o = lfsu_do.child(0).finiteElement().localBasis();
+
+    using LocalBasis = std::decay_t<decltype(local_basis_i)>;
+    using Range = typename LocalBasis::Traits::RangeType;
+
+    std::vector<Range> phiu_i(lfsu_di.size());
+    std::vector<Range> phiu_o(lfsu_do.size());
 
     for (const auto& it : quadratureRule(geo_f, 3)) {
       const auto& position_f = it.position();
@@ -682,12 +791,10 @@ public:
       const auto position_i = geo_in_i.global(position_f);
       const auto position_o = geo_in_o.global(position_f);
 
-      std::vector<Range> phiu_i(lfsu_i.size());
-      std::vector<Range> phiu_o(lfsu_o.size());
-
       // evaluate basis functions
-      _local_basis.evaluateFunction(position_i, phiu_i);
-      _local_basis.evaluateFunction(position_o, phiu_o);
+      phiu_i.clear(), phiu_o.clear();
+      local_basis_i.evaluateFunction(position_i, phiu_i);
+      local_basis_o.evaluateFunction(position_o, phiu_o);
       // integration factor
       auto factor = it.weight() * geo_f.integrationElement(position_f);
 
@@ -697,7 +804,7 @@ public:
         if (lfsu_di.child(i).size() == 0)
           continue;
         const std::size_t comp_i =
-          _local_operator[domain_i]->_lfs_components[i];
+          _local_operator[domain_i]->lfs_components(lfsu_di,lfsv_di)[i];
         std::array<std::size_t, 3> inside_comp{ domain_i, domain_o, comp_i };
         auto it = _component_offset.find(inside_comp);
 
@@ -710,7 +817,7 @@ public:
 
           // find index of outside component in lfs
           const std::size_t comp_o = it->second;
-          const auto& lfs_comp_o = _local_operator[domain_o]->_lfs_components;
+          const auto& lfs_comp_o = _local_operator[domain_o]->lfs_components(lfsu_do,lfsv_do);
           auto o_it = std::find(lfs_comp_o.begin(), lfs_comp_o.end(), comp_o);
           if (o_it == lfs_comp_o.end())
             continue;
@@ -730,7 +837,7 @@ public:
         if (lfsu_do.child(o).size() == 0)
           continue;
         const std::size_t comp_o =
-          _local_operator[domain_o]->_lfs_components[o];
+          _local_operator[domain_o]->lfs_components(lfsu_do,lfsv_do)[o];
         std::array<std::size_t, 3> outside_comp{ domain_o, domain_i, comp_o };
         auto it = _component_offset.find(outside_comp);
 
@@ -743,7 +850,7 @@ public:
 
           // find index of outside component in lfs
           const std::size_t comp_i = it->second;
-          const auto& lfs_comp_i = _local_operator[domain_i]->_lfs_components;
+          const auto& lfs_comp_i = _local_operator[domain_i]->lfs_components(lfsu_di,lfsv_di);
           auto i_it = std::find(lfs_comp_i.begin(), lfs_comp_i.end(), comp_i);
           if (i_it == lfs_comp_i.end())
             continue;
@@ -770,13 +877,14 @@ public:
  *             switches between numerical and analytical jacobians. This local
  *             operator creates internally an individual local operator for
  *             every subdomain in the grid
+ * @todo       Add numerical jacobian methods
  *
  * @tparam     Grid                The grid
  * @tparam     LocalFiniteElement  The local finite element
  * @tparam     JM                  The jacobian method
  */
 template<class Grid,
-         class LocalFiniteElement,
+         class SubLocalOperator,
          JacobianMethod JM = JacobianMethod::Analytical>
 class TemporalLocalOperatorMultiDomainDiffusionReaction
   : public Dune::PDELab::LocalOperatorDefaultFlags
@@ -785,12 +893,11 @@ class TemporalLocalOperatorMultiDomainDiffusionReaction
   static_assert(Concept::isMultiDomainGrid<Grid>());
 
   using GridView = typename Grid::SubDomainGrid::LeafGridView;
-  using BaseLOP =
-    TemporalLocalOperatorDiffusionReaction<GridView, LocalFiniteElement, JM>;
+  using SubLOP = SubLocalOperator;
 
   std::size_t _size;
 
-  std::vector<std::shared_ptr<BaseLOP>> _local_operator;
+  std::vector<std::shared_ptr<SubLOP>> _local_operator;
 
 public:
   //! pattern assembly flags
@@ -810,7 +917,6 @@ public:
   TemporalLocalOperatorMultiDomainDiffusionReaction(
     std::shared_ptr<const Grid> grid,
     const ParameterTree& config,
-    const LocalFiniteElement& finite_element,
     std::size_t id_operator)
     : _size(config.sub("compartments").getValueKeys().size())
     , _local_operator(_size)
@@ -825,13 +931,13 @@ public:
       GridView sub_grid_view = grid->subDomain(sub_domain_id).leafGridView();
 
       const auto& sub_config = config.sub(compartments[i]);
-      _local_operator[i] = std::make_shared<BaseLOP>(
-        sub_grid_view, sub_config, finite_element, id_operator);
+      _local_operator[i] = std::make_shared<SubLOP>(
+        sub_grid_view, sub_config, id_operator);
     }
   }
 
   /**
-   * @copydoc TemporalLocalOperatorDiffusionReaction::pattern_volume
+   * @copydoc TemporalLocalOperatorDiffusionReactionCG::pattern_volume
    */
   template<typename LFSU, typename LFSV, typename LocalPattern>
   void pattern_volume(const LFSU& lfsu,
@@ -856,8 +962,6 @@ public:
       if (lfsu.child(i).size() > 0) {
         const auto& sub_lfsu = lfsu.child(i);
         const auto& sub_lfsv = lfsv.child(i);
-        if (sub_lfsu.size() == 0)
-          continue;
         _local_operator[i]->alpha_volume(eg, sub_lfsu, x, sub_lfsv, r);
       }
     }
@@ -877,8 +981,6 @@ public:
       if (lfsu.child(i).size() > 0) {
         const auto& sub_lfsu = lfsu.child(i);
         const auto& sub_lfsv = lfsv.child(i);
-        if (sub_lfsu.size() == 0)
-          continue;
         _local_operator[i]->jacobian_volume(eg, sub_lfsu, x, sub_lfsv, mat);
       }
     }
@@ -899,8 +1001,6 @@ public:
       if (lfsu.child(i).size() > 0) {
         const auto& sub_lfsu = lfsu.child(i);
         const auto& sub_lfsv = lfsv.child(i);
-        if (sub_lfsu.size() == 0)
-          continue;
         _local_operator[i]->jacobian_apply_volume(
           eg, sub_lfsu, x, z, sub_lfsv, r);
       }
@@ -921,8 +1021,6 @@ public:
       if (lfsu.child(i).size() > 0) {
         const auto& sub_lfsu = lfsu.child(i);
         const auto& sub_lfsv = lfsv.child(i);
-        if (sub_lfsu.size() == 0)
-          continue;
         _local_operator[i]->jacobian_apply_volume(eg, sub_lfsu, x, sub_lfsv, r);
       }
     }

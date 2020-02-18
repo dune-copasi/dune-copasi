@@ -22,13 +22,13 @@ template<class G, class GFS, class X>
 struct ConstModelState
 {
   //! Grid
-  using Grid = G;
+  using Grid = const G;
 
   //! Grid function space
-  using GridFunctionSpace = GFS;
+  using GridFunctionSpace = const GFS;
 
   //! Coefficients vector
-  using Coefficients = X;
+  using Coefficients = const X;
 
   std::shared_ptr<const Grid> grid;
   std::shared_ptr<const GridFunctionSpace> grid_function_space;

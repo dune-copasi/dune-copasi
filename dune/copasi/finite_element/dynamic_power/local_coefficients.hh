@@ -1,5 +1,5 @@
-#ifndef DUNE_COPASI_DYNAMIC_LOCAL_COEFFICIENTS_HH
-#define DUNE_COPASI_DYNAMIC_LOCAL_COEFFICIENTS_HH
+#ifndef DUNE_COPASI_DYNAMIC_POWER_LOCAL_COEFFICIENTS_HH
+#define DUNE_COPASI_DYNAMIC_POWER_LOCAL_COEFFICIENTS_HH
 
 #include <dune/localfunctions/common/localkey.hh>
 
@@ -82,7 +82,8 @@ public:
    *                         local coefficients
    */
   template<
-    class = std::enable_if_t<std::is_default_constructible_v<Coefficients>>>
+    bool default_constructible = std::is_default_constructible_v<Coefficients>,
+    class = std::enable_if_t<default_constructible>>
   DynamicPowerLocalCoefficients(std::size_t power_size)
     : DynamicPowerLocalCoefficients(Coefficients{}, power_size)
   {}
@@ -94,7 +95,8 @@ public:
    *                         local coefficients
    */
   template<
-    class = std::enable_if_t<std::is_default_constructible_v<Coefficients>>>
+    bool default_constructible = std::is_default_constructible_v<Coefficients>,
+    class = std::enable_if_t<default_constructible>>
   DynamicPowerLocalCoefficients()
     : DynamicPowerLocalCoefficients(1)
   {}
@@ -122,4 +124,4 @@ private:
 
 } // namespace Dune::Copasi
 
-#endif // DUNE_COPASI_DYNAMIC_LOCAL_COEFFICIENTS_HH
+#endif // DUNE_COPASI_DYNAMIC_POWER_LOCAL_COEFFICIENTS_HH
