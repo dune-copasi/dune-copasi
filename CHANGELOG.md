@@ -28,9 +28,23 @@ Types of changes
 ## [Unreleased]
 ### Added
 - Code documentation
+- Data Context concept for factories
+- Factory concept for arbitrary object instantiation
+- Add factories for finite element and finite element mas
 - Brief installation instructions
+- Models can interpolate grid functions
+- Grid utilities to recognize and mark tripes of entities
+- A finite volume loca operator
+- Grid function getters for external use
+- Single domain executable
 ### Changed
 - Move and rename header files
+- Multidomain finite element was split into a multidomain and a dynamic power finite element
+- Code DUNE dependencies are set to release 2.7 (See README.md)
+- Other DUNE dependencies are set to COPASI/support/dune-copasi (See README.md)
+- Executable is an optional build
+- Library is optional and is split into smaller libraries
+- Bump version utility updated to python3
 ### Fixed
 - Dirichlet-Dirichlet condition at interfaces was being computed twice
 
