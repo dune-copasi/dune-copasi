@@ -452,7 +452,7 @@ ModelDiffusionReaction<Traits>::step()
 template<class Traits>
 auto
 ModelDiffusionReaction<Traits>::get_data_handler(
-  std::map<std::size_t, State> states) const
+  std::map<std::size_t, ConstState> states) const
 {
   std::map<std::size_t, std::shared_ptr<DataHandler>> data;
   for (auto& [op, state] : states) {
@@ -463,16 +463,9 @@ ModelDiffusionReaction<Traits>::get_data_handler(
 }
 
 template<class Traits>
-void
-ModelDiffusionReaction<Traits>::update_data_handler()
-{
-  _data = get_data_handler(_states);
-}
-
-template<class Traits>
 auto
 ModelDiffusionReaction<Traits>::get_grid_function(
-  const std::map<std::size_t, State>& states,
+  const std::map<std::size_t, ConstState>& states,
   std::size_t comp) const -> std::shared_ptr<ComponentGridFunction>
 {
   auto data = get_data_handler(states);
@@ -496,13 +489,13 @@ auto
 ModelDiffusionReaction<Traits>::get_grid_function(std::size_t comp) const
   -> std::shared_ptr<ComponentGridFunction>
 {
-  return get_grid_function(_states, comp);
+  return get_grid_function(const_states(), comp);
 }
 
 template<class Traits>
 auto
 ModelDiffusionReaction<Traits>::get_grid_functions(
-  const std::map<std::size_t, State>& states) const
+  const std::map<std::size_t, ConstState>& states) const
   -> std::vector<std::shared_ptr<ComponentGridFunction>>
 {
   std::size_t size = _config.sub("operator").getValueKeys().size();
@@ -518,11 +511,12 @@ auto
 ModelDiffusionReaction<Traits>::get_grid_functions() const
   -> std::vector<std::shared_ptr<ComponentGridFunction>>
 {
-  return get_grid_functions(_states);
+  return get_grid_functions(const_states());
 }
 template<class Traits>
 void
-ModelDiffusionReaction<Traits>::write_states() const
+ModelDiffusionReaction<Traits>::write_states(
+  const std::map<std::size_t, ConstState>& states) const
 {
   for (auto& [op, state] : _states) {
     auto& x = state.coefficients;
@@ -548,6 +542,13 @@ ModelDiffusionReaction<Traits>::write_states() const
   }
   _sequential_writer->write(current_time(), Dune::VTK::base64);
   _sequential_writer->vtkWriter()->clear();
+}
+
+template<class Traits>
+void
+ModelDiffusionReaction<Traits>::write_states() const
+{
+  write_states(const_states());
 }
 
 } // namespace Dune::Copasi

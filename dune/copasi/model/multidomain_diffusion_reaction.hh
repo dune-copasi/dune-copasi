@@ -193,8 +193,8 @@ private:
     Dune::Copasi::MultiDomainEntityTransformation<Grid>;
 
   using DataHandler =
-    PDELab::vtk::DGFTreeCommonData<GFS,
-                                   X,
+    PDELab::vtk::DGFTreeCommonData<const GFS,
+                                   const X,
                                    PDELab::vtk::DefaultPredicate,
                                    SubDomainGridView,
                                    EntityTransformation>;
@@ -307,8 +307,11 @@ public:
   void step() override;
 
   /**
-   * @brief      Gets a grid function for a given component and a sub domain.
-   * @todo       Make this function operate on constant states
+   * @brief      Gets a grid function for a given component, a sub domain, and a state.
+   * @details    The resulting grid function is persistent w.r.t the grid.
+   *             This means that the grid function will be valid and will contain exaclty
+   *             the same data even if the model is modified in any form. The only exception
+   *             to this is when the grid is modified.
    *
    * @param[in]  states  The model states
    * @param[in]  domain  The domain
@@ -316,14 +319,48 @@ public:
    *
    * @return     The grid function.
    */
-  std::shared_ptr<ComponentGridFunction> get_grid_function(const std::map<std::size_t, State>& states,
+  std::shared_ptr<ComponentGridFunction> get_grid_function(const std::map<std::size_t, ConstState>& states,
                          std::size_t domain,
                          std::size_t comp) const;
 
+  /**
+   * @brief      Gets a grid function for a given component, and a sub domain at the current state of the model.
+   * @details    The resulting grid function is persistent w.r.t the grid.
+   *             This means that the grid function will be valid and will contain exaclty
+   *             the same data even if the model is modified in any form. The only exception
+   *             to this is when the grid is modified.
+   *
+   * @param[in]  domain  The domain
+   * @param[in]  comp    The component
+   *
+   * @return     The grid function.
+   */
   std::shared_ptr<ComponentGridFunction> get_grid_function(std::size_t domain, std::size_t comp) const;
 
-  std::vector<std::vector<std::shared_ptr<ComponentGridFunction>>> get_grid_functions(const std::map<std::size_t, State>& states) const;
+  /**
+   * @brief      Gets a grid function for each component, and each sub domain.
+   * @details    The resulting grid functions are persistent w.r.t the grid.
+   *             This means that the grid functions will be valid and will contain exaclty
+   *             the same data even if the model is modified in any form. The only exception
+   *             to this is when the grid is modified.
+   *
+   * @param[in]  states  The model states
+   *
+   * @return     The grid functions.
+   */
+  std::vector<std::vector<std::shared_ptr<ComponentGridFunction>>> get_grid_functions(const std::map<std::size_t, ConstState>& states) const;
 
+  /**
+   * @brief      Gets a grid function for each component, and each sub domain at the current state of the model.
+   * @details    The resulting grid functions are persistent w.r.t the grid.
+   *             This means that the grid functions will be valid and will contain exaclty
+   *             the same data even if the model is modified in any form. The only exception
+   *             to this is when the grid is modified.
+   *
+   * @param[in]  states  The model states
+   *
+   * @return     The grid functions.
+   */
   std::vector<std::vector<std::shared_ptr<ComponentGridFunction>>> get_grid_functions() const;
 
 protected:
@@ -336,9 +373,9 @@ protected:
   void setup_solvers();
   void setup_vtk_writer();
   void write_states() const;
+  void write_states(const std::map<std::size_t, ConstState>& states) const;
 
-  void update_data_handler();
-  auto get_data_handler(std::map<std::size_t, State>) const;
+  auto get_data_handler(std::map<std::size_t, ConstState>) const;
 
 private:
   using ModelBase::_logger;
@@ -351,8 +388,6 @@ private:
 
   std::map<std::size_t, State> _states;
   std::shared_ptr<Grid> _grid;
-
-  std::vector<std::map<std::size_t, std::shared_ptr<DataHandler>>> _data;
 
   std::map<std::size_t, std::unique_ptr<CC>> _constraints;
   std::map<std::size_t, std::shared_ptr<LOP>> _local_operators;

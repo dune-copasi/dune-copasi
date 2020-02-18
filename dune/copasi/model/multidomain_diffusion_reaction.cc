@@ -47,7 +47,6 @@ ModelMultiDomainDiffusionReaction<Traits>::ModelMultiDomainDiffusionReaction(
     }
     set_initial(initial_muparser);
 
-    update_data_handler();
     write_states();
   }
 
@@ -425,6 +424,8 @@ ModelMultiDomainDiffusionReaction<Traits>::step()
                                          Dune::Logging::LogLevel::detail);
 
   double max_error = std::numeric_limits<double>::max();
+
+  // make a copy of the shared pointers from current state
   auto states_after = _states;
 
   _logger.info("Time Step {:.2e} + {:.2e} -> {:.2e}"_fmt,
@@ -433,16 +434,20 @@ ModelMultiDomainDiffusionReaction<Traits>::step()
                current_time() + dt);
   std::size_t op_iter = 0;
   do {
+    // make another copy of the shared pointers from "after" apply state
     const auto states_before = states_after;
     _solver_logger.notice("Iteration {}"_fmt, op_iter);
     for (auto& [op, state] : states_after) {
       _solver_logger.notice("Operator {}"_fmt, op);
       _local_operators[op]->update(const_states(states_after));
 
+      // create a new vector to compute the solution
       auto& x = state.coefficients;
       auto x_new = std::make_shared<X>(*x);
       _one_step_methods[op]->apply(
         current_time(), dt, *_states[op].coefficients, *x_new);
+
+      // set the new vector the pointer in "after" apply state
       x = x_new;
     }
 
@@ -453,8 +458,8 @@ ModelMultiDomainDiffusionReaction<Traits>::step()
         const auto& comp_names =
           _config.sub(compartments[i] + ".initial").getValueKeys();
         for (std::size_t j = 0; j < comp_names.size(); j++) {
-          auto gf_before = get_grid_function(states_before, i, j);
-          auto gf_after = get_grid_function(states_after, i, j);
+          auto gf_before = get_grid_function(const_states(states_before), i, j);
+          auto gf_after = get_grid_function(const_states(states_after), i, j);
           PDELab::DifferenceSquaredAdapter<ComponentGridFunction,
                                            ComponentGridFunction>
             err(*gf_before, *gf_after);
@@ -477,17 +482,16 @@ ModelMultiDomainDiffusionReaction<Traits>::step()
 
   current_time() += dt;
 
-  // update to new states
+  // set the "after" state as the current state
   _states = states_after;
 
-  update_data_handler();
   write_states();
 }
 
 template<class Traits>
 auto
 ModelMultiDomainDiffusionReaction<Traits>::get_data_handler(
-  std::map<std::size_t, State> states) const
+  std::map<std::size_t, ConstState> states) const
 {
   std::vector<std::map<std::size_t, std::shared_ptr<DataHandler>>> data(
     _domains);
@@ -509,16 +513,9 @@ ModelMultiDomainDiffusionReaction<Traits>::get_data_handler(
 }
 
 template<class Traits>
-void
-ModelMultiDomainDiffusionReaction<Traits>::update_data_handler()
-{
-  _data = get_data_handler(_states);
-}
-
-template<class Traits>
 auto
 ModelMultiDomainDiffusionReaction<Traits>::get_grid_function(
-  const std::map<std::size_t, State>& states,
+  const std::map<std::size_t, ConstState>& states,
   std::size_t domain,
   std::size_t comp) const -> std::shared_ptr<ComponentGridFunction>
 {
@@ -546,13 +543,13 @@ ModelMultiDomainDiffusionReaction<Traits>::get_grid_function(
   std::size_t domain,
   std::size_t comp) const -> std::shared_ptr<ComponentGridFunction>
 {
-  return get_grid_function(_states, domain, comp);
+  return get_grid_function(const_states(), domain, comp);
 }
 
 template<class Traits>
 auto
 ModelMultiDomainDiffusionReaction<Traits>::get_grid_functions(
-  const std::map<std::size_t, State>& states) const
+  const std::map<std::size_t, ConstState>& states) const
   -> std::vector<std::vector<std::shared_ptr<ComponentGridFunction>>>
 {
   const auto& compartments = _config.sub("compartments").getValueKeys();
@@ -579,21 +576,22 @@ auto
 ModelMultiDomainDiffusionReaction<Traits>::get_grid_functions() const
   -> std::vector<std::vector<std::shared_ptr<ComponentGridFunction>>>
 {
-  return get_grid_functions(_states);
+  return get_grid_functions(const_states());
 }
 
 template<class Traits>
 void
-ModelMultiDomainDiffusionReaction<Traits>::write_states() const
+ModelMultiDomainDiffusionReaction<Traits>::write_states(
+  const std::map<std::size_t, ConstState>& states) const
 {
-
   const auto& compartments = _config.sub("compartments").getValueKeys();
 
+  auto all_data = get_data_handler(states);
   for (std::size_t i = 0; i < _domains; ++i) {
     const std::string compartement = compartments[i];
 
     for (auto& [op, state] : _states) {
-      const auto& data = _data[i].at(op);
+      const auto& data = all_data[i].at(op);
       PDELab::vtk::OutputCollector<SW, DataHandler> collector(
         *_sequential_writer[i], data);
       for (std::size_t k = 0; k < data->_lfs.child(i).degree(); k++) {
@@ -604,6 +602,13 @@ ModelMultiDomainDiffusionReaction<Traits>::write_states() const
     _sequential_writer[i]->write(current_time(), Dune::VTK::base64);
     _sequential_writer[i]->vtkWriter()->clear();
   }
+}
+
+template<class Traits>
+void
+ModelMultiDomainDiffusionReaction<Traits>::write_states() const
+{
+  write_states(const_states());
 }
 
 } // namespace Dune::Copasi

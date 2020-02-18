@@ -303,10 +303,11 @@ private:
   using SW = Dune::VTKSequenceWriter<GV>;
 
   using DataHandler =
-    PDELab::vtk::DGFTreeCommonData<GFS,
-                                   X,
+    PDELab::vtk::DGFTreeCommonData<const GFS,
+                                   const X,
                                    PDELab::vtk::DefaultPredicate,
                                    GV>;
+
   using ComponentLFS =
     typename PDELab::LocalFunctionSpace<GFS>::ChildType;
 
@@ -420,18 +421,59 @@ public:
   template<class GF>
   void set_initial(const std::vector<std::shared_ptr<GF>>& initial);
 
-  auto get_data_handler(std::map<std::size_t, State> states) const;
-
-  void update_data_handler();
-
-  std::shared_ptr<ComponentGridFunction> get_grid_function(const std::map<std::size_t, State>& states,
+  /**
+   * @brief      Gets a grid function for a given component, and a state.
+   * @details    The resulting grid function is persistent w.r.t the grid.
+   *             This means that the grid function will be valid and will contain exaclty
+   *             the same data even if the model is modified in any form. The only exception
+   *             to this is when the grid is modified.
+   *
+   * @param[in]  states  The model states
+   * @param[in]  comp    The component
+   *
+   * @return     The grid function.
+   */
+  std::shared_ptr<ComponentGridFunction> get_grid_function(const std::map<std::size_t, ConstState>& states,
                          std::size_t comp) const;
 
+  /**
+   * @brief      Gets a grid function for a given component at the current state of the model.
+   * @details    The resulting grid function is persistent w.r.t the grid.
+   *             This means that the grid function will be valid and will contain exaclty
+   *             the same data even if the model is modified in any form. The only exception
+   *             to this is when the grid is modified.
+   *
+   * @param[in]  comp    The component
+   *
+   * @return     The grid function.
+   */
   std::shared_ptr<ComponentGridFunction> get_grid_function(std::size_t comp) const;
 
+  /**
+   * @brief      Gets a grid function for each component.
+   * @details    The resulting grid functions are persistent w.r.t the grid.
+   *             This means that the grid functions will be valid and will contain exaclty
+   *             the same data even if the model is modified in any form. The only exception
+   *             to this is when the grid is modified.
+   *
+   * @param[in]  states  The model states
+   *
+   * @return     The grid functions.
+   */
   std::vector<std::shared_ptr<ComponentGridFunction>>
-  get_grid_functions(const std::map<std::size_t, State>& states) const;
+  get_grid_functions(const std::map<std::size_t, ConstState>& states) const;
 
+  /**
+   * @brief      Gets a grid function for each component at the current state of the model.
+   * @details    The resulting grid functions are persistent w.r.t the grid.
+   *             This means that the grid functions will be valid and will contain exaclty
+   *             the same data even if the model is modified in any form. The only exception
+   *             to this is when the grid is modified.
+   *
+   * @param[in]  states  The model states
+   *
+   * @return     The grid functions.
+   */
   std::vector<std::shared_ptr<ComponentGridFunction>>
   get_grid_functions() const;
 
@@ -447,6 +489,9 @@ protected:
   void setup_solvers();
   void setup_vtk_writer();
   void write_states() const;
+  void write_states(const std::map<std::size_t, ConstState>& states) const;
+
+  auto get_data_handler(std::map<std::size_t, ConstState> states) const;
 
   /**
    * @brief      Setup for next time step
@@ -464,8 +509,6 @@ private:
   std::multimap<std::size_t, std::string> _operator_splitting;
 
   std::shared_ptr<Grid> _grid;
-
-  std::map<std::size_t, std::shared_ptr<DataHandler>> _data;
 
   std::map<std::size_t, std::unique_ptr<CC>> _constraints;
   std::map<std::size_t, std::shared_ptr<LOP>> _local_operators;
