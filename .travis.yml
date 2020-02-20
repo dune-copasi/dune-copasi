@@ -57,8 +57,8 @@ after_script:
   - bash dune-copasi/.ci/unit_tests.sh
   - bash dune-copasi/.ci/system_tests.sh
   # check dependencies of executable
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then otool -L $TRAVIS_BUILD_DIR/build-cmake/src/dune_copasi; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then ldd $TRAVIS_BUILD_DIR/build-cmake/src/dune_copasi; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then otool -L $TRAVIS_BUILD_DIR/build-cmake/src/dune_copasi_md; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then ldd $TRAVIS_BUILD_DIR/build-cmake/src/dune_copasi_md; fi
 
 notifications:
 email: false
