@@ -26,6 +26,8 @@ Types of changes
  -->
 
 ## [Unreleased]
+
+## [0.2.0] - 2020-02-20
 ### Added
 - Code documentation
 - Data Context concept for factories
@@ -53,5 +55,6 @@ Types of changes
 - [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Solver for reaction-diffusion systems in multiple compartments.
 
-[Unreleased]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v0.1.0...master
+[Unreleased]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v0.2.0...master
+[0.2.0]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v0.1.0...0.2.0
 [0.1.0]: https://gitlab.dune-project.org/copasi/dune-copasi/-/tags/v0.1.0
