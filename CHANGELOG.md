@@ -56,5 +56,5 @@ Types of changes
 - Solver for reaction-diffusion systems in multiple compartments.
 
 [Unreleased]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v0.2.0...master
-[0.2.0]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v0.1.0...0.2.0
+[0.2.0]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v0.1.0...v0.2.0
 [0.1.0]: https://gitlab.dune-project.org/copasi/dune-copasi/-/tags/v0.1.0
