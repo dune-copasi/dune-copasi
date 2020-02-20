@@ -38,3 +38,14 @@ target_link_libraries(dune_copasi_sd_lib INTERFACE
   dune_copasi_sd_lib_cg
   dune_copasi_sd_lib_fv_cg
 )
+
+install(TARGETS dune_copasi_lib
+  dune_copasi_md_lib_fv
+  dune_copasi_md_lib_cg
+  dune_copasi_md_lib_fv_cg
+  dune_copasi_sd_lib_fv
+  dune_copasi_sd_lib_cg
+  dune_copasi_sd_lib_fv_cg
+  COMPONENT Development
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
