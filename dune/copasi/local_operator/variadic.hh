@@ -11,28 +11,28 @@ namespace LocalOperatorApply {
 
 // Pattern helepers
 
-auto patternVolume = [](const auto& lop, auto&... args)
+static auto patternVolume = [](const auto& lop, auto&... args)
 {
   using LOP = std::decay_t<decltype(lop)>;
   if constexpr (LOP::doPatternVolume)
     lop.pattern_volume(args...);
 };
 
-auto patternVolumePostSkeleton = [](const auto& lop, auto&... args)
+static auto patternVolumePostSkeleton = [](const auto& lop, auto&... args)
 {
   using LOP = std::decay_t<decltype(lop)>;
   if constexpr (LOP::doPatternVolumePostSkeleton)
     lop.pattern_volume_post_skeleton(args...);
 };
 
-auto patternSkeleton = [](const auto& lop, auto&... args)
+static auto patternSkeleton = [](const auto& lop, auto&... args)
 {
   using LOP = std::decay_t<decltype(lop)>;
   if constexpr (LOP::doPatternSkeleton)
     lop.pattern_skeleton(args...);
 };
 
-auto patternBoundary = [](const auto& lop, auto&... args)
+static auto patternBoundary = [](const auto& lop, auto&... args)
 {
   using LOP = std::decay_t<decltype(lop)>;
   if constexpr (LOP::doPatternBoundary)
@@ -41,28 +41,28 @@ auto patternBoundary = [](const auto& lop, auto&... args)
 
 // Alpha helepers
 
-auto alphaVolume = [](const auto& lop, auto&... args)
+static auto alphaVolume = [](const auto& lop, auto&... args)
 {
   using LOP = std::decay_t<decltype(lop)>;
   if constexpr (LOP::doAlphaVolume)
     lop.alpha_volume(args...);
 };
 
-auto alphaVolumePostSkeleton = [](const auto& lop, auto&... args)
+static auto alphaVolumePostSkeleton = [](const auto& lop, auto&... args)
 {
   using LOP = std::decay_t<decltype(lop)>;
   if constexpr (LOP::doAlphaVolumePostSkeleton)
     lop.alpha_volume_post_skeleton(args...);
 };
 
-auto alphaSkeleton = [](const auto& lop, auto&... args)
+static auto alphaSkeleton = [](const auto& lop, auto&... args)
 {
   using LOP = std::decay_t<decltype(lop)>;
   if constexpr (LOP::doAlphaSkeleton)
     lop.alpha_skeleton(args...);
 };
 
-auto alphaBoundary = [](const auto& lop, auto&... args)
+static auto alphaBoundary = [](const auto& lop, auto&... args)
 {
   using LOP = std::decay_t<decltype(lop)>;
   if constexpr (LOP::doAlphaBoundary)
@@ -72,28 +72,28 @@ auto alphaBoundary = [](const auto& lop, auto&... args)
 
 // Lambda helepers
 
-auto lambdaVolume = [](const auto& lop, auto&... args)
+static auto lambdaVolume = [](const auto& lop, auto&... args)
 {
   using LOP = std::decay_t<decltype(lop)>;
   if constexpr (LOP::doLambdaVolume)
     lop.lambda_volume(args...);
 };
 
-auto lambdaVolumePostSkeleton = [](const auto& lop, auto&... args)
+static auto lambdaVolumePostSkeleton = [](const auto& lop, auto&... args)
 {
   using LOP = std::decay_t<decltype(lop)>;
   if constexpr (LOP::doLambdaVolumePostSkeleton)
     lop.lambda_volume_post_skeleton(args...);
 };
 
-auto lambdaSkeleton = [](const auto& lop, auto&... args)
+static auto lambdaSkeleton = [](const auto& lop, auto&... args)
 {
   using LOP = std::decay_t<decltype(lop)>;
   if constexpr (LOP::doLambdaSkeleton)
     lop.lambda_skeleton(args...);
 };
 
-auto lambdaBoundary = [](const auto& lop, auto&... args)
+static auto lambdaBoundary = [](const auto& lop, auto&... args)
 {
   using LOP = std::decay_t<decltype(lop)>;
   if constexpr (LOP::doLambdaBoundary)
@@ -103,28 +103,28 @@ auto lambdaBoundary = [](const auto& lop, auto&... args)
 
 // Jacobian helepers
 
-auto jacobianVolume = [](const auto& lop, auto&... args)
+static auto jacobianVolume = [](const auto& lop, auto&... args)
 {
   using LOP = std::decay_t<decltype(lop)>;
   if constexpr (LOP::doAlphaVolume)
     lop.jacobian_volume(args...);
 };
 
-auto jacobianVolumePostSkeleton = [](const auto& lop, auto&... args)
+static auto jacobianVolumePostSkeleton = [](const auto& lop, auto&... args)
 {
   using LOP = std::decay_t<decltype(lop)>;
   if constexpr (LOP::doAlphaVolumePostSkeleton)
     lop.jacobian_volume_post_skeleton(args...);
 };
 
-auto jacobianSkeleton = [](const auto& lop, auto&... args)
+static auto jacobianSkeleton = [](const auto& lop, auto&... args)
 {
   using LOP = std::decay_t<decltype(lop)>;
   if constexpr (LOP::doAlphaSkeleton)
     lop.jacobian_skeleton(args...);
 };
 
-auto jacobianBoundary = [](const auto& lop, auto&... args)
+static auto jacobianBoundary = [](const auto& lop, auto&... args)
 {
   using LOP = std::decay_t<decltype(lop)>;
   if constexpr (LOP::doAlphaBoundary)
@@ -134,28 +134,28 @@ auto jacobianBoundary = [](const auto& lop, auto&... args)
 
 // Jacobian apply helepers
 
-auto jacobianApplyVolume = [](const auto& lop, auto&... args)
+static auto jacobianApplyVolume = [](const auto& lop, auto&... args)
 {
   using LOP = std::decay_t<decltype(lop)>;
   if constexpr (LOP::doAlphaVolume)
     lop.jacobian_apply_volume(args...);
 };
 
-auto jacobianApplyVolumePostSkeleton = [](const auto& lop, auto&... args)
+static auto jacobianApplyVolumePostSkeleton = [](const auto& lop, auto&... args)
 {
   using LOP = std::decay_t<decltype(lop)>;
   if constexpr (LOP::doAlphaVolumePostSkeleton)
     lop.jacobian_apply_volume_post_skeleton(args...);
 };
 
-auto jacobianApplySkeleton = [](const auto& lop, auto&... args)
+static auto jacobianApplySkeleton = [](const auto& lop, auto&... args)
 {
   using LOP = std::decay_t<decltype(lop)>;
   if constexpr (LOP::doAlphaSkeleton)
     lop.jacobian_apply_skeleton(args...);
 };
 
-auto jacobianApplyBoundary = [](const auto& lop, auto&... args)
+static auto jacobianApplyBoundary = [](const auto& lop, auto&... args)
 {
   using LOP = std::decay_t<decltype(lop)>;
   if constexpr (LOP::doAlphaBoundary)
