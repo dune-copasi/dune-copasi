@@ -26,13 +26,14 @@ Types of changes
  -->
 
 ## [Unreleased]
-
+### Fixed
+- Violation of the One-Definition-Rule due to external linkage of `LocalOperatorApply` lambdas !23
 ## [0.2.0] - 2020-02-20
 ### Added
 - Code documentation
 - Data Context concept for factories
 - Factory concept for arbitrary object instantiation
-- Add factories for finite element and finite element mas
+- Add factories for finite element and finite element map
 - Brief installation instructions
 - Models can interpolate grid functions
 - Grid utilities to recognize and mark tripes of entities
