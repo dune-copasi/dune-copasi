@@ -21,7 +21,7 @@ namespace Dune::Copasi {
  */
 template<class GridView>
 std::enable_if_t<Capabilities::hasSingleGeometryType<typename GridView::Grid>::v,bool>
-constexpr has_single_geometry_type(const GridView&)
+has_single_geometry_type(const GridView&)
 {
   return true;
 }
