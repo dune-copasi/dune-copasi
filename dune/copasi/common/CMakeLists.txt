@@ -1,4 +1,5 @@
-install(FILES coefficient_mapper.hh
+install(FILES bit_flags.hh
+              coefficient_mapper.hh
               data_context.hh
               enum.hh
               muparser_data_handler.hh
