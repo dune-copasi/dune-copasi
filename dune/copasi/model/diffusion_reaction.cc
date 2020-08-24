@@ -7,6 +7,7 @@
  * file but a header which has to be included when compiling.
  */
 
+#include <dune/copasi/common/bit_flags.hh>
 #include <dune/copasi/common/data_context.hh>
 #include <dune/copasi/common/muparser_data_handler.hh>
 #include <dune/copasi/common/pdelab_expression_adapter.hh>
@@ -28,7 +29,7 @@ ModelDiffusionReaction<Traits>::ModelDiffusionReaction(
   std::shared_ptr<Grid> grid,
   const Dune::ParameterTree& config,
   GV grid_view,
-  ModelSetupPolicy setup_policy)
+  BitFlags<ModelSetup::Stages> setup_policy)
   : ModelBase(config)
   , _solver_logger(Logging::Logging::componentLogger(config, "solver"))
   , _components(config.sub("reaction").getValueKeys().size())
@@ -38,23 +39,8 @@ ModelDiffusionReaction<Traits>::ModelDiffusionReaction(
 {
   setup(setup_policy);
 
-  if constexpr (not Traits::is_sub_model) // todo fix this conditional for
-                                          // something else
-    if (setup_policy == ModelSetupPolicy::All) {
-      MuParserDataHandler<TIFFGrayscale<unsigned short>> mu_data_handler;
-      if (_config.hasSub("data"))
-        mu_data_handler.add_tiff_functions(_config.sub("data"));
-
-      auto initial_muparser = get_muparser_initial(_config, _grid_view, false);
-
-      for (auto&& mu_grid_function : initial_muparser) {
-        mu_data_handler.set_functions(mu_grid_function->parser());
-        mu_grid_function->set_time(current_time());
-        mu_grid_function->compile_parser();
-      }
-      set_initial(initial_muparser);
-      write_states();
-    }
+  if (setup_policy.test(ModelSetup::Stages::Writer))
+    write_states();
 
   _logger.debug("ModelDiffusionReaction constructed"_fmt);
 }
@@ -251,6 +237,27 @@ ModelDiffusionReaction<Traits>::setup_coefficient_vectors()
 
 template<class Traits>
 void
+ModelDiffusionReaction<Traits>::setup_initial_condition()
+{
+   // If this is a sub model, instantiation of the following functions will fail
+  if constexpr (not Traits::is_sub_model) {
+  MuParserDataHandler<TIFFGrayscale<unsigned short>> mu_data_handler;
+    if (_config.hasSub("data"))
+      mu_data_handler.add_tiff_functions(_config.sub("data"));
+
+    auto initial_muparser = get_muparser_initial(_config, _grid_view, false);
+
+    for (auto&& mu_grid_function : initial_muparser) {
+      mu_data_handler.set_functions(mu_grid_function->parser());
+      mu_grid_function->set_time(current_time());
+      mu_grid_function->compile_parser();
+    }
+    set_initial(initial_muparser);
+  }
+}
+
+template<class Traits>
+void
 ModelDiffusionReaction<Traits>::setup_constraints()
 {
   _logger.debug("setup constraints"_fmt);
@@ -370,6 +377,7 @@ ModelDiffusionReaction<Traits>::setup_vtk_writer()
 {
   _logger.debug("setup vtk writer"_fmt);
 
+  assert(_config.hasSub("writer"));
   _writer = std::make_shared<W>(_grid_view, Dune::VTK::conforming);
   auto config_writer = _config.sub("writer");
   std::string file_name = config_writer.template get<std::string>("file_name");
@@ -400,21 +408,23 @@ ModelDiffusionReaction<Traits>::suggest_timestep(double dt)
 
 template<class Traits>
 void
-ModelDiffusionReaction<Traits>::setup(ModelSetupPolicy setup_policy)
+ModelDiffusionReaction<Traits>::setup(BitFlags<ModelSetup::Stages> setup_policy)
 {
-  if (setup_policy >= ModelSetupPolicy::GridFunctionSpace)
+  if (setup_policy.test(ModelSetup::Stages::GridFunctionSpace))
     setup_grid_function_space();
-  if (setup_policy >= ModelSetupPolicy::CoefficientVector)
+  if (setup_policy.test(ModelSetup::Stages::CoefficientVector))
     setup_coefficient_vectors();
-  if (setup_policy >= ModelSetupPolicy::Constraints)
+  if (setup_policy.test(ModelSetup::Stages::InitialCondition))
+    setup_initial_condition();
+  if (setup_policy.test(ModelSetup::Stages::Constraints))
     setup_constraints();
-  if (setup_policy >= ModelSetupPolicy::LocalOperator)
+  if (setup_policy.test(ModelSetup::Stages::LocalOperator))
     setup_local_operators();
-  if (setup_policy >= ModelSetupPolicy::GridOperator)
+  if (setup_policy.test(ModelSetup::Stages::GridOperator))
     setup_grid_operators();
-  if (setup_policy >= ModelSetupPolicy::Solver)
+  if (setup_policy.test(ModelSetup::Stages::Solver))
     setup_solvers();
-  if (setup_policy >= ModelSetupPolicy::Writer)
+  if (setup_policy.test(ModelSetup::Stages::Writer))
     setup_vtk_writer();
 }
 
@@ -518,6 +528,9 @@ void
 ModelDiffusionReaction<Traits>::write_states(
   const std::map<std::size_t, ConstState>& states) const
 {
+  if(_sequential_writer)
+    DUNE_THROW(IOError,"Make sure to setup vtk writers before calling this method");
+
   for (auto& [op, state] : _states) {
     auto& x = state.coefficients;
     auto& gfs = state.grid_function_space;

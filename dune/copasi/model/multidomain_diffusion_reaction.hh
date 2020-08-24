@@ -215,7 +215,7 @@ public:
   ModelMultiDomainDiffusionReaction(
     std::shared_ptr<Grid> grid,
     const Dune::ParameterTree& config,
-    ModelSetupPolicy setup_policy = ModelSetupPolicy::All);
+    BitFlags<ModelSetup::Stages> setup_policy = BitFlags<ModelSetup::Stages>::All);
 
   /**
    * @brief      Destroys the object.
@@ -294,7 +294,7 @@ public:
    *
    * @param[in]  setup_policy  The setup policy
    */
-  void setup(ModelSetupPolicy setup_policy = ModelSetupPolicy::All);
+  void setup(BitFlags<ModelSetup::Stages> setup_policy);
 
   /**
    * @copydoc ModelBase::suggest_timestep
@@ -366,6 +366,7 @@ public:
 protected:
   void setup_grid_function_spaces();
   void setup_coefficient_vectors();
+  void setup_initial_condition();
   void setup_constraints();
   auto setup_local_operator(std::size_t) const;
   void setup_local_operators();

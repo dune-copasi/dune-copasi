@@ -7,6 +7,8 @@
  * file but a header which has to be included when compiling.
  */
 
+#include <dune/copasi/common/bit_flags.hh>
+
 #include <dune/copasi/common/muparser_data_handler.hh>
 #include <dune/copasi/model/multidomain_diffusion_reaction.hh>
 
@@ -19,7 +21,7 @@ template<class Traits>
 ModelMultiDomainDiffusionReaction<Traits>::ModelMultiDomainDiffusionReaction(
   std::shared_ptr<Grid> grid,
   const Dune::ParameterTree& config,
-  ModelSetupPolicy setup_policy)
+  BitFlags<ModelSetup::Stages> setup_policy)
   : ModelBase(config)
   , _solver_logger(Logging::Logging::componentLogger(config, "solver"))
   , _config(config)
@@ -29,26 +31,8 @@ ModelMultiDomainDiffusionReaction<Traits>::ModelMultiDomainDiffusionReaction(
 {
   setup(setup_policy);
 
-  if (setup_policy == ModelSetupPolicy::All) {
-
-    MuParserDataHandler<TIFFGrayscale<unsigned short>> mu_data_handler;
-    if (_config.hasSub("data"))
-      mu_data_handler.add_tiff_functions(_config.sub("data"));
-
-    auto initial_muparser =
-      get_muparser_initial(_config, _grid->leafGridView(), false);
-
-    for (auto&& sd_grid_function : initial_muparser) {
-      for (auto&& mu_grid_function : sd_grid_function) {
-        mu_data_handler.set_functions(mu_grid_function->parser());
-        mu_grid_function->compile_parser();
-        mu_grid_function->set_time(current_time());
-      }
-    }
-    set_initial(initial_muparser);
-
+  if (setup_policy.test(ModelSetup::Stages::Writer))
     write_states();
-  }
 
   _logger.debug("ModelMultiDomainDiffusionReaction constructed"_fmt);
 }
@@ -172,7 +156,7 @@ ModelMultiDomainDiffusionReaction<Traits>::setup_grid_function_spaces()
 
     _logger.trace("create a sub model for compartment {}"_fmt, domain);
     auto sub_model = std::make_shared<SubModel>(
-      _grid, model_config, sub_grid_view, ModelSetupPolicy::GridFunctionSpace);
+      _grid, model_config, sub_grid_view, ModelSetup::setup_grid_function_space);
     // extract grid function space from the sub model
     auto states = sub_model->states();
     for (auto& [op, state] : states) {
@@ -210,6 +194,28 @@ ModelMultiDomainDiffusionReaction<Traits>::setup_coefficient_vectors()
     else
       x = std::make_shared<X>(*gfs);
   }
+}
+
+
+template<class Traits>
+void
+ModelMultiDomainDiffusionReaction<Traits>::setup_initial_condition()
+{
+  MuParserDataHandler<TIFFGrayscale<unsigned short>> mu_data_handler;
+  if (_config.hasSub("data"))
+    mu_data_handler.add_tiff_functions(_config.sub("data"));
+
+  auto initial_muparser =
+    get_muparser_initial(_config, _grid->leafGridView(), false);
+
+  for (auto&& sd_grid_function : initial_muparser) {
+    for (auto&& mu_grid_function : sd_grid_function) {
+      mu_data_handler.set_functions(mu_grid_function->parser());
+      mu_grid_function->compile_parser();
+      mu_grid_function->set_time(current_time());
+    }
+  }
+  set_initial(initial_muparser);
 }
 
 template<class Traits>
@@ -361,6 +367,7 @@ ModelMultiDomainDiffusionReaction<Traits>::setup_vtk_writer()
     std::shared_ptr<W> writer =
       std::make_shared<W>(sub_grid_view, Dune::VTK::conforming);
 
+    assert(_config.hasSub("writer"));
     auto config_writer = model_config.sub("writer");
     std::string file_name =
       config_writer.template get<std::string>("file_name");
@@ -392,23 +399,25 @@ ModelMultiDomainDiffusionReaction<Traits>::suggest_timestep(double dt)
 
 template<class Traits>
 void
-ModelMultiDomainDiffusionReaction<Traits>::setup(ModelSetupPolicy setup_policy)
+ModelMultiDomainDiffusionReaction<Traits>::setup(BitFlags<ModelSetup::Stages> setup_policy)
 {
   _logger.trace("setup operator started"_fmt);
 
-  if (setup_policy >= ModelSetupPolicy::GridFunctionSpace)
+  if (setup_policy.test(ModelSetup::Stages::GridFunctionSpace))
     setup_grid_function_spaces();
-  if (setup_policy >= ModelSetupPolicy::CoefficientVector)
+  if (setup_policy.test(ModelSetup::Stages::CoefficientVector))
     setup_coefficient_vectors();
-  if (setup_policy >= ModelSetupPolicy::Constraints)
+  if (setup_policy.test(ModelSetup::Stages::InitialCondition))
+    setup_initial_condition();
+  if (setup_policy.test(ModelSetup::Stages::Constraints))
     setup_constraints();
-  if (setup_policy >= ModelSetupPolicy::LocalOperator)
+  if (setup_policy.test(ModelSetup::Stages::LocalOperator))
     setup_local_operators();
-  if (setup_policy >= ModelSetupPolicy::GridOperator)
+  if (setup_policy.test(ModelSetup::Stages::GridOperator))
     setup_grid_operators();
-  if (setup_policy >= ModelSetupPolicy::Solver)
+  if (setup_policy.test(ModelSetup::Stages::Solver))
     setup_solvers();
-  if (setup_policy >= ModelSetupPolicy::Writer)
+  if (setup_policy.test(ModelSetup::Stages::Writer))
     setup_vtk_writer();
 }
 
@@ -584,12 +593,16 @@ void
 ModelMultiDomainDiffusionReaction<Traits>::write_states(
   const std::map<std::size_t, ConstState>& states) const
 {
+  if(_sequential_writer.empty())
+    DUNE_THROW(IOError,"Make sure to setup vtk writers before calling this method");
+
   const auto& compartments = _config.sub("compartments").getValueKeys();
 
   auto all_data = get_data_handler(states);
   for (std::size_t i = 0; i < _domains; ++i) {
-    const std::string compartement = compartments[i];
+    assert(_sequential_writer[i]);
 
+    const std::string compartement = compartments[i];
     for (auto& [op, state] : _states) {
       const auto& data = all_data[i].at(op);
       PDELab::vtk::OutputCollector<SW, DataHandler> collector(

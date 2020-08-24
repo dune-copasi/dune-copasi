@@ -326,7 +326,7 @@ public:
   ModelDiffusionReaction(std::shared_ptr<Grid> grid,
                          const Dune::ParameterTree& config,
                          GV grid_view,
-                         ModelSetupPolicy setup_policy = ModelSetupPolicy::All);
+                         BitFlags<ModelSetup::Stages> setup_policy = BitFlags<ModelSetup::Stages>::All);
 
   /**
    * @brief      Constructs the model
@@ -343,7 +343,7 @@ public:
              T>>
   ModelDiffusionReaction(std::shared_ptr<Grid> grid,
                          const Dune::ParameterTree& config,
-                         ModelSetupPolicy setup_policy = ModelSetupPolicy::All)
+                         BitFlags<ModelSetup::Stages> setup_policy = BitFlags<ModelSetup::Stages>::All)
     : ModelDiffusionReaction(grid, config, grid->leafGridView(), setup_policy)
   {}
 
@@ -482,6 +482,7 @@ protected:
   auto setup_domain_grid_function_space(std::vector<std::string>) const;
   void setup_grid_function_space();
   void setup_coefficient_vectors();
+  void setup_initial_condition();
   void setup_constraints();
   auto setup_local_operator(std::size_t) const;
   void setup_local_operators();
@@ -496,7 +497,7 @@ protected:
   /**
    * @brief      Setup for next time step
    */
-  void setup(ModelSetupPolicy setup_policy = ModelSetupPolicy::All);
+  void setup(BitFlags<ModelSetup::Stages> setup_policy);
 
   using ModelBase::_logger;
   Logging::Logger _solver_logger;
