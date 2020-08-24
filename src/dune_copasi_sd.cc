@@ -100,7 +100,8 @@ main(int argc, char** argv)
     // @todo check coupling at interface and refuse to compute coupled models
 
     // Set all stages on by default
-    auto setup_policy = Dune::Copasi::BitFlags<Dune::Copasi::ModelSetup::Stages>::All;
+    auto setup_policy =
+      Dune::Copasi::BitFlags<Dune::Copasi::ModelSetup::Stages>::All;
 
     // Only write solution in case of writter section is available
     if (not model_config.hasSub("writer"))

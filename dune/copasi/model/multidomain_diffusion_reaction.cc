@@ -155,8 +155,11 @@ ModelMultiDomainDiffusionReaction<Traits>::setup_grid_function_spaces()
     SubDomainGridView sub_grid_view = _grid->subDomain(domain).leafGridView();
 
     _logger.trace("create a sub model for compartment {}"_fmt, domain);
-    auto sub_model = std::make_shared<SubModel>(
-      _grid, model_config, sub_grid_view, ModelSetup::setup_grid_function_space);
+    auto sub_model =
+      std::make_shared<SubModel>(_grid,
+                                 model_config,
+                                 sub_grid_view,
+                                 ModelSetup::setup_grid_function_space);
     // extract grid function space from the sub model
     auto states = sub_model->states();
     for (auto& [op, state] : states) {
@@ -195,7 +198,6 @@ ModelMultiDomainDiffusionReaction<Traits>::setup_coefficient_vectors()
       x = std::make_shared<X>(*gfs);
   }
 }
-
 
 template<class Traits>
 void
@@ -399,7 +401,8 @@ ModelMultiDomainDiffusionReaction<Traits>::suggest_timestep(double dt)
 
 template<class Traits>
 void
-ModelMultiDomainDiffusionReaction<Traits>::setup(BitFlags<ModelSetup::Stages> setup_policy)
+ModelMultiDomainDiffusionReaction<Traits>::setup(
+  BitFlags<ModelSetup::Stages> setup_policy)
 {
   _logger.trace("setup operator started"_fmt);
 
@@ -593,8 +596,9 @@ void
 ModelMultiDomainDiffusionReaction<Traits>::write_states(
   const std::map<std::size_t, ConstState>& states) const
 {
-  if(_sequential_writer.empty())
-    DUNE_THROW(IOError,"Make sure to setup vtk writers before calling this method");
+  if (_sequential_writer.empty())
+    DUNE_THROW(IOError,
+               "Make sure to setup vtk writers before calling this method");
 
   const auto& compartments = _config.sub("compartments").getValueKeys();
 

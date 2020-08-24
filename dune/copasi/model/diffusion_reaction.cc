@@ -239,9 +239,9 @@ template<class Traits>
 void
 ModelDiffusionReaction<Traits>::setup_initial_condition()
 {
-   // If this is a sub model, instantiation of the following functions will fail
+  // If this is a sub model, instantiation of the following functions will fail
   if constexpr (not Traits::is_sub_model) {
-  MuParserDataHandler<TIFFGrayscale<unsigned short>> mu_data_handler;
+    MuParserDataHandler<TIFFGrayscale<unsigned short>> mu_data_handler;
     if (_config.hasSub("data"))
       mu_data_handler.add_tiff_functions(_config.sub("data"));
 
@@ -528,8 +528,9 @@ void
 ModelDiffusionReaction<Traits>::write_states(
   const std::map<std::size_t, ConstState>& states) const
 {
-  if(_sequential_writer)
-    DUNE_THROW(IOError,"Make sure to setup vtk writers before calling this method");
+  if (_sequential_writer)
+    DUNE_THROW(IOError,
+               "Make sure to setup vtk writers before calling this method");
 
   for (auto& [op, state] : _states) {
     auto& x = state.coefficients;
