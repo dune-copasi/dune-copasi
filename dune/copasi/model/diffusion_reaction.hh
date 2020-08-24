@@ -335,7 +335,7 @@ public:
                          const Dune::ParameterTree& config,
                          GV grid_view,
                          BitFlags<ModelSetup::Stages> setup_policy =
-                           BitFlags<ModelSetup::Stages>::All);
+                           BitFlags<ModelSetup::Stages>::all_flags());
 
   /**
    * @brief      Constructs the model
@@ -353,7 +353,7 @@ public:
   ModelDiffusionReaction(std::shared_ptr<Grid> grid,
                          const Dune::ParameterTree& config,
                          BitFlags<ModelSetup::Stages> setup_policy =
-                           BitFlags<ModelSetup::Stages>::All)
+                           BitFlags<ModelSetup::Stages>::all_flags())
     : ModelDiffusionReaction(grid, config, grid->leafGridView(), setup_policy)
   {}
 

@@ -214,7 +214,7 @@ public:
   ModelMultiDomainDiffusionReaction(std::shared_ptr<Grid> grid,
                                     const Dune::ParameterTree& config,
                                     BitFlags<ModelSetup::Stages> setup_policy =
-                                      BitFlags<ModelSetup::Stages>::All);
+                                      BitFlags<ModelSetup::Stages>::all_flags());
 
   /**
    * @brief      Destroys the object.

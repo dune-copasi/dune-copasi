@@ -52,16 +52,16 @@ class BitFlags
 
   //! Value full of 0 bits
   static constexpr UnderlyingType null_value =
-    UnderlyingType{} ^ UnderlyingType {};
+    UnderlyingType{} ^ UnderlyingType{};
 
 public:
   //! Bitflag with all flags turned on
-  static constexpr BitFlags<Enum> All =
-    BitFlags<Enum>{ static_cast<Enum>(~null_value) };
+  static constexpr BitFlags<Enum> all_flags() { return
+    BitFlags<Enum>{ static_cast<Enum>(~null_value) }; }
 
   //! Bitflag with all flags turned off
-  static constexpr BitFlags<Enum> None =
-    BitFlags<Enum>{ static_cast<Enum>(null_value) };
+  static constexpr BitFlags<Enum> no_flags() {return
+    BitFlags<Enum>{ static_cast<Enum>(null_value) }; }
 
   //! Default constructor
   // All flags are default initialized to false

@@ -101,7 +101,7 @@ main(int argc, char** argv)
 
     // Set all stages on by default
     auto setup_policy =
-      Dune::Copasi::BitFlags<Dune::Copasi::ModelSetup::Stages>::All;
+      Dune::Copasi::BitFlags<Dune::Copasi::ModelSetup::Stages>::all_flags();
 
     // Only write solution in case of writter section is available
     if (not model_config.hasSub("writer"))
