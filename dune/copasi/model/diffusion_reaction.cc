@@ -38,9 +38,7 @@ ModelDiffusionReaction<Traits>::ModelDiffusionReaction(
   , _grid(grid)
 {
   setup(setup_policy);
-
-  if (setup_policy.test(ModelSetup::Stages::Writer))
-    write_states();
+  write_states();
 
   _logger.debug("ModelDiffusionReaction constructed"_fmt);
 }
@@ -239,20 +237,27 @@ template<class Traits>
 void
 ModelDiffusionReaction<Traits>::setup_initial_condition()
 {
-  // If this is a sub model, instantiation of the following functions will fail
+  // if this is a sub model, instantiation of the following instantiation will fail
   if constexpr (not Traits::is_sub_model) {
+    // get TIFF data if available
     MuParserDataHandler<TIFFGrayscale<unsigned short>> mu_data_handler;
     if (_config.hasSub("data"))
       mu_data_handler.add_tiff_functions(_config.sub("data"));
 
+    // configure math parsers for initial conditions on each component
     auto initial_muparser = get_muparser_initial(_config, _grid_view, false);
 
     for (auto&& mu_grid_function : initial_muparser) {
+      // make TIFF expression available in the parser
       mu_data_handler.set_functions(mu_grid_function->parser());
       mu_grid_function->set_time(current_time());
       mu_grid_function->compile_parser();
     }
+    // evaluate compiled expressions as initial conditions
     set_initial(initial_muparser);
+  } else {
+    DUNE_THROW(NotImplemented,
+               "Initial condition setup is only available for complete models");
   }
 }
 
@@ -375,9 +380,15 @@ template<class Traits>
 void
 ModelDiffusionReaction<Traits>::setup_vtk_writer()
 {
-  _logger.debug("setup vtk writer"_fmt);
+  // only configure if config writer section exist
+  if(not _config.hasSub("writer"))
+  {
+    _logger.debug("skipping of setup vtk writer"_fmt);
+    return;
+  } else {
+    _logger.debug("setup vtk writer"_fmt);
+  }
 
-  assert(_config.hasSub("writer"));
   _writer = std::make_shared<W>(_grid_view, Dune::VTK::conforming);
   auto config_writer = _config.sub("writer");
   std::string file_name = config_writer.template get<std::string>("file_name");
@@ -455,7 +466,6 @@ ModelDiffusionReaction<Traits>::step()
     Dune::Logging::Logging::restoreCout();
 
   current_time() += dt;
-
   write_states();
 }
 
@@ -528,9 +538,8 @@ void
 ModelDiffusionReaction<Traits>::write_states(
   const std::map<std::size_t, ConstState>& states) const
 {
-  if (_sequential_writer)
-    DUNE_THROW(IOError,
-               "Make sure to setup vtk writers before calling this method");
+  if (!_sequential_writer) // skip write if not setup
+    return;
 
   for (auto& [op, state] : _states) {
     auto& x = state.coefficients;

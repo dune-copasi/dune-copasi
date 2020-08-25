@@ -6,41 +6,46 @@
 
 namespace Dune::Copasi {
 
-//! Bitflag indicator
-// This class might be specialized when a certain enum is wanted to do not have
-// automatic convertion to bitflags
+/**
+ * @brief  Bitflag indicator
+ * @details This class might be specialized when a certain enum is wanted to do
+ *          not have automatic convertion to BitFlags.
+ * @see BitFlags
+ * @see is_bitflags_v
+ */
 template<class T>
-struct is_bit_flag : public std::is_enum<T>
+struct is_bitflags : public std::is_enum<T>
 {};
 
 //! Alias for Bitflag indicator
 template<class T>
-constexpr bool is_bit_flag_v = is_bit_flag<T>::value;
+constexpr bool is_bitflags_v = is_bitflags<T>::value;
 
 /**
  * @brief     Bit flags for enumerators
  * @details   This class allows that an enum can be operated as a bit set of
- * flags. When an enum is a bit flag most operators expected for bits are
- * enabled to operate directly on that enum. This object is different than a
- * std::bitset because it is fully constexpr and because operators on the
- * underlying enum are automatic.
+ * flags. When an enum is a bit flags (see is_bitflags) most operators expected
+ * for bits are enabled to operate directly on that enum. This object is
+ * different than a std::bitset because it is fully constexpr and because
+ * operators on the underlying enum are automatic.
  * @code
  *   // Notice that each option correspond to a different bit
  *   enum class MyEnum {option_a = 0b01, option_b = 0b10};
  *   // `my_enum` is deduced as `BitFlags<MyEnum>` type because operator | on
- * `MyEnum` was overloaded to do so auto my_enum = MyEnum::option_a |
- * MyEnum::option_b; assert(my_enum.test(MyEnum::option_a));
+ *   // `MyEnum` was overloaded to do so
+ *   auto my_enum = MyEnum::option_a | MyEnum::option_b;
+ *   assert(my_enum.test(MyEnum::option_a));
  * @endcode
+ * @see is_bitflags
  *
  * @tparam     Enum     Enumerator to be converted into a bit flag
  */
-//! Bit flags for enumerators
 template<typename Enum>
 class BitFlags
 {
   // Ensure that Enum is a valid template
   static_assert(
-    is_bit_flag_v<Enum>,
+    is_bitflags_v<Enum>,
     "Enum is not a bit flag and it should not be instatiated in BitFlag class");
   static_assert(std::is_enum_v<Enum>, "Emum type must be a enummeration type");
 
@@ -101,7 +106,7 @@ public:
     return static_cast<const Enum>(_value);
   }
 
-  //! Return bitflag as its underlying type
+  //! Return bitflag as its underlying enum
   constexpr inline Enum& as_enum() { return static_cast<Enum&>(_value); }
 
   //! Implicit conversion to underlying enum
@@ -212,7 +217,7 @@ private:
 
 //! Bitwise or between two enums that may be bitflags
 template<class Enum>
-constexpr inline std::enable_if_t<is_bit_flag_v<Enum>, BitFlags<Enum>>
+constexpr inline std::enable_if_t<is_bitflags_v<Enum>, BitFlags<Enum>>
 operator|(Enum lhs, Enum rhs)
 {
   return BitFlags<Enum>{ lhs } | BitFlags<Enum>{ rhs };
@@ -220,7 +225,7 @@ operator|(Enum lhs, Enum rhs)
 
 //! Bitwise and between two enums that may be bitflags
 template<class Enum>
-constexpr inline std::enable_if_t<is_bit_flag_v<Enum>, BitFlags<Enum>>
+constexpr inline std::enable_if_t<is_bitflags_v<Enum>, BitFlags<Enum>>
 operator&(Enum lhs, Enum rhs)
 {
   return BitFlags<Enum>{ lhs } & BitFlags<Enum>{ rhs };
@@ -228,7 +233,7 @@ operator&(Enum lhs, Enum rhs)
 
 //! Bitwise xor between two enums that may be bitflags
 template<class Enum>
-constexpr inline std::enable_if_t<is_bit_flag_v<Enum>, BitFlags<Enum>>
+constexpr inline std::enable_if_t<is_bitflags_v<Enum>, BitFlags<Enum>>
 operator^(Enum lhs, Enum rhs)
 {
   return BitFlags<Enum>{ lhs } ^ BitFlags<Enum>{ rhs };
@@ -236,7 +241,7 @@ operator^(Enum lhs, Enum rhs)
 
 //! Return true if all flags of both enums (allowed to be bitflags) are equal
 template<class Enum>
-constexpr inline std::enable_if_t<is_bit_flag_v<Enum>, bool>
+constexpr inline std::enable_if_t<is_bitflags_v<Enum>, bool>
 operator==(Enum lhs, Enum rhs)
 {
   return BitFlags<Enum>{ lhs } == BitFlags<Enum>{ rhs };
@@ -245,7 +250,7 @@ operator==(Enum lhs, Enum rhs)
 //! Return true if any flags of both enums (allowed to be bitflags) are
 //! different
 template<class Enum>
-constexpr inline std::enable_if_t<is_bit_flag_v<Enum>, bool>
+constexpr inline std::enable_if_t<is_bitflags_v<Enum>, bool>
 operator!=(Enum lhs, Enum rhs)
 {
   return BitFlags<Enum>{ lhs } != BitFlags<Enum>{ rhs };

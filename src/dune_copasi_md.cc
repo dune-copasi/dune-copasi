@@ -78,34 +78,26 @@ main(int argc, char** argv)
     auto& model_config = config.sub("model");
     int order = model_config.get<int>("order");
 
-    // Set all stages on by default
-    auto setup_policy =
-      Dune::Copasi::BitFlags<Dune::Copasi::ModelSetup::Stages>::all_flags();
-
-    // Only write solution in case of writter section is available
-    if (not model_config.hasSub("writer"))
-      setup_policy.reset(Dune::Copasi::ModelSetup::Stages::Writer);
-
     if (order == 0) {
       constexpr int Order = 0;
       using ModelTraits =
         Dune::Copasi::ModelMultiDomainPkDiffusionReactionTraits<Grid, Order>;
       Dune::Copasi::ModelMultiDomainDiffusionReaction<ModelTraits> model(
-        md_grid_ptr, model_config, setup_policy);
+        md_grid_ptr, model_config);
       model.run();
     } else if (order == 1) {
       constexpr int Order = 1;
       using ModelTraits =
         Dune::Copasi::ModelMultiDomainP0PkDiffusionReactionTraits<Grid, Order>;
       Dune::Copasi::ModelMultiDomainDiffusionReaction<ModelTraits> model(
-        md_grid_ptr, model_config, setup_policy);
+        md_grid_ptr, model_config);
       model.run();
     } else if (order == 2) {
       constexpr int Order = 2;
       using ModelTraits =
         Dune::Copasi::ModelMultiDomainP0PkDiffusionReactionTraits<Grid, Order>;
       Dune::Copasi::ModelMultiDomainDiffusionReaction<ModelTraits> model(
-        md_grid_ptr, model_config, setup_policy);
+        md_grid_ptr, model_config);
       model.run();
     } else {
       DUNE_THROW(Dune::IOError,

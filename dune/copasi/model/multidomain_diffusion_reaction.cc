@@ -30,9 +30,7 @@ ModelMultiDomainDiffusionReaction<Traits>::ModelMultiDomainDiffusionReaction(
   , _domains(config.sub("compartments").getValueKeys().size())
 {
   setup(setup_policy);
-
-  if (setup_policy.test(ModelSetup::Stages::Writer))
-    write_states();
+  write_states();
 
   _logger.debug("ModelMultiDomainDiffusionReaction constructed"_fmt);
 }
@@ -203,20 +201,24 @@ template<class Traits>
 void
 ModelMultiDomainDiffusionReaction<Traits>::setup_initial_condition()
 {
+  // get TIFF data if available
   MuParserDataHandler<TIFFGrayscale<unsigned short>> mu_data_handler;
   if (_config.hasSub("data"))
     mu_data_handler.add_tiff_functions(_config.sub("data"));
 
+  // configure math parsers for initial conditions on each component
   auto initial_muparser =
     get_muparser_initial(_config, _grid->leafGridView(), false);
 
   for (auto&& sd_grid_function : initial_muparser) {
     for (auto&& mu_grid_function : sd_grid_function) {
+      // make TIFF expression available in the parser
       mu_data_handler.set_functions(mu_grid_function->parser());
       mu_grid_function->compile_parser();
       mu_grid_function->set_time(current_time());
     }
   }
+  // evaluate compiled expressions as initial conditions
   set_initial(initial_muparser);
 }
 
@@ -357,9 +359,17 @@ ModelMultiDomainDiffusionReaction<Traits>::setup_vtk_writer()
   _sequential_writer.resize(_domains);
 
   for (std::size_t i = 0; i < _domains; ++i) {
-
     const std::string compartement = compartments[i];
     auto& model_config = _config.sub(compartement);
+
+    // only configure those domains with writer section
+    if(not model_config.hasSub("writer"))
+    {
+      _logger.detail("skipping setup of vtk writer for domain '{}'"_fmt, compartement);
+      continue;
+    } else {
+      _logger.detail("setup vtk writer for domain '{}'"_fmt, compartement);
+    }
 
     int sub_domain_id =
       _config.sub("compartments").template get<int>(compartement);
@@ -368,8 +378,6 @@ ModelMultiDomainDiffusionReaction<Traits>::setup_vtk_writer()
 
     std::shared_ptr<W> writer =
       std::make_shared<W>(sub_grid_view, Dune::VTK::conforming);
-
-    assert(_config.hasSub("writer"));
     auto config_writer = model_config.sub("writer");
     std::string file_name =
       config_writer.template get<std::string>("file_name");
@@ -596,15 +604,15 @@ void
 ModelMultiDomainDiffusionReaction<Traits>::write_states(
   const std::map<std::size_t, ConstState>& states) const
 {
-  if (_sequential_writer.empty())
-    DUNE_THROW(IOError,
-               "Make sure to setup vtk writers before calling this method");
+  if (_sequential_writer.empty()) // case where no writer was configured
+    return;
 
   const auto& compartments = _config.sub("compartments").getValueKeys();
 
   auto all_data = get_data_handler(states);
   for (std::size_t i = 0; i < _domains; ++i) {
-    assert(_sequential_writer[i]);
+    if (not _sequential_writer[i]) // skip not setup writers
+      continue;
 
     const std::string compartement = compartments[i];
     for (auto& [op, state] : _states) {

@@ -325,6 +325,9 @@ private:
 public:
   /**
    * @brief      Constructs the model
+   * @todo       Make a seccion describing the requirements of the confi file
+   * @details    The model will be constructed according to the stages included in the
+   *             setup policy
    *
    * @param[in]  grid          The grid
    * @param[in]  config        The configuration file
@@ -339,8 +342,11 @@ public:
 
   /**
    * @brief      Constructs the model
-   * @details    This constructor only is available if the grid view
+   * @warning    This constructor only is available if the grid view
    *             is the leaf grid view of the templated grid
+   * @todo       Make a seccion describing the requirements of the confi file
+   * @details    The model will be constructed according to the stages included in the
+   *             setup policy
    *
    * @param[in]  grid          The grid
    * @param[in]  config        The configuration file
@@ -504,7 +510,11 @@ protected:
   void setup_grid_operators();
   void setup_solvers();
   void setup_vtk_writer();
+
+  //! Write states for the configured writers
   void write_states() const;
+
+  //! Write states for the configured writers
   void write_states(const std::map<std::size_t, ConstState>& states) const;
 
   auto get_data_handler(std::map<std::size_t, ConstState> states) const;

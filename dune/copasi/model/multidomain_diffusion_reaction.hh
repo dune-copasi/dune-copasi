@@ -207,6 +207,9 @@ private:
 public:
   /**
    * @brief      Constructs a new instance.
+   * @todo       Make a seccion describing the requirements of the confi file
+   * @details    The model will be constructed according to the stages included in the
+   *             setup policy
    *
    * @param[in]  grid    The grid
    * @param[in]  config  The configuration
@@ -383,7 +386,11 @@ protected:
   void setup_grid_operators();
   void setup_solvers();
   void setup_vtk_writer();
+
+  //! Write states for the configured writers
   void write_states() const;
+
+  //! Write states for the configured writers
   void write_states(const std::map<std::size_t, ConstState>& states) const;
 
   auto get_data_handler(std::map<std::size_t, ConstState>) const;
