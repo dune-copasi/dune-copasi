@@ -1,0 +1,32 @@
+__name = test_no_writer
+
+[grid]
+file = grids/square_triangles.msh
+initial_level = 0
+
+[model]
+begin_time = 0.
+end_time = 10
+time_step = 0.1
+order = 1
+
+[model.compartments]
+domain     = 0
+
+############################ Model for domain ############################
+[model.domain.operator]
+u = 0
+
+[model.domain.initial]
+u = 1
+
+[model.domain.reaction]
+u = u
+
+[model.domain.reaction.jacobian]
+du_du = 1
+
+[model.domain.diffusion]
+u = 0.
+
+# A inifile without `writer` section must be valid
