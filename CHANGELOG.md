@@ -26,8 +26,11 @@ Types of changes
  -->
 
 ## [Unreleased]
+### Added
+- Scape VTK write by omitting `[writer]` section !24
 ### Fixed
 - Violation of the One-Definition-Rule due to external linkage of `LocalOperatorApply` lambdas !23
+
 ## [0.2.0] - 2020-02-20
 ### Added
 - Code documentation

@@ -4,9 +4,13 @@
 #include <dune/copasi/common/enum.hh>
 #include <dune/copasi/concepts/grid.hh>
 
+#include <dune/pdelab/localoperator/flags.hh>
+#include <dune/pdelab/localoperator/idefault.hh>
 #include <dune/pdelab/localoperator/numericaljacobian.hh>
 #include <dune/pdelab/localoperator/numericaljacobianapply.hh>
 #include <dune/pdelab/localoperator/numericalnonlinearjacobianapply.hh>
+
+#include <dune/common/parametertree.hh>
 
 #include <algorithm>
 #include <map>

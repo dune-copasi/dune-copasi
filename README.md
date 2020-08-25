@@ -188,7 +188,7 @@ differential equation associated with it.
   reads as the *partial derivate of `<var_i>` with respect to `<var_j>`*.
   * The `operator` subsection is an experimental feature and we recommend to set all variables to the
   same index, e.g. 0.
-  * Finally, the subsection `writer` will define the file name for the vtk output.
+  * (Optional) Finally, the subsection `writer` will define the file name for the vtk output.
 
 For example, the following `mode.nucleous` section defines a [Gray-Scott
 model with `F=0.0420` and `k=0.0610`](http://mrob.com/pub/comp/xmorphia/F420/F420-k610.html):

@@ -4,10 +4,10 @@
 #include <dune/copasi/common/enum.hh>
 #include <dune/copasi/concepts/grid.hh>
 #include <dune/copasi/grid/multidomain_entity_transformation.hh>
+#include <dune/copasi/local_operator/diffusion_reaction/multidomain.hh>
 #include <dune/copasi/model/base.hh>
 #include <dune/copasi/model/diffusion_reaction.cc>
 #include <dune/copasi/model/diffusion_reaction.hh>
-#include <dune/copasi/local_operator/diffusion_reaction/multidomain.hh>
 
 #include <dune/pdelab/backend/istl.hh>
 #include <dune/pdelab/backend/istl/novlpistlsolverbackend.hh>
@@ -54,7 +54,6 @@ struct ModelMultiDomainPkDiffusionReactionTraits
                                    jacobian_method>;
 };
 
-
 template<class G,
          int FEMorder = 1,
          class OT = PDELab::EntityBlockedOrderingTag,
@@ -75,10 +74,10 @@ struct ModelMultiDomainP0PkDiffusionReactionTraits
 
   using SubModelTraits =
     ModelP0PkDiffusionReactionTraits<Grid,
-                                   typename Grid::SubDomainGrid::LeafGridView,
-                                   FEMorder,
-                                   OrderingTag,
-                                   jacobian_method>;
+                                     typename Grid::SubDomainGrid::LeafGridView,
+                                     FEMorder,
+                                     OrderingTag,
+                                     jacobian_method>;
 };
 
 /**
@@ -208,14 +207,17 @@ private:
 public:
   /**
    * @brief      Constructs a new instance.
+   * @todo       Make a seccion describing the requirements of the confi file
+   * @details    The model will be constructed according to the stages included in the
+   *             setup policy
    *
    * @param[in]  grid    The grid
    * @param[in]  config  The configuration
    */
-  ModelMultiDomainDiffusionReaction(
-    std::shared_ptr<Grid> grid,
-    const Dune::ParameterTree& config,
-    ModelSetupPolicy setup_policy = ModelSetupPolicy::All);
+  ModelMultiDomainDiffusionReaction(std::shared_ptr<Grid> grid,
+                                    const Dune::ParameterTree& config,
+                                    BitFlags<ModelSetup::Stages> setup_policy =
+                                      BitFlags<ModelSetup::Stages>::all_flags());
 
   /**
    * @brief      Destroys the object.
@@ -269,23 +271,26 @@ public:
    */
   template<class GFGridView>
   static auto get_muparser_initial(const ParameterTree& model_config,
-                                   const GFGridView& gf_grid_view , bool compile = true);
+                                   const GFGridView& gf_grid_view,
+                                   bool compile = true);
 
   /**
    * @brief      Sets the initial state of the model
-   * @details    The input vector of vectors should have the same size as the number of
-   * domains variables in the model, and each vector for each subdomain has to have the
-   * same size as the number of variables in the compartment. Additionally, variables
-   * will be indepreted aphabetically
-   * accodingly to the name set to othe input sections (e.g. 'model.<compartment>.diffusion'
-   * section).
+   * @details    The input vector of vectors should have the same size as the
+   * number of domains variables in the model, and each vector for each
+   * subdomain has to have the same size as the number of variables in the
+   * compartment. Additionally, variables will be indepreted aphabetically
+   * accodingly to the name set to othe input sections (e.g.
+   * 'model.<compartment>.diffusion' section).
    *
    * @tparam     GF       A valid PDELab grid functions (see
    * @Concepts::PDELabGridFunction)
-   * @param[in]  initial  Vector of vecotrs of grid functions, one for each variable
+   * @param[in]  initial  Vector of vecotrs of grid functions, one for each
+   * variable
    */
   template<class GF>
-  void set_initial(const std::vector<std::vector<std::shared_ptr<GF>>>& initial);
+  void set_initial(
+    const std::vector<std::vector<std::shared_ptr<GF>>>& initial);
 
   /**
    * @brief      Setup function
@@ -294,7 +299,7 @@ public:
    *
    * @param[in]  setup_policy  The setup policy
    */
-  void setup(ModelSetupPolicy setup_policy = ModelSetupPolicy::All);
+  void setup(BitFlags<ModelSetup::Stages> setup_policy);
 
   /**
    * @copydoc ModelBase::suggest_timestep
@@ -307,11 +312,12 @@ public:
   void step() override;
 
   /**
-   * @brief      Gets a grid function for a given component, a sub domain, and a state.
+   * @brief      Gets a grid function for a given component, a sub domain, and a
+   * state.
    * @details    The resulting grid function is persistent w.r.t the grid.
-   *             This means that the grid function will be valid and will contain exaclty
-   *             the same data even if the model is modified in any form. The only exception
-   *             to this is when the grid is modified.
+   *             This means that the grid function will be valid and will
+   * contain exaclty the same data even if the model is modified in any form.
+   * The only exception to this is when the grid is modified.
    *
    * @param[in]  states  The model states
    * @param[in]  domain  The domain
@@ -319,60 +325,72 @@ public:
    *
    * @return     The grid function.
    */
-  std::shared_ptr<ComponentGridFunction> get_grid_function(const std::map<std::size_t, ConstState>& states,
-                         std::size_t domain,
-                         std::size_t comp) const;
+  std::shared_ptr<ComponentGridFunction> get_grid_function(
+    const std::map<std::size_t, ConstState>& states,
+    std::size_t domain,
+    std::size_t comp) const;
 
   /**
-   * @brief      Gets a grid function for a given component, and a sub domain at the current state of the model.
+   * @brief      Gets a grid function for a given component, and a sub domain at
+   * the current state of the model.
    * @details    The resulting grid function is persistent w.r.t the grid.
-   *             This means that the grid function will be valid and will contain exaclty
-   *             the same data even if the model is modified in any form. The only exception
-   *             to this is when the grid is modified.
+   *             This means that the grid function will be valid and will
+   * contain exaclty the same data even if the model is modified in any form.
+   * The only exception to this is when the grid is modified.
    *
    * @param[in]  domain  The domain
    * @param[in]  comp    The component
    *
    * @return     The grid function.
    */
-  std::shared_ptr<ComponentGridFunction> get_grid_function(std::size_t domain, std::size_t comp) const;
+  std::shared_ptr<ComponentGridFunction> get_grid_function(
+    std::size_t domain,
+    std::size_t comp) const;
 
   /**
    * @brief      Gets a grid function for each component, and each sub domain.
    * @details    The resulting grid functions are persistent w.r.t the grid.
-   *             This means that the grid functions will be valid and will contain exaclty
-   *             the same data even if the model is modified in any form. The only exception
-   *             to this is when the grid is modified.
+   *             This means that the grid functions will be valid and will
+   * contain exaclty the same data even if the model is modified in any form.
+   * The only exception to this is when the grid is modified.
    *
    * @param[in]  states  The model states
    *
    * @return     The grid functions.
    */
-  std::vector<std::vector<std::shared_ptr<ComponentGridFunction>>> get_grid_functions(const std::map<std::size_t, ConstState>& states) const;
+  std::vector<std::vector<std::shared_ptr<ComponentGridFunction>>>
+  get_grid_functions(const std::map<std::size_t, ConstState>& states) const;
 
   /**
-   * @brief      Gets a grid function for each component, and each sub domain at the current state of the model.
+   * @brief      Gets a grid function for each component, and each sub domain at
+   * the current state of the model.
    * @details    The resulting grid functions are persistent w.r.t the grid.
-   *             This means that the grid functions will be valid and will contain exaclty
-   *             the same data even if the model is modified in any form. The only exception
-   *             to this is when the grid is modified.
+   *             This means that the grid functions will be valid and will
+   * contain exaclty the same data even if the model is modified in any form.
+   * The only exception to this is when the grid is modified.
    *
    * @param[in]  states  The model states
    *
    * @return     The grid functions.
    */
-  std::vector<std::vector<std::shared_ptr<ComponentGridFunction>>> get_grid_functions() const;
+  std::vector<std::vector<std::shared_ptr<ComponentGridFunction>>>
+  get_grid_functions() const;
 
 protected:
   void setup_grid_function_spaces();
   void setup_coefficient_vectors();
+  void setup_initial_condition();
   void setup_constraints();
   auto setup_local_operator(std::size_t) const;
   void setup_local_operators();
   void setup_grid_operators();
   void setup_solvers();
   void setup_vtk_writer();
+
+  //! Write states for the configured writers
   void write_states() const;
+
+  //! Write states for the configured writers
   void write_states(const std::map<std::size_t, ConstState>& states) const;
 
   auto get_data_handler(std::map<std::size_t, ConstState>) const;
