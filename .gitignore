@@ -4,3 +4,19 @@ __pycache__/
 *$py.class
 
 python/dune/copasi/cli/cmake_variables.py
+
+#### Docusaurus ####
+
+# Dependencies
+doc/docusaurus/node_modules
+
+# Production
+doc/docusaurus/build
+
+# Generated files
+doc/docusaurus/.docusaurus
+doc/docusaurus/.cache-loader
+
+doc/docusaurus/npm-debug.log*
+doc/docusaurus/yarn-debug.log*
+doc/docusaurus/yarn-error.log*
