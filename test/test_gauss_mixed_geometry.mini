@@ -9,10 +9,15 @@ file = grids/square_mixed_geometry.msh
 initial_level = 4
 
 [model]
-begin_time = {_t0}
-end_time = 3
-time_step = 0.1
 order = 1
+[model.time_stepping]
+begin = {_t0}
+end = 3
+step = 0.1
+min_step = 1e-3
+max_step = 1e-0
+decrease_factor = 0.9
+increase_factor = 1.1
 
 [model.compartments]
 cubes     = 0

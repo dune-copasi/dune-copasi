@@ -529,7 +529,8 @@ protected:
 
 private:
   std::size_t _components;
-  ParameterTree _config;
+  ParameterTree _model_config;
+  ParameterTree& _compartment_config;
   GV _grid_view;
   std::map<std::size_t, State> _states;
   std::multimap<std::size_t, std::string> _operator_splitting;

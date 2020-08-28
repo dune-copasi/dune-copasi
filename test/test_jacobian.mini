@@ -7,10 +7,15 @@ file = grids/test_cell.msh
 initial_level = 0
 
 [model]
-begin_time = 0.
-end_time = 0.01
-time_step = 2e-3
 order = 1
+[model.time_stepping]
+begin = 0.
+end = 0.01
+step = 2e-3
+min_step = 1e-3
+max_step = 1e-0
+decrease_factor = 0.9
+increase_factor = 1.1
 
 # extra 
 jacobian_type = {_jacobian_type}

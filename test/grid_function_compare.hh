@@ -82,22 +82,29 @@ void grid_function_compare(const Dune::ParameterTree& param, GF_A& gf_a, GF_B& g
   const auto& l2_norm = norms[1];
   const auto& linf_norm = norms[2];
 
-  if (param.hasKey("l1_error")){
+  if (param.hasKey("l1_error")) {
     const auto max_l1_norm = param.template get<RangeField>("l1_error");
-    if (Dune::FloatCmp::gt(l1_norm,max_l1_norm))
-      DUNE_THROW(Dune::MathError, "l-1 error is " << l1_norm << " whle the maximum allowed is " << max_l1_norm);
+    if (Dune::FloatCmp::gt(l1_norm, max_l1_norm))
+      DUNE_THROW(Dune::MathError,
+                 "l-1 error is " << l1_norm << " while the maximum allowed is "
+                                 << max_l1_norm);
   }
 
-  if (param.hasKey("l2_error")){
+  if (param.hasKey("l2_error")) {
     const auto max_l2_norm = param.template get<RangeField>("l2_error");
-    if (Dune::FloatCmp::gt(l2_norm,max_l2_norm))
-      DUNE_THROW(Dune::MathError, "l-2 error is " << l2_norm << " whle the maximum allowed is " << max_l2_norm);
+    if (Dune::FloatCmp::gt(l2_norm, max_l2_norm))
+      DUNE_THROW(Dune::MathError,
+                 "l-2 error is " << l2_norm << " while the maximum allowed is "
+                                 << max_l2_norm);
   }
 
-  if (param.hasKey("linf_error")){
+  if (param.hasKey("linf_error")) {
     const auto max_linf_norm = param.template get<RangeField>("linf_error");
-    if (Dune::FloatCmp::gt(linf_norm,max_linf_norm))
-      DUNE_THROW(Dune::MathError, "l-inf error is " << linf_norm << " whle the maximum allowed is " << max_linf_norm);
+    if (Dune::FloatCmp::gt(linf_norm, max_linf_norm))
+      DUNE_THROW(Dune::MathError,
+                 "l-inf error is " << linf_norm
+                                   << " while the maximum allowed is "
+                                   << max_linf_norm);
   }
 }
 

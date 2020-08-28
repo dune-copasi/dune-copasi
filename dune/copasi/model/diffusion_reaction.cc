@@ -27,16 +27,20 @@ namespace Dune::Copasi {
 template<class Traits>
 ModelDiffusionReaction<Traits>::ModelDiffusionReaction(
   std::shared_ptr<Grid> grid,
-  const Dune::ParameterTree& config,
+  const Dune::ParameterTree& model_config,
   GV grid_view,
   BitFlags<ModelSetup::Stages> setup_policy)
-  : ModelBase(config)
-  , _solver_logger(Logging::Logging::componentLogger(config, "solver"))
-  , _components(config.sub("reaction").getValueKeys().size())
-  , _config(config)
+  : ModelBase(model_config)
+  , _solver_logger(Logging::Logging::componentLogger(model_config, "solver"))
+  , _model_config(model_config)
+  , _compartment_config(
+      _model_config.sub(_model_config.sub("compartments").getValueKeys().front()))
   , _grid_view(grid_view)
   , _grid(grid)
 {
+  if (_model_config.sub("compartments").getValueKeys().size() != 1)
+    DUNE_THROW(IOError, "`comartments` section must contain one entry");
+
   setup(setup_policy);
   write_states();
 
@@ -53,15 +57,15 @@ template<class Traits>
 template<class GFGridView>
 auto
 ModelDiffusionReaction<Traits>::get_muparser_initial(
-  const ParameterTree& model_config,
+  const ParameterTree& compartment_config,
   const GFGridView& gf_grid_view,
   bool compile)
 {
-  if (not model_config.hasSub("initial"))
+  if (not compartment_config.hasSub("initial"))
     DUNE_THROW(IOError, "configuration file does not have initial section");
 
   return get_muparser_expressions(
-    model_config.sub("initial"), gf_grid_view, compile);
+    compartment_config.sub("initial"), gf_grid_view, compile);
 }
 
 template<class Traits>
@@ -87,7 +91,7 @@ ModelDiffusionReaction<Traits>::set_initial(
 
   _logger.debug("set initial state from grid functions"_fmt);
 
-  if (initial.size() != _config.sub("diffusion").getValueKeys().size())
+  if (initial.size() != _compartment_config.sub("diffusion").getValueKeys().size())
     DUNE_THROW(RangeError, "Wrong number of grid functions");
 
   for (auto& [op, state] : _states) {
@@ -95,7 +99,7 @@ ModelDiffusionReaction<Traits>::set_initial(
     std::size_t comp_size = state.grid_function_space->degree();
     std::vector<std::shared_ptr<GridFunction>> functions(comp_size);
 
-    auto& operator_config = _config.sub("operator");
+    auto& operator_config = _compartment_config.sub("operator");
     auto comp_names = operator_config.getValueKeys();
     std::sort(comp_names.begin(), comp_names.end());
 
@@ -188,8 +192,9 @@ template<class Traits>
 void
 ModelDiffusionReaction<Traits>::setup_grid_function_space()
 {
+  _components = _compartment_config.sub("reaction").getValueKeys().size();
   // get component names
-  auto& operator_splitting_config = _config.sub("operator");
+  auto& operator_splitting_config = _compartment_config.sub("operator");
   auto comp_names = operator_splitting_config.getValueKeys();
   std::sort(comp_names.begin(), comp_names.end());
 
@@ -241,11 +246,12 @@ ModelDiffusionReaction<Traits>::setup_initial_condition()
   if constexpr (not Traits::is_sub_model) {
     // get TIFF data if available
     MuParserDataHandler<TIFFGrayscale<unsigned short>> mu_data_handler;
-    if (_config.hasSub("data"))
-      mu_data_handler.add_tiff_functions(_config.sub("data"));
+    if (_model_config.hasSub("data"))
+      mu_data_handler.add_tiff_functions(_model_config.sub("data"));
 
     // configure math parsers for initial conditions on each component
-    auto initial_muparser = get_muparser_initial(_config, _grid_view, false);
+    auto initial_muparser =
+      get_muparser_initial(_compartment_config, _grid_view, false);
 
     for (auto&& mu_grid_function : initial_muparser) {
       // make TIFF expression available in the parser
@@ -292,10 +298,12 @@ ModelDiffusionReaction<Traits>::setup_local_operator(std::size_t i) const
 
   _logger.trace("create spatial local operator {}"_fmt, i);
 
-  auto local_operator = std::make_shared<LOP>(_grid_view, _config, i);
+  auto local_operator =
+    std::make_shared<LOP>(_grid_view, _compartment_config, i);
 
   _logger.trace("create temporal local operator {}"_fmt, i);
-  auto temporal_local_operator = std::make_shared<TLOP>(_grid_view, _config, i);
+  auto temporal_local_operator =
+    std::make_shared<TLOP>(_grid_view, _compartment_config, i);
 
   return std::make_pair(local_operator, temporal_local_operator);
 }
@@ -381,7 +389,7 @@ void
 ModelDiffusionReaction<Traits>::setup_vtk_writer()
 {
   // only configure if config writer section exist
-  if(not _config.hasSub("writer"))
+  if(not _compartment_config.hasSub("writer"))
   {
     _logger.debug("skipping of setup vtk writer"_fmt);
     return;
@@ -390,7 +398,7 @@ ModelDiffusionReaction<Traits>::setup_vtk_writer()
   }
 
   _writer = std::make_shared<W>(_grid_view, Dune::VTK::conforming);
-  auto config_writer = _config.sub("writer");
+  auto config_writer = _compartment_config.sub("writer");
   std::string file_name = config_writer.template get<std::string>("file_name");
   std::string path = config_writer.get("path", file_name);
   struct stat st;
@@ -413,8 +421,12 @@ template<class Traits>
 void
 ModelDiffusionReaction<Traits>::suggest_timestep(double dt)
 {
-  // @todo do time addaptivity
-  _config["time_step"] = fmt::format("{:.17e}", dt);
+  auto& time_config = _model_config.sub("time_stepping");
+  double min_step = time_config.template get<double>("min_step");
+  double max_step = time_config.template get<double>("max_step");
+  auto less_than = [](auto lhs, auto rhs){return FloatCmp::lt(lhs,rhs);};
+  double new_dt = std::clamp(dt,min_step,max_step,less_than);
+  time_config["step"] = fmt::format("{:.17e}", new_dt);
 }
 
 template<class Traits>
@@ -443,24 +455,62 @@ template<class Traits>
 void
 ModelDiffusionReaction<Traits>::step()
 {
-  double dt = _config.template get<double>("time_step");
+  auto& time_config = _model_config.sub("time_stepping");
+  double dt = time_config.template get<double>("step");
 
   const bool cout_redirected = Dune::Logging::Logging::isCoutRedirected();
   if (not cout_redirected)
     Dune::Logging::Logging::redirectCout(_solver_logger.name(),
                                          Dune::Logging::LogLevel::detail);
 
+  auto new_states = _states;
+
   // do time step
-  for (auto& [op, state] : _states) {
-    _local_operators[op]->update(const_states());
+  while(true)
+  {
+    try
+    {
+      for (auto& [op, state] : _states) {
+        _local_operators[op]->update(const_states());
 
-    auto& x = state.coefficients;
-    auto x_new = std::make_shared<X>(*x);
-    _one_step_methods[op]->apply(current_time(), dt, *x, *x_new);
+        auto& x_old = state.coefficients;
+        auto& x_new = new_states[op].coefficients;
+        x_new = std::make_shared<X>(*x_old);
+        _one_step_methods[op]->apply(current_time(), dt, *x_old, *x_new);
+      }
+      // everything worked out. Increase timestep and exit loop
+      suggest_timestep(dt*time_config.template get<double>("increase_factor"));
+      break;
+    }
+    catch (Dune::PDELab::NewtonError &e){
+      _logger.debug("  Solver not converged"_fmt);
+      _logger.trace("  Error in Newton solver: {}"_fmt, e.what());
+    }
+    catch (Dune::ISTLError &e){
+      _logger.debug("  Solver not converged"_fmt);
+      _logger.trace("  Error in linear solver: {}"_fmt, e.what());
+    }
+    catch (Dune::Exception &e){
+      _logger.debug("  Solver not converged"_fmt);
+      _logger.error("  Unexpected error in solver: {}"_fmt, e.what());
+      DUNE_THROW(Dune::Exception, "Critical error in Newton solver");
+    }
+    // rethrow anything else
+    catch (...) {
+      throw;
+    }
 
-    // accept time step
-    x = x_new;
+    // abort if minimal time step is already reached
+    if (Dune::FloatCmp::eq(dt, time_config.template get<double>("min_step"))) {
+      _logger.error("Computing a solution for the minimal time step failed"_fmt);
+      DUNE_THROW(Exception, "No solution for minimal time step");
+    }
+
+    dt *= time_config.template get<double>("decrease_factor");
   }
+
+  // accept states
+  _states = new_states;
 
   if (not cout_redirected)
     Dune::Logging::Logging::restoreCout();
@@ -489,7 +539,7 @@ ModelDiffusionReaction<Traits>::get_grid_function(
   std::size_t comp) const -> std::shared_ptr<ComponentGridFunction>
 {
   auto data = get_data_handler(states);
-  auto& operator_config = _config.sub("operator");
+  auto& operator_config = _compartment_config.sub("operator");
   auto op_keys = operator_config.getValueKeys();
   std::sort(op_keys.begin(), op_keys.end());
   std::size_t op = operator_config.template get<std::size_t>(op_keys[comp]);
@@ -518,7 +568,7 @@ ModelDiffusionReaction<Traits>::get_grid_functions(
   const std::map<std::size_t, ConstState>& states) const
   -> std::vector<std::shared_ptr<ComponentGridFunction>>
 {
-  std::size_t size = _config.sub("operator").getValueKeys().size();
+  std::size_t size = _compartment_config.sub("operator").getValueKeys().size();
   std::vector<std::shared_ptr<ComponentGridFunction>> grid_functions(size);
   for (std::size_t i = 0; i < size; i++) {
     grid_functions[i] = get_grid_function(states, i);

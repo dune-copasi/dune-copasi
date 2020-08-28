@@ -12,9 +12,9 @@ namespace Dune::Copasi {
 ModelBase::ModelBase(const Dune::ParameterTree& config)
   : _logger(Logging::Logging::componentLogger(config, "model"))
   , _adapt_policy(AdaptivityPolicy::None)
-  , _begin_time(config.template get<double>("begin_time"))
-  , _end_time(config.template get<double>("end_time"))
-  , _current_time(config.template get<double>("begin_time"))
+  , _begin_time(config.template get<double>("time_stepping.begin"))
+  , _end_time(config.template get<double>("time_stepping.end"))
+  , _current_time(_begin_time)
 {
   _logger.debug("ModelBase constructed"_fmt);
 }

@@ -34,8 +34,7 @@ main(int argc, char** argv)
     const std::string config_filename = argv[1];
 
     Dune::ParameterTree config;
-    Dune::ParameterTreeParser ptreeparser;
-    ptreeparser.readINITree(config_filename, config);
+    Dune::ParameterTreeParser::readINITree(config_filename, config);
 
     // initialize loggers
     Dune::Logging::Logging::init(comm, config.sub("logging"));
@@ -50,11 +49,7 @@ main(int argc, char** argv)
     if (log.level() >= Dune::Logging::LogLevel::debug)
       config.report(ls);
 
-    // create a multidomain grid
-    //   here we use multidomain grids to be able to simulate
-    //   each compartment individually and have similar input as in
-    //   the multidomain case. However, it is possible to use
-    //   ModelDiffusionReaction with single grids directly.
+    // Grid setup
     constexpr int dim = 2;
     using HostGrid = Dune::UGGrid<dim>;
     using MDGTraits = Dune::mdgrid::DynamicSubDomainCountTraits<dim, 1>;
@@ -85,72 +80,43 @@ main(int argc, char** argv)
     auto& compartments_map = model_config.sub("compartments");
     int order = model_config.get<int>("order");
 
-    if (not model_config.hasKey("begin_time"))
-      DUNE_THROW(Dune::RangeError, "Key 'model.begin_time' is missing");
-    if (not model_config.hasKey("end_time"))
-      DUNE_THROW(Dune::RangeError, "Key 'model.end_time' is missing");
-    if (not model_config.hasKey("time_step"))
-      DUNE_THROW(Dune::RangeError, "Key 'model.time_step' is missing");
+    // TODO: Use OS for different domains when is ready
+    if (compartments_map.getValueKeys().size() != 1)
+      DUNE_THROW(
+        Dune::NotImplemented,
+        "Multiple compartments per model are not allowed in this executable");
 
-    if (compartments_map.getValueKeys().size() > 1)
-      log.warn(
-        "This executable solve models for each compartment individually. If "
-        "some coupling is exected on the interface between compartments, use "
-        "'dune_copasi_md' executable for multidomain models"_fmt);
-    // @todo check coupling at interface and refuse to compute coupled models
+    // get subdomain grid as a shared pointer
+    auto compartment = compartments_map.getValueKeys().front();
+    int domain = compartments_map.template get<int>(compartment);
+    std::shared_ptr<Grid> grid_ptr =
+      Dune::stackobject_to_shared_ptr(md_grid_ptr->subDomain(domain));
 
-    // solve individual proble for each compartment
-    for (auto&& compartment : compartments_map.getValueKeys()) {
-      log.info("Running model for '{}' compartment"_fmt, compartment);
-
-      // get subdomain grid as a shared pointer
-      int domain = compartments_map.template get<int>(compartment);
-      std::shared_ptr<Grid> grid_ptr =
-        Dune::stackobject_to_shared_ptr(md_grid_ptr->subDomain(domain));
-
-      // get a model configuration parameter tree for this compartment
-      auto compartment_config = model_config.sub(compartment);
-
-      // add missing keywords for individual models
-
-      // ...time keys
-      compartment_config["begin_time"] = model_config["begin_time"];
-      compartment_config["end_time"] = model_config["end_time"];
-      compartment_config["time_step"] = model_config["time_step"];
-
-      // ...data keys
-      if (model_config.hasSub("data")) {
-        const auto& data_config = model_config.sub("data");
-        for (auto&& key : data_config.getValueKeys())
-          compartment_config["data." + key] = data_config[key];
-      }
-
-      if (order == 0) {
-        constexpr int Order = 0;
-        using ModelTraits =
-          Dune::Copasi::ModelPkDiffusionReactionTraits<Grid, GridView, Order>;
-        Dune::Copasi::ModelDiffusionReaction<ModelTraits> model(
-          grid_ptr, compartment_config);
-        model.run();
-      } else if (order == 1) {
-        constexpr int Order = 1;
-        using ModelTraits =
-          Dune::Copasi::ModelP0PkDiffusionReactionTraits<Grid, GridView, Order>;
-        Dune::Copasi::ModelDiffusionReaction<ModelTraits> model(
-          grid_ptr, compartment_config);
-        model.run();
-      } else if (order == 2) {
-        constexpr int Order = 2;
-        using ModelTraits =
-          Dune::Copasi::ModelP0PkDiffusionReactionTraits<Grid, GridView, Order>;
-        Dune::Copasi::ModelDiffusionReaction<ModelTraits> model(
-          grid_ptr, compartment_config);
-        model.run();
-      } else {
-        DUNE_THROW(Dune::IOError,
-                   "Finite element order "
-                     << order << " is not supported by dune-copasi");
-      }
+    if (order == 0) {
+      constexpr int Order = 0;
+      using ModelTraits =
+        Dune::Copasi::ModelPkDiffusionReactionTraits<Grid, GridView, Order>;
+      Dune::Copasi::ModelDiffusionReaction<ModelTraits> model(grid_ptr,
+                                                              model_config);
+      model.run();
+    } else if (order == 1) {
+      constexpr int Order = 1;
+      using ModelTraits =
+        Dune::Copasi::ModelP0PkDiffusionReactionTraits<Grid, GridView, Order>;
+      Dune::Copasi::ModelDiffusionReaction<ModelTraits> model(grid_ptr,
+                                                              model_config);
+      model.run();
+    } else if (order == 2) {
+      constexpr int Order = 2;
+      using ModelTraits =
+        Dune::Copasi::ModelP0PkDiffusionReactionTraits<Grid, GridView, Order>;
+      Dune::Copasi::ModelDiffusionReaction<ModelTraits> model(grid_ptr,
+                                                              model_config);
+      model.run();
+    } else {
+      DUNE_THROW(Dune::IOError,
+                 "Finite element order " << order
+                                         << " is not supported by dune-copasi");
     }
 
   } catch (Dune::Exception& e) {
