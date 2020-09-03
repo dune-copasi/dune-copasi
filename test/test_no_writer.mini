@@ -36,3 +36,12 @@ du_du = 1
 u = 0.
 
 # A inifile without `writer` section must be valid
+
+############################ Logging settings #################################
+# levels = off, critical, error, waring, notice, info, detail, debug, trace, all
+
+
+# Time stepping info go into this logger
+[logging.backend.stepper]
+level = detail
+indent = 4
