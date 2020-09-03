@@ -1,7 +1,6 @@
 #ifndef DUNE_COPASI_LOCAL_OPERATOR_DIFFUSION_REACTION_FV_HH
 #define DUNE_COPASI_LOCAL_OPERATOR_DIFFUSION_REACTION_FV_HH
 
-#include <dune/copasi/common/coefficient_mapper.hh>
 #include <dune/copasi/common/enum.hh>
 #include <dune/copasi/common/pdelab_expression_adapter.hh>
 #include <dune/copasi/local_operator/diffusion_reaction/base.hh>
@@ -17,24 +16,23 @@ namespace Dune::Copasi {
 // todo add the correct patterns
 template<class GV,
          class LBT,
-         class CM = DefaultCoefficientMapper,
          JacobianMethod JM = JacobianMethod::Analytical>
 class LocalOperatorDiffusionReactionFV
   : public Dune::PDELab::LocalOperatorDefaultFlags
   , public Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>
-  , protected LocalOperatorDiffusionReactionBase<GV,LBT,CM>
+  , protected LocalOperatorDiffusionReactionBase<GV,LBT>
   , public PDELab::NumericalJacobianVolume<
-      LocalOperatorDiffusionReactionFV<GV, LBT, CM, JM>>
+      LocalOperatorDiffusionReactionFV<GV, LBT, JM>>
   , public PDELab::NumericalJacobianApplyVolume<
-      LocalOperatorDiffusionReactionFV<GV, LBT, CM, JM>>
+      LocalOperatorDiffusionReactionFV<GV, LBT, JM>>
   , public PDELab::NumericalJacobianSkeleton<
-      LocalOperatorDiffusionReactionFV<GV, LBT, CM, JM>>
+      LocalOperatorDiffusionReactionFV<GV, LBT, JM>>
   , public PDELab::NumericalJacobianApplySkeleton<
-      LocalOperatorDiffusionReactionFV<GV, LBT, CM, JM>>
+      LocalOperatorDiffusionReactionFV<GV, LBT, JM>>
   , public PDELab::FullSkeletonPattern
 {
   using GridView = GV;
-  using LOPBase = LocalOperatorDiffusionReactionBase<GV,LBT,CM>;
+  using LOPBase = LocalOperatorDiffusionReactionBase<GV,LBT>;
 
   using RF = typename LOPBase::RF;
   using DF = typename LOPBase::DF;
@@ -59,16 +57,9 @@ public:
   //! residual assembly flags
   static constexpr bool doAlphaSkeleton = true;
 
-  using LOPBase::lfs_components;
-
-  using LOPBase::coefficient_mapper_inside;
-  using LOPBase::coefficient_mapper_outside;
-  using LOPBase::update;
-
   LocalOperatorDiffusionReactionFV(GridView grid_view,
-                                   const ParameterTree& config,
-                                   std::size_t id_operator)
-    : LOPBase(config,id_operator,grid_view)
+                                   const ParameterTree& config)
+    : LOPBase(config,grid_view)
   {}
 
 
@@ -247,11 +238,8 @@ public:
     // get geometry
     const auto geo = eg.geometry();
 
-    const auto& coeff_mapper = this->coefficient_mapper_inside(entity);
-    const auto& lfs_components = this->lfs_components(lfsu,lfsv);
-
     DynamicVector<RF> u(_components);
-    DynamicVector<RF> reaction(lfs_components.size());
+    DynamicVector<RF> reaction(_components);
 
     std::fill(u.begin(), u.end(), 0.);
     std::fill(reaction.begin(), reaction.end(), 0.);
@@ -261,17 +249,17 @@ public:
     const auto position = ref_el.position(0, 0);
 
     // evaluate concentrations at quadrature point
-    for (std::size_t k = 0; k < _components; k++)
-      u[k] += coeff_mapper(x_coeff_local, k, 0);
+    for (std::size_t comp = 0; comp < _components; comp++)
+      u[comp] += x_coeff_local(comp, 0);
 
     // get reaction term
-    for (std::size_t k = 0; k < lfs_components.size(); k++) {
+    for (std::size_t k = 0; k < _components; k++) {
       _reaction_gf[k]->update(u);
       _reaction_gf[k]->evaluate(entity, position, reaction[k]);
     }
 
     // contribution for each component
-    for (std::size_t k = 0; k < lfs_components.size(); k++) {
+    for (std::size_t k = 0; k < _components; k++) {
       accumulate(k, 0, -reaction[k] * geo.volume());
     }
   }
@@ -324,11 +312,8 @@ public:
     // get geometry
     const auto geo = eg.geometry();
 
-    const auto& coeff_mapper = this->coefficient_mapper_inside(entity);
-    const auto& lfs_components = this->lfs_components(lfsu,lfsv);
-
     DynamicVector<RF> u(_components);
-    DynamicVector<RF> jacobian(lfs_components.size() * lfs_components.size());
+    DynamicVector<RF> jacobian(_components * _components);
 
     // get center in local coordinates
     const auto ref_el = referenceElement(geo);
@@ -338,13 +323,13 @@ public:
     std::fill(jacobian.begin(), jacobian.end(), 0.);
 
     // evaluate concentrations at quadrature point
-    for (std::size_t k = 0; k < _components; k++)
-      u[k] += coeff_mapper(x_coeff_local, k, 0);
+    for (std::size_t comp = 0; comp < _components; comp++)
+      u[comp] += x_coeff_local(comp, 0);
 
     // evaluate reaction term
-    for (std::size_t k = 0; k < lfs_components.size(); k++) {
-      for (std::size_t l = 0; l < lfs_components.size(); l++) {
-        const auto j = lfs_components.size() * k + l;
+    for (std::size_t k = 0; k < _components; k++) {
+      for (std::size_t l = 0; l < _components; l++) {
+        const auto j = _components * k + l;
         _jacobian_gf[j]->update(u);
         _jacobian_gf[j]->evaluate(entity, position, jacobian[j]);
       }
@@ -355,11 +340,11 @@ public:
       return (it != _component_pattern.end());
     };
 
-    for (std::size_t k = 0; k < lfs_components.size(); k++) {
-      for (std::size_t l = 0; l < lfs_components.size(); l++) {
+    for (std::size_t k = 0; k < _components; k++) {
+      for (std::size_t l = 0; l < _components; l++) {
         if (not do_link(k, l))
           continue;
-        const auto j = lfs_components.size() * k + l;
+        const auto j = _components * k + l;
         accumulate(k, 0, l, 0, -jacobian[j] * geo.volume());
       }
     }
@@ -424,21 +409,14 @@ public:
     const auto& entity_o = ig.outside();
     const auto& entity_f = ig.intersection();
 
-    const auto& lfs_components_i = this->lfs_components(lfsu_i,lfsv_i);
-    [[maybe_unused]] const auto& lfs_components_o = this->lfs_components(lfsu_o,lfsv_o);
-
-    assert(&lfs_components_i == &lfs_components_o); // this lop only works for same lfs componets in the skeleton
-    assert(lfsu_i.degree() == lfs_components_i.size());
-    assert(lfsu_o.degree() == lfs_components_o.size());
+    assert(lfsu_i.degree() == _components);
+    assert(lfsu_o.degree() == _components);
 
     auto geo_i = entity_i.geometry();
     auto geo_o = entity_o.geometry();
     auto geo_f = entity_f.geometry();
     auto geo_in_i = entity_f.geometryInInside();
     auto geo_in_o = entity_f.geometryInOutside();
-
-    const auto& coeff_mapper_i = this->coefficient_mapper_inside(entity_i);
-    const auto& coeff_mapper_o = this->coefficient_mapper_outside(entity_o);
 
     // cell centers in codim 1 reference element (facet)
     auto ref_el_i = referenceElement(geo_in_i);
@@ -458,19 +436,19 @@ public:
     auto distance = position_g_o.two_norm();
 
     // get diffusion coefficient
-    for (std::size_t k = 0; k < lfs_components_i.size(); k++) {
+    for (std::size_t comp = 0; comp < _components; comp++) {
       RF diffusion_i(0.), diffusion_o(0.);
-      _diffusion_gf[k]->evaluate(entity_i, position_i, diffusion_i);
-      _diffusion_gf[k]->evaluate(entity_o, position_o, diffusion_o);
+      _diffusion_gf[comp]->evaluate(entity_i, position_i, diffusion_i);
+      _diffusion_gf[comp]->evaluate(entity_o, position_o, diffusion_o);
       RF diffusion =
         2.0 / (1.0 / (diffusion_i + 1E-30) + 1.0 / (diffusion_o + 1E-30));
-      RF gradu = coeff_mapper_o(x_coeff_local_o, k, 0) -
-                 coeff_mapper_i(x_coeff_local_i, k, 0);
+      RF gradu = x_coeff_local_o(comp, 0) -
+                 x_coeff_local_i(comp, 0);
       gradu /= distance;
       // contribution to residual on inside element, other residual is computed
       // by symmetric call
-      accumulate_i(k, 0, - diffusion * gradu * geo_f.volume());
-      accumulate_o(k, 0,   diffusion * gradu * geo_f.volume());
+      accumulate_i(comp, 0, - diffusion * gradu * geo_f.volume());
+      accumulate_o(comp, 0,   diffusion * gradu * geo_f.volume());
     }
   }
 
@@ -577,12 +555,8 @@ public:
     const auto& entity_o = ig.outside();
     const auto& entity_f = ig.intersection();
 
-    const auto& lfs_components_i = this->lfs_components(lfsu_i,lfsv_i);
-    [[maybe_unused]] const auto& lfs_components_o = this->lfs_components(lfsu_o,lfsv_o);
-
-    assert(&lfs_components_i == &lfs_components_o); // this lop only works for same lfs componets in the skeleton
-    assert(lfsu_i.degree() == lfs_components_i.size());
-    assert(lfsu_o.degree() == lfs_components_o.size());
+    assert(lfsu_i.degree() == _components);
+    assert(lfsu_o.degree() == _components);
 
     auto geo_i = entity_i.geometry();
     auto geo_o = entity_o.geometry();
@@ -608,7 +582,7 @@ public:
     auto distance = position_g_o.two_norm();
 
     // get diffusion coefficient
-    for (std::size_t k = 0; k < lfs_components_i.size(); k++) {
+    for (std::size_t k = 0; k < _components; k++) {
       RF diffusion_i(0.), diffusion_o(0.);
       _diffusion_gf[k]->evaluate(entity_i, position_i, diffusion_i);
       _diffusion_gf[k]->evaluate(entity_o, position_o, diffusion_o);

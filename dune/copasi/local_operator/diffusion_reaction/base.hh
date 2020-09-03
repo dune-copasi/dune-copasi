@@ -1,7 +1,6 @@
 #ifndef DUNE_COPASI_LOCAL_OPERATOR_DIFFUSION_REACTION_BASE_HH
 #define DUNE_COPASI_LOCAL_OPERATOR_DIFFUSION_REACTION_BASE_HH
 
-#include <dune/copasi/common/coefficient_mapper.hh>
 #include <dune/copasi/common/pdelab_expression_adapter.hh>
 
 #include <dune/pdelab/common/quadraturerules.hh>
@@ -13,17 +12,13 @@ namespace Dune::Copasi {
 /**
  *
  * @tparam     GV    GridView
- * @tparam     CM    Local basis traits
- * @tparam     CM    Coefficient mapper
+ * @tparam     LBT    Local basis traits
  */
-template<class GV, class LBT, class CM = DefaultCoefficientMapper>
+template<class GV, class LBT>
 struct LocalOperatorDiffusionReactionBase
 {
   //! grid view
   using GridView = GV;
-
-  //! coefficient mapper
-  using CoefficientMapper = CM;
 
   //! local basis
   using LocalBasisTraits = LBT;
@@ -66,13 +61,6 @@ struct LocalOperatorDiffusionReactionBase
 
   std::set<std::pair<std::size_t, std::size_t>> _component_pattern;
 
-  //! components
-  std::vector<std::size_t> _lfs_components;
-
-  // coefficient mapper
-  mutable CoefficientMapper _coefficient_mapper_i;
-  mutable CoefficientMapper _coefficient_mapper_o;
-
   /**
    * @brief      Constructs a new instance.
    *
@@ -84,20 +72,14 @@ struct LocalOperatorDiffusionReactionBase
    * @param[in]  config          The configuration tree
    * @param[in]  finite_element  The local finite element
    * @param[in]  rule_order      order of the quadrature rule
-   * @param[in]  id_operator     The index of this operator
    */
-  LocalOperatorDiffusionReactionBase(const ParameterTree& config,
-                                   std::size_t id_operator)
+  LocalOperatorDiffusionReactionBase(const ParameterTree& config)
     : _components(config.sub("reaction").getValueKeys().size())
-    , _logger(Logging::Logging::componentLogger(config, "model"))
-    , _coefficient_mapper_i(config.sub("operator"), id_operator)
-    , _coefficient_mapper_o(config.sub("operator"), id_operator)
+    , _logger(Logging::Logging::componentLogger({}, "model"))
   {
     assert(_components == config.sub("diffusion").getValueKeys().size());
     assert((_components * _components) ==
            config.sub("reaction.jacobian").getValueKeys().size());
-
-    setup_lfs_components(config,id_operator);
   }
 
   /**
@@ -111,28 +93,12 @@ struct LocalOperatorDiffusionReactionBase
    * @param[in]  config          The configuration tree
    * @param[in]  finite_element  The local finite element
    * @param[in]  rule_order      order of the quadrature rule
-   * @param[in]  id_operator     The index of this operator
    */
   LocalOperatorDiffusionReactionBase(const ParameterTree& config,
-                                   std::size_t id_operator,
                                   const GridView& grid_view)
-    : LocalOperatorDiffusionReactionBase(config,id_operator)
+    : LocalOperatorDiffusionReactionBase(config)
   {
     create_pattern_and_gf_expressions(grid_view,config);
-  }
-
-  void setup_lfs_components(const ParameterTree& config, std::size_t id_operator)
-  {
-    _logger.trace("setup lfs components"_fmt);
-    const auto& config_operator = config.sub("operator");
-    auto comp_names = config_operator.getValueKeys();
-    std::sort(comp_names.begin(), comp_names.end());
-
-    for (std::size_t j = 0; j < comp_names.size(); j++) {
-      std::size_t k = config_operator.template get<std::size_t>(comp_names[j]);
-      if (k == id_operator)
-        _lfs_components.push_back(j);
-    }
   }
 
   void create_pattern_and_gf_expressions(const GridView& grid_view, const ParameterTree& config)
@@ -159,8 +125,8 @@ struct LocalOperatorDiffusionReactionBase
     for (size_t i = 0; i < diffusion_keys.size(); i++)
       assert(diffusion_keys[i] == reaction_keys[i]);
 
-    for (std::size_t k = 0; k < _lfs_components.size(); k++) {
-      std::string var = reaction_keys[_lfs_components[k]];
+    for (std::size_t k = 0; k < _components; k++) {
+      std::string var = reaction_keys[k];
 
       std::string d_eq = diffusion_config.template get<std::string>(var);
       std::string r_eq = reaction_config.template get<std::string>(var);
@@ -170,8 +136,8 @@ struct LocalOperatorDiffusionReactionBase
       _reaction_gf[k] =
         std::make_shared<ExpressionAdapter>(grid_view, r_eq, true, reaction_keys);
 
-      for (std::size_t l = 0; l < _lfs_components.size(); l++) {
-        const auto j = _lfs_components.size() * k + l;
+      for (std::size_t l = 0; l < _components; l++) {
+        const auto j = _components * k + l;
         std::string j_eq =
           jacobian_config.template get<std::string>(jacobian_keys[j]);
 
@@ -195,40 +161,6 @@ struct LocalOperatorDiffusionReactionBase
     for (auto i : _component_pattern) {
       _logger.trace("pattern <{},{}>"_fmt, i.first, i.second);
     }
-  }
-
-  /**
-   * @brief      Updates the coefficient mapper with given states.
-   *
-   * @param[in]  states  A map from operator index to states
-   *
-   * @tparam     States  Map from index to states
-   */
-  template<class States>
-  void update(const States& states)
-  {
-    _coefficient_mapper_i.update(states);
-    _coefficient_mapper_o.update(states);
-  }
-
-  template<class Entity>
-  const auto& coefficient_mapper_inside(const Entity& entity_inside) const
-  {
-    _coefficient_mapper_i.bind(entity_inside);
-    return _coefficient_mapper_i;
-  }
-
-  template<class Entity>
-  const auto& coefficient_mapper_outside(const Entity& entity_outside) const
-  {
-    _coefficient_mapper_o.bind(entity_outside);
-    return _coefficient_mapper_o;
-  }
-
-  template<class LFSU, class LFSV>
-  const auto& lfs_components(const LFSU& lfsu, const LFSV& lfsv) const
-  {
-    return _lfs_components;
   }
 
   /**

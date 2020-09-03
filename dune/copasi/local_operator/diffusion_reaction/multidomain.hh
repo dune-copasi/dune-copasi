@@ -24,16 +24,13 @@ namespace Dune::Copasi {
  * @details    This class describre the operatrions for local integrals required
  *             for diffusion reaction system. The operator is only valid for
  *             entities contained in the grid. The local finite element is used
- *             for caching shape function evaluations. The coefficient mapper is
- *             the interface to fetch date from either local or external
- *             coefficient vectors. And the jacobian method switches between
- *             numerical and analytical jacobians. This local operator creates
- *             internally an individual local operator for every subdomain in
- *             the grid
+ *             for caching shape function evaluations. And the jacobian method
+ *             switches between numerical and analytical jacobians. This local
+ *             operator creates internally an individual local operator for
+ *             every subdomain in the grid
  *
  * @tparam     Grid                The grid
  * @tparam     LocalFiniteElement  Local Finite Element
- * @tparam     CM                  Coefficient Mapper
  * @tparam     JM                  Jacobian Method
  */
 template<class Grid,
@@ -94,12 +91,10 @@ public:
    * @param[in]  grid            The grid
    * @param[in]  config          The configuration
    * @param[in]  finite_element  The local finite element
-   * @param[in]  id_operator     The index of this operator
    */
   LocalOperatorMultiDomainDiffusionReaction(
     std::shared_ptr<const Grid> grid,
-    const ParameterTree& config,
-    std::size_t id_operator)
+    const ParameterTree& config)
     : _index_set(grid->leafGridView().indexSet())
     , _size(config.sub("compartments").getValueKeys().size())
     , _local_operator(_size)
@@ -120,8 +115,7 @@ public:
       _component_name[i] = sub_config.sub("reaction").getValueKeys();
       std::sort(_component_name[i].begin(), _component_name[i].end());
 
-      auto lp = std::make_shared<SubLOP>(
-        sub_grid_view, sub_config, id_operator);
+      auto lp = std::make_shared<SubLOP>(sub_grid_view, sub_config);
       _local_operator[i] = lp;
     }
 
@@ -144,20 +138,6 @@ public:
         }
       }
     }
-  }
-
-  /**
-   * @brief      Updates the coefficient mapper with given states.
-   *
-   * @param[in]  states  A map from operator index to states
-   *
-   * @tparam     States  Map from index to states
-   */
-  template<class States>
-  void update(const States& states)
-  {
-    for (std::size_t i = 0; i < _local_operator.size(); ++i)
-      _local_operator[i]->update(states);
   }
 
   /**
@@ -200,44 +180,32 @@ public:
                         LocalPattern& pattern_oi) const
   {
     auto lfs_size_i = lfsu_di.degree();
-    for (std::size_t i = 0; i < lfs_size_i; ++i) {
-      const std::size_t comp_i = _local_operator[domain_i]->lfs_components(lfsu_di,lfsv_di)[i];
+    for (std::size_t comp_i = 0; comp_i < lfs_size_i; ++comp_i) {
       std::array<std::size_t, 3> inside_comp{ domain_i, domain_o, comp_i };
       auto it = _component_offset.find(inside_comp);
       if (it != _component_offset.end()) {
         auto comp_o = it->second;
-        const auto& lfs_comp_o = _local_operator[domain_o]->lfs_components(lfsu_do,lfsv_do);
-        auto o_it = std::find(lfs_comp_o.begin(), lfs_comp_o.end(), comp_o);
-        if (o_it != lfs_comp_o.end()) {
-          auto lfsv_ci = lfsv_di.child(i);
-          std::size_t o = std::distance(lfs_comp_o.begin(), o_it);
-          auto lfsu_co = lfsu_do.child(o);
-          for (std::size_t dof_i = 0; dof_i < lfsv_ci.size(); dof_i++) {
-            for (std::size_t dof_o = 0; dof_o < lfsu_co.size(); dof_o++) {
-              pattern_io.addLink(lfsv_ci, dof_i, lfsu_co, dof_o);
-            }
+        auto& lfsv_ci = lfsv_di.child(comp_i);
+        auto& lfsu_co = lfsu_do.child(comp_o);
+        for (std::size_t dof_i = 0; dof_i < lfsv_ci.size(); dof_i++) {
+          for (std::size_t dof_o = 0; dof_o < lfsu_co.size(); dof_o++) {
+            pattern_io.addLink(lfsv_ci, dof_i, lfsu_co, dof_o);
           }
         }
       }
     }
 
     auto lfs_size_o = lfsu_do.degree();
-    for (std::size_t o = 0; o < lfs_size_o; ++o) {
-      const std::size_t comp_o = _local_operator[domain_o]->lfs_components(lfsu_do,lfsv_do)[o];
+    for (std::size_t comp_o = 0; comp_o < lfs_size_o; ++comp_o) {
       std::array<std::size_t, 3> outside_comp{ domain_o, domain_i, comp_o };
       auto it = _component_offset.find(outside_comp);
       if (it != _component_offset.end()) {
         auto comp_i = it->second;
-        const auto& lfs_comp_i = _local_operator[domain_i]->lfs_components(lfsu_do,lfsv_do);
-        auto i_it = std::find(lfs_comp_i.begin(), lfs_comp_i.end(), comp_i);
-        if (i_it != lfs_comp_i.end()) {
-          auto lfsv_co = lfsv_do.child(o);
-          std::size_t i = std::distance(lfs_comp_i.begin(), i_it);
-          auto lfsu_ci = lfsu_di.child(i);
-          for (std::size_t dof_o = 0; dof_o < lfsv_co.size(); dof_o++) {
-            for (std::size_t dof_i = 0; dof_i < lfsu_ci.size(); dof_i++) {
-              pattern_oi.addLink(lfsv_co, dof_o, lfsu_ci, dof_i);
-            }
+        auto& lfsv_co = lfsv_do.child(comp_o);
+        auto& lfsu_ci = lfsu_di.child(comp_i);
+        for (std::size_t dof_o = 0; dof_o < lfsv_co.size(); dof_o++) {
+          for (std::size_t dof_i = 0; dof_i < lfsu_ci.size(); dof_i++) {
+            pattern_oi.addLink(lfsv_co, dof_o, lfsu_ci, dof_i);
           }
         }
       }
@@ -500,8 +468,6 @@ public:
     assert(lfsu_do.size() == lfsv_do.size());
 
     const auto& entity_f = ig.intersection();
-    const auto& entity_i = ig.inside();
-    const auto& entity_o = ig.outside();
 
     auto geo_f = entity_f.geometry();
     auto geo_in_i = entity_f.geometryInInside();
@@ -531,9 +497,6 @@ public:
       r_o.accumulate(lfsu_do.child(component), dof, value);
     };
 
-    const auto& coeff_mapper_i = _local_operator[domain_i]->coefficient_mapper_inside(entity_i);
-    const auto& coeff_mapper_o = _local_operator[domain_o]->coefficient_mapper_outside(entity_o);
-
     const auto& local_basis_i = lfsu_di.child(0).finiteElement().localBasis();
     const auto& local_basis_o = lfsu_do.child(0).finiteElement().localBasis();
 
@@ -560,44 +523,44 @@ public:
       // evaluate concentrations at quadrature point
 
       u_i.clear(), u_o.clear();
-      for (std::size_t k = 0; k < components_i; k++) // loop over components
-        for (std::size_t j = 0; j < local_basis_i.size(); j++)
-          u_i[k] += coeff_mapper_i(x_coeff_local_i, k, j) * phiu_i[j];
+      for (std::size_t comp = 0; comp < components_i; comp++)
+        for (std::size_t dof = 0; dof < local_basis_i.size(); dof++)
+          u_i[comp] += x_coeff_local_i(comp, dof) * phiu_i[dof];
 
-      for (std::size_t k = 0; k < components_o; k++) // loop over components
-        for (std::size_t j = 0; j < local_basis_o.size(); j++)
-          u_o[k] += coeff_mapper_o(x_coeff_local_o, k, j) * phiu_o[j];
+      for (std::size_t comp = 0; comp < components_o; comp++)
+        for (std::size_t dof = 0; dof < local_basis_o.size(); dof++)
+          u_o[comp] += x_coeff_local_o(comp, dof) * phiu_o[dof];
 
       // integration factor
       auto factor = it.weight() * geo_f.integrationElement(position_f);
 
-      for (std::size_t i = 0; i < lfsu_di.degree(); i++) // loop over components
+      for (std::size_t comp_i = 0; comp_i < lfsu_di.degree(); comp_i++)
       {
-        if (lfsu_di.child(i).size() == 0)
+        if (lfsu_di.child(comp_i).size() == 0)
           continue; // child space has nothing to compute
-        const std::size_t comp_i =
-          _local_operator[domain_i]->lfs_components(lfsu_di,lfsv_di)[i];
         std::array<std::size_t, 3> inside_comp{ domain_i, domain_o, comp_i };
         auto it = _component_offset.find(inside_comp);
         if (it != _component_offset.end()) {
-          for (std::size_t j = 0; j < lfsu_di.child(i).size(); j++)
-            accumulate_i(
-              i, j, factor * (u_i[comp_i] - u_o[it->second]) * phiu_i[j]);
+          for (std::size_t dof = 0; dof < lfsu_di.child(comp_i).size(); dof++)
+            accumulate_i(comp_i,
+                         dof,
+                         factor * (u_i[comp_i] - u_o[it->second]) *
+                           phiu_i[dof]);
         }
       }
 
-      for (std::size_t o = 0; o < lfsu_do.degree(); o++) // loop over components
+      for (std::size_t comp_o = 0; comp_o < lfsu_do.degree(); comp_o++) // loop over components
       {
-        if (lfsu_do.child(o).size() == 0)
+        if (lfsu_do.child(comp_o).size() == 0)
           continue; // child space has nothing to compute
-        const std::size_t comp_o =
-          _local_operator[domain_o]->lfs_components(lfsu_do,lfsv_do)[o];
         std::array<std::size_t, 3> outside_comp{ domain_o, domain_i, comp_o };
         auto it = _component_offset.find(outside_comp);
         if (it != _component_offset.end()) {
-          for (std::size_t j = 0; j < lfsu_do.child(o).size(); j++)
-            accumulate_o(
-              o, j, -factor * (u_i[it->second] - u_o[comp_o]) * phiu_o[j]);
+          for (std::size_t dof = 0; dof < lfsu_do.child(comp_o).size(); dof++)
+            accumulate_o(comp_o,
+                         dof,
+                         -factor * (u_i[it->second] - u_o[comp_o]) *
+                           phiu_o[dof]);
         }
       }
     }
@@ -804,67 +767,47 @@ public:
 
       for (std::size_t i = 0; i < lfsu_di.degree(); i++) // loop over components
       {
-        // has child space something to compute?
         if (lfsu_di.child(i).size() == 0)
-          continue;
-        const std::size_t comp_i =
-          _local_operator[domain_i]->lfs_components(lfsu_di,lfsv_di)[i];
-        std::array<std::size_t, 3> inside_comp{ domain_i, domain_o, comp_i };
+          continue; // child space has nothing to compute
+        std::array<std::size_t, 3> inside_comp{ domain_i, domain_o, i };
         auto it = _component_offset.find(inside_comp);
 
         if (it != _component_offset.end()) {
           // compute inside jacobian
           for (std::size_t j = 0; j < lfsu_di.child(i).size(); j++)
             for (std::size_t k = 0; k < lfsu_di.child(i).size(); k++)
-              accumulate_ii(
-                comp_i, j, comp_i, k, factor * phiu_i[j] * phiu_i[k]);
+              accumulate_ii(i, j, i, k, factor * phiu_i[j] * phiu_i[k]);
 
-          // find index of outside component in lfs
+          // find index of outside component
           const std::size_t comp_o = it->second;
-          const auto& lfs_comp_o = _local_operator[domain_o]->lfs_components(lfsu_do,lfsv_do);
-          auto o_it = std::find(lfs_comp_o.begin(), lfs_comp_o.end(), comp_o);
-          if (o_it == lfs_comp_o.end())
-            continue;
-          std::size_t o = std::distance(lfs_comp_o.begin(), o_it);
 
           // compute inside-outside jacobian
           for (std::size_t j = 0; j < lfsu_di.child(i).size(); j++)
-            for (std::size_t k = 0; k < lfsu_do.child(o).size(); k++)
-              accumulate_io(
-                comp_i, j, comp_o, k, -factor * phiu_i[j] * phiu_o[k]);
+            for (std::size_t k = 0; k < lfsu_do.child(comp_o).size(); k++)
+              accumulate_io(i, j, comp_o, k, -factor * phiu_i[j] * phiu_o[k]);
         }
       }
 
       for (std::size_t o = 0; o < lfsu_do.degree(); o++) // loop over components
       {
-        // has child space something to compute?
         if (lfsu_do.child(o).size() == 0)
-          continue;
-        const std::size_t comp_o =
-          _local_operator[domain_o]->lfs_components(lfsu_do,lfsv_do)[o];
-        std::array<std::size_t, 3> outside_comp{ domain_o, domain_i, comp_o };
+          continue; // child space has nothing to compute
+        std::array<std::size_t, 3> outside_comp{ domain_o, domain_i, o };
         auto it = _component_offset.find(outside_comp);
 
         if (it != _component_offset.end()) {
           // compute outside jacobian
           for (std::size_t j = 0; j < lfsu_do.child(o).size(); j++)
             for (std::size_t k = 0; k < lfsu_do.child(o).size(); k++)
-              accumulate_oo(
-                comp_o, j, comp_o, k, factor * phiu_o[j] * phiu_o[k]);
+              accumulate_oo(o, j, o, k, factor * phiu_o[j] * phiu_o[k]);
 
-          // find index of outside component in lfs
+          // find index of inside component
           const std::size_t comp_i = it->second;
-          const auto& lfs_comp_i = _local_operator[domain_i]->lfs_components(lfsu_di,lfsv_di);
-          auto i_it = std::find(lfs_comp_i.begin(), lfs_comp_i.end(), comp_i);
-          if (i_it == lfs_comp_i.end())
-            continue;
-          std::size_t i = std::distance(lfs_comp_i.begin(), i_it);
 
-          // compute inside-outside jacobian
+          // compute outisde-inside jacobian
           for (std::size_t j = 0; j < lfsu_do.child(o).size(); j++)
-            for (std::size_t k = 0; k < lfsu_di.child(i).size(); k++)
-              accumulate_oi(
-                comp_o, j, comp_i, k, -factor * phiu_o[j] * phiu_i[k]);
+            for (std::size_t k = 0; k < lfsu_di.child(comp_i).size(); k++)
+              accumulate_oi(o, j, comp_i, k, -factor * phiu_o[j] * phiu_i[k]);
         }
       }
     }
@@ -916,12 +859,10 @@ public:
    * @param[in]  grid            The grid
    * @param[in]  config          The configuration
    * @param[in]  finite_element  The local finite element
-   * @param[in]  id_operator     The index of this operator
    */
   TemporalLocalOperatorMultiDomainDiffusionReaction(
     std::shared_ptr<const Grid> grid,
-    const ParameterTree& config,
-    std::size_t id_operator)
+    const ParameterTree& config)
     : _size(config.sub("compartments").getValueKeys().size())
     , _local_operator(_size)
   {
@@ -935,8 +876,7 @@ public:
       GridView sub_grid_view = grid->subDomain(sub_domain_id).leafGridView();
 
       const auto& sub_config = config.sub(compartments[i]);
-      _local_operator[i] = std::make_shared<SubLOP>(
-        sub_grid_view, sub_config, id_operator);
+      _local_operator[i] = std::make_shared<SubLOP>(sub_grid_view, sub_config);
     }
   }
 

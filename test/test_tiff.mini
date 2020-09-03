@@ -6,7 +6,9 @@ initial_level = 3
 
 [model]
 order = 1
+
 [model.time_stepping]
+rk_method = alexander_2
 begin = 0.
 end = 0.
 step = 0.1
@@ -15,6 +17,9 @@ max_step = 1e-0
 decrease_factor = 0.9
 increase_factor = 1.1
 
+[model.writer]
+file_path = {__name}
+
 [model.data]
 flowers = data/tiff/flower-minisblack-16.tif
 
@@ -22,9 +27,6 @@ flowers = data/tiff/flower-minisblack-16.tif
 domain     = 0
 
 ############################ Model for domain ############################
-[model.domain.operator]
-u = 0
-
 [model.domain.initial]
 u = flowers(x,y-0.25)
 
@@ -37,9 +39,6 @@ du_du = 0
 [model.domain.diffusion]
 u = 1e-3
 
-[model.domain.writer]
-file_name = {__name}
-
 ######################### Compare with analytic vtk #########################
 [wrapper.vtkcompare]
 name = {__name}/{__name}-00000
@@ -51,19 +50,50 @@ absolute = 1e-9
 ############################ Logging settings #################################
 # levels = off, critical, error, waring, notice, info, detail, debug, trace, all
 
-[logging]
-default.level = trace
-
+# Sink setup for console stdcout
 [logging.sinks.stdout]
+level = info # max level to output on this sink
 pattern = "[\\{reldays:0>2\\}-\\{reltime:8%T\\}] [\\{backend\\}] \\{msg\\}"
 
+# Sink setup for logfile output
+[logging.sinks.logfile]
+level = all # max level to output on this sink
+type = rank-0-file
+file = {__name}.log
+pattern = "[\\{reldays:0>2\\}-\\{reltime:8%T\\}] [\\{backend\\}] \\{msg\\}"
+
+# Logger internal info go into this logger
+[logging.internal]
+level = off
+
+# General info go into this logger
+# Settings on this logger are the default values for other backend loggers
+[logging.default]
+level = detail
+indent = 0
+sinks = logfile, stdout
+
+# Logger info go into this logger
+[logging.backend.logging]
+level = off
+indent = 0
+
+# Grid info go into this logger
+[logging.backend.grid]
+level = detail
+indent = 2
+
+# General model info go into this logger
 [logging.backend.model]
-level = trace
+level = detail
 indent = 2
 
 # Time stepping info go into this logger
 [logging.backend.stepper]
 level = detail
 indent = 4
+
+# writer info go into this logger
+[logging.backend.writer]
 level = trace
 indent = 4

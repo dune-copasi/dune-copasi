@@ -52,29 +52,28 @@ public:
    * @brief      Reads a grid out of a file name and a configuration file
    *
    * @param[in]  fileName                The gmsh file name
-   * @param[in]  config                  The configuration file
    * @param[in]  insertBoundarySegments  Bool to include boundary segments while
    *                                     reading file
    *
    * @return     A pair containing pointers to the host and the multidomain grid
    */
   static auto read(const std::string& fileName,
-                   ParameterTree config,
                    bool insertBoundarySegments = true)
   {
-    Logging::Logger _logger =
-      Logging::Logging::componentLogger(config, "default");
+    auto logger = Dune::Logging::Logging::componentLogger({}, "grid");
     const bool cout_redirected = Dune::Logging::Logging::isCoutRedirected();
-    const bool verbose = _logger.level() > Logging::LogLevel::info;
+    const bool verbose = logger.level() > Logging::LogLevel::detail;
 
     if (not cout_redirected)
-      Dune::Logging::Logging::redirectCout(_logger.name());
+      Dune::Logging::Logging::redirectCout(logger.name(),
+                                           Logging::LogLevel::detail);
 
     // make a grid factory
     Dune::GridFactory<HostGrid> factory;
 
     // create parse object
     GmshReaderParser<HostGrid> parser(factory, verbose, insertBoundarySegments);
+    logger.info("Reading grid file: '{}'"_fmt,fileName);
     parser.read(fileName);
 
     auto index_map = parser.elementIndexMap();
@@ -88,29 +87,35 @@ public:
     else
       traits = new MDGTraits(max_subdomains);
 
+    logger.detail("Creating multidomain grid from host grid"_fmt);
     std::shared_ptr<Grid> grid = std::make_shared<Grid>(*host_grid, *traits);
     delete traits;
 
+    logger.trace("Creating multidomain sub-domains"_fmt);
     grid->startSubDomainMarking();
     unsigned int i = 0;
     for (const auto& cell : elements(grid->leafGridView())) {
       // gmsh index starts at 1!
-      grid->addToSubDomain(index_map[i] - 1, cell), i++;
+      auto& is = grid->leafGridView().indexSet();
+      auto subdomain = index_map[i] - 1;
+      logger.trace(
+        1, "Cell {} added to subdomain {}"_fmt, is.index(cell), subdomain);
+      grid->addToSubDomain(subdomain, cell), i++;
     }
 
     grid->preUpdateSubDomains();
     grid->updateSubDomains();
     grid->postUpdateSubDomains();
 
-    // _logger.debug("Load balance grid"_fmt);
+    // logger.detail("Load balance grid"_fmt);
     // grid->loadBalance();
 
-    if (_logger.level() >= Logging::LogLevel::trace) {
-      _logger.debug("Grid info"_fmt);
-      gridinfo(*grid);
+    if (logger.level() >= Logging::LogLevel::detail) {
+      logger.detail("Grid info"_fmt);
+      gridinfo(*grid,"  ");
       for (int i = 0; i < max_subdomains; ++i) {
-        _logger.debug("Subdomain {} info"_fmt, i);
-        gridinfo(grid->subDomain(i));
+        logger.detail("Subdomain {} info"_fmt, i);
+        gridinfo(grid->subDomain(i), "  ");
       }
     }
 

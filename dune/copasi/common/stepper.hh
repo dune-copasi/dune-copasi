@@ -93,23 +93,22 @@ public:
    * @param dt        Delta time to perform first step. If the step is not
    * possible, stepper may modify it to a suitable value
    * @param end_time  Final time that `out` state must reach
-   * @param path      Path to write states in between steps. If empty, no state
-   * is written
+   * @param callable  A function called with an state at the end of each
+   * succesful step
    */
-  template<class System, class State, class Time>
-  void evolve(System& system,
-              const State& in,
-              State& out,
-              Time& dt,
-              const Time& end_time,
-              const std::filesystem::path& path = "") const
+  template<class System, class State, class Time, class Callable>
+  void evolve(
+    System& system,
+    const State& in,
+    State& out,
+    Time& dt,
+    const Time& end_time,
+    Callable&& callable = [](const auto& state) {}) const
   {
     assert(FloatCmp::lt<double>(in.time, end_time));
     const auto& logger = asImpl().logger();
     logger.notice("Evolving system: {:.2f}s -> {:.2f}s"_fmt, in.time, end_time);
     out = in;
-    if (not path.empty())
-      out.write(path, false);
     while (FloatCmp::lt<double>(out.time, end_time)) {
       if (FloatCmp::gt<double>(dt, end_time - out.time)) {
         logger.detail("Reduce step to match end time: {:.2f}s -> {:.2f}"_fmt,
@@ -122,8 +121,7 @@ public:
         logger.warn("Evolving system could not reach final time"_fmt);
         break;
       }
-      if (not path.empty())
-        out.write(path, true);
+      callable(out);
     }
   }
 
@@ -139,18 +137,19 @@ public:
    * @param dt        Delta time to perform first step. If the step is not
    * possible, stepper may modify it to a suitable value
    * @param end_time  Final time that `out` state must reach
-   * @param path      Path to write states in between steps. If empty, no state
-   * is written
+   * @param callable  A function called with an state at the end of each
+   * succesful step
    */
-  template<class System, class Time>
-  void evolve(System& system,
-              Time& dt,
-              const Time& end_time,
-              const std::filesystem::path& path = "") const
+  template<class System, class Time, class Callable>
+  void evolve(
+    System& system,
+    Time& dt,
+    const Time& end_time,
+    Callable&& callable = [](const auto& state) {}) const
   {
     auto in = system.state();
     auto out = in;
-    evolve(system, in, out, dt, end_time, path);
+    evolve(system, in, out, dt, end_time, callable);
     if (out)
       system.set_state(out);
   }
@@ -194,6 +193,44 @@ public:
     _logger.trace("Stepper methd: {}"_fmt, _rk_method->name());
   }
 
+  /**
+   * @brief Construct a new object
+   *
+   * @param rk_method   Keyword with the RK method type
+   */
+  RKStepper( std::string rk_method)
+    : RKStepper(make_rk_method(rk_method))
+  {}
+
+  /**
+   * @brief Make RK parameters
+   *
+   * @param type  a Keyword with the RK method type
+   * @return auto  a pointer to PDELab time stepping Runge-Kutta paramameters
+   */
+  static std::unique_ptr<PDELab::TimeSteppingParameterInterface<Time>>
+  make_rk_method(const std::string type)
+  {
+    if (type == "explicit_euler")
+      return std::make_unique<PDELab::ExplicitEulerParameter<Time>>();
+    if (type == "implicit_euler")
+      return std::make_unique<PDELab::ImplicitEulerParameter<Time>>();
+    if (type == "heun")
+      return std::make_unique<PDELab::HeunParameter<Time>>();
+    if (type == "shu_3")
+      return std::make_unique<PDELab::Shu3Parameter<Time>>();
+    if (type == "runge_kutta_4")
+      return std::make_unique<PDELab::RK4Parameter<Time>>();
+    if (type == "alexander_2")
+      return std::make_unique<PDELab::Alexander2Parameter<Time>>();
+    if (type == "fractional_step_theta")
+      return std::make_unique<PDELab::FractionalStepParameter<Time>>();
+    if (type == "alexander_3")
+      return std::make_unique<PDELab::Alexander3Parameter<Time>>();
+
+    DUNE_THROW(NotImplemented, "Not known '" << type << "' Runge Kutta method");
+  }
+
   //! @copydoc BaseStepper::do_step()
   template<class System>
   void do_step(System& system, Time& dt) const
@@ -203,7 +240,10 @@ public:
 
   //! @copydoc BaseStepper::do_step()
   template<class System, class State>
-  void do_step(const System& system, const State& in, State& out, Time& dt) const
+  void do_step(const System& system,
+               const State& in,
+               State& out,
+               Time& dt) const
   {
     assert(out.grid_function_space and out.grid);
 
@@ -281,11 +321,11 @@ private:
         return *std::get<4>(internal_state);
     }
 
-    _logger.trace("create non-linear operator"_fmt);
+    _logger.trace("Get non-linear operator"_fmt);
     auto non_linear_operator =
       std::make_shared<NonLinearOperator>(grid_operator, jacobian_operator);
 
-    _logger.trace("create one step operator"_fmt);
+    _logger.trace("Get one step operator"_fmt);
     auto one_step_operator = std::make_shared<OneStepOperator>(
       *_rk_method, grid_operator, *non_linear_operator);
     one_step_operator->setVerbosityLevel(2);
@@ -399,6 +439,29 @@ private:
   const Time _min_step, _max_step;
   const double _decrease_factor, _increase_factor;
 };
+
+template<class Time = double>
+auto
+make_default_stepper(const ParameterTree& config)
+{
+  auto log = Logging::Logging::componentLogger({}, "stepper");
+  auto rk_type = config.get("rk_method","alexander_2");
+  auto min_step = config.template get<double>("min_step");
+  auto max_step = config.template get<double>("max_step");
+  auto decrease_factor = config.get("decrease_factor", 0.9);
+  auto increase_factor = config.get("increase_factor", 1.1);
+
+  log.trace("Increase factor: {}"_fmt,increase_factor);
+  log.trace("Decrease factor: {}"_fmt,decrease_factor);
+  log.trace("Runge-Kutta method: {}"_fmt,rk_type);
+
+  using RKStepper = Dune::Copasi::RKStepper<double>;
+  auto rk_stepper = RKStepper{ rk_type };
+  using Stepper = Dune::Copasi::SimpleAdaptiveStepper<RKStepper>;
+  return Stepper{
+    std::move(rk_stepper), min_step, max_step, decrease_factor, increase_factor
+  };
+}
 
 } // namespace Dune::Copasi
 

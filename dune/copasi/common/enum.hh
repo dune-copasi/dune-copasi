@@ -17,12 +17,12 @@ enum class Stages
 {
   GridFunctionSpace = 1 << 1,
   CoefficientVector = 1 << 2,
-  InitialCondition  = 1 << 3,
-  Constraints       = 1 << 4,
-  LocalOperator     = 1 << 5,
-  GridOperator      = 1 << 6,
-  Solver            = 1 << 7,
-  Writer            = 1 << 8
+  InitialCondition = 1 << 3,
+  Constraints = 1 << 4,
+  LocalOperator = 1 << 5,
+  GridOperator = 1 << 6,
+  JacobianOperator = 1 << 7,
+  Writer = 1 << 8
 };
 
 //! Policy that setup the grid function spaces in a model
@@ -48,8 +48,9 @@ static constexpr Stages setup_local_operator =
 static constexpr Stages setup_grid_operator =
   setup_local_operator | Stages::GridOperator;
 
-//! Policy that setup the solver in a model
-static constexpr Stages setup_solver = setup_grid_operator | Stages::Solver;
+//! Policy that setup the jacobian operator in a model
+static constexpr Stages setup_jacobian_operator =
+  setup_grid_operator | Stages::JacobianOperator;
 
 //! Policy that setup the writer in a model
 static constexpr Stages setup_writer =

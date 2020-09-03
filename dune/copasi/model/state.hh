@@ -74,7 +74,10 @@ struct ConstModelState
    * @details    A vaild state contains a grid, a grid function space and
    *             coefficients
    */
-  operator bool() { return grid and grid_function_space and coefficients; }
+  operator bool() const
+  {
+    return grid and grid_function_space and coefficients;
+  }
 };
 
 /**
@@ -145,7 +148,10 @@ struct ModelState
    * @details    A vaild state contains a grid, a grid function space and
    *             coefficients
    */
-  operator bool() { return grid and grid_function_space and coefficients; }
+  operator bool() const
+  {
+    return grid and grid_function_space and coefficients;
+  }
 };
 
 } // namespace Dune::Copasi

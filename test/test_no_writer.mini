@@ -5,12 +5,13 @@ file = grids/square_triangles.msh
 initial_level = 0
 
 [model]
-[model]
 order = 1
+
 [model.time_stepping]
-begin = 0.
-end = 10
-step = 0.1
+rk_method = alexander_2
+begin = 0
+end = 1
+initial_step = 0.1
 min_step = 1e-3
 max_step = 1e-0
 decrease_factor = 0.9
@@ -20,9 +21,6 @@ increase_factor = 1.1
 domain     = 0
 
 ############################ Model for domain ############################
-[model.domain.operator]
-u = 0
-
 [model.domain.initial]
 u = 1
 
@@ -40,8 +38,50 @@ u = 0.
 ############################ Logging settings #################################
 # levels = off, critical, error, waring, notice, info, detail, debug, trace, all
 
+# Sink setup for console stdcout
+[logging.sinks.stdout]
+level = info # max level to output on this sink
+pattern = "[\\{reldays:0>2\\}-\\{reltime:8%T\\}] [\\{backend\\}] \\{msg\\}"
+
+# Sink setup for logfile output
+[logging.sinks.logfile]
+level = all # max level to output on this sink
+type = rank-0-file
+file = {__name}.log
+pattern = "[\\{reldays:0>2\\}-\\{reltime:8%T\\}] [\\{backend\\}] \\{msg\\}"
+
+# Logger internal info go into this logger
+[logging.internal]
+level = off
+
+# General info go into this logger
+# Settings on this logger are the default values for other backend loggers
+[logging.default]
+level = detail
+indent = 0
+sinks = logfile, stdout
+
+# Logger info go into this logger
+[logging.backend.logging]
+level = off
+indent = 0
+
+# Grid info go into this logger
+[logging.backend.grid]
+level = detail
+indent = 2
+
+# General model info go into this logger
+[logging.backend.model]
+level = detail
+indent = 2
 
 # Time stepping info go into this logger
 [logging.backend.stepper]
 level = detail
+indent = 4
+
+# writer info go into this logger
+[logging.backend.writer]
+level = trace
 indent = 4
