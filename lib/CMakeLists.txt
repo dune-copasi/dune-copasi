@@ -8,18 +8,7 @@ target_include_directories(dune_copasi_lib INTERFACE
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-# message("${CMAKE_CXX_COMPILER_ID}")
-if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
-  target_link_libraries(dune_copasi_lib PUBLIC "-lc++fs")
-elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
-  target_link_libraries(dune_copasi_lib PUBLIC "-lstdc++fs")
-else()
-  include(CheckCXXSymbolExists)
-  check_cxx_symbol_exists(std::filesystem::path::preferred_separator filesystem cxx17fs)
-  if (NOT cxx17fs)
-    message(SEND_ERROR "C++ compiler does not provide the flie system library")
-  endif()
-endif()
+target_link_libraries(dune_copasi_lib PUBLIC std::filesystem)
 
 add_library(dune_copasi_md_lib_fv EXCLUDE_FROM_ALL dune_copasi_md_fv.cc)
 target_link_libraries(dune_copasi_md_lib_fv PUBLIC dune_copasi_lib)
