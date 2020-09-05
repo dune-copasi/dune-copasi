@@ -1,10 +1,10 @@
 install(FILES bit_flags.hh
-              coefficient_mapper.hh
               data_context.hh
               enum.hh
+              factory.hh
               muparser_data_handler.hh
               pdelab_expression_adapter.hh
-              factory.hh
+              stepper.hh
               tiff_grayscale.hh
         COMPONENT Development
         DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/dune/copasi/common")
