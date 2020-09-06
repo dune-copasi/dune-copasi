@@ -319,7 +319,7 @@ ModelDiffusionReaction<Traits>::setup_vtk_writer()
     auto writer =
       std::make_shared<VTKWriter<VTKGridView>>(gfs->gridView(), Dune::VTK::conforming);
     auto sequential_writer =
-      VTKSequenceWriter<VTKGridView>{ writer, name, path, path };
+      VTKSequenceWriter<VTKGridView>{ writer, name, path.string(), path.string() };
     sequential_writer.setTimeSteps(timesteps);
 
     using Predicate = PDELab::vtk::DefaultPredicate;
