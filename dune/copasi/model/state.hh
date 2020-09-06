@@ -3,7 +3,7 @@
 
 #include <dune/common/exceptions.hh>
 
-#include <filesystem>
+#include <dune/copasi/common/filesystem.hh>
 #include <limits>
 #include <memory>
 
@@ -37,9 +37,9 @@ struct ConstModelState
   std::shared_ptr<const Coefficients> coefficients;
   const double time = std::numeric_limits<double>::quiet_NaN();
   std::function<
-    void(const ConstModelState&, const std::filesystem::path&, bool)>
+    void(const ConstModelState&, const fs::path&, bool)>
     writer;
-  std::function<void(ModelState<G, GFS, X>&, const std::filesystem::path&)>
+  std::function<void(ModelState<G, GFS, X>&, const fs::path&)>
     reader;
 
   /**
@@ -62,7 +62,7 @@ struct ConstModelState
    * @param[in]  path     The path to write file
    * @param[in]  append   True if write should apppend file to older state write
    */
-  void write(const std::filesystem::path& path, bool append) const
+  void write(const fs::path& path, bool append) const
   {
     if (not writer)
       DUNE_THROW(Dune::InvalidStateException, "ModelState writer is not setup");
@@ -104,9 +104,9 @@ struct ModelState
   std::shared_ptr<Coefficients> coefficients;
   double time = std::numeric_limits<double>::quiet_NaN();
   std::function<
-    void(const ConstModelState<G, GFS, X>&, const std::filesystem::path&, bool)>
+    void(const ConstModelState<G, GFS, X>&, const fs::path&, bool)>
     writer;
-  std::function<void(ModelState&, const std::filesystem::path&)> reader;
+  std::function<void(ModelState&, const fs::path&)> reader;
 
   /**
    * @brief      Write the model state into a file
@@ -114,7 +114,7 @@ struct ModelState
    * @param[in]  path     The path to write file
    * @param[in]  append   True if write should apppend file to older state write
    */
-  void write(const std::filesystem::path& path, bool append) const
+  void write(const fs::path& path, bool append) const
   {
     if (not writer)
       DUNE_THROW(Dune::InvalidStateException, "ModelState writer is not setup");
@@ -126,7 +126,7 @@ struct ModelState
    *
    * @param[in]  path  The file path
    */
-  void read(const std::filesystem::path& path)
+  void read(const fs::path& path)
   {
     if (not reader)
       DUNE_THROW(Dune::InvalidStateException, "ModelState reader is not setup");

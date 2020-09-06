@@ -271,12 +271,12 @@ ModelMultiDomainDiffusionReaction<Traits>::setup_vtk_writer()
     auto& gfs = state.grid_function_space;
 
     // create directory if necessary
-    auto path_entry = std::filesystem::directory_entry{ path };
+    auto path_entry = fs::directory_entry{ path };
     if (not path_entry.exists()) {
       log_writer.info("Creating output directory '{}'"_fmt,
                       path_entry.path().string());
       std::error_code ec{ 0, std::generic_category() };
-      std::filesystem::create_directories(path_entry.path(), ec);
+      fs::create_directories(path_entry.path(), ec);
       if (ec)
         DUNE_THROW(IOError,
                    "\n Category: " << ec.category().name() << '\n'
