@@ -24,6 +24,10 @@ dune_project()
 
 dune_enable_all_packages()
 
+set(USE_FALLBACK_FILESYSTEM no CACHE BOOL "Use bundled std::filesystem alternative (enable this for macOS older than 10.15)")
+if(USE_FALLBACK_FILESYSTEM)
+  add_subdirectory(ext/ghc)
+endif()
 add_subdirectory(src)
 add_subdirectory(dune)
 add_subdirectory(lib)

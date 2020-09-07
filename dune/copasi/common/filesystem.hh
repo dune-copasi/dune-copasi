@@ -3,7 +3,7 @@
 
 #ifdef DUNE_COPASI_USE_FALLBACK_FILESYSTEM
 
-#include <dune/copasi/common/ghc/filesystem.hpp>
+#include <ghc/filesystem.hpp>
 namespace fs {
 using namespace ghc::filesystem;
 }

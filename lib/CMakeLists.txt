@@ -8,9 +8,9 @@ target_include_directories(dune_copasi_lib INTERFACE
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-set(USE_FALLBACK_FILESYSTEM no CACHE BOOL "Use bundled std::filesystem alternative (enable this for macOS older than 10.15)")
 if(USE_FALLBACK_FILESYSTEM)
   target_compile_definitions(dune_copasi_lib PUBLIC DUNE_COPASI_USE_FALLBACK_FILESYSTEM)
+  target_link_libraries(dune_copasi_lib PUBLIC ghc_filesystem)
 elseif(Filesystem_FOUND)
   target_link_libraries(dune_copasi_lib PUBLIC std::filesystem)
 endif()

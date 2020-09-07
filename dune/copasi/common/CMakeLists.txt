@@ -3,7 +3,6 @@ install(FILES bit_flags.hh
               enum.hh
               factory.hh
               filesystem.hh
-              ghc/filesystem.hpp
               muparser_data_handler.hh
               pdelab_expression_adapter.hh
               stepper.hh
