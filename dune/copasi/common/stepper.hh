@@ -416,7 +416,7 @@ public:
       logger().warn(
         "Reducing step size: {}s -> {}s"_fmt, dt, dt * _decrease_factor);
       dt = dt * _decrease_factor;
-      if (FloatCmp::lt<Time>(_min_step, dt))
+      if (FloatCmp::lt<Time>(dt, _min_step))
         DUNE_THROW(MathError,
                    "Time step '" << dt
                                  << "' is less than the minimun allowed step '"
