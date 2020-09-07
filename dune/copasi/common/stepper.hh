@@ -279,7 +279,11 @@ public:
 
     } catch (const Dune::PDELab::NewtonError& e) {
       out.coefficients.reset(); // set output to an invalid state
-      _logger.warn("Step failed"_fmt);
+      _logger.warn("Step failed (NewtonError)"_fmt);
+      _logger.trace("{}"_fmt, e.what());
+    } catch (const Dune::MathError& e) {
+      out.coefficients.reset(); // set output to an invalid state
+      _logger.warn("Step failed (MathError)"_fmt);
       _logger.trace("{}"_fmt, e.what());
     }
 
