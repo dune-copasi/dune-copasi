@@ -108,6 +108,7 @@ public:
     const auto& logger = asImpl().logger();
     logger.notice("Evolving system: {:.2f}s -> {:.2f}s"_fmt, in.time, end_time);
     out = in;
+    auto prev_out = in;
     while (FloatCmp::lt<double>(out.time, end_time)) {
       if (FloatCmp::gt<double>(dt, end_time - out.time)) {
         logger.detail("Reduce step to match end time: {:.2f}s -> {:.2f}"_fmt,
@@ -115,7 +116,8 @@ public:
                       end_time - out.time);
         dt = end_time - out.time;
       }
-      do_step(system, out, out, dt);
+      std::swap(prev_out, out);
+      do_step(system, prev_out, out, dt);
       if (not out) {
         logger.warn("Evolving system could not reach final time"_fmt);
         break;
@@ -409,7 +411,7 @@ public:
       DUNE_THROW(InvalidStateException,
                  "time-step '" << dt
                                << "' is greater than the maximum allowed step '"
-                               << _min_step << "'");
+                               << _max_step << "'");
 
     _stepper.do_step(system, in, out, dt);
     while (not out) {
