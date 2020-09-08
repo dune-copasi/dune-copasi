@@ -268,7 +268,7 @@ public:
 
     // try & catch is the only way we have to check if the solver was successful
     try {
-      solver.apply(in.time, dt, *x_out, *x_out);
+      solver.apply(in.time, dt, *x_in, *x_out);
       solver.result(); // triggers an exception if solver failed
 
       _logger.notice("Time Step: {:.2f}s + {:.2f}s -> {:.2f}s"_fmt,
