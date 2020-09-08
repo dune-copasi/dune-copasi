@@ -284,7 +284,7 @@ public:
       // evaluate concentrations at quadrature point
       for (std::size_t comp = 0; comp < _components; comp++)
         for (std::size_t dof = 0; dof < phi.size(); dof++)
-          u[comp] += x_coeff_local(comp, dof) * phi[comp];
+          u[comp] += x_coeff_local(comp, dof) * phi[dof];
 
       // get reaction term
       for (std::size_t k = 0; k < _components; k++) {
