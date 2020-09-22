@@ -1,8 +1,8 @@
 __name = test_gauss_mixed_geometry
 
-_diffusion = 0.01
+_diffusion = 0.005
 _t0 = 1.
-_gauss_eq = exp(-((x-0.5)^2+(y-0.5)^2)/(2.*t*{_diffusion})) / (2*pi*t*{_diffusion})
+_gauss_eq = exp(-((x-0.5)^2+(y-0.5)^2)/(4*t*{_diffusion})) / (4*pi*t*{_diffusion})
 
 [grid]
 file = grids/square_mixed_geometry.msh
@@ -14,12 +14,12 @@ order = 1
 [model.time_stepping]
 rk_method = alexander_2
 begin = {_t0}
-end = 3
-initial_step = 0.1
+end = 2
+initial_step = 1e-2
 min_step = 1e-3
-max_step = 1e-0
-decrease_factor = 0.9
-increase_factor = 1.1
+max_step = 1e-1
+decrease_factor = 0.5
+increase_factor = 1.5
 
 [model.writer]
 file_path = {__name}
@@ -45,7 +45,7 @@ u = {_diffusion}
 [model.cubes.compare.expression]
 u = {_gauss_eq}
 [model.cubes.compare.l2_error]
-u = 0.55
+u = 0.155
 
 ############################ Model for triangles ############################
 [model.triangles.initial]
@@ -64,7 +64,7 @@ u = {_diffusion}
 [model.triangles.compare.expression]
 u = {_gauss_eq}
 [model.triangles.compare.l2_error]
-u = 0.55
+u = 0.095
 
 ############################ Logging settings #################################
 # levels = off, critical, error, waring, notice, info, detail, debug, trace, all
