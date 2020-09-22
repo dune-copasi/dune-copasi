@@ -132,10 +132,26 @@ main(int argc, char** argv)
       return param;
     };
 
+    auto log_writer = Dune::Logging::Logging::componentLogger({}, "writer");
     std::vector<std::shared_ptr<Dune::VTKSequenceWriter<SubDomainGridView>>>
       writer(domains);
     for (size_t i = 0; i < domains; i++) {
       auto gv = md_grid_ptr->subDomain(i).leafGridView();
+
+      // create directory if necessary
+      auto path_entry = fs::directory_entry{ file };
+      if (not path_entry.exists()) {
+        log_writer.info("Creating output directory '{}'"_fmt,
+                        path_entry.path().string());
+        std::error_code ec{ 0, std::generic_category() };
+        fs::create_directories(path_entry.path(), ec);
+        if (ec)
+          DUNE_THROW(Dune::IOError,
+                    "\n Category: " << ec.category().name() << '\n'
+                                    << "Value: " << ec.value() << '\n'
+                                    << "Message: " << ec.message() << '\n');
+      }
+
       std::string name = fmt::format(
         "{}-{}-expression", file, compartments_config.getValueKeys()[i]);
       auto base_writer = std::make_shared<Dune::VTKWriter<SubDomainGridView>>(
