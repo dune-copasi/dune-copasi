@@ -15,6 +15,7 @@ rk_method = alexander_2
 begin = 0.
 end = 0.01
 step = 2e-3
+initial_step = 0.1
 min_step = 1e-3
 max_step = 1e-0
 decrease_factor = 0.9
