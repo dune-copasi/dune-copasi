@@ -46,7 +46,7 @@ main(int argc, char** argv)
   using namespace Dune::Literals;
 
   try {
-        std::time_t stime_t = std::chrono::system_clock::to_time_t(stime_c);
+    std::time_t stime_t = std::chrono::system_clock::to_time_t(stime_c);
     std::tm stime_tm;
     std::memcpy(&stime_tm, std::localtime(&stime_t), sizeof(std::tm));
     auto stime_s = fmt::format("{:%a %F %T %Z}", stime_tm);
@@ -67,7 +67,7 @@ main(int argc, char** argv)
     using MDGTraits = Dune::mdgrid::DynamicSubDomainCountTraits<dim, 1>;
     using Grid = Dune::mdgrid::MultiDomainGrid<HostGrid, MDGTraits>;
 
-    auto& grid_config = config.sub("grid",true);
+    auto& grid_config = config.sub("grid", true);
     auto level = grid_config.get<int>("initial_level", 0);
 
     auto grid_file = grid_config.get<std::string>("file");
@@ -85,11 +85,11 @@ main(int argc, char** argv)
       md_grid_ptr->postAdapt();
     }
 
-    auto& model_config = config.sub("model",true);
+    auto& model_config = config.sub("model", true);
     int order = model_config.get<int>("order");
 
     // create time stepper
-    auto timestep_config = model_config.sub("time_stepping",true);
+    auto timestep_config = model_config.sub("time_stepping", true);
     auto end_time = timestep_config.template get<double>("end");
     auto initial_step = timestep_config.template get<double>("initial_step");
     auto stepper = Dune::Copasi::make_default_stepper(timestep_config);
@@ -97,7 +97,7 @@ main(int argc, char** argv)
     auto file = model_config.get("writer.file_path", "");
     auto write_output = [=](const auto& state) {
       if (not file.empty())
-        state.write(file,true);
+        state.write(file, true);
     };
 
     if (order == 0) {
@@ -131,11 +131,11 @@ main(int argc, char** argv)
     }
   } catch (Dune::Exception& e) {
     log.error("Dune reported error:"_fmt);
-    log.error(2,"{}"_fmt, e.what());
+    log.error(2, "{}"_fmt, e.what());
     end_code = 1;
   } catch (std::exception& e) {
     log.error("C++ reported error:"_fmt);
-    log.error(2,"{}"_fmt, e.what());
+    log.error(2, "{}"_fmt, e.what());
     end_code = 1;
   } catch (...) {
     log.error("Unknown exception thrown!"_fmt);

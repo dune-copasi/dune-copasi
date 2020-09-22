@@ -316,6 +316,13 @@ ModelMultiDomainDiffusionReaction<Traits>::setup_vtk_writer()
         collector.addSolution(data[i]->_lfs.child(i).child(k),
                               PDELab::vtk::defaultNameScheme());
       }
+
+      if (i == 0)
+        log_writer.detail("Writing solution for {:.2f}s time stamp"_fmt, state.time);
+      log_writer.trace("Writing vtu file: '{0}/{0}-{1:0>5}.vtu'"_fmt,
+                      name,
+                      timesteps.size());
+
       sequential_writer.write(state.time, Dune::VTK::base64);
       sequential_writer.vtkWriter()->clear();
     }

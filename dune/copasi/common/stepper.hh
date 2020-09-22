@@ -333,7 +333,7 @@ private:
     _logger.trace("Get one step operator"_fmt);
     auto one_step_operator = std::make_shared<OneStepOperator>(
       *_rk_method, grid_operator, *non_linear_operator);
-    one_step_operator->setVerbosityLevel(2);
+    one_step_operator->setVerbosityLevel(5);
 
     _internal_state =
       std::make_any<InternalState>(&system,
