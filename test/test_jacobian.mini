@@ -15,9 +15,9 @@ rk_method = alexander_2
 begin = 0.
 end = 0.01
 step = 2e-3
-initial_step = 0.1
+initial_step = 2e-3
 min_step = 1e-3
-max_step = 1e-0
+max_step = 2e-3
 decrease_factor = 0.9
 increase_factor = 1.1
 
@@ -62,7 +62,7 @@ v = 1.
 
 ######################### Compare with reference vtk ######################### 
 [wrapper.vtkcompare]
-name = {__name}_cell/{__name}_cell-00005 {__name}_nucleoid/{__name}_nucleoid-00005
+name = {__name}/{__name}-cell-00005 {__name}/{__name}-nucleoid-00005
 reference = reference/cell-00005 reference/nucleoid-00005
 extension = vtu vtu
 relative = 2e-2

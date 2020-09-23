@@ -12,6 +12,7 @@ rk_method = alexander_2
 begin = 0.
 end = 0.
 step = 0.1
+initial_step = 0.1
 min_step = 1e-3
 max_step = 1e-0
 decrease_factor = 0.9
@@ -41,7 +42,7 @@ u = 1e-3
 
 ######################### Compare with analytic vtk #########################
 [wrapper.vtkcompare]
-name = {__name}/{__name}-00000
+name = {__name}/{__name}-domain-00000
 reference = reference/{__name}-00000
 extension = vtu
 relative = 2e-2
