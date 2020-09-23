@@ -104,7 +104,6 @@ public:
     const Time& end_time,
     Callable&& callable = [](const auto& state) {}) const
   {
-    assert(FloatCmp::lt<double>(in.time, end_time));
     const auto& logger = asImpl().logger();
     logger.notice("Evolving system: {:.2f}s -> {:.2f}s"_fmt, in.time, end_time);
     out = in;
