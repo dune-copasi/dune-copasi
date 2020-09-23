@@ -63,56 +63,6 @@ public:
    */
   virtual void post_adapt_grid();
 
-  /**
-   * @brief      Method that provides the begin time of the model.
-   *
-   * @return     Begin time of the model.
-   */
-  double& begin_time();
-
-  //! @copydoc ModelBase::begin_time()
-  const double& begin_time() const;
-
-  /**
-   * @brief      Method that provides the end time of the model.
-   *
-   * @return     End time of the model.
-   */
-  double& end_time();
-
-  //! @copydoc ModelBase::end_time()
-  const double& end_time() const;
-
-  /**
-   * @brief      Method that provides the current time of the model.
-   *
-   * @return     Current time of the model.
-   */
-  double& current_time();
-
-  //! @copydoc ModelBase::current_time()
-  const double& current_time() const;
-
-  /**
-   * @brief      Suggest a time step to the model.
-   *
-   * @param[in]  dt    Suggestion for the internal time step of the model.
-   */
-  virtual void suggest_timestep(double dt) = 0;
-
-  /**
-   * @brief      Performs one steps in direction to end_time().
-   * @details    The time-step should never result on a bigger step than the one
-   *             suggested in suggest_timestep().
-   */
-  virtual void step() = 0;
-
-  /**
-   * @brief      Runs the model performing steps until current_time() equals
-   *             end_time().
-   */
-  virtual void run();
-
 protected:
   Logging::Logger _logger;
 

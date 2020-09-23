@@ -724,40 +724,8 @@ public:
     });
   }
 
-  template<class Entity>
-  const auto& coefficient_mapper_inside(const Entity& entity_inside) const
-  {
-    // using CoefficientMapper = std::common_type_t<decltype(std::declval<LocalOperators>().coefficient_mapper_inside(std::declval<Entity>()))...>;
-    // FIXME!
-    return std::get<0>(_lops)->coefficient_mapper_inside(entity_inside);
-  }
-
-  template<class Entity>
-  const auto& coefficient_mapper_outside(const Entity& entity_outside) const
-  {
-    // FIXME!
-    return std::get<0>(_lops)->coefficient_mapper_outside(entity_outside);
-  }
-
-  template<class LFSU, class LFSV>
-  const auto& lfs_components(const LFSU& lfsu, const LFSV& lfsv) const
-  {
-    _lfs_components.clear();
-    auto index_set = indices(lfsu,lfsv);
-    Dune::Hybrid::forEach(Dune::range(_integral_size{}), [&](auto i) {
-      const auto& lop = std::get<i>(_lops);
-      if (index_set.find(i) != index_set.end())
-      {
-        const auto& lfs_components = lop->lfs_components(lfsu,lfsv);
-        _lfs_components.insert(_lfs_components.end(),lfs_components.begin(),lfs_components.end());
-      }
-    });
-    return _lfs_components; //todo cache this
-  }
-
 private:
   using _integral_size = std::integral_constant<std::size_t,sizeof...(LocalOperators)>;
-  mutable std::vector<std::size_t> _lfs_components;
   FiniteElementMapper _fe_mapper;
   std::tuple<std::unique_ptr<LocalOperators>...> _lops;
 };

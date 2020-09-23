@@ -1,6 +1,6 @@
-_diffusion = 0.01
+_diffusion = 0.005
 _t0 = 1.
-_gauss_eq = exp(-((x-0.5)^2+(y-0.5)^2)/(2.*t*{_diffusion})) / (2*pi*t*{_diffusion})
+_gauss_eq = exp(-((x-0.5)^2+(y-0.5)^2)/(4*t*{_diffusion})) / (4*pi*t*{_diffusion})
 _geometry_type = cubes, triangles | expand geometry_type
 
 __name = test_gauss_{_geometry_type}
@@ -10,18 +10,25 @@ file = grids/square_{_geometry_type}.msh
 initial_level = 4
 
 [model]
-begin_time = {_t0}
-end_time = 3
-time_step = 0.1
 order = 0, 1 | expand geometry_type
+
+[model.time_stepping]
+rk_method = alexander_2
+begin = {_t0}
+end = 2
+initial_step = 1e-2
+min_step = 1e-3
+max_step = 1e-1
+decrease_factor = 0.5
+increase_factor = 1.5
+
+[model.writer]
+file_path = {__name}
 
 [model.compartments]
 domain = 0
 
 ############################ Model for domain ############################
-[model.domain.operator]
-u = 0
-
 [model.domain.initial]
 u = {_gauss_eq}
 
@@ -34,28 +41,59 @@ du_du = 0
 [model.domain.diffusion]
 u = {_diffusion}
 
-[model.domain.writer]
-file_name = {__name}
-
 #### compare against a known solution
 [model.domain.compare.expression]
 u = {_gauss_eq}
 [model.domain.compare.l2_error]
-u = 0.6
+u = 0.255 , 0.076 | expand geometry_type
 
 ############################ Logging settings #################################
-# levels = off, critical, error, waring, notice, info, debug, trace, all
+# levels = off, critical, error, waring, notice, info, detail, debug, trace, all
 
-[logging]
-default.level = trace
-
+# Sink setup for console stdcout
 [logging.sinks.stdout]
+level = info # max level to output on this sink
 pattern = "[\\{reldays:0>2\\}-\\{reltime:8%T\\}] [\\{backend\\}] \\{msg\\}"
 
-[logging.backend.model]
-level = trace
+# Sink setup for logfile output
+[logging.sinks.logfile]
+level = all # max level to output on this sink
+type = rank-0-file
+file = {__name}.log
+pattern = "[\\{reldays:0>2\\}-\\{reltime:8%T\\}] [\\{backend\\}] \\{msg\\}"
+
+# Logger internal info go into this logger
+[logging.internal]
+level = off
+
+# General info go into this logger
+# Settings on this logger are the default values for other backend loggers
+[logging.default]
+level = detail
+indent = 0
+sinks = logfile, stdout
+
+# Logger info go into this logger
+[logging.backend.logging]
+level = off
+indent = 0
+
+# Grid info go into this logger
+[logging.backend.grid]
+level = detail
 indent = 2
 
-[logging.backend.solver]
+# General model info go into this logger
+[logging.backend.model]
+level = detail
+indent = 2
+
+# Time stepping info go into this logger
+[logging.backend.stepper]
+level = detail
+indent = 4
+
+# writer info go into this logger
+[logging.backend.writer]
 level = trace
 indent = 4

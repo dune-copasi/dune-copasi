@@ -1,8 +1,8 @@
 install(
   FILES dynamic_power.hh
-        subdomain.hh
         p0.hh
         pk.hh
+        subdomain.hh
         variadic.hh
         virtual.hh
   COMPONENT Development

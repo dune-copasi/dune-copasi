@@ -64,10 +64,6 @@ if (dune-testtools_FOUND)
     INIFILE         test_gauss.mini)
 
   add_system_test_per_target(
-    TARGET          dune_copasi_sd_compare
-    INIFILE         test_gauss_mixed_geometry.mini)
-
-  add_system_test_per_target(
     TARGET          dune_copasi_md_compare
     INIFILE         test_gauss_mixed_geometry.mini)
 

@@ -31,37 +31,34 @@ ModelDiffusionReaction<Traits>::ModelDiffusionReaction(
   GV grid_view,
   BitFlags<ModelSetup::Stages> setup_policy)
   : ModelBase(config)
-  , _solver_logger(Logging::Logging::componentLogger(config, "solver"))
-  , _components(config.sub("reaction").getValueKeys().size())
   , _config(config)
+  , _compartment_name(_config.sub("compartments").getValueKeys().front())
   , _grid_view(grid_view)
   , _grid(grid)
 {
+  if (_config.sub("compartments",true).getValueKeys().size() != 1)
+    DUNE_THROW(IOError, "'compartments' section must contain one entry");
   setup(setup_policy);
-  write_states();
 
-  _logger.debug("ModelDiffusionReaction constructed"_fmt);
+  _logger.trace("ModelDiffusionReaction constructed"_fmt);
 }
 
 template<class Traits>
 ModelDiffusionReaction<Traits>::~ModelDiffusionReaction()
 {
-  _logger.debug("ModelDiffusionReaction deconstructed"_fmt);
+  _logger.trace("ModelDiffusionReaction deconstructed"_fmt);
 }
 
 template<class Traits>
 template<class GFGridView>
 auto
 ModelDiffusionReaction<Traits>::get_muparser_initial(
-  const ParameterTree& model_config,
+  const ParameterTree& compartment_config,
   const GFGridView& gf_grid_view,
   bool compile)
 {
-  if (not model_config.hasSub("initial"))
-    DUNE_THROW(IOError, "configuration file does not have initial section");
-
   return get_muparser_expressions(
-    model_config.sub("initial"), gf_grid_view, compile);
+    compartment_config.sub("initial",true), gf_grid_view, compile);
 }
 
 template<class Traits>
@@ -85,46 +82,23 @@ ModelDiffusionReaction<Traits>::set_initial(
   static_assert(GridFunction::Traits::dimRange == 1,
                 "GridFunction has to have range dimension equal to 1");
 
-  _logger.debug("set initial state from grid functions"_fmt);
+  _logger.debug("Set initial state from grid functions"_fmt);
 
-  if (initial.size() != _config.sub("diffusion").getValueKeys().size())
+  if (initial.size() !=
+      _config.sub(_compartment_name + ".diffusion",true).getValueKeys().size())
     DUNE_THROW(RangeError, "Wrong number of grid functions");
 
-  for (auto& [op, state] : _states) {
-    _logger.trace("interpolation of operator {}"_fmt, op);
-    std::size_t comp_size = state.grid_function_space->degree();
-    std::vector<std::shared_ptr<GridFunction>> functions(comp_size);
-
-    auto& operator_config = _config.sub("operator");
-    auto comp_names = operator_config.getValueKeys();
-    std::sort(comp_names.begin(), comp_names.end());
-
-    std::size_t count_i = 0; // index for variables in operator
-    std::size_t count_j = 0; // index for all variables
-    for (const auto& var : comp_names) {
-      assert(count_i < comp_names.size());
-      if (op != operator_config.template get<std::size_t>(var))
-        continue;
-
-      _logger.trace("creating grid function for variable: {}"_fmt, var);
-      functions[count_i] = initial[count_j];
-      functions[count_i]->set_time(current_time());
-      count_i++;
-      count_j++;
-    }
-
-    PDELab::DynamicPowerGridFunction<GridFunction> comp_initial(functions);
-    Dune::PDELab::interpolate(
-      comp_initial, *state.grid_function_space, *state.coefficients);
-  }
+  PDELab::DynamicPowerGridFunction<GridFunction> comp_initial(initial);
+  Dune::PDELab::interpolate(
+    comp_initial, *_state.grid_function_space, *_state.coefficients);
 }
 
 template<class Traits>
 auto
 ModelDiffusionReaction<Traits>::setup_component_grid_function_space(
-  std::string name) const
+  const std::string& name) const
 {
-  _logger.trace("create a finite element map"_fmt);
+  _logger.trace("Create a finite element map"_fmt);
 
   // create entity mapper context
   using Entity = typename Traits::Grid::LeafGridView::template Codim<0>::Entity;
@@ -146,18 +120,19 @@ ModelDiffusionReaction<Traits>::setup_component_grid_function_space(
   // create fem from factory
   std::shared_ptr<FEM> finite_element_map(Factory<FEM>::create(ctx));
 
-  std::size_t order;
+  std::size_t order{ ~0ul };
   if constexpr (Concept::isMultiDomainGrid<typename Traits::Grid>()) {
     order = finite_element_map
               ->find(_grid->multiDomainEntity(*_grid_view.template begin<0>()))
               .localBasis()
               .order();
-  } else
+  } else {
     order = finite_element_map->find(*_grid_view.template begin<0>())
               .localBasis()
               .order();
+  }
 
-  _logger.trace("setup grid function space for component {}"_fmt, name);
+  _logger.trace("Setup grid function space for component {}"_fmt, name);
   const ES entity_set(_grid->leafGridView());
   auto comp_gfs = std::make_shared<LGFS>(entity_set, finite_element_map);
   comp_gfs->name(name);
@@ -168,76 +143,46 @@ ModelDiffusionReaction<Traits>::setup_component_grid_function_space(
 }
 
 template<class Traits>
-auto
-ModelDiffusionReaction<Traits>::setup_domain_grid_function_space(
-  std::vector<std::string> comp_names) const
-{
-  _logger.debug("setup domain grid function space"_fmt);
-
-  typename GFS::NodeStorage comp_gfs_vec(comp_names.size());
-
-  for (std::size_t k = 0; k < comp_names.size(); k++) {
-    comp_gfs_vec[k] = setup_component_grid_function_space(comp_names[k]);
-  }
-
-  _logger.trace("setup power grid function space"_fmt);
-  return std::make_shared<GFS>(comp_gfs_vec);
-}
-
-template<class Traits>
 void
 ModelDiffusionReaction<Traits>::setup_grid_function_space()
 {
-  // get component names
-  auto& operator_splitting_config = _config.sub("operator");
-  auto comp_names = operator_splitting_config.getValueKeys();
-  std::sort(comp_names.begin(), comp_names.end());
+  _logger.debug("Setup domain grid function space"_fmt);
+  auto components = _config.sub(_compartment_name + ".reaction",true).getValueKeys();
 
-  _states.clear();
-  // map operator -> variable_name
-  _operator_splitting.clear();
-  for (auto&& var : comp_names) {
-    std::size_t op = operator_splitting_config.template get<std::size_t>(var);
-    _operator_splitting.insert(std::make_pair(op, var));
-    _states[op] = {}; // initializate map with empty states
-    _states[op].grid = _grid;
+  if (not _state) {
+    _state.grid = _grid;
+    _state.time = _config.get("time_stepping.begin",0.);
   }
+  auto comp_gfs_vec = typename GFS::NodeStorage{};
+  for (const auto& name : components)
+    comp_gfs_vec.push_back(setup_component_grid_function_space(name));
 
-  for (auto& [op, state] : _states) {
-    _logger.trace("setup grid function space for operator {}"_fmt, op);
-    auto op_range = _operator_splitting.equal_range(op);
-    std::size_t op_size = std::distance(op_range.first, op_range.second);
-    assert(op_size > 0);
-    std::vector<std::string> op_comp_names(op_size);
-    std::transform(op_range.first,
-                   op_range.second,
-                   op_comp_names.begin(),
-                   [](const auto& i) { return i.second; });
-    _states[op].grid_function_space =
-      setup_domain_grid_function_space(op_comp_names);
-  }
+  _logger.trace("Setup domian power grid function space"_fmt);
+  _logger.info("No. of components {}"_fmt, comp_gfs_vec.size());
+  _state.grid_function_space = std::make_shared<GFS>(comp_gfs_vec);
+  _state.grid_function_space->name(_compartment_name);
+
+  if (_state.grid_function_space->degree() < 1)
+    DUNE_THROW(InvalidStateException,
+               "Grid function space is not correctly setup");
 }
 
 template<class Traits>
 void
-ModelDiffusionReaction<Traits>::setup_coefficient_vectors()
+ModelDiffusionReaction<Traits>::setup_coefficient_vector()
 {
-  for (auto& [op, state] : _states) {
-    _logger.debug("setup coefficient vector for operator {}"_fmt, op);
-    const auto& gfs = _states[op].grid_function_space;
-    auto& x = _states[op].coefficients;
-    if (x)
-      x = std::make_shared<X>(*gfs, *(x->storage()));
-    else
-      x = std::make_shared<X>(*gfs);
-  }
+  _logger.debug("etup coefficient vector"_fmt);
+  const auto& gfs = _state.grid_function_space;
+  if (not gfs)
+    DUNE_THROW(InvalidStateException,"Grid function space is not setup");
+  _state.coefficients = std::make_shared<X>(*gfs); // create new storage
 }
 
 template<class Traits>
 void
 ModelDiffusionReaction<Traits>::setup_initial_condition()
 {
-  // if this is a sub model, instantiation of the following instantiation will fail
+  // if this is a sub model, instantiation of the following will fail
   if constexpr (not Traits::is_sub_model) {
     // get TIFF data if available
     MuParserDataHandler<TIFFGrayscale<unsigned short>> mu_data_handler;
@@ -245,12 +190,13 @@ ModelDiffusionReaction<Traits>::setup_initial_condition()
       mu_data_handler.add_tiff_functions(_config.sub("data"));
 
     // configure math parsers for initial conditions on each component
-    auto initial_muparser = get_muparser_initial(_config, _grid_view, false);
+    auto initial_muparser =
+      get_muparser_initial(_config.sub(_compartment_name), _grid_view, false);
 
     for (auto&& mu_grid_function : initial_muparser) {
       // make TIFF expression available in the parser
       mu_data_handler.set_functions(mu_grid_function->parser());
-      mu_grid_function->set_time(current_time());
+      mu_grid_function->set_time(_state.time);
       mu_grid_function->compile_parser();
     }
     // evaluate compiled expressions as initial conditions
@@ -265,243 +211,198 @@ template<class Traits>
 void
 ModelDiffusionReaction<Traits>::setup_constraints()
 {
-  _logger.debug("setup constraints"_fmt);
+  _logger.debug("Setup constraints"_fmt);
 
   auto b0lambda = [&](const auto& i, const auto& x) { return false; };
   auto b0 =
     Dune::PDELab::makeBoundaryConditionFromCallable(_grid_view, b0lambda);
 
-  _logger.trace("assemble constraints"_fmt);
-  for (auto& [op, state] : _states) {
-    _constraints[op] = std::make_unique<CC>();
-    auto& gfs = _states[op].grid_function_space;
-    Dune::PDELab::constraints(b0, *gfs, *_constraints[op]);
+  _logger.trace("Assemble constraints"_fmt);
+  _constraints = std::make_unique<CC>();
+  auto& gfs = _state.grid_function_space;
+  Dune::PDELab::constraints(b0, *gfs, *_constraints);
 
-    _logger.info("constrained dofs in operator {}: {} of {}"_fmt,
-                 op,
-                 _constraints[op]->size(),
-                 gfs->globalSize());
-  }
-}
-
-template<class Traits>
-auto
-ModelDiffusionReaction<Traits>::setup_local_operator(std::size_t i) const
-{
-  _logger.trace("setup local operators {}"_fmt, i);
-
-  _logger.trace("create spatial local operator {}"_fmt, i);
-
-  auto local_operator = std::make_shared<LOP>(_grid_view, _config, i);
-
-  _logger.trace("create temporal local operator {}"_fmt, i);
-  auto temporal_local_operator = std::make_shared<TLOP>(_grid_view, _config, i);
-
-  return std::make_pair(local_operator, temporal_local_operator);
+  _logger.detail(
+    "Constrained dofs: {} of {}"_fmt, _constraints->size(), gfs->globalSize());
 }
 
 template<class Traits>
 void
-ModelDiffusionReaction<Traits>::setup_local_operators()
+ModelDiffusionReaction<Traits>::setup_local_operator()
 {
-  _logger.trace("setup local operators"_fmt);
+  _logger.debug("Setup local operator"_fmt);
 
-  _local_operators.clear();
-  _temporal_local_operators.clear();
+  _logger.trace("Create spatial local operator"_fmt);
+  _local_operator =
+    std::make_shared<LOP>(_grid_view, _config.sub(_compartment_name));
 
-  for (auto& [op, state] : _states) {
-    auto operators = setup_local_operator(op);
-    _local_operators[op] = operators.first;
-    _temporal_local_operators[op] = operators.second;
-  }
+  _logger.trace("Create temporal local operator"_fmt);
+  _temporal_local_operator =
+    std::make_shared<TLOP>(_grid_view, _config.sub(_compartment_name));
 }
 
 template<class Traits>
 void
-ModelDiffusionReaction<Traits>::setup_grid_operators()
+ModelDiffusionReaction<Traits>::setup_grid_operator()
 {
-  _logger.debug("setup grid operators"_fmt);
-  _spatial_grid_operators.clear();
-  _temporal_grid_operators.clear();
-  _grid_operators.clear();
+  _logger.debug("Create grid operator"_fmt);
 
-  for (auto& [op, state] : _states) {
-    auto& gfs = _states[op].grid_function_space;
-    auto& lop = _local_operators[op];
-    auto& tlop = _temporal_local_operators[op];
+  auto& gfs = _state.grid_function_space;
+  auto& lop = _local_operator;
+  auto& tlop = _temporal_local_operator;
 
-    // @todo fix this estimate for something more accurate
-    MBE mbe((int)Dune::power((int)3, (int)Grid::dimension));
+  // @todo fix this estimate for something more accurate
+  MBE mbe((int)Dune::power((int)3, (int)Grid::dimension));
 
-    _logger.trace("create spatial grid operator {}"_fmt, op);
-    _spatial_grid_operators[op] = std::make_shared<GOS>(
-      *gfs, *_constraints[op], *gfs, *_constraints[op], *lop, mbe);
+  _logger.trace("Create spatial grid operator"_fmt);
+  _spatial_grid_operator =
+    std::make_shared<GOS>(*gfs, *_constraints, *gfs, *_constraints, *lop, mbe);
 
-    _logger.trace("create temporal grid operator {}"_fmt, op);
-    _temporal_grid_operators[op] = std::make_shared<GOT>(
-      *gfs, *_constraints[op], *gfs, *_constraints[op], *tlop, mbe);
+  _logger.trace("Create temporal grid operator"_fmt);
+  _temporal_grid_operator =
+    std::make_shared<GOT>(*gfs, *_constraints, *gfs, *_constraints, *tlop, mbe);
 
-    _logger.trace("create instationary grid operator {}"_fmt, op);
-    _grid_operators[op] = std::make_shared<GOI>(*_spatial_grid_operators[op],
-                                                *_temporal_grid_operators[op]);
-  }
+  _logger.trace("Create instationary grid operator"_fmt);
+  _grid_operator =
+    std::make_shared<GOI>(*_spatial_grid_operator, *_temporal_grid_operator);
 }
 
 template<class Traits>
 void
-ModelDiffusionReaction<Traits>::setup_solvers()
+ModelDiffusionReaction<Traits>::setup_jacobian_operator()
 {
-  _logger.debug("setup solvers"_fmt);
-  _linear_solvers.clear();
-  _nonlinear_solvers.clear();
-  _time_stepping_methods.clear();
-  _one_step_methods.clear();
-
-  for (auto& [op, state] : _states) {
-    auto& x = state.coefficients;
-    _logger.trace("create linear solver"_fmt);
-    _linear_solvers[op] = std::make_shared<LS>(*_grid_operators[op]);
-
-    _logger.trace("create nonlinear solver"_fmt);
-    _nonlinear_solvers[op] =
-      std::make_shared<NLS>(*_grid_operators[op], *x, *_linear_solvers[op]);
-
-    _logger.trace("select and prepare time-stepping scheme"_fmt);
-    using AlexMethod = Dune::PDELab::Alexander2Parameter<double>;
-    _time_stepping_methods[op] = std::make_shared<AlexMethod>();
-    _one_step_methods[op] = std::make_shared<OSM>(*_time_stepping_methods[op],
-                                                  *_grid_operators[op],
-                                                  *_nonlinear_solvers[op]);
-    _one_step_methods[op]->setVerbosityLevel(2);
-  }
+  _logger.debug("Create jacobian operator"_fmt);
+  _jacobian_operator = std::make_shared<JacobianOperator>(*_grid_operator);
 }
 
 template<class Traits>
 void
 ModelDiffusionReaction<Traits>::setup_vtk_writer()
 {
-  // only configure if config writer section exist
-  if(not _config.hasSub("writer"))
-  {
-    _logger.debug("skipping of setup vtk writer"_fmt);
-    return;
-  } else {
-    _logger.debug("setup vtk writer"_fmt);
-  }
+  _logger.debug("Setup VTK writer"_fmt);
+  // this map contains the written timesteps for a given path and is shared
+  // among different `state`s copied from this one.
+  auto mapu_out =
+    std::make_shared<std::map<std::string, std::vector<double>>>();
+  _state.writer = [=](
+                    const auto& state, const auto& path, bool append) mutable {
+    auto log_writer = Logging::Logging::componentLogger({}, "writer");
+    auto& x = state.coefficients;
+    auto& gfs = state.grid_function_space;
 
-  _writer = std::make_shared<W>(_grid_view, Dune::VTK::conforming);
-  auto config_writer = _config.sub("writer");
-  std::string file_name = config_writer.template get<std::string>("file_name");
-  std::string path = config_writer.get("path", file_name);
-  struct stat st;
+    // create directory if necessary
+    auto path_entry = fs::directory_entry{ path };
+    if (not path_entry.exists()) {
+      log_writer.info("Creating output directory '{}'"_fmt,
+                      path_entry.path().string());
+      std::error_code ec{ 0, std::generic_category() };
+      fs::create_directories(path_entry.path(), ec);
+      if (ec)
+        DUNE_THROW(IOError,
+                   "\n Category: " << ec.category().name() << '\n'
+                                   << "Value: " << ec.value() << '\n'
+                                   << "Message: " << ec.message() << '\n');
+    }
 
-  if (stat(path.c_str(), &st) != 0) {
-    int stat = 0;
-#if defined(_WIN32)
-    stat = mkdir(path.c_str());
-#else
-    stat = mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IRWXO);
-#endif
-    if (stat != 0 && stat != -1)
-      std::cout << "Error: Cannot create directory " << path << std::endl;
-  }
+    // Recover old timestesps in case something was written before
+    auto& timesteps = (*mapu_out)[path.string()];
+    std::string name = fmt::format("{}-{}", path.filename().string(), gfs->name());
+    if (not append) {
+      timesteps.clear();
+      log_writer.detail("Creating a time sequence file: '{}.pvd'"_fmt, name);
+    } else {
+      log_writer.trace("Overriding time sequence file: '{}.pvd'"_fmt, name);
+    }
 
-  _sequential_writer = std::make_shared<SW>(_writer, file_name, path, path);
-}
+    // setup writer again with old timesteps if necessary
+    using VTKGridView = typename GFS::Traits::GridView;
+    auto writer =
+      std::make_shared<VTKWriter<VTKGridView>>(gfs->gridView(), Dune::VTK::conforming);
+    auto sequential_writer =
+      VTKSequenceWriter<VTKGridView>{ writer, name, path.string(), path.string() };
+    sequential_writer.setTimeSteps(timesteps);
 
-template<class Traits>
-void
-ModelDiffusionReaction<Traits>::suggest_timestep(double dt)
-{
-  // @todo do time addaptivity
-  _config["time_step"] = fmt::format("{:.17e}", dt);
+    using Predicate = PDELab::vtk::DefaultPredicate;
+    using Data = PDELab::vtk::DGFTreeCommonData<GFS, X, Predicate, VTKGridView>;
+    std::shared_ptr<Data> data =
+      std::make_shared<Data>(*gfs, *x, gfs->gridView());
+    PDELab::vtk::OutputCollector<VTKSequenceWriter<VTKGridView>, Data> collector(
+      sequential_writer, data);
+    for (std::size_t k = 0; k < data->_lfs.degree(); k++)
+      collector.addSolution(data->_lfs.child(k),
+                            PDELab::vtk::defaultNameScheme());
+
+    log_writer.detail("Writing solution for {:.2f}s time stamp"_fmt, state.time);
+    log_writer.trace("Writing vtu file: '{0}/{0}-{1:0>5}.vtu'"_fmt,
+                     name,
+                     timesteps.size());
+    sequential_writer.write(state.time, Dune::VTK::base64);
+    sequential_writer.vtkWriter()->clear();
+    timesteps = sequential_writer.getTimeSteps();
+  };
 }
 
 template<class Traits>
 void
 ModelDiffusionReaction<Traits>::setup(BitFlags<ModelSetup::Stages> setup_policy)
 {
-  if (setup_policy.test(ModelSetup::Stages::GridFunctionSpace))
-    setup_grid_function_space();
-  if (setup_policy.test(ModelSetup::Stages::CoefficientVector))
-    setup_coefficient_vectors();
-  if (setup_policy.test(ModelSetup::Stages::InitialCondition))
-    setup_initial_condition();
-  if (setup_policy.test(ModelSetup::Stages::Constraints))
-    setup_constraints();
-  if (setup_policy.test(ModelSetup::Stages::LocalOperator))
-    setup_local_operators();
-  if (setup_policy.test(ModelSetup::Stages::GridOperator))
-    setup_grid_operators();
-  if (setup_policy.test(ModelSetup::Stages::Solver))
-    setup_solvers();
-  if (setup_policy.test(ModelSetup::Stages::Writer))
-    setup_vtk_writer();
-}
+  auto msg = "Setting up diffusion-reaction model for {} compartment"_fmt;
+  if (Traits::is_sub_model)
+    _logger.info(msg,_compartment_name);
+  else
+    _logger.notice(msg,_compartment_name);
 
-template<class Traits>
-void
-ModelDiffusionReaction<Traits>::step()
-{
-  double dt = _config.template get<double>("time_step");
-
-  const bool cout_redirected = Dune::Logging::Logging::isCoutRedirected();
-  if (not cout_redirected)
-    Dune::Logging::Logging::redirectCout(_solver_logger.name(),
-                                         Dune::Logging::LogLevel::detail);
-
-  // do time step
-  for (auto& [op, state] : _states) {
-    _local_operators[op]->update(const_states());
-
-    auto& x = state.coefficients;
-    auto x_new = std::make_shared<X>(*x);
-    _one_step_methods[op]->apply(current_time(), dt, *x, *x_new);
-
-    // accept time step
-    x = x_new;
+  try
+  {
+    if (setup_policy.test(ModelSetup::Stages::GridFunctionSpace))
+      setup_grid_function_space();
+    if (setup_policy.test(ModelSetup::Stages::CoefficientVector))
+      setup_coefficient_vector();
+    if (setup_policy.test(ModelSetup::Stages::InitialCondition))
+      setup_initial_condition();
+    if (setup_policy.test(ModelSetup::Stages::Constraints))
+      setup_constraints();
+    if (setup_policy.test(ModelSetup::Stages::LocalOperator))
+      setup_local_operator();
+    if (setup_policy.test(ModelSetup::Stages::GridOperator))
+      setup_grid_operator();
+    if (setup_policy.test(ModelSetup::Stages::JacobianOperator))
+      setup_jacobian_operator();
+    if (setup_policy.test(ModelSetup::Stages::Writer))
+      setup_vtk_writer();
   }
-
-  if (not cout_redirected)
-    Dune::Logging::Logging::restoreCout();
-
-  current_time() += dt;
-  write_states();
+  catch(...)
+  {
+    // detailed report of the input paramter tree
+    std::stringstream ss;
+    _config.report(ss);
+    _logger.error(2, "---- Diffusion-Reaction model parameter tree"_fmt);
+    for (std::string line; std::getline(ss, line);)
+      _logger.error(2, "{}"_fmt, line);
+    _logger.error(2, "----"_fmt);
+    throw;
+  }
 }
 
 template<class Traits>
 auto
-ModelDiffusionReaction<Traits>::get_data_handler(
-  std::map<std::size_t, ConstState> states) const
+ModelDiffusionReaction<Traits>::get_data_handler(const ConstState& state)
 {
-  std::map<std::size_t, std::shared_ptr<DataHandler>> data;
-  for (auto& [op, state] : states) {
-    data[op] = std::make_shared<DataHandler>(
-      *state.grid_function_space, *state.coefficients, _grid_view);
-  }
+  std::shared_ptr<DataHandler> data;
+  data = std::make_shared<DataHandler>(*state.grid_function_space,
+                                       *state.coefficients,
+                                       state.grid_function_space->gridView());
   return data;
 }
 
 template<class Traits>
 auto
-ModelDiffusionReaction<Traits>::get_grid_function(
-  const std::map<std::size_t, ConstState>& states,
-  std::size_t comp) const -> std::shared_ptr<ComponentGridFunction>
+ModelDiffusionReaction<Traits>::get_grid_function(const ConstState& state,
+                                                  std::size_t comp)
+  -> std::shared_ptr<ComponentGridFunction>
 {
-  auto data = get_data_handler(states);
-  auto& operator_config = _config.sub("operator");
-  auto op_keys = operator_config.getValueKeys();
-  std::sort(op_keys.begin(), op_keys.end());
-  std::size_t op = operator_config.template get<std::size_t>(op_keys[comp]);
-  std::size_t gfs_comp = 0;
-
-  for (std::size_t i = 0; i < comp; i++)
-    if (op == operator_config.template get<std::size_t>(op_keys[i]))
-      gfs_comp++;
-
-  const auto& data_comp = data.at(op);
-  return std::make_shared<ComponentGridFunction>(
-    data_comp->_lfs.child(gfs_comp), data_comp);
+  auto data = get_data_handler(state);
+  return std::make_shared<ComponentGridFunction>(data->_lfs.child(comp), data);
 }
 
 template<class Traits>
@@ -509,20 +410,17 @@ auto
 ModelDiffusionReaction<Traits>::get_grid_function(std::size_t comp) const
   -> std::shared_ptr<ComponentGridFunction>
 {
-  return get_grid_function(const_states(), comp);
+  return get_grid_function(const_state(), comp);
 }
 
 template<class Traits>
 auto
-ModelDiffusionReaction<Traits>::get_grid_functions(
-  const std::map<std::size_t, ConstState>& states) const
+ModelDiffusionReaction<Traits>::get_grid_functions(const ConstState& state)
   -> std::vector<std::shared_ptr<ComponentGridFunction>>
 {
-  std::size_t size = _config.sub("operator").getValueKeys().size();
-  std::vector<std::shared_ptr<ComponentGridFunction>> grid_functions(size);
-  for (std::size_t i = 0; i < size; i++) {
-    grid_functions[i] = get_grid_function(states, i);
-  }
+  std::vector<std::shared_ptr<ComponentGridFunction>> grid_functions;
+  for (std::size_t i = 0; i < state.grid_function_space->degree(); i++)
+    grid_functions.push_back(get_grid_function(state, i));
   return grid_functions;
 }
 
@@ -531,47 +429,7 @@ auto
 ModelDiffusionReaction<Traits>::get_grid_functions() const
   -> std::vector<std::shared_ptr<ComponentGridFunction>>
 {
-  return get_grid_functions(const_states());
-}
-template<class Traits>
-void
-ModelDiffusionReaction<Traits>::write_states(
-  const std::map<std::size_t, ConstState>& states) const
-{
-  if (!_sequential_writer) // skip write if not setup
-    return;
-
-  for (auto& [op, state] : _states) {
-    auto& x = state.coefficients;
-    auto& gfs = state.grid_function_space;
-
-    auto etity_transformation = [&](auto e) {
-      if constexpr (Concept::isMultiDomainGrid<Grid>() and
-                    Concept::isSubDomainGrid<typename GV::Grid>())
-        return _grid->multiDomainEntity(e);
-      else
-        return e;
-    };
-    using ET = decltype(etity_transformation);
-
-    using Predicate = PDELab::vtk::DefaultPredicate;
-    using Data = PDELab::vtk::DGFTreeCommonData<GFS, X, Predicate, GV, ET>;
-    std::shared_ptr<Data> data =
-      std::make_shared<Data>(*gfs, *x, _grid_view, etity_transformation);
-    PDELab::vtk::OutputCollector<SW, Data> collector(*_sequential_writer, data);
-    for (std::size_t k = 0; k < data->_lfs.degree(); k++)
-      collector.addSolution(data->_lfs.child(k),
-                            PDELab::vtk::defaultNameScheme());
-  }
-  _sequential_writer->write(current_time(), Dune::VTK::base64);
-  _sequential_writer->vtkWriter()->clear();
-}
-
-template<class Traits>
-void
-ModelDiffusionReaction<Traits>::write_states() const
-{
-  write_states(const_states());
+  return get_grid_functions(const_state());
 }
 
 } // namespace Dune::Copasi

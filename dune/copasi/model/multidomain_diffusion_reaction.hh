@@ -134,25 +134,16 @@ private:
   //! Constraints container
   using CC = typename GFS::template ConstraintsContainer<RF>::Type;
 
-  //! Model state structure
-  using State = Dune::Copasi::ModelState<Grid, GFS, X>;
-
-  //! Constant model state structure
-  using ConstState = Dune::Copasi::ConstModelState<Grid, GFS, X>;
-
-  //! Coefficients mapper
-  using CM = Dune::Copasi::MultiDomainModelCoefficientMapper<ConstState>;
-
   //! Local operator
   using LOP = LocalOperatorMultiDomainDiffusionReaction<
     Grid,
-    typename Traits::SubModelTraits::template LocalOperator<CM>,
+    typename Traits::SubModelTraits::LocalOperator,
     JM>;
 
   //! Temporal local operator
   using TLOP = TemporalLocalOperatorMultiDomainDiffusionReaction<
     Grid,
-    typename Traits::SubModelTraits::template TemporalLocalOperator<CM>,
+    typename Traits::SubModelTraits::TemporalLocalOperator,
     JM>;
 
   //! Matrix backend
@@ -170,22 +161,7 @@ private:
   using GOI = Dune::PDELab::OneStepGridOperator<GOS, GOT>;
 
   //! Linear solver backend
-  using LS = Dune::PDELab::ISTLBackend_NOVLP_BCGS_SSORk<GOI>;
-
-  //! Nonlinear solver
-  using NLS = Dune::PDELab::Newton<GOI, LS, X>;
-
-  //! Time stepping parameter
-  using TSP = Dune::PDELab::TimeSteppingParameterInterface<double>;
-
-  //! One step method
-  using OSM = Dune::PDELab::OneStepMethod<RF, GOI, NLS, X, X>;
-
-  //! Writer
-  using W = Dune::VTKWriter<SubDomainGridView>;
-
-  //! Sequential writer
-  using SW = Dune::VTKSequenceWriter<SubDomainGridView>;
+  using JO = Dune::PDELab::ISTLBackend_NOVLP_BCGS_SSORk<GOI>;
 
   //! Entity transformation between grids
   using EntityTransformation =
@@ -205,6 +181,19 @@ private:
     DGFTreeLeafFunction<ComponentLFS, DataHandler, SubDomainGridView>;
 
 public:
+
+  //! Model state structure
+  using State = Dune::Copasi::ModelState<Grid, GFS, X>;
+
+  //! Constant model state structure
+  using ConstState = Dune::Copasi::ConstModelState<Grid, GFS, X>;
+
+  //! Grid operator type
+  using GridOperator = GOI;
+
+  //! Jacobian operator type
+  using JacobianOperator = JO;
+
   /**
    * @brief      Constructs a new instance.
    * @todo       Make a seccion describing the requirements of the confi file
@@ -225,43 +214,48 @@ public:
   ~ModelMultiDomainDiffusionReaction();
 
   /**
-   * @brief      Get mutable model states
+   * @brief      Get mutable model state
    *
-   * @return     Model states
+   * @return     Model state
    */
-  std::map<std::size_t, State> states() { return _states; }
+  State state() { return _state; }
 
   /**
-   * @brief      Get constat model states
+   * @brief      Get constat model state
    *
-   * @return     Constant model states
+   * @return     Constant model state
    */
-  std::map<std::size_t, ConstState> const_states() const
+  ConstState const_state() const { return _state; }
+
+  /**
+   * @brief      Get the model state
+   *
+   * @return     Model state
+   */
+  ConstState state() const { return const_state(); }
+
+  /**
+   * @brief Sets model internal state
+   *
+   * @param state  Valid model state
+   */
+  void set_state(const State& state)
   {
-    return const_states(_states);
+    if (not state)
+      DUNE_THROW(InvalidStateException,"State must be valid");
+    _state = state;
+    if (_state.grid_function_space != state.grid_function_space)
+    {
+      if (_constraints)
+        setup_constraints();
+      if (_local_operator)
+        setup_local_operator();
+      if (_grid_operator)
+        setup_grid_operator();
+      if (_jacobian_operator)
+        setup_jacobian_operator();
+    }
   }
-
-  /**
-   * @brief      Get constat model states
-   *
-   * @param[in]  states  A map to mutable states
-   *
-   * @return     Constant model states
-   */
-  std::map<std::size_t, ConstState> const_states(
-    const std::map<std::size_t, State>& states) const
-  {
-    std::map<std::size_t, ConstState> const_states(states.begin(),
-                                                   states.end());
-    return const_states;
-  }
-
-  /**
-   * @brief      Get the model states
-   *
-   * @return     Model states
-   */
-  std::map<std::size_t, ConstState> states() const { return const_states(); }
 
   /**
    * @brief      Sets the initial state of the model
@@ -293,25 +287,6 @@ public:
     const std::vector<std::vector<std::shared_ptr<GF>>>& initial);
 
   /**
-   * @brief      Setup function
-   * @details    This class sets up the model to have completely defined the
-   *             requested feature in the policy
-   *
-   * @param[in]  setup_policy  The setup policy
-   */
-  void setup(BitFlags<ModelSetup::Stages> setup_policy);
-
-  /**
-   * @copydoc ModelBase::suggest_timestep
-   */
-  void suggest_timestep(double dt) override;
-
-  /**
-   * @copydoc ModelBase::step
-   */
-  void step() override;
-
-  /**
    * @brief      Gets a grid function for a given component, a sub domain, and a
    * state.
    * @details    The resulting grid function is persistent w.r.t the grid.
@@ -319,14 +294,14 @@ public:
    * contain exaclty the same data even if the model is modified in any form.
    * The only exception to this is when the grid is modified.
    *
-   * @param[in]  states  The model states
+   * @param[in]  state  The model state
    * @param[in]  domain  The domain
    * @param[in]  comp    The component
    *
    * @return     The grid function.
    */
   std::shared_ptr<ComponentGridFunction> get_grid_function(
-    const std::map<std::size_t, ConstState>& states,
+    const ConstState& state,
     std::size_t domain,
     std::size_t comp) const;
 
@@ -354,12 +329,12 @@ public:
    * contain exaclty the same data even if the model is modified in any form.
    * The only exception to this is when the grid is modified.
    *
-   * @param[in]  states  The model states
+   * @param[in]  state  The model state
    *
    * @return     The grid functions.
    */
   std::vector<std::vector<std::shared_ptr<ComponentGridFunction>>>
-  get_grid_functions(const std::map<std::size_t, ConstState>& states) const;
+  get_grid_functions(const ConstState& state) const;
 
   /**
    * @brief      Gets a grid function for each component, and each sub domain at
@@ -369,57 +344,65 @@ public:
    * contain exaclty the same data even if the model is modified in any form.
    * The only exception to this is when the grid is modified.
    *
-   * @param[in]  states  The model states
+   * @param[in]  state  The model state
    *
    * @return     The grid functions.
    */
   std::vector<std::vector<std::shared_ptr<ComponentGridFunction>>>
   get_grid_functions() const;
 
+  //! warning this is not completely const correct. grid operators may modify local operators and thus the model on certain calls
+  std::shared_ptr<GridOperator> get_grid_operator() const
+  {
+    return _grid_operator;
+  }
+
+  std::shared_ptr<JacobianOperator> get_jacobian_operator() const
+  {
+    return _jacobian_operator;
+  }
+
 protected:
-  void setup_grid_function_spaces();
-  void setup_coefficient_vectors();
+  /**
+   * @brief      Setup model internals
+   * @details    Sets up the model with specific options passdes on the policy
+   *
+   * @param[in]  setup_policy  The setup policy
+   */
+  void setup(BitFlags<ModelSetup::Stages> setup_policy);
+
+private:
+  void setup_grid_function_space();
+  void setup_coefficient_vector();
   void setup_initial_condition();
   void setup_constraints();
   auto setup_local_operator(std::size_t) const;
-  void setup_local_operators();
-  void setup_grid_operators();
+  void setup_local_operator();
+  void setup_grid_operator();
+  void setup_jacobian_operator();
   void setup_solvers();
   void setup_vtk_writer();
 
-  //! Write states for the configured writers
-  void write_states() const;
+  auto get_data_handler(const ConstState&) const;
 
-  //! Write states for the configured writers
-  void write_states(const std::map<std::size_t, ConstState>& states) const;
-
-  auto get_data_handler(std::map<std::size_t, ConstState>) const;
+  using ModelBase::_logger;
 
 private:
-  using ModelBase::_logger;
-  Logging::Logger _solver_logger;
 
   ParameterTree _config;
   GV _grid_view;
-
-  std::vector<std::shared_ptr<SW>> _sequential_writer;
-
-  std::map<std::size_t, State> _states;
+  State _state;
   std::shared_ptr<Grid> _grid;
 
-  std::map<std::size_t, std::unique_ptr<CC>> _constraints;
-  std::map<std::size_t, std::shared_ptr<LOP>> _local_operators;
-  std::map<std::size_t, std::shared_ptr<TLOP>> _temporal_local_operators;
-  std::map<std::size_t, std::shared_ptr<GOS>> _spatial_grid_operators;
-  std::map<std::size_t, std::shared_ptr<GOT>> _temporal_grid_operators;
-  std::map<std::size_t, std::shared_ptr<GOI>> _grid_operators;
-  std::map<std::size_t, std::shared_ptr<LS>> _linear_solvers;
-  std::map<std::size_t, std::shared_ptr<NLS>> _nonlinear_solvers;
-  std::map<std::size_t, std::shared_ptr<TSP>> _time_stepping_methods;
-  std::map<std::size_t, std::shared_ptr<OSM>> _one_step_methods;
+  std::unique_ptr<CC> _constraints;
+  std::shared_ptr<LOP> _local_operator;
+  std::shared_ptr<TLOP> _temporal_local_operator;
+  std::shared_ptr<GOS> _spatial_grid_operator;
+  std::shared_ptr<GOT> _temporal_grid_operator;
+  std::shared_ptr<GOI> _grid_operator;
+  std::shared_ptr<JO> _jacobian_operator;
 
   std::size_t _domains;
-  std::size_t _dof_per_component;
 };
 
 } // namespace Dune::Copasi

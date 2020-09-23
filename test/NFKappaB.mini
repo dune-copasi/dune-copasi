@@ -1,40 +1,31 @@
 __name = NFkappaB
 
-_begin_time = 0.
-_end_time = 365
-_time_step = 1e-3
-
 [grid]
 file = grids/test_cell.msh
 initial_level = 0
 
 [model]
-begin_time = {_begin_time}
-end_time = {_end_time}
-time_step = {_time_step}
+order = 1
+
+[model.time_stepping]
+rk_method = alexander_2
+begin = 0.
+end = 365
+step = 1e-3
+min_step = 1e-3
+max_step = 1e-0
+decrease_factor = 0.9
+increase_factor = 1.1
 
 [model.compartments]
 cytoplasm = 0
 #membrane = 1
 nucleus = 1
 
+[model.writer]
+file_path = {__name}
+
 ############################ Model for cytoplasm ############################
-
-[model.cytoplasm]
-begin_time = {_begin_time}
-end_time = {_end_time}
-time_step = {_time_step}
-
-[model.cytoplasm.operator]
-p65_cytoplasm = 0
-IkBa_p = 0
-IKKb = 0
-IKKb_p = 0
-TNFa = 0
-p65_IkB_cytoplasm = 0
-IkBa_mRNA_cytoplasm = 0
-IkBa_cytoplasm = 0
-
 [model.cytoplasm.initial]
 p65_cytoplasm = 0.00166609
 IkBa_p = 0.234611
@@ -131,24 +122,7 @@ p65_IkB_cytoplasm = 1
 IkBa_mRNA_cytoplasm = 1
 IkBa_cytoplasm = 1
 
-[model.cytoplasm.writer]
-file_name = {__name}_cytoplasm
-
 ############################ Model for membrane ############################
-
-[model.membrane]
-begin_time = {_begin_time}
-end_time = {_end_time}
-time_step = {_time_step}
-
-[model.membrane.operator]
-u_0 = 0
-u_1 = 0
-u_2 = 0
-u_3 = 0
-u_4 = 0
-u_5 = 0
-
 [model.membrane.initial]
 u_0 = 0
 u_1 = 0
@@ -211,24 +185,7 @@ u_3 = 100
 u_4 = 100
 u_5 = 100
 
-[model.membrane.writer]
-file_name = {__name}_membrane
-
 ############################ Model for nucleus ############################
-
-[model.nucleus]
-begin_time = {_begin_time}
-end_time = {_end_time}
-time_step = {_time_step}
-
-[model.nucleus.operator]
-IkBa_mRNA_2 = 0
-p65_nucleus = 0
-IkBa_nucleus = 0
-p65_IkB_nucleus = 0
-IkBa_mRNA_nucleus = 0
-IkBa_mRNA_1 = 0
-
 [model.nucleus.initial]
 IkBa_mRNA_2 = 5.14124
 p65_nucleus = 0.0832677
@@ -291,22 +248,53 @@ p65_IkB_nucleus = 1
 IkBa_mRNA_nucleus = 1
 IkBa_mRNA_1 = 1
 
-[model.nucleus.writer]
-file_name = {__name}_nucleus
-
 ############################ Logging settings #################################
-# levels = off, critical, error, waring, notice, info, debug, trace, all
+# levels = off, critical, error, waring, notice, info, detail, debug, trace, all
 
-[logging]
-default.level = trace
-
+# Sink setup for console stdcout
 [logging.sinks.stdout]
+level = info # max level to output on this sink
 pattern = "[\\{reldays:0>2\\}-\\{reltime:8%T\\}] [\\{backend\\}] \\{msg\\}"
 
-[logging.backend.model]
-level = trace
+# Sink setup for logfile output
+[logging.sinks.logfile]
+level = all # max level to output on this sink
+type = rank-0-file
+file = {__name}.log
+pattern = "[\\{reldays:0>2\\}-\\{reltime:8%T\\}] [\\{backend\\}] \\{msg\\}"
+
+# Logger internal info go into this logger
+[logging.internal]
+level = off
+
+# General info go into this logger
+# Settings on this logger are the default values for other backend loggers
+[logging.default]
+level = detail
+indent = 0
+sinks = logfile, stdout
+
+# Logger info go into this logger
+[logging.backend.logging]
+level = off
+indent = 0
+
+# Grid info go into this logger
+[logging.backend.grid]
+level = detail
 indent = 2
 
-[logging.backend.solver]
+# General model info go into this logger
+[logging.backend.model]
+level = detail
+indent = 2
+
+# Time stepping info go into this logger
+[logging.backend.stepper]
+level = detail
+indent = 4
+
+# writer info go into this logger
+[logging.backend.writer]
 level = trace
 indent = 4

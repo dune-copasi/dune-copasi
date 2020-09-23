@@ -45,7 +45,7 @@ done
 
 # python virtual environment does not work in windows yet
 if [[ ! $MSYSTEM ]]; then
-	git clone -b feature/allow-multidomain-vtk-compare-to-have-same-thresholds https://gitlab.dune-project.org/quality/dune-testtools.git
+	git clone -b releases/$DUNE_VERSION https://gitlab.dune-project.org/quality/dune-testtools.git
 fi
 
 # on windows, symlinks from git repos don't work

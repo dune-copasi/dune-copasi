@@ -28,8 +28,23 @@ Types of changes
 ## [Unreleased]
 ### Added
 - Scape VTK write by omitting `[writer]` section !24
+- Added Explicit and Diagonally Runge-Kutta time solvers !25
+### Changed
+- Improved errors when a config file is incorrect !25
+- Update meaningful logging values on the test ini file !25
+- Clean up logger output !25
+- Time stepping is now done outside the model class !25
+- Writer might write on different files on request !25
+- Move read/write responsibility to model state !25
+- States are now independent from models !25
+- Output files changed its name scheme !25
+- Configuration file changed its structure (see git diff on tests) !25
+### Removed
+- Coefficient mapper and its use on local operators !25
+- Remove the operator map of objects within the model class !25
 ### Fixed
 - Violation of the One-Definition-Rule due to external linkage of `LocalOperatorApply` lambdas !23
+- Error on the gaussian equation used on comparisons !23
 
 ## [0.2.0] - 2020-02-20
 ### Added

@@ -5,13 +5,13 @@
 #include "grid_function_compare.hh"
 
 #include <dune/copasi/common/enum.hh>
+#include <dune/copasi/common/stepper.hh>
 #include <dune/copasi/grid/mark_stripes.hh>
 #include <dune/copasi/grid/multidomain_gmsh_reader.hh>
 #include <dune/copasi/model/diffusion_reaction.hh>
 
 #include <dune/grid/multidomaingrid.hh>
 
-#include <dune/grid/io/file/gmshreader.hh>
 #include <dune/grid/uggrid.hh>
 
 #include <dune/logging/logging.hh>
@@ -21,25 +21,109 @@
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>
 
-template<class Model>
-void
-model_compare(const Dune::ParameterTree& param, Model& model)
+#include <ctime>
+
+int
+main(int argc, char** argv)
 {
-  auto do_step = [&]() {
-    return Dune::FloatCmp::lt(model.current_time(), model.end_time());
-  };
+  auto stime_c = std::chrono::system_clock::now();
+  int end_code = 0;
 
-  // 1. create expression grid functions
-  auto grid = model.states().begin()->second.grid;
-  auto gv = grid->leafGridView();
-  auto gf_expressions =
-    Dune::Copasi::get_muparser_expressions(param.sub("compare.expression"), gv);
+  // initialize mpi
+  auto& mpi_helper = Dune::MPIHelper::instance(argc, argv);
 
-  auto compare = [&]() {
+  // Read and parse ini file
+  if (argc != 2)
+    DUNE_THROW(Dune::IOError, "Wrong number of arguments");
+  const std::string config_filename = argv[1];
+
+  Dune::ParameterTree config;
+  Dune::ParameterTreeParser::readINITree(config_filename, config);
+
+  // initialize loggers
+  auto comm = mpi_helper.getCollectiveCommunication();
+  Dune::Logging::Logging::init(comm, config.sub("logging"));
+  auto log = Dune::Logging::Logging::logger(config);
+  using namespace Dune::Literals;
+
+  try {
+    std::time_t stime_t = std::chrono::system_clock::to_time_t(stime_c);
+    std::tm stime_tm;
+    std::memcpy(&stime_tm, std::localtime(&stime_t), sizeof(std::tm));
+    auto stime_s = fmt::format("{:%a %F %T %Z}", stime_tm);
+    log.notice("Starting dune-copasi(sd) at {}"_fmt, stime_s);
+    log.info("Reading configuration file: '{}'"_fmt, config_filename);
+
+    // detailed report of the input paramter tree
+    std::stringstream ss;
+    config.report(ss);
+    log.detail(2, "----"_fmt);
+    for (std::string line; std::getline(ss, line);)
+      log.detail(2, "{}"_fmt, line);
+    log.detail(2, "----"_fmt);
+
+    // Grid setup
+    constexpr int dim = 2;
+    using HostGrid = Dune::UGGrid<dim>;
+    using MDGTraits = Dune::mdgrid::DynamicSubDomainCountTraits<dim, 1>;
+    using MDGrid = Dune::mdgrid::MultiDomainGrid<HostGrid, MDGTraits>;
+
+    auto& grid_config = config.sub("grid", true);
+    auto level = grid_config.get<int>("initial_level", 0);
+
+    auto grid_file = grid_config.get<std::string>("file");
+
+    auto [md_grid_ptr, host_grid_ptr] =
+      Dune::Copasi::MultiDomainGmshReader<MDGrid>::read(grid_file);
+
+    using Grid = typename MDGrid::SubDomainGrid;
+    using GridView = typename Grid::Traits::LeafGridView;
+
+    auto grid_log = Dune::Logging::Logging::componentLogger({}, "grid");
+    grid_log.detail("Applying refinement of level: {}"_fmt, level);
+
+    for (int i = 1; i <= level; i++) {
+      Dune::Copasi::mark_stripes(*host_grid_ptr);
+      md_grid_ptr->preAdapt();
+      md_grid_ptr->adapt();
+      md_grid_ptr->postAdapt();
+    }
+
+    auto& model_config = config.sub("model", true);
+    auto& compartments_map = model_config.sub("compartments", true);
+    auto compartment = compartments_map.getValueKeys().front();
+    int order = model_config.get<int>("order");
+
+    // TODO: Use OS for different domains when is ready
+    if (compartments_map.getValueKeys().size() != 1)
+      DUNE_THROW(
+        Dune::NotImplemented,
+        "Multiple compartments per model are not allowed in this executable");
+
+    // get subdomain grid as a shared pointer
+    int domain = compartments_map.template get<int>(compartment);
+    std::shared_ptr<Grid> grid_ptr =
+      Dune::stackobject_to_shared_ptr(md_grid_ptr->subDomain(domain));
+
+    // create time stepper
+    auto timestep_config = model_config.sub("time_stepping", true);
+    auto end_time = timestep_config.template get<double>("end");
+    auto initial_step = timestep_config.template get<double>("initial_step");
+    auto stepper = Dune::Copasi::make_default_stepper(timestep_config);
+
+    auto file = model_config.get("writer.file_path", "");
+
+    // 1. create expression grid functions
+    auto compare_config = model_config.sub(compartment + ".compare", true);
+    auto gv = grid_ptr->leafGridView();
+    auto expression_config = compare_config.sub("expression", true);
+    auto gf_expressions =
+      Dune::Copasi::get_muparser_expressions(expression_config, gv);
+
+    // get compare paramter tree for a specific variable
     auto setup_param = [&](auto var) {
-      auto compare_config = param.sub("compare");
       Dune::ParameterTree param;
-
+      // if key is not available for a var, use a fallback on the parent section
       if (compare_config.hasKey("l1_error." + var))
         param["l1_error"] = compare_config["l1_error." + var];
       if (compare_config.hasKey("l2_error." + var))
@@ -49,180 +133,107 @@ model_compare(const Dune::ParameterTree& param, Model& model)
       return param;
     };
 
-    // 2. get resulting grid functions
-    auto gf_results = model.get_grid_functions();
-    assert(gf_results.size() == gf_expressions.size());
+    auto log_writer = Dune::Logging::Logging::componentLogger({}, "writer");
 
-    // 3. set expression grid functions to current time
-    for (auto&& gf_expression : gf_expressions)
-      gf_expression->set_time(model.current_time());
-
-    // 4. compare expression vs resulting gf
-    for (std::size_t i = 0; i < gf_results.size(); i++) {
-      auto var = param.sub("operator").getValueKeys()[i];
-      auto param_compare = setup_param(var);
-
-      grid_function_compare(param_compare, *gf_expressions[i], *gf_results[i]);
-    }
-  };
-
-  compare();
-
-  while (do_step()) {
-    model.step();
-
-    compare();
-
-    if (model.adaptivity_policy() != Dune::Copasi::AdaptivityPolicy::None)
-      if (do_step()) {
-        model.mark_grid();
-        model.pre_adapt_grid();
-        model.adapt_grid();
-        model.post_adapt_grid();
-      }
-  }
-}
-
-int
-main(int argc, char** argv)
-{
-
-  try {
-    // initialize mpi
-    auto& mpi_helper = Dune::MPIHelper::instance(argc, argv);
-    auto comm = mpi_helper.getCollectiveCommunication();
-
-    // Read and parse ini file
-    if (argc != 2)
-      DUNE_THROW(Dune::IOError, "Wrong number of arguments");
-    const std::string config_filename = argv[1];
-
-    Dune::ParameterTree config;
-    Dune::ParameterTreeParser ptreeparser;
-    ptreeparser.readINITree(config_filename, config);
-
-    // initialize loggers
-    Dune::Logging::Logging::init(comm, config.sub("logging"));
-
-    using namespace Dune::Literals;
-    auto log = Dune::Logging::Logging::logger(config);
-    log.notice("Starting dune-copasi"_fmt);
-
-    log.debug("Input config file '{}':"_fmt, config_filename);
-
-    Dune::Logging::LoggingStream ls(false, log.indented(2));
-    if (log.level() >= Dune::Logging::LogLevel::debug)
-      config.report(ls);
-
-    // create a multidomain grid
-    //   here we use multidomain grids to be able to simulate
-    //   each compartment individually and have similar input as in
-    //   the multidomain case. However, it is possible to use
-    //   ModelDiffusionReaction with single grids directly.
-    constexpr int dim = 2;
-    using HostGrid = Dune::UGGrid<dim>;
-    using MDGTraits = Dune::mdgrid::DynamicSubDomainCountTraits<dim, 1>;
-    using MDGrid = Dune::mdgrid::MultiDomainGrid<HostGrid, MDGTraits>;
-
-    auto& grid_config = config.sub("grid");
-    auto level = grid_config.get<int>("initial_level", 0);
-
-    auto grid_file = grid_config.get<std::string>("file");
-
-    auto [md_grid_ptr, host_grid_ptr] =
-      Dune::Copasi::MultiDomainGmshReader<MDGrid>::read(grid_file, config);
-
-    using Grid = typename MDGrid::SubDomainGrid;
-    using GridView = typename Grid::Traits::LeafGridView;
-
-    log.debug("Applying refinement of level: {}"_fmt, level);
-
-    for (int i = 1; i <= level; i++) {
-      Dune::Copasi::mark_stripes(*host_grid_ptr);
-
-      md_grid_ptr->preAdapt();
-      md_grid_ptr->adapt();
-      md_grid_ptr->postAdapt();
-    }
-
-    auto& model_config = config.sub("model");
-    auto& compartments_map = model_config.sub("compartments");
-    int order = model_config.get<int>("order");
-
-    if (not model_config.hasKey("begin_time"))
-      DUNE_THROW(Dune::RangeError, "Key 'model.begin_time' is missing");
-    if (not model_config.hasKey("end_time"))
-      DUNE_THROW(Dune::RangeError, "Key 'model.end_time' is missing");
-    if (not model_config.hasKey("time_step"))
-      DUNE_THROW(Dune::RangeError, "Key 'model.time_step' is missing");
-
-    if (compartments_map.getValueKeys().size() > 1)
-      log.warn(
-        "This executable solve models for each compartment individually. If "
-        "some coupling is exected on the interface between compartments, use "
-        "'dune_copasi_md' executable for multidomain models"_fmt);
-    // @todo check coupling at interface and refuse to compute coupled models
-
-    // solve individual proble for each compartment
-    for (auto&& compartment : compartments_map.getValueKeys()) {
-      log.info("Running model for '{}' compartment"_fmt, compartment);
-
-      // get subdomain grid as a shared pointer
-      int domain = compartments_map.template get<int>(compartment);
-      std::shared_ptr<Grid> grid_ptr =
-        Dune::stackobject_to_shared_ptr(md_grid_ptr->subDomain(domain));
-
-      // get a model configuration parameter tree for this compartment
-      auto compartment_config = model_config.sub(compartment);
-
-      // add missing keywords for individual models
-
-      // ...time keys
-      compartment_config["begin_time"] = model_config["begin_time"];
-      compartment_config["end_time"] = model_config["end_time"];
-      compartment_config["time_step"] = model_config["time_step"];
-
-      // ...data keys
-      if (model_config.hasSub("data")) {
-        const auto& data_config = model_config.sub("data");
-        for (auto&& key : data_config.getValueKeys())
-          compartment_config["data." + key] = data_config[key];
-      }
-
-      if (order == 0) {
-        constexpr int Order = 0;
-        using ModelTraits =
-          Dune::Copasi::ModelPkDiffusionReactionTraits<Grid, GridView, Order>;
-        Dune::Copasi::ModelDiffusionReaction<ModelTraits> model(
-          grid_ptr, compartment_config);
-        model_compare(compartment_config, model);
-      } else if (order == 1) {
-        constexpr int Order = 1;
-        using ModelTraits =
-          Dune::Copasi::ModelP0PkDiffusionReactionTraits<Grid, GridView, Order>;
-        Dune::Copasi::ModelDiffusionReaction<ModelTraits> model(
-          grid_ptr, compartment_config);
-        model_compare(compartment_config, model);
-      } else if (order == 2) {
-        constexpr int Order = 2;
-        using ModelTraits =
-          Dune::Copasi::ModelP0PkDiffusionReactionTraits<Grid, GridView, Order>;
-        Dune::Copasi::ModelDiffusionReaction<ModelTraits> model(
-          grid_ptr, compartment_config);
-        model_compare(compartment_config, model);
-      } else {
+    // create directory if necessary
+    auto path_entry = fs::directory_entry{ file };
+    if (not path_entry.exists()) {
+      log_writer.info("Creating output directory '{}'"_fmt,
+                      path_entry.path().string());
+      std::error_code ec{ 0, std::generic_category() };
+      fs::create_directories(path_entry.path(), ec);
+      if (ec)
         DUNE_THROW(Dune::IOError,
-                   "Finite element order "
-                     << order << " is not supported by dune-copasi");
-      }
+                   "\n Category: " << ec.category().name() << '\n'
+                                   << "Value: " << ec.value() << '\n'
+                                   << "Message: " << ec.message() << '\n');
     }
 
+    std::string name = fmt::format("{}-{}-expression", file, compartment);
+    std::shared_ptr<Dune::VTKSequenceWriter<GridView>> writer;
+    auto base_writer = std::make_shared<Dune::VTKWriter<GridView>>(
+        gv, Dune::VTK::conforming);
+    writer = std::make_shared<Dune::VTKSequenceWriter<GridView>>(
+        base_writer, name, file, file);
+
+    auto compare_m = [=](const auto& model, const auto& state) {
+      // 2. get resulting grid functions
+      auto gf_results = model.get_grid_functions(state);
+      assert(gf_results.size() == gf_expressions.size());
+
+      // 3. set expression grid functions to current time
+      for (auto&& gf_expression : gf_expressions)
+        gf_expression->set_time(state.time);
+
+      // 4. compare expression vs resulting gf
+      auto vars = model_config.sub(compartment + ".reaction",true).getValueKeys();
+      assert(vars.size() == gf_results.size());
+      for (std::size_t i = 0; i < gf_results.size(); i++) {
+        auto param_compare = setup_param(vars[i]);
+        grid_function_compare(
+          param_compare, *gf_expressions[i], *gf_results[i]);
+        auto vtk_function = Dune::PDELab::makeVTKGridFunctionAdapter(
+            gf_expressions[i], vars[i]);
+        writer->addVertexData(vtk_function);
+      }
+
+      if (not file.empty())
+        writer->write(state.time, Dune::VTK::base64);
+      writer->vtkWriter()->clear();
+
+      // write state if requested
+      if (not file.empty())
+        state.write(file, true);
+    };
+
+    if (order == 0) {
+      constexpr int Order = 0;
+      using ModelTraits =
+        Dune::Copasi::ModelPkDiffusionReactionTraits<Grid, GridView, Order>;
+      Dune::Copasi::ModelDiffusionReaction<ModelTraits> model(grid_ptr,
+                                                              model_config);
+      auto compare = [&](const auto& state){compare_m(model,state);};
+      compare(model.state()); // compare initial condition
+      stepper.evolve(model, initial_step, end_time, compare);
+    } else if (order == 1) {
+      constexpr int Order = 1;
+      using ModelTraits =
+        Dune::Copasi::ModelP0PkDiffusionReactionTraits<Grid, GridView, Order>;
+      Dune::Copasi::ModelDiffusionReaction<ModelTraits> model(grid_ptr,
+                                                              model_config);
+      auto compare = [&](const auto& state){compare_m(model,state);};
+      compare(model.state()); // compare initial condition
+      stepper.evolve(model, initial_step, end_time, compare);
+    } else if (order == 2) {
+      constexpr int Order = 2;
+      using ModelTraits =
+        Dune::Copasi::ModelP0PkDiffusionReactionTraits<Grid, GridView, Order>;
+      Dune::Copasi::ModelDiffusionReaction<ModelTraits> model(grid_ptr,
+                                                              model_config);
+      auto compare = [&](const auto& state){compare_m(model,state);};
+      compare(model.state()); // compare initial condition
+      stepper.evolve(model, initial_step, end_time, compare);
+    } else {
+      DUNE_THROW(Dune::IOError,
+                 "Finite element order "
+                   << order << " is not supported by dune-copasi(sd)");
+    }
   } catch (Dune::Exception& e) {
-    std::cerr << "Dune reported error: " << e << std::endl;
-    return 1;
+    log.error("Dune reported error:"_fmt);
+    log.error(2, "{}"_fmt, e.what());
+    end_code = 1;
+  } catch (std::exception& e) {
+    log.error("C++ reported error:"_fmt);
+    log.error(2, "{}"_fmt, e.what());
+    end_code = 1;
   } catch (...) {
-    std::cerr << "Unknown exception thrown!" << std::endl;
-    return 1;
+    log.error("Unknown exception thrown!"_fmt);
+    end_code = 1;
   }
-  return 0;
+
+  if (end_code)
+    log.notice("dune-copasi(sd) finished with some errors :("_fmt);
+  else
+    log.notice("dune-copasi(sd) successfully finished :)"_fmt);
+  return end_code;
 }
