@@ -28,7 +28,6 @@
 #include <dune/pdelab/gridfunctionspace/vtk.hh>
 #include <dune/pdelab/gridoperator/gridoperator.hh>
 #include <dune/pdelab/gridoperator/onestep.hh>
-#include <dune/pdelab/newton/newton.hh>
 
 #include <dune/grid/io/file/vtk/vtksequencewriter.hh>
 #include <dune/grid/io/file/vtk/vtkwriter.hh>

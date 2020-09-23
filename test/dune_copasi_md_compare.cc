@@ -114,8 +114,7 @@ main(int argc, char** argv)
       auto sub_grid_view = md_grid_ptr->subDomain(domain).leafGridView();
 
       gf_expressions.emplace_back(Dune::Copasi::get_muparser_expressions(
-        model_config.sub(compartments[domain] + ".compare.expression"),
-        sub_grid_view));
+        model_config.sub(compartment + ".compare.expression"), sub_grid_view));
     }
 
     // get compare paramter tree for a specific variable
@@ -162,7 +161,7 @@ main(int argc, char** argv)
 
     auto compare_m = [=](const auto& model, const auto& state) {
       // 2. get resulting grid functions
-      auto gf_results = model.get_grid_functions();
+      auto gf_results = model.get_grid_functions(state);
       assert(gf_results.size() == gf_expressions.size());
 
       // 3. set expression grid functions to current time

@@ -43,7 +43,7 @@ u = 0.
 [model.domain.compare.expression]
 u = exp({_grow_rate}*t)
 [model.domain.compare.l2_error]
-u = 1e-3
+u = 2.4e-4
 
 ############################ Logging settings #################################
 # levels = off, critical, error, waring, notice, info, detail, debug, trace, all

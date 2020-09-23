@@ -45,7 +45,7 @@ u = {_diffusion}
 [model.domain.compare.expression]
 u = {_gauss_eq}
 [model.domain.compare.l2_error]
-u = 0.255 , 0.085 | expand geometry_type
+u = 0.255 , 0.076 | expand geometry_type
 
 ############################ Logging settings #################################
 # levels = off, critical, error, waring, notice, info, detail, debug, trace, all
