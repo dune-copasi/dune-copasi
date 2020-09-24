@@ -54,7 +54,7 @@ struct ModelP0DiffusionReactionTraits
   using Grid = G;
   using GridView = GV;
   using FEMP0 =
-    PDELab::P0LocalFiniteElementMap<typename Grid::ctype, double, 2>;
+    PDELab::P0LocalFiniteElementMap<typename Grid::ctype, double, G::dimension>;
 
   static constexpr bool is_sub_model =
     not std::is_same_v<typename Grid::Traits::LeafGridView, GridView>;
@@ -132,8 +132,8 @@ struct ModelP0PkDiffusionReactionTraits
 {
   using Grid = G;
   using GridView = GV;
-  using FEMP0 =
-    PDELab::P0LocalFiniteElementMap<typename Grid::ctype, double, 2>;
+  using FEMP0 = PDELab::
+    P0LocalFiniteElementMap<typename Grid::ctype, double, Grid::dimension>;
   template<int order>
   using FEMPk = PDELab::
     PkLocalFiniteElementMap<typename G::LeafGridView, double, double, order>;

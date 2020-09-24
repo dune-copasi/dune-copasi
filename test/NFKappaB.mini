@@ -1,6 +1,7 @@
 __name = NFkappaB
 
 [grid]
+dimension = 2
 file = grids/test_cell.msh
 initial_level = 0
 

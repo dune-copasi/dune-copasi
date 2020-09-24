@@ -7,9 +7,13 @@
 namespace Dune {
 namespace Copasi {
 
-using ModelTraits0 =
-  Dune::Copasi::ModelMultiDomainPkDiffusionReactionTraits<Grid, 0>;
-template class ModelMultiDomainDiffusionReaction<ModelTraits0>;
+using ModelTraits2DPk0 =
+  Dune::Copasi::ModelMultiDomainPkDiffusionReactionTraits<Grid2D, 0>;
+template class ModelMultiDomainDiffusionReaction<ModelTraits2DPk0>;
+
+using ModelTraits3DPk0 =
+  Dune::Copasi::ModelMultiDomainPkDiffusionReactionTraits<Grid3D, 0>;
+template class ModelMultiDomainDiffusionReaction<ModelTraits3DPk0>;
 
 } // namespace Dorie
 } // namespace Dune

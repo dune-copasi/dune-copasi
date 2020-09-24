@@ -1,6 +1,9 @@
+# Test that checks interpolation of TIFF files with a reference vtk file
+#   produced with previous versions of dune_copasi_sd/md
 __name = test_tiff
 
 [grid]
+dimension = 2
 file = grids/square_triangles.msh
 initial_level = 3
 

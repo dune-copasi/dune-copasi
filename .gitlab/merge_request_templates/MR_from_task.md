@@ -14,8 +14,8 @@ _Fill this in_
 - [ ] Pipelines passing <!-- please check for new warnings -->
    <!-- change all occurences of <branch> for your branch name -->
    - [ ] [![Build Status](https://gitlab.dune-project.org/copasi/dune-copasi/badges/<branch>/pipeline.svg)](https://gitlab.dune-project.org/copasi/dune-copasi/pipelines)
-   - [ ] [![Build Status](https://travis-ci.org/SoilRos/dune-copasi.svg?branch=<branch>)](https://travis-ci.org/SoilRos/dune-copasi/branches)
-   - [ ] [![Build status](https://ci.appveyor.com/api/projects/status/6605joy2w17qvca8/branch/<branch>?svg=true)](https://ci.appveyor.com/project/SoilRos/dune-copasi/history)
+   - [ ] [![Build Status](https://travis-ci.org/dune-copasi/dune-copasi.svg?branch=<branch>)](https://travis-ci.org/dune-copasi/dune-copasi/branches)
+   [![Build status](https://ci.appveyor.com/api/projects/status/e7w7u5dt50kue5sb/branch/<branch>?svg=true)](https://ci.appveyor.com/project/SoilRos/dune-copasi-3gv18/branch/<branch>)
 - [ ] Delete branch option set <!-- unless there's a good reason -->
 - [ ] Added entry to `CHANGELOG.md`
 

@@ -3,57 +3,76 @@
 
 #include <dune/grid/uggrid.hh>
 
-#include <set>
+#include <list>
 
 namespace Dune::Copasi {
 
 /**
  * @brief      Mark stripes for refinement
- * @details    If a cube element is surrounded by simplicies in oposite sides
+ * @details    If a cube element is surrounded by non-cubes in oposite sides
  *             such cube is understood to be part of a stripe of cubes. In such
- *             case, this method should mark the grid such that a stripe is a stripe
- *             after refinment (e.g. refine in the direction of perpendicular to the simplices)
- * 
- * @warning    Grid type should be UGGrid
- * @warning    Many edge cases have not been tested, if you find a such a case, please report it as a bug
- * 
- * @param      grid         The grid
- * @param[in]  mark_others  If true, mark other type of entities for refinment.
+ *             case, this method should mark the grid such that a stripe is a
+ *             stripe after refinment (e.g. refine in the direction of
+ *             perpendicular to the non cubes)
  *
- * @tparam     Grid         The grid type
+ * @param      grid         The grid
+ * @param[in]  mark_others  If true, mark non-stripe entities for refinment.
+ *
+ * @tparam     dim         Dimension of the grid
  */
-template<class Grid>
-void mark_stripes(Grid& grid, bool mark_others = true)
+template<int dim>
+void mark_stripes(UGGrid<dim>& grid, bool mark_others = true)
 {
-  constexpr std::size_t dim = Grid::dimension;
-  using RuleType = typename Dune::UG_NS<dim>::RefinementRule;
+  using RuleType = typename UG_NS<dim>::RefinementRule;
 
   auto grid_view = grid.leafGridView();
-  std::set<int> simplex_side;
+  std::list<int> non_cube_side;
 
   // Loop over the grid
   for (auto&& entity : Dune::elements(grid_view))
   {
     if (entity.type().isCube())
     {
-      //register sides with simplices
-      simplex_side.clear();
+      // register side index with simplices (see DUNE cheatsheet for entity ids)
+      non_cube_side.clear();
       for (auto&& ig : Dune::intersections(grid_view,entity))
         if(ig.neighbor())
-          if (ig.outside().type().isSimplex())
-            simplex_side.insert(ig.indexInInside()/2);
+          if (not ig.outside().type().isCube())
+            non_cube_side.push_back(ig.indexInInside());
 
-      // For now, lets only do it in 2D
-      static_assert(dim == 2);
+      bool is_stripe = false;
 
-      if (simplex_side.size() == 1)
+      // oposite facets have consecutive indexing (e.g. [2,3] are oposite)
+      if (non_cube_side.size() == 2)
+        is_stripe = !(non_cube_side.front()/2 - non_cube_side.back()/2);
+
+      if (is_stripe)
       {
-        // side of the simplices
-        int side = *(simplex_side.begin());
-        // side to refine (permendicular)
-        side = not side;
-        // mark entity with a blue type refinment
-        grid.mark(entity,RuleType::BLUE,side);
+        // side orienation of the simplices
+        [[maybe_unused]] int orientation = *(non_cube_side.begin())/2;
+
+        if constexpr (dim == 2)
+        {
+          // mark entity with a blue type refinment
+          grid.mark(entity,RuleType::BLUE,!(bool)orientation);
+        }
+        else if constexpr (dim == 3)
+        {
+          DUNE_THROW(NotImplemented,"Stripes on 3D is not available yet!");
+          // Need a mesh to correctly check which orientation needs which rule!
+          // if (orientation == 0)
+          //    grid.mark(entity,RuleType::HEX_BISECT_0_1);
+          // if (orientation == 1)
+          //    grid.mark(entity,RuleType::HEX_BISECT_0_2);
+          // if (orientation == 2)
+          //    grid.mark(entity,RuleType::HEX_BISECT_0_3);
+        }
+        else
+        {
+          DUNE_THROW(NotImplemented,
+                     "Stripe refinement not known for grids of dimension '"
+                       << dim << "'");
+        }
       }
       else if (mark_others)
       {

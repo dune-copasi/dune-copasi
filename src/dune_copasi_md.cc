@@ -16,6 +16,7 @@
 #include <dune/logging/logging.hh>
 
 #include <dune/common/exceptions.hh>
+#include <dune/common/hybridutilities.hh>
 #include <dune/common/parallel/mpihelper.hh>
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>
@@ -61,74 +62,80 @@ main(int argc, char** argv)
       log.detail(2, "{}"_fmt, line);
     log.detail(2, "----"_fmt);
 
-    // create a grid
-    constexpr int dim = 2;
-    using HostGrid = Dune::UGGrid<dim>;
-    using MDGTraits = Dune::mdgrid::DynamicSubDomainCountTraits<dim, 1>;
-    using Grid = Dune::mdgrid::MultiDomainGrid<HostGrid, MDGTraits>;
+    int order = config.template get<int>("model.order");
+    int dim = config.template get<int>("grid.dimension");
 
-    auto& grid_config = config.sub("grid", true);
-    auto level = grid_config.get<int>("initial_level", 0);
+    if (dim != 2 and dim != 3)
+      DUNE_THROW(Dune::IOError, "Only 2D and 3D grids are alloed!");
 
-    auto grid_file = grid_config.get<std::string>("file");
+    // lambda that instantiates and evolves a multidomain model
+    auto evolve_model = [](const auto& config, auto dim, auto order) {
+      using namespace Dune::Copasi;
 
-    auto [md_grid_ptr, host_grid_ptr] =
-      Dune::Copasi::MultiDomainGmshReader<Grid>::read(grid_file);
+      using HostGrid = Dune::UGGrid<dim>;
+      using MDGTraits = Dune::mdgrid::DynamicSubDomainCountTraits<dim, 1>;
+      using Grid = Dune::mdgrid::MultiDomainGrid<HostGrid, MDGTraits>;
 
-    auto grid_log = Dune::Logging::Logging::componentLogger({}, "grid");
-    grid_log.detail("Applying refinement of level: {}"_fmt, level);
+      auto& grid_config = config.sub("grid", true);
+      auto level = grid_config.template get<int>("initial_level");
 
-    for (int i = 1; i <= level; i++) {
-      Dune::Copasi::mark_stripes(*host_grid_ptr);
-      md_grid_ptr->preAdapt();
-      md_grid_ptr->adapt();
-      md_grid_ptr->postAdapt();
-    }
+      auto grid_file = grid_config.template get<std::string>("file");
 
-    auto& model_config = config.sub("model", true);
-    int order = model_config.get<int>("order");
+      auto [md_grid_ptr, host_grid_ptr] =
+        MultiDomainGmshReader<Grid>::read(grid_file);
 
-    // create time stepper
-    auto timestep_config = model_config.sub("time_stepping", true);
-    auto end_time = timestep_config.template get<double>("end");
-    auto initial_step = timestep_config.template get<double>("initial_step");
-    auto stepper = Dune::Copasi::make_default_stepper(timestep_config);
+      auto grid_log = Dune::Logging::Logging::componentLogger({}, "grid");
+      grid_log.detail("Applying refinement of level: {}"_fmt, level);
 
-    auto file = model_config.get("writer.file_path", "");
-    auto write_output = [=](const auto& state) {
-      if (not file.empty())
-        state.write(file, true);
+      for (int i = 1; i <= level; i++) {
+        mark_stripes(*host_grid_ptr);
+        md_grid_ptr->preAdapt();
+        md_grid_ptr->adapt();
+        md_grid_ptr->postAdapt();
+      }
+
+      auto& model_config = config.sub("model", true);
+      using Traits = ModelMultiDomainP0PkDiffusionReactionTraits<Grid, order>;
+      ModelMultiDomainDiffusionReaction<Traits> model(md_grid_ptr,
+                                                      model_config);
+
+      // setup writer
+      auto file = model_config.get("writer.file_path", "");
+      auto write_output = [=](const auto& state) {
+        if (not file.empty())
+          state.write(file, true);
+      };
+      write_output(model.state()); // write initial condition
+
+      // create time stepper
+      auto timestep_config = model_config.sub("time_stepping", true);
+      auto end_time = timestep_config.template get<double>("end");
+      auto initial_step = timestep_config.template get<double>("initial_step");
+      auto stepper = Dune::Copasi::make_default_stepper(timestep_config);
+
+      stepper.evolve(model, initial_step, end_time, write_output);
     };
 
-    if (order == 0) {
-      constexpr int Order = 0;
-      using ModelTraits =
-        Dune::Copasi::ModelMultiDomainPkDiffusionReactionTraits<Grid, Order>;
-      Dune::Copasi::ModelMultiDomainDiffusionReaction<ModelTraits> model(
-        md_grid_ptr, model_config);
-      write_output(model.state()); // write initial condition
-      stepper.evolve(model, initial_step, end_time, write_output);
-    } else if (order == 1) {
-      constexpr int Order = 1;
-      using ModelTraits =
-        Dune::Copasi::ModelMultiDomainP0PkDiffusionReactionTraits<Grid, Order>;
-      Dune::Copasi::ModelMultiDomainDiffusionReaction<ModelTraits> model(
-        md_grid_ptr, model_config);
-      write_output(model.state()); // write initial condition
-      stepper.evolve(model, initial_step, end_time, write_output);
-    } else if (order == 2) {
-      constexpr int Order = 2;
-      using ModelTraits =
-        Dune::Copasi::ModelMultiDomainP0PkDiffusionReactionTraits<Grid, Order>;
-      Dune::Copasi::ModelMultiDomainDiffusionReaction<ModelTraits> model(
-        md_grid_ptr, model_config);
-      write_output(model.state()); // write initial condition
-      stepper.evolve(model, initial_step, end_time, write_output);
-    } else {
+    // maximum polynomial order instantiated
+    constexpr auto max_order = 2;
+    if (order > max_order)
       DUNE_THROW(Dune::IOError,
                  "Finite element order " << order
                                          << " is not supported by dune-copasi");
-    }
+
+    // static loop that instantiates 2D and 3D polynomial orders but runs the
+    // dynamic ones
+    auto order_range = Dune::range(Dune::index_constant<max_order + 1>{});
+    Dune::Hybrid::forEach(order_range, [&](auto static_order) {
+      // instantiate models with 2D grids
+      if (dim == 2 and order == static_order)
+        evolve_model(config, Dune::Indices::_2, static_order);
+
+      // instantiate models with 3D grids
+      if (dim == 3 and order == static_order)
+        evolve_model(config, Dune::Indices::_3, static_order);
+    });
+
   } catch (Dune::Exception& e) {
     log.error("Dune reported error:"_fmt);
     log.error(2, "{}"_fmt, e.what());

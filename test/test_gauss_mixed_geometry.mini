@@ -5,6 +5,7 @@ _t0 = 1.
 _gauss_eq = exp(-((x-0.5)^2+(y-0.5)^2)/(4*t*{_diffusion})) / (4*pi*t*{_diffusion})
 
 [grid]
+dimension = 2
 file = grids/square_mixed_geometry.msh
 initial_level = 4
 
