@@ -11,10 +11,14 @@
 namespace Dune {
 namespace Copasi {
 
-constexpr int dim = 2;
-using HostGrid = Dune::UGGrid<dim>;
-using MDGTraits = Dune::mdgrid::DynamicSubDomainCountTraits<dim, 1>;
-using Grid = Dune::mdgrid::MultiDomainGrid<HostGrid, MDGTraits>;
+using HostGrid2D = Dune::UGGrid<2>;
+using MDGTraits2D = Dune::mdgrid::DynamicSubDomainCountTraits<2, 1>;
+using Grid2D = Dune::mdgrid::MultiDomainGrid<HostGrid2D, MDGTraits2D>;
+
+
+using HostGrid3D = Dune::UGGrid<3>;
+using MDGTraits3D = Dune::mdgrid::DynamicSubDomainCountTraits<3, 1>;
+using Grid3D = Dune::mdgrid::MultiDomainGrid<HostGrid3D, MDGTraits3D>;
 
 } // namespace Dorie
 } // namespace Dune

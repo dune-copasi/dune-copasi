@@ -1,8 +1,11 @@
-__name = in_out
+# Test that checks fluxes on membranes with a reference vtk file produced with
+#   previous versions of dune_copasi_md
+__name = test_in_out
 
 [grid]
+dimension = 2
 file = grids/test_cell_membrane.msh
-initial_level = 0
+initial_level = 1
 
 [model]
 order = 1
@@ -10,10 +13,10 @@ order = 1
 [model.time_stepping]
 rk_method = alexander_2
 begin = 0
-end = 10
-initial_step = 0.1
+end = 1
+initial_step = 0.3
 min_step = 1e-3
-max_step = 1e-0
+max_step = 0.35
 decrease_factor = 0.5
 increase_factor = 1.5
 
@@ -27,49 +30,48 @@ nucleus = 2
 
 ############################ Model for cytoplasm ############################
 [model.cytoplasm.initial]
-p65_cytoplasm = 1
-
+p65_cytoplasm = 0
 
 [model.cytoplasm.reaction]
-p65_cytoplasm = p65_cytoplasm
+p65_cytoplasm = 0
 
 [model.cytoplasm.reaction.jacobian]
-dp65_cytoplasm_dp65_cytoplasm = 1
+dp65_cytoplasm_dp65_cytoplasm = 0
 
 [model.cytoplasm.diffusion]
-p65_cytoplasm = 1
+p65_cytoplasm = 0.01
 
 ############################ Model for membrane ############################
 [model.membrane.initial]
-p65_cytoplasm = 1
-p65_nucleus = 1
+p65_cytoplasm = 0
+p65_nucleus = 1+x
 
 [model.membrane.reaction]
-p65_cytoplasm = p65_nucleus
-p65_nucleus = p65_cytoplasm
+p65_cytoplasm = p65_nucleus-p65_cytoplasm
+p65_nucleus = p65_cytoplasm-p65_nucleus
 
 [model.membrane.reaction.jacobian]
-p65_cytoplasm_p65_cytoplasm = 0
+p65_cytoplasm_p65_cytoplasm = -1
 p65_cytoplasm_p65_nucleus = 1
 p65_nucleus_p65_cytoplasm = 1
-p65_nucleus_p65_nucleus = 0
+p65_nucleus_p65_nucleus = -1
 
 [model.membrane.diffusion]
-p65_cytoplasm = 1
-p65_nucleus = 1
+p65_cytoplasm = 0
+p65_nucleus = 0
 
 ############################ Model for nucleus ############################
 [model.nucleus.initial]
-p65_nucleus = 1
+p65_nucleus = 1+x
 
 [model.nucleus.reaction]
-p65_nucleus = p65_nucleus
+p65_nucleus = 0
 
 [model.nucleus.reaction.jacobian]
-dp65_nucleus_dp65_nucleus = 1
+dp65_nucleus_dp65_nucleus = 0
 
 [model.nucleus.diffusion]
-p65_nucleus = 1
+p65_nucleus = 0.01
 
 [model.writer]
 file_path = {__name}

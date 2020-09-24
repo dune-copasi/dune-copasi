@@ -1,6 +1,7 @@
 __name = test_no_writer
 
 [grid]
+dimension = 2
 file = grids/square_triangles.msh
 initial_level = 0
 

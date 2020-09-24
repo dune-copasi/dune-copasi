@@ -83,6 +83,10 @@ if (dune-testtools_FOUND)
     INIFILE         test_cell.mini)
 
   add_system_test_per_target(
+    TARGET          dune_copasi_md
+    INIFILE         test_in_out.mini)
+
+  add_system_test_per_target(
     TARGET          dune_copasi_sd
     INIFILE         test_no_writer.mini)
 

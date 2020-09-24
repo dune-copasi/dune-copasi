@@ -7,13 +7,30 @@
 namespace Dune {
 namespace Copasi {
 
-using ModelTraits01 =
-  Dune::Copasi::ModelP0PkDiffusionReactionTraits<Grid, GridView, 1>;
-template class ModelDiffusionReaction<ModelTraits01>;
 
-using ModelTraits02 =
-  Dune::Copasi::ModelP0PkDiffusionReactionTraits<Grid, GridView, 2>;
-template class ModelDiffusionReaction<ModelTraits02>;
+using ModelTraits2DPk0 =
+  Dune::Copasi::ModelP0PkDiffusionReactionTraits<Grid2D, GridView2D, 0>;
+template class ModelDiffusionReaction<ModelTraits2DPk0>;
+
+using ModelTraits2DPk1 =
+  Dune::Copasi::ModelP0PkDiffusionReactionTraits<Grid2D, GridView2D, 1>;
+template class ModelDiffusionReaction<ModelTraits2DPk1>;
+
+using ModelTraits2DPk2 =
+  Dune::Copasi::ModelP0PkDiffusionReactionTraits<Grid2D, GridView2D, 2>;
+template class ModelDiffusionReaction<ModelTraits2DPk2>;
+
+using ModelTraits3DPk0 =
+  Dune::Copasi::ModelP0PkDiffusionReactionTraits<Grid3D, GridView3D, 0>;
+template class ModelDiffusionReaction<ModelTraits3DPk0>;
+
+using ModelTraits3DPk1 =
+  Dune::Copasi::ModelP0PkDiffusionReactionTraits<Grid3D, GridView3D, 1>;
+template class ModelDiffusionReaction<ModelTraits3DPk1>;
+
+using ModelTraits3DPk2 =
+  Dune::Copasi::ModelP0PkDiffusionReactionTraits<Grid3D, GridView3D, 2>;
+template class ModelDiffusionReaction<ModelTraits3DPk2>;
 
 } // namespace Dorie
 } // namespace Dune

@@ -4,6 +4,7 @@ _geometry_type = cubes, triangles | expand geometry_type
 __name = test_exp_{_geometry_type}
 
 [grid]
+dimension = 2
 file = grids/square_{_geometry_type}.msh
 initial_level = 0
 

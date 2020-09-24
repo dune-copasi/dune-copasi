@@ -1,23 +1,21 @@
 // Refinement value
-r = 2e-1;
-mr = 4e-2;
-
+refinement = DefineNumber[ 2, Name "Parameters/refinement" ];
 
 // Cytoplasm radious
 cr = 2;
 // Nucleus radious
 nr = 0.7;
 // Membrane width
-mw = 0.05;
+mw = 0.01;
 
 // Cytoplasm, Nucleus, and Membrane points
-Point(1) = {-cr, 0, 0, r};
-Point(2) = {-nr-mw, 0, 0, mr};
-Point(3) = {-nr, 0, 0, mr};
-Point(4) = {0, 0, 0, r};
-Point(5) = {nr, 0, 0, mr};
-Point(6) = {nr+mw, 0, 0, mr};
-Point(7) = {cr, 0, 0, r};
+Point(1) = {-cr, 0, 0, refinement};
+Point(2) = {-nr-mw, 0, 0, refinement};
+Point(3) = {-nr, 0, 0, refinement};
+Point(4) = {0, 0, 0, refinement};
+Point(5) = {nr, 0, 0, refinement};
+Point(6) = {nr+mw, 0, 0, refinement};
+Point(7) = {cr, 0, 0, refinement};
 
 // outer cytoplasm lines
 Circle(1) = {1,4,7};
@@ -51,3 +49,9 @@ Plane Surface(3) = {3};
 Physical Surface("Nucleus") = {3};
 
 Point{4} In Surface{3};
+
+membrane_size = DefineNumber[ 20, Name "Parameters/membrane_size" ];
+
+Transfinite Curve {5, 6, 4, 3} = membrane_size Using Progression 1;
+
+Recombine Surface {2};
