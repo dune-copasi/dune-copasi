@@ -1,6 +1,6 @@
 [![Build Status](https://gitlab.dune-project.org/copasi/dune-copasi/badges/master/pipeline.svg)](https://gitlab.dune-project.org/copasi/dune-copasi/pipelines)
-[![Build Status](https://travis-ci.org/SoilRos/dune-copasi.svg?branch=master)](https://travis-ci.org/SoilRos/dune-copasi)
-[![Build status](https://ci.appveyor.com/api/projects/status/6605joy2w17qvca8/branch/master?svg=true)](https://ci.appveyor.com/project/SoilRos/dune-copasi/history)
+[![Build Status](https://travis-ci.org/dune-copasi/dune-copasi.svg?branch=master)](https://travis-ci.org/dune-copasi/dune-copasi)
+[![Build status](https://ci.appveyor.com/api/projects/status/e7w7u5dt50kue5sb/branch/master?svg=true)](https://ci.appveyor.com/project/SoilRos/dune-copasi-3gv18/branch/master)
 
 # dune-copasi
 
@@ -14,7 +14,6 @@ Solver for reaction-diffusion systems in multiple compartments
  * Initial conditions can be a TIFF file or a math expression
  * Solved using the finite element or finite volume method
  * Output in the VTK format
- * Currently it only supports 2D simulations
 
 This project is made under the umbrella of the
 [*Distributed and Unified Numerics Environment* `DUNE`](https://www.dune-project.org/) and the
@@ -128,7 +127,7 @@ file = my_gmsh_file.msh
 initial_level = 1
 ```
 
-The grid should be formed by 2D traingles and squares where each *physical group* can only
+The grid should be formed by tetrahedral and hexahedral where each *physical group* can only
 only be formed by one of these type. That is, each *physical group* can have different types of
 geometries, but whithin each *physical group* there cannot be more than one type. The GMSH file
 should be v2 and it should not contain the *physical group* identifiers at the begining of the file

@@ -29,6 +29,7 @@ Types of changes
 ### Added
 - Scape VTK write by omitting `[writer]` section !24
 - Added Explicit and Diagonally Runge-Kutta time solvers !25
+- 3D simulations are now possible !27
 ### Changed
 - Improved errors when a config file is incorrect !25
 - Update meaningful logging values on the test ini file !25
