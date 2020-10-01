@@ -165,13 +165,13 @@ private:
    */
   void handle_parser_error(const mu::Parser::exception_type& e) const
   {
-    _logger.error("Evaluating analytic initial condition failed:"_fmt);
+    _logger.error("Evaluating muParser expression failed:"_fmt);
     _logger.error("  Parsed expression:   {}"_fmt, e.GetExpr());
     _logger.error("  Token:               {}"_fmt, e.GetToken());
     _logger.error("  Error position:      {}"_fmt, e.GetPos());
     _logger.error("  Error code:          {}"_fmt, int(e.GetCode()));
     _logger.error("  Error message:       {}"_fmt, e.GetMsg());
-    DUNE_THROW(IOError, "Error evaluating analytic initial condition");
+    DUNE_THROW(IOError, "Error evaluating muParser expression");
   }
 
   Logging::Logger _logger;

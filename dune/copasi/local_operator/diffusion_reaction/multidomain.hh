@@ -10,7 +10,11 @@
 #include <dune/pdelab/localoperator/numericaljacobianapply.hh>
 #include <dune/pdelab/localoperator/numericalnonlinearjacobianapply.hh>
 
+#include <dune/logging.hh>
+
 #include <dune/common/parametertree.hh>
+
+#include <muParser.h>
 
 #include <algorithm>
 #include <map>
@@ -58,16 +62,27 @@ class LocalOperatorMultiDomainDiffusionReaction
   using GridView = typename Grid::SubDomainGrid::LeafGridView;
   using SubLOP = SubLocalOperator;
 
+  Logging::Logger _logger;
+
   const IndexSet& _index_set;
 
   const std::size_t _size;
 
   mutable std::vector<std::shared_ptr<SubLOP>> _local_operator;
 
+  std::vector<std::string> _compartment_name;
   std::vector<std::vector<std::string>> _component_name;
 
   // map (domain_i,domain_o,component_i) -> component_o
   std::map<std::array<std::size_t, 3>, std::size_t> _component_offset;
+
+  /// map: (domain_i,domain_o) -> domain_i outflow for each component
+  std::map<std::array<std::size_t,2>,std::vector<mu::Parser>> _outflow_parser;
+  std::map<std::array<std::size_t,2>,std::vector<mu::Parser>> _outflow_jac_parser;
+  std::map<std::array<std::size_t,2>,std::vector<mu::Parser>> _outflow_cross_jac_parser;
+
+  mutable std::vector<std::vector<double>> _components;
+  mutable std::vector<std::vector<double>> _components_dn;
 
 public:
 
@@ -87,6 +102,22 @@ public:
   static constexpr bool doAlphaSkeleton = true;
 
   /**
+   * @brief      Output information on the parser error and throw DUNE exception
+   *
+   * @param[in]  e     Exception thrown by the parser
+   */
+  void handle_parser_error(const mu::Parser::exception_type& e) const
+  {
+    _logger.error("Evaluating muParser expression failed:"_fmt);
+    _logger.error("  Parsed expression:   {}"_fmt, e.GetExpr());
+    _logger.error("  Token:               {}"_fmt, e.GetToken());
+    _logger.error("  Error position:      {}"_fmt, e.GetPos());
+    _logger.error("  Error code:          {}"_fmt, int(e.GetCode()));
+    _logger.error("  Error message:       {}"_fmt, e.GetMsg());
+    DUNE_THROW(IOError, "Error evaluating muParser expression");
+  }
+
+  /**
    * @brief      Constructs a new instance.
    *
    * @param[in]  grid            The grid
@@ -96,23 +127,21 @@ public:
   LocalOperatorMultiDomainDiffusionReaction(
     std::shared_ptr<const Grid> grid,
     const ParameterTree& config)
-    : _index_set(grid->leafGridView().indexSet())
+    : _logger(Logging::Logging::componentLogger({}, "model"))
+    , _index_set(grid->leafGridView().indexSet())
     , _size(config.sub("compartments").getValueKeys().size())
     , _local_operator(_size)
     , _component_name(_size)
   {
-    // std::cout << config.sub("compartments") << std::endl;
-    const auto& compartments = config.sub("compartments").getValueKeys();
+    _compartment_name = config.sub("compartments").getValueKeys();
 
     // create local operators for each compartment
     for (std::size_t i = 0; i < _size; ++i) {
-      const std::string compartement = compartments[i];
-
       int sub_domain_id =
-        config.sub("compartments").template get<int>(compartement);
+        config.sub("compartments").template get<int>(_compartment_name[i]);
       GridView sub_grid_view = grid->subDomain(sub_domain_id).leafGridView();
 
-      const auto& sub_config = config.sub(compartments[i]);
+      const auto& sub_config = config.sub(_compartment_name[i]);
       _component_name[i] = sub_config.sub("reaction").getValueKeys();
       std::sort(_component_name[i].begin(), _component_name[i].end());
 
@@ -121,12 +150,16 @@ public:
     }
 
     // create mapping between all inside and outside components
+    _components.resize(_size);
+    _components_dn.resize(_size);
     for (std::size_t domain_i = 0; domain_i < _size; ++domain_i) {
+      _components[domain_i].assign(_component_name[domain_i].size(),0.);
+      _components_dn[domain_i].assign(_component_name[domain_i].size(),0.);
       for (std::size_t comp_i = 0; comp_i < _component_name[domain_i].size();
            comp_i++) {
         for (std::size_t domain_o = 0; domain_o < _size; ++domain_o) {
-          // notice that _component_offset is agnostic on which operator is
-          // given component
+          if (domain_i == domain_o)
+            continue;
           for (std::size_t comp_o = 0;
                comp_o < _component_name[domain_o].size();
                comp_o++) {
@@ -139,6 +172,132 @@ public:
         }
       }
     }
+
+    // Helper lambda to register variables into the parser
+    auto add_var = [&](auto& parser, const auto& expr, const auto& name, auto& var) {
+      if (expr.find(name) != std::string::npos){
+        _logger.trace(4,"Adding variable: {}"_fmt, name);
+        parser.DefineVar(name, &var);
+      }
+    };
+
+    // Create outflow parsers
+    for (std::size_t domain_i = 0; domain_i < _size; ++domain_i) {
+      for (std::size_t domain_o = 0; domain_o < _size; ++domain_o) {
+        if (domain_i == domain_o)
+          continue;
+        std::string outflow_section = _compartment_name[domain_i]
+                                  + ".outflow."
+                                  + _compartment_name[domain_o];
+        auto& outflow_config = config.sub(outflow_section);
+
+        std::string outflow_jac_section = _compartment_name[domain_i]
+                                          + ".outflow."
+                                          + _compartment_name[domain_o]
+                                          + ".jacobian";
+        auto& outflow_jac_config = config.sub(outflow_jac_section);
+
+        _logger.trace("Transmission condition: {}"_fmt, outflow_section);
+        auto& parser = _outflow_parser[{domain_i,domain_o}];
+        auto& parser_jac = _outflow_jac_parser[{domain_i,domain_o}];
+        auto& parser_cross_jac = _outflow_cross_jac_parser[{domain_i,domain_o}];
+        std::size_t comp_size_i = _component_name[domain_i].size();
+        std::size_t comp_size_o = _component_name[domain_o].size();
+        parser.resize(comp_size_i);
+        parser_jac.resize(comp_size_i * comp_size_i);
+        parser_cross_jac.resize(comp_size_i * comp_size_o);
+
+        // Do parser
+        for (std::size_t outflow_i = 0; outflow_i < comp_size_i; ++outflow_i) {
+          auto comp_o_it = _component_offset.find({domain_i,domain_o,outflow_i});
+          bool outside_exists = (comp_o_it != _component_offset.end());
+          // Neumann when component exists on both domains
+          std::string default_flux = outside_exists ? _component_name[domain_i][outflow_i] + "_o__dn" : "0";
+          std::string expr = outflow_config.get(_component_name[domain_i][outflow_i],default_flux);
+          _logger.debug(2,"Setup expression ({}): {}"_fmt, _component_name[domain_i][outflow_i], expr);
+
+          auto& parser_i = parser.at(outflow_i);
+          for (std::size_t comp_i = 0; comp_i < comp_size_i; ++comp_i) {
+            add_var(parser_i,expr,_component_name[domain_i][comp_i]+"_i", _components[domain_i][comp_i]);
+            add_var(parser_i,expr,_component_name[domain_i][comp_i]+"_i__dn", _components_dn[domain_i][comp_i]);
+          }
+          for (std::size_t comp_o = 0; comp_o < comp_size_o; ++comp_o) {
+            if (_component_offset.find({domain_o,domain_i,comp_o}) == _component_offset.end())
+              continue;
+            add_var(parser_i,expr,_component_name[domain_o][comp_o]+"_o", _components[domain_o][comp_o]);
+            add_var(parser_i,expr,_component_name[domain_o][comp_o]+"_o__dn", _components_dn[domain_o][comp_o]);
+          }
+
+          try {
+            parser_i.SetExpr(expr);
+            // try to compile expression
+            parser_i.Eval();
+          } catch (mu::Parser::exception_type& e) {
+            handle_parser_error(e);
+          }
+
+          // Do self jacobian
+          for (std::size_t outflow_ii = 0; outflow_ii < comp_size_i; ++outflow_ii) {
+            std::string jac_name = "d"+ _component_name[domain_i][outflow_i] + "__d" + _component_name[domain_i][outflow_ii] + "_i";
+            std::string default_flux = "0";
+            std::string expr = outflow_jac_config.get(jac_name,default_flux);
+              _logger.debug(2,"Setup self jacobian expression ({}): {}"_fmt, jac_name, expr);
+
+            std::size_t jac_index = outflow_i*comp_size_i+outflow_ii;
+            auto& parser_i = parser_jac.at(jac_index);
+            for (std::size_t comp_i = 0; comp_i < comp_size_i; ++comp_i) {
+              add_var(parser_i,expr,_component_name[domain_i][comp_i]+"_i", _components[domain_i][comp_i]);
+              add_var(parser_i,expr,"d"+_component_name[domain_i][comp_i]+"_i__dn", _components_dn[domain_i][comp_i]);
+            }
+            for (std::size_t comp_o = 0; comp_o < _components[domain_o].size(); ++comp_o) {
+              if (_component_offset.find({domain_o,domain_i,comp_o}) == _component_offset.end())
+                continue;
+              add_var(parser_i,expr,_component_name[domain_o][comp_o]+"_o", _components[domain_o][comp_o]);
+              add_var(parser_i,expr,"d"+_component_name[domain_o][comp_o]+"_o__dn", _components_dn[domain_o][comp_o]);
+            }
+
+            try {
+              parser_i.SetExpr(expr);
+              // try to compile expression
+              parser_i.Eval();
+            } catch (mu::Parser::exception_type& e) {
+              handle_parser_error(e);
+            }
+          }
+
+          // Do cross jacobian
+          for (std::size_t outflow_io = 0; outflow_io < comp_size_o; ++outflow_io) {
+
+            std::string jac_name = "d"+ _component_name[domain_i][outflow_i] + "__d" + _component_name[domain_o][outflow_io]+"_o";
+            std::string default_flux = outside_exists ? "1" : "0";
+            std::string expr = outflow_jac_config.get(jac_name,default_flux);
+            _logger.debug(2,"Setup cross jacobian expression ({}): {}"_fmt, jac_name, expr);
+
+            std::size_t jac_index = outflow_i*comp_size_o+outflow_io;
+            auto& parser_i = parser_cross_jac.at(jac_index);
+            for (std::size_t comp_i = 0; comp_i < comp_size_i; ++comp_i) {
+              add_var(parser_i,expr,_component_name[domain_i][comp_i]+"_i", _components[domain_i][comp_i]);
+              add_var(parser_i,expr,"d"+_component_name[domain_i][comp_i]+"_i__dn", _components_dn[domain_i][comp_i]);
+            }
+            for (std::size_t comp_o = 0; comp_o < comp_size_o; ++comp_o) {
+              if (_component_offset.find({domain_o,domain_i,comp_o}) == _component_offset.end())
+                continue;
+              add_var(parser_i,expr,_component_name[domain_o][comp_o]+"_o", _components[domain_o][comp_o]);
+              add_var(parser_i,expr,"d"+_component_name[domain_o][comp_o]+"_o__dn", _components_dn[domain_o][comp_o]);
+            }
+
+            try {
+              parser_i.SetExpr(expr);
+              // try to compile expression
+              parser_i.Eval();
+            } catch (mu::Parser::exception_type& e) {
+              handle_parser_error(e);
+            }
+          }
+        }
+      }
+    }
+
   }
 
   template<class EG>
@@ -488,13 +647,19 @@ public:
     assert(lfsu_do.size() == lfsv_do.size());
 
     const auto& entity_f = ig.intersection();
+    const auto& entity_i = ig.inside();
+    const auto& entity_o = ig.outside();
 
     auto geo_f = entity_f.geometry();
+    auto geo_i = entity_i.geometry();
+    auto geo_o = entity_o.geometry();
     auto geo_in_i = entity_f.geometryInInside();
     auto geo_in_o = entity_f.geometryInOutside();
 
     std::size_t components_i = _component_name[domain_i].size();
     std::size_t components_o = _component_name[domain_o].size();
+    assert(components_i == lfsu_di.degree());
+    assert(components_o == lfsu_do.degree());
 
     auto x_coeff_local_i = [&](const std::size_t& component,
                                const std::size_t& dof) {
@@ -521,22 +686,32 @@ public:
     const auto& local_basis_o = lfsu_do.child(0).finiteElement().localBasis();
 
     using LocalBasis = std::decay_t<decltype(local_basis_i)>;
-    using Range = typename LocalBasis::Traits::RangeType;
     using RF = typename LocalBasis::Traits::RangeFieldType;
+    using Range = typename LocalBasis::Traits::RangeType;
+    using Jacobian = typename LocalBasis::Traits::JacobianType;
+    constexpr int dim = Grid::dimension;
 
-    std::vector<Range> phiu_i(lfsu_di.size());
-    std::vector<Range> phiu_o(lfsu_do.size());
+    std::vector<Range> phiu_i;
+    std::vector<Range> phiu_o;
 
-    std::vector<RF> u_i(components_i), u_o(components_o);
+    std::vector<Jacobian> jacphi_i;
+    std::vector<Jacobian> jacphi_o;
+
+    std::vector<FieldVector<RF, dim>> gradphi_i(local_basis_i.size());
+    std::vector<FieldVector<RF, dim>> gradphi_o(local_basis_o.size());
+
+    auto normal_f = ig.centerUnitOuterNormal();
 
     for (const auto& it : quadratureRule(geo_f, 3)) {
       const auto& position_f = it.position();
+      std::fill(gradphi_i.begin(), gradphi_i.end(), 0.);
+      std::fill(gradphi_o.begin(), gradphi_o.end(), 0.);
+
       // position of quadrature point in local coordinates of elements
       const auto position_i = geo_in_i.global(position_f);
       const auto position_o = geo_in_o.global(position_f);
 
       // evaluate basis functions
-      phiu_i.clear(), phiu_o.clear();
       local_basis_i.evaluateFunction(position_i, phiu_i);
       local_basis_o.evaluateFunction(position_o, phiu_o);
 
@@ -545,44 +720,69 @@ public:
       std::fill(u_o.begin(),u_o.end(),0.);
       for (std::size_t comp = 0; comp < components_i; comp++)
         for (std::size_t dof = 0; dof < local_basis_i.size(); dof++)
-          u_i[comp] += x_coeff_local_i(comp, dof) * phiu_i[dof];
+          _components[domain_i][comp] += x_coeff_local_i(comp, dof) * phiu_i[dof];
 
       for (std::size_t comp = 0; comp < components_o; comp++)
         for (std::size_t dof = 0; dof < local_basis_o.size(); dof++)
-          u_o[comp] += x_coeff_local_o(comp, dof) * phiu_o[dof];
+          _components[domain_o][comp] += x_coeff_local_o(comp, dof) * phiu_o[dof];
+
+      if (local_basis_i.order() == 0)
+      {
+        RF dn = (position_i - geo_i.center()).two_norm();
+        for (std::size_t comp_i = 0; comp_i < components_i; comp_i++)
+        {
+          auto comp_o_it = _component_offset.find({domain_i,domain_o,comp_i});
+          if (comp_o_it != _component_offset.end())
+          {
+            std::size_t comp_o = comp_o_it->second;
+            _components_dn[domain_i][comp_i] = (_components[domain_o][comp_o] - _components[domain_i][comp_i])/dn;
+          }
+        }
+      } else {
+        local_basis_i.evaluateJacobian(position_i,jacphi_i);
+        auto jac_i = geo_i.jacobianInverseTransposed(position_i);
+        for (std::size_t i=0; i<gradphi_i.size(); i++)
+          jac_i.mv(jacphi_i[i][0],gradphi_i[i]);
+        for (std::size_t comp_i = 0; comp_i < components_i; comp_i++)
+          for (std::size_t j = 0; j < gradphi_i.size(); j++)
+            _components_dn[domain_i][comp_i] += (normal_f * gradphi_i[j]) * x_coeff_local_i(comp_i, j);
+      }
+
+      if (local_basis_o.order() == 0)
+      {
+        RF dn = (position_o - geo_o.center()).two_norm();
+        for (std::size_t comp_o = 0; comp_o < components_i; comp_o++)
+        {
+          auto comp_i_it = _component_offset.find({domain_o,domain_i,comp_o});
+          if (comp_i_it != _component_offset.end())
+          {
+            std::size_t comp_i = comp_i_it->second;
+            _components_dn[domain_o][comp_o] = (_components[domain_i][comp_i] - _components[domain_o][comp_o])/dn;
+          }
+        }
+      } else {
+        local_basis_o.evaluateJacobian(position_o,jacphi_o);
+        auto jac_o = geo_o.jacobianInverseTransposed(position_o);
+        for (std::size_t i=0; i<gradphi_o.size(); i++)
+          jac_o.mv(jacphi_o[i][0],gradphi_o[i]);
+
+        for (std::size_t comp_o = 0; comp_o < components_o; comp_o++)
+          for (std::size_t j = 0; j < gradphi_i.size(); j++)
+            _components_dn[domain_o][comp_o] = (normal_f * gradphi_o[j]) * x_coeff_local_o(comp_o, j);
+      }
 
       // integration factor
       auto factor = it.weight() * geo_f.integrationElement(position_f);
 
-      for (std::size_t comp_i = 0; comp_i < lfsu_di.degree(); comp_i++)
-      {
-        if (lfsu_di.child(comp_i).size() == 0)
-          continue; // child space has nothing to compute
-        std::array<std::size_t, 3> inside_comp{ domain_i, domain_o, comp_i };
-        auto it = _component_offset.find(inside_comp);
-        if (it != _component_offset.end()) {
-          for (std::size_t dof = 0; dof < lfsu_di.child(comp_i).size(); dof++)
-            accumulate_i(comp_i,
-                         dof,
-                         factor * (u_i[comp_i] - u_o[it->second]) *
-                           phiu_i[dof]);
-        }
-      }
+      const auto& parser_io = _outflow_parser.find({domain_i,domain_o})->second;
+      for (std::size_t comp_i = 0; comp_i < components_i; comp_i++)
+        for (std::size_t dof = 0; dof < lfsu_di.child(comp_i).size(); dof++)
+          accumulate_i(comp_i, dof, factor * parser_io[comp_i].Eval() * phiu_i[dof]);
 
-      for (std::size_t comp_o = 0; comp_o < lfsu_do.degree(); comp_o++) // loop over components
-      {
-        if (lfsu_do.child(comp_o).size() == 0)
-          continue; // child space has nothing to compute
-        std::array<std::size_t, 3> outside_comp{ domain_o, domain_i, comp_o };
-        auto it = _component_offset.find(outside_comp);
-        if (it != _component_offset.end()) {
-          for (std::size_t dof = 0; dof < lfsu_do.child(comp_o).size(); dof++)
-            accumulate_o(comp_o,
-                         dof,
-                         -factor * (u_i[it->second] - u_o[comp_o]) *
-                           phiu_o[dof]);
-        }
-      }
+      const auto& parser_oi = _outflow_parser.find({domain_o,domain_i})->second;
+      for (std::size_t comp_o = 0; comp_o < components_o; comp_o++)
+        for (std::size_t dof = 0; dof < lfsu_do.child(comp_o).size(); dof++)
+          accumulate_o(comp_o, dof, - factor * parser_oi[comp_o].Eval() * phiu_o[dof]);
     }
   }
 
@@ -703,11 +903,30 @@ public:
     assert(lfsu_di.size() == lfsv_di.size());
     assert(lfsu_do.size() == lfsv_do.size());
 
+
     const auto& entity_f = ig.intersection();
+    const auto& entity_i = ig.inside();
+    const auto& entity_o = ig.outside();
 
     auto geo_f = entity_f.geometry();
+    auto geo_i = entity_i.geometry();
+    auto geo_o = entity_o.geometry();
     auto geo_in_i = entity_f.geometryInInside();
     auto geo_in_o = entity_f.geometryInOutside();
+
+    std::size_t components_i = _component_name[domain_i].size();
+    std::size_t components_o = _component_name[domain_o].size();
+    assert(components_i == lfsu_di.degree());
+    assert(components_o == lfsu_do.degree());
+
+    auto x_coeff_local_i = [&](const std::size_t& component,
+                               const std::size_t& dof) {
+      return x_i(lfsu_di.child(component), dof);
+    };
+    auto x_coeff_local_o = [&](const std::size_t& component,
+                               const std::size_t& dof) {
+      return x_o(lfsu_do.child(component), dof);
+    };
 
     auto accumulate_ii = [&](const std::size_t& component_i,
                              const std::size_t& dof_i,
@@ -761,68 +980,124 @@ public:
     const auto& local_basis_o = lfsu_do.child(0).finiteElement().localBasis();
 
     using LocalBasis = std::decay_t<decltype(local_basis_i)>;
+    using RF = typename LocalBasis::Traits::RangeFieldType;
     using Range = typename LocalBasis::Traits::RangeType;
+    using Jacobian = typename LocalBasis::Traits::JacobianType;
+    constexpr int dim = Grid::dimension;
 
-    std::vector<Range> phiu_i(lfsu_di.size());
-    std::vector<Range> phiu_o(lfsu_do.size());
+    std::vector<Range> phiu_i;
+    std::vector<Range> phiu_o;
+
+    std::vector<Jacobian> jacphi_i;
+    std::vector<Jacobian> jacphi_o;
+
+    std::vector<FieldVector<RF, dim>> gradphi_i(local_basis_i.size());
+    std::vector<FieldVector<RF, dim>> gradphi_o(local_basis_o.size());
+
+    auto normal_f = ig.centerUnitOuterNormal();
+
+    auto dn_i = (geo_f.center() - geo_i.center()).two_norm();
+    auto dn_o = (geo_f.center() - geo_o.center()).two_norm();
 
     for (const auto& it : quadratureRule(geo_f, 3)) {
       const auto& position_f = it.position();
+
+      std::fill(gradphi_i.begin(), gradphi_i.end(), 0.);
+      std::fill(gradphi_o.begin(), gradphi_o.end(), 0.);
+
       // position of quadrature point in local coordinates of elements
       const auto position_i = geo_in_i.global(position_f);
       const auto position_o = geo_in_o.global(position_f);
 
       // evaluate basis functions
-      phiu_i.clear(), phiu_o.clear();
       local_basis_i.evaluateFunction(position_i, phiu_i);
       local_basis_o.evaluateFunction(position_o, phiu_o);
+
+      // evaluate concentrations at quadrature point
+      for (std::size_t comp = 0; comp < components_i; comp++)
+        for (std::size_t dof = 0; dof < local_basis_i.size(); dof++)
+          _components[domain_i][comp] += x_coeff_local_i(comp, dof) * phiu_i[dof];
+
+      for (std::size_t comp = 0; comp < components_o; comp++)
+        for (std::size_t dof = 0; dof < local_basis_o.size(); dof++)
+          _components[domain_o][comp] += x_coeff_local_o(comp, dof) * phiu_o[dof];
+
+      if (local_basis_i.order() == 0)
+      {
+        for (std::size_t comp_i = 0; comp_i < components_i; comp_i++)
+        {
+          auto comp_o_it = _component_offset.find({domain_i,domain_o,comp_i});
+          if (comp_o_it != _component_offset.end())
+          {
+            std::size_t comp_o = comp_o_it->second;
+            _components_dn[domain_i][comp_i] = (_components[domain_o][comp_o] - _components[domain_i][comp_i])/dn_i;
+          }
+        }
+      } else {
+        local_basis_i.evaluateJacobian(position_i,jacphi_i);
+        auto jac_i = geo_i.jacobianInverseTransposed(position_i);
+        for (std::size_t i=0; i<gradphi_i.size(); i++)
+          jac_i.mv(jacphi_i[i][0],gradphi_i[i]);
+        for (std::size_t comp_i = 0; comp_i < components_i; comp_i++)
+          for (std::size_t j = 0; j < gradphi_i.size(); j++)
+            _components_dn[domain_i][comp_i] += (normal_f * gradphi_i[j]) * x_coeff_local_i(comp_i, j);
+      }
+
+      if (local_basis_o.order() == 0)
+      {
+        for (std::size_t comp_o = 0; comp_o < components_i; comp_o++)
+        {
+          auto comp_i_it = _component_offset.find({domain_o,domain_i,comp_o});
+          if (comp_i_it != _component_offset.end())
+          {
+            std::size_t comp_i = comp_i_it->second;
+            _components_dn[domain_o][comp_o] = (_components[domain_i][comp_i] - _components[domain_o][comp_o])/dn_o;
+          }
+        }
+      } else {
+        local_basis_o.evaluateJacobian(position_o,jacphi_o);
+        auto jac_o = geo_o.jacobianInverseTransposed(position_o);
+        for (std::size_t i=0; i<gradphi_o.size(); i++)
+          jac_o.mv(jacphi_o[i][0],gradphi_o[i]);
+
+        for (std::size_t comp_o = 0; comp_o < components_o; comp_o++)
+          for (std::size_t j = 0; j < gradphi_i.size(); j++)
+            _components_dn[domain_o][comp_o] = (normal_f * gradphi_o[j]) * x_coeff_local_o(comp_o, j);
+      }
+
+
+
       // integration factor
       auto factor = it.weight() * geo_f.integrationElement(position_f);
 
-      for (std::size_t i = 0; i < lfsu_di.degree(); i++) // loop over components
+      const auto& parser_jac_ii = _outflow_jac_parser.find({domain_i,domain_o})->second;
+      const auto& parser_jac_io = _outflow_cross_jac_parser.find({domain_i,domain_o})->second;
+      for (std::size_t comp_i = 0; comp_i < components_i; comp_i++)
       {
-        if (lfsu_di.child(i).size() == 0)
-          continue; // child space has nothing to compute
-        std::array<std::size_t, 3> inside_comp{ domain_i, domain_o, i };
-        auto it = _component_offset.find(inside_comp);
+        for (std::size_t comp_ii = 0; comp_ii < components_i; comp_ii++)
+          for (std::size_t i = 0; i < lfsu_di.child(comp_i).size(); i++)
+            for (std::size_t j = 0; j < lfsu_di.child(comp_ii).size(); j++)
+              accumulate_ii(comp_i, i, comp_ii, j, factor * parser_jac_ii[comp_i*components_i+comp_ii].Eval() * phiu_i[j]);
 
-        if (it != _component_offset.end()) {
-          // compute inside jacobian
-          for (std::size_t j = 0; j < lfsu_di.child(i).size(); j++)
-            for (std::size_t k = 0; k < lfsu_di.child(i).size(); k++)
-              accumulate_ii(i, j, i, k, factor * phiu_i[j] * phiu_i[k]);
-
-          // find index of outside component
-          const std::size_t comp_o = it->second;
-
-          // compute inside-outside jacobian
-          for (std::size_t j = 0; j < lfsu_di.child(i).size(); j++)
-            for (std::size_t k = 0; k < lfsu_do.child(comp_o).size(); k++)
-              accumulate_io(i, j, comp_o, k, -factor * phiu_i[j] * phiu_o[k]);
-        }
+        for (std::size_t comp_io = 0; comp_io < components_o; comp_io++)
+          for (std::size_t i = 0; i < lfsu_di.child(comp_i).size(); i++)
+            for (std::size_t j = 0; j < lfsu_do.child(comp_io).size(); j++)
+              accumulate_io(comp_i, i, comp_io, j, factor * parser_jac_io[comp_i*components_o+comp_io].Eval() * phiu_o[j]);
       }
 
-      for (std::size_t o = 0; o < lfsu_do.degree(); o++) // loop over components
+      const auto& parser_jac_oo = _outflow_jac_parser.find({domain_o,domain_i})->second;
+      const auto& parser_jac_oi = _outflow_cross_jac_parser.find({domain_o,domain_i})->second;
+      for (std::size_t comp_o = 0; comp_o < components_o; comp_o++)
       {
-        if (lfsu_do.child(o).size() == 0)
-          continue; // child space has nothing to compute
-        std::array<std::size_t, 3> outside_comp{ domain_o, domain_i, o };
-        auto it = _component_offset.find(outside_comp);
+        for (std::size_t comp_oo = 0; comp_oo < components_o; comp_oo++)
+          for (std::size_t i = 0; i < lfsu_do.child(comp_o).size(); i++)
+            for (std::size_t j = 0; j < lfsu_do.child(comp_oo).size(); j++)
+              accumulate_oo(comp_o, i, comp_oo, j, - factor * parser_jac_oo[comp_o*components_o+comp_oo].Eval() * phiu_o[j]);
 
-        if (it != _component_offset.end()) {
-          // compute outside jacobian
-          for (std::size_t j = 0; j < lfsu_do.child(o).size(); j++)
-            for (std::size_t k = 0; k < lfsu_do.child(o).size(); k++)
-              accumulate_oo(o, j, o, k, factor * phiu_o[j] * phiu_o[k]);
-
-          // find index of inside component
-          const std::size_t comp_i = it->second;
-
-          // compute outisde-inside jacobian
-          for (std::size_t j = 0; j < lfsu_do.child(o).size(); j++)
-            for (std::size_t k = 0; k < lfsu_di.child(comp_i).size(); k++)
-              accumulate_oi(o, j, comp_i, k, -factor * phiu_o[j] * phiu_i[k]);
-        }
+        for (std::size_t comp_oi = 0; comp_oi < components_i; comp_oi++)
+          for (std::size_t i = 0; i < lfsu_do.child(comp_o).size(); i++)
+            for (std::size_t j = 0; j < lfsu_di.child(comp_oi).size(); j++)
+              accumulate_oi(comp_o, i, comp_oi, j, - factor * parser_jac_oi[comp_o*components_i+comp_oi].Eval() * phiu_i[j]);
       }
     }
   }
