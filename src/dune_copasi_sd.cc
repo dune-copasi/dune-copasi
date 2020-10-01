@@ -146,7 +146,11 @@ main(int argc, char** argv)
 
       // instantiate models with 3D grids
       if (dim == 3 and order == static_order)
+#ifdef DUNE_COPASI_COMPILE_3D
         evolve_model(config, Dune::Indices::_3, static_order);
+#else
+        DUNE_THROW(Dune::IOError,"dune_copasi was not built with 3D support");
+#endif
     });
 
   } catch (Dune::Exception& e) {

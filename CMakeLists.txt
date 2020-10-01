@@ -31,6 +31,7 @@ if(USE_FALLBACK_FILESYSTEM)
           COMPONENT Development
           DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/ghc")
 endif()
+
 add_subdirectory(src)
 add_subdirectory(dune)
 add_subdirectory(lib)

@@ -1,4 +1,5 @@
 option(BUILD_SHARED_LIBS "Global flag to cause add_library() to create shared libraries if on" OFF)
+option(DUNE_COPASI_COMPILE_3D "Compile 3D cases in libraries and executables" OFF)
 
 add_library(dune_copasi_lib STATIC ../dune/copasi/model/base.cc)
 
@@ -7,6 +8,10 @@ target_include_directories(dune_copasi_lib INTERFACE
   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
+
+if (DUNE_COPASI_COMPILE_3D)
+  target_compile_definitions(dune_copasi_lib PUBLIC DUNE_COPASI_COMPILE_3D)
+endif()
 
 if(USE_FALLBACK_FILESYSTEM)
   target_compile_definitions(dune_copasi_lib PUBLIC DUNE_COPASI_USE_FALLBACK_FILESYSTEM)

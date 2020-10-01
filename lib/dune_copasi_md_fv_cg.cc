@@ -19,6 +19,8 @@ using ModelTraits2DPk2 =
   Dune::Copasi::ModelMultiDomainP0PkDiffusionReactionTraits<Grid2D, 2>;
 template class ModelMultiDomainDiffusionReaction<ModelTraits2DPk2>;
 
+#ifdef DUNE_COPASI_COMPILE_3D
+
 using ModelTraits3DPk0 =
   Dune::Copasi::ModelMultiDomainP0PkDiffusionReactionTraits<Grid3D, 0>;
 template class ModelMultiDomainDiffusionReaction<ModelTraits3DPk0>;
@@ -30,6 +32,8 @@ template class ModelMultiDomainDiffusionReaction<ModelTraits3DPk1>;
 using ModelTraits3DPk2 =
   Dune::Copasi::ModelMultiDomainP0PkDiffusionReactionTraits<Grid3D, 2>;
 template class ModelMultiDomainDiffusionReaction<ModelTraits3DPk2>;
+
+#endif
 
 } // namespace Dorie
 } // namespace Dune
