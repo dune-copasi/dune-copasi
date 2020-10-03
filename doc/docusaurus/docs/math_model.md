@@ -47,7 +47,6 @@ $$
 where $\mathsf{D}^k_{i\star}$ represents the $i$-th row of the self and
 cross-dispersion tensor $\mathsf{D}^k$, in other words,
 $\mathsf{D}^k_{i\star}\nabla\bm{u}^k:=\sum_{i=1}^{N^k}\mathsf{D}^k_{ij}\nabla u^k_j$.
-Ultimately, applying the law of conservation of mass we get
 
 ### Reaction Network
 
