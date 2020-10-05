@@ -212,7 +212,7 @@ public:
           auto comp_o_it = _component_offset.find({domain_i,domain_o,outflow_i});
           bool outside_exists = (comp_o_it != _component_offset.end());
           // Neumann when component exists on both domains
-          std::string default_flux = outside_exists ? _component_name[domain_i][outflow_i] + "_o__dn" : "0";
+          std::string default_flux = outside_exists ? "-"+_component_name[domain_i][outflow_i] + "_o__dn" : "0";
           std::string expr = outflow_config.get(_component_name[domain_i][outflow_i],default_flux);
           _logger.debug(2,"Setup expression ({}): {}"_fmt, _component_name[domain_i][outflow_i], expr);
 
@@ -269,7 +269,7 @@ public:
           for (std::size_t outflow_io = 0; outflow_io < comp_size_o; ++outflow_io) {
 
             std::string jac_name = "d"+ _component_name[domain_i][outflow_i] + "__d" + _component_name[domain_o][outflow_io]+"_o";
-            std::string default_flux = outside_exists ? "1" : "0";
+            std::string default_flux = outside_exists ? "-1" : "0";
             std::string expr = outflow_jac_config.get(jac_name,default_flux);
             _logger.debug(2,"Setup cross jacobian expression ({}): {}"_fmt, jac_name, expr);
 
