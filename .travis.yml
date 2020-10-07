@@ -32,8 +32,8 @@ before_install:
   - gcc --version
   - g++ --version
   # download muparser, gmp and libtiff as static libraries
-  - wget "https://github.com/lkeegan/libsbml-static/releases/latest/download/libsbml-static-$TRAVIS_OS_NAME.tgz"
-  - sudo tar xzvf libsbml-static-$TRAVIS_OS_NAME.tgz -C /
+  - wget "https://github.com/spatial-model-editor/sme_deps_common/releases/latest/download/sme_deps_common_$TRAVIS_OS_NAME.tgz"
+  - sudo tar xzvf sme_deps_common_$TRAVIS_OS_NAME.tgz -C /
   - cd ..
 install:
   - echo 'CMAKE_FLAGS+=" -G '"'"'Unix Makefiles'"'"' "' >> dune.opts
@@ -42,8 +42,8 @@ install:
   - echo 'CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_PATH='"$PWD"'/ext/dune-python-venv"' >> dune.opts
   - echo 'CMAKE_FLAGS+=" -DCMAKE_DISABLE_FIND_PACKAGE_QuadMath=TRUE -DBUILD_TESTING=OFF"' >> dune.opts
   - echo 'CMAKE_FLAGS+=" -DDUNE_USE_ONLY_STATIC_LIBS=ON -DCMAKE_BUILD_TYPE=Release"' >> dune.opts
-  - echo 'CMAKE_FLAGS+=" -DF77=true -DCMAKE_PREFIX_PATH=/opt/libs"' >> dune.opts
-  - echo 'CMAKE_FLAGS+=" -Dmuparser_INCLUDE_DIR:PATH=/opt/libs/include -Dmuparser_LIBRARIES:FILEPATH=opt/libs/lib/libmuparser.a"' >> dune.opts
+  - echo 'CMAKE_FLAGS+=" -DF77=true -DCMAKE_PREFIX_PATH=/opt/smelibs"' >> dune.opts
+  - echo 'CMAKE_FLAGS+=" -Dmuparser_INCLUDE_DIR:PATH=/opt/smelibs/include -Dmuparser_LIBRARIES:FILEPATH=opt/smelibs/lib/libmuparser.a"' >> dune.opts
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then echo 'CMAKE_FLAGS+=" -DPYTHON_EXECUTABLE:FILEPATH=/usr/bin/python3"' >> dune.opts; fi
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then echo 'CMAKE_FLAGS+=" -DUSE_FALLBACK_FILESYSTEM=ON"' >> dune.opts ; fi
   - echo 'MAKE_FLAGS="-j2 VERBOSE=1"' >> dune.opts
