@@ -40,7 +40,7 @@ do
 done
 for repo in dune-logging dune-typetree dune-pdelab dune-multidomaingrid
 do
-  git clone -b support/dune-copasi --depth 1 --recursive https://gitlab.dune-project.org/copasi/$repo.git
+  git clone -b support/dune-copasi-v0.3 --depth 1 --recursive https://gitlab.dune-project.org/copasi/$repo.git
 done
 
 # python virtual environment does not work in windows yet

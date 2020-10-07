@@ -30,30 +30,32 @@ Types of changes
     Security      in case of vulnerabilities.
  -->
 
-## [Unreleased]
-### Added
-- User documentation !28
-- Scape VTK write by omitting `[writer]` section !24
-- Added Explicit and Diagonally Runge-Kutta time solvers !25
-- 3D simulations are now possible !27
-### Changed
-- Improved errors when a config file is incorrect !25
-- Update meaningful logging values on the test ini file !25
-- Clean up logger output !25
-- Time stepping is now done outside the model class !25
-- Writer might write on different files on request !25
-- Move read/write responsibility to model state !25
-- States are now independent from models !25
-- Output files changed its name scheme !25
-- Configuration file changed its structure (see git diff on tests) !25
-### Removed
-- Coefficient mapper and its use on local operators !25
-- Remove the operator map of objects within the model class !25
-### Fixed
-- Violation of the One-Definition-Rule due to external linkage of `LocalOperatorApply` lambdas !23
-- Error on the gaussian equation used on comparisons !23
+## [Unreleased] ([git-diff][Unreleased-diff])
 
-## [0.2.0] - 2020-02-20
+## [0.3.0] ([git-diff][0.3.0-diff]) - 2020-10-07
+### Added
+- User documentation [!28]
+- Scape VTK write by omitting `[writer]` section [!24]
+- Added Explicit and Diagonally Runge-Kutta time solvers [!25]
+- 3D simulations are now possible [!27]
+### Changed
+- Improved errors when a config file is incorrect [!25]
+- Update meaningful logging values on the test ini file [!25]
+- Clean up logger output [!25]
+- Time stepping is now done outside the model class [!25]
+- Writer might write on different files on request [!25]
+- Move read/write responsibility to model state [!25]
+- States are now independent from models [!25]
+- Output files changed its name scheme [!25]
+- Configuration file changed its structure (see git diff on tests) [!25]
+### Removed
+- Coefficient mapper and its use on local operators [!25]
+- Remove the operator map of objects within the model class [!25]
+### Fixed
+- Violation of the One-Definition-Rule due to external linkage of `LocalOperatorApply` lambdas [!23]
+- Error on the gaussian equation used on comparisons [!23]
+
+## [0.2.0] ([git-diff][0.2.0-diff]) - 2020-02-20
 ### Added
 - Code documentation
 - Data Context concept for factories
@@ -81,6 +83,16 @@ Types of changes
 - [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Solver for reaction-diffusion systems in multiple compartments.
 
-[Unreleased]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v0.2.0...master
-[0.2.0]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v0.1.0...v0.2.0
-[0.1.0]: https://gitlab.dune-project.org/copasi/dune-copasi/-/tags/v0.1.0
+[Unreleased-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v0.3.0...master
+[0.3.0-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v0.2.0...v0.3.0
+[0.2.0-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v0.1.0...v0.2.0
+
+[0.3.0]: https://gitlab.dune-project.org/copasi/dune-copasi/-/releases/v0.3.0
+[0.2.0]: https://gitlab.dune-project.org/copasi/dune-copasi/-/releases/v0.2.0
+[0.1.0]: https://gitlab.dune-project.org/copasi/dune-copasi/-/releases/v0.1.0
+
+[!28]: https://gitlab.dune-project.org/copasi/dune-copasi/-/merge_requests/28
+[!27]: https://gitlab.dune-project.org/copasi/dune-copasi/-/merge_requests/27
+[!25]: https://gitlab.dune-project.org/copasi/dune-copasi/-/merge_requests/25
+[!24]: https://gitlab.dune-project.org/copasi/dune-copasi/-/merge_requests/24
+[!23]: https://gitlab.dune-project.org/copasi/dune-copasi/-/merge_requests/23

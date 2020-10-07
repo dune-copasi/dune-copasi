@@ -17,7 +17,7 @@ def check_version_format(version):
 
 def get_version(path):
   with open(path, "r") as version_file:
-    version = version_file.readline()
+    version = version_file.readline().rstrip("\n")
     version_file.close()
     check_version_format(version)
   return version
@@ -46,7 +46,7 @@ def main(argv):
     new_version = argv[0]
   else:
     raise IOError("Too many arguments!")
-  
+
   check_version_format(new_version)
 
   # update basic version file
@@ -67,11 +67,12 @@ def main(argv):
     for line in changelog_file.readlines():
       if "## [Unreleased]" in line:
         new_changelog += line +"\n"
-        new_changelog += "## [" + new_version+ "] - " + datetime.date.today().isoformat() + "\n"
-      elif "[Unreleased]: " + project_url in line:
-        new_changelog += "[Unreleased]: " + project_url+"/compare/v"+new_version+"...master\n"
-      elif "["+old_version+"]: " + project_url in line:
-        new_changelog += "["+new_version+"]: "+project_url+"/compare/v"+old_version+"..."+new_version+"\n"
+        new_changelog += "## [" + new_version+ "] ([git-diff][" + new_version + "-diff]) - " + datetime.date.today().isoformat() + "\n"
+      elif "[Unreleased-diff]: " + project_url in line:
+        new_changelog += "[Unreleased-diff]: " + project_url+"/compare/v"+new_version+"...master\n"
+        new_changelog += "["+new_version+"-diff]: "+project_url+"/compare/v"+old_version+"...v"+new_version+"\n"
+      elif "["+old_version+"]: "+project_url in line:
+        new_changelog += "["+new_version+"]: "+project_url+"/-/releases/v"+new_version+"\n"
         new_changelog += line
       else:
         new_changelog += line
@@ -83,8 +84,10 @@ def main(argv):
 
   print("Changelog was updated, check that the update is correct")
 
-  print("If this is a definitive change, please set a new tag in the repository\n")
-  print("\tgit tag v"+new_version+"\n")
+  print("If this is a definitive change, please update documentation and set a new tag in the repository\n")
+  print("\tgit tag -s v"+new_version+"\n")
+  print("\nAlso remember to forward the branch latest to the lastest tag\n")
+  print("\tgit checkout latest && git merge --ff-only v"+new_version+"\n")
 
 if __name__ == "__main__":
    main(sys.argv[1:])

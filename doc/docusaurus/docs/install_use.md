@@ -67,10 +67,10 @@ on the [DUNE GitLab](https://gitlab.dune-project.org/).
 | [dune-istl](https://gitlab.dune-project.org/core/dune-istl)                                 | == 2.7 |
 | [dune-localfunctions](https://gitlab.dune-project.org/core/dune-localfunctions)             | == 2.7 |
 | [dune-functions](https://gitlab.dune-project.org/staging/dune-functions)                    | == 2.7 |
-| [COPASI/dune-logging](https://gitlab.dune-project.org/copasi/dune-logging)                  | support/dune-copasi |
-| [COPASI/dune-typetree](https://gitlab.dune-project.org/copasi/dune-typetree)                | support/dune-copasi |
-| [COPASI/dune-pdelab](https://gitlab.dune-project.org/copasi/dune-pdelab)                    | support/dune-copasi |
-| [COPASI/dune-multidomaingrid](https://gitlab.dune-project.org/copasi/dune-multidomaingrid)  | support/dune-copasi |
+| [COPASI/dune-logging](https://gitlab.dune-project.org/copasi/dune-logging)                  | support/dune-copasi-latest |
+| [COPASI/dune-typetree](https://gitlab.dune-project.org/copasi/dune-typetree)                | support/dune-copasi-latest |
+| [COPASI/dune-pdelab](https://gitlab.dune-project.org/copasi/dune-pdelab)                    | support/dune-copasi-latest |
+| [COPASI/dune-multidomaingrid](https://gitlab.dune-project.org/copasi/dune-multidomaingrid)  | support/dune-copasi-latest |
 
 ### Installation
 
@@ -120,11 +120,11 @@ git clone -b releases/2.7 https://gitlab.dune-project.org/staging/dune-uggrid
 git clone -b releases/2.7 https://gitlab.dune-project.org/core/dune-istl
 git clone -b releases/2.7 https://gitlab.dune-project.org/core/dune-localfunctions
 git clone -b releases/2.7 https://gitlab.dune-project.org/staging/dune-functions
-git clone -b support/dune-copasi --recursive https://gitlab.dune-project.org/copasi/dune-logging
-git clone -b support/dune-copasi https://gitlab.dune-project.org/copasi/dune-typetree
-git clone -b support/dune-copasi https://gitlab.dune-project.org/copasi/dune-pdelab
-git clone -b support/dune-copasi https://gitlab.dune-project.org/copasi/dune-multidomaingrid
-git clone -b v0.2.0 https://gitlab.dune-project.org/copasi/dune-copasi
+git clone -b support/dune-copasi-latest --recursive https://gitlab.dune-project.org/copasi/dune-logging
+git clone -b support/dune-copasi-latest https://gitlab.dune-project.org/copasi/dune-typetree
+git clone -b support/dune-copasi-latest https://gitlab.dune-project.org/copasi/dune-pdelab
+git clone -b support/dune-copasi-latest https://gitlab.dune-project.org/copasi/dune-multidomaingrid
+git clone -b latest https://gitlab.dune-project.org/copasi/dune-copasi
 ```
 
 Then build and install the `DUNE` modules with the `dunecontrol` script:
