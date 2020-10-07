@@ -4,9 +4,7 @@ module.exports = {
       'about',
       'math_model',
       'community',
-      'contribute',
-      'code_of_conduct',
-      'changelog',
+      'participate',
     ],
     'Getting Started': [
       'install_use',

@@ -20,7 +20,7 @@ reaction-diffusion processes and the interaction between compartments happens
 
 ### Compartments
 
-We say that each compartments, denoted by $\Omega^k$, is an open, bounded,
+We say that each compartment, denoted by $\Omega^k$, is an open, bounded,
 connected subset of Euclidean space $\mathbb{R}^d$, with Lipschitz boundary
 $\partial\Omega^k$ and space dimension $d=2$ or $d=3$. Moreover, we require
 that the compartments are the non-overlapping decomposition of an open, bounded,
@@ -71,7 +71,7 @@ $$
   \end{matrix}
   \right.
 $$
-where $\partial\Omega$ represents the boundaries of a domain $\Omega$.
+where $\partial\Omega$ represents the boundaries of the domain $\Omega$.
 
 
 ### Transmission Conditions

@@ -1,8 +1,4 @@
----
-id: contribute
-title: Contribute
-sidebar_label: Contribute
----
+# Contributing
 
 When contributing to `DuneCopasi`, first discuss the change you wish to make via the
 [issue tracker](https://gitlab.dune-project.org/copasi/dune-copasi/-/issues).

@@ -53,9 +53,16 @@ module.exports = {
           label: 'Help',
           items: [
             {
-              href: 'https://gitlab.dune-project.org/copasi/dune-copasi/-/issues',
+              href: 'https://gitlab.dune-project.org/copasi/dune-copasi/-/releases',
+              label: 'Versions',
+            },
+            {
+              href: 'https://gitlab.dune-project.org/copasi/dune-copasi/-/blob/master/CHANGELOG.md',
+              label: 'Changelog',
+            },
+            {
+              href: 'https://gitlab.dune-project.org/copasi/dune-copasi/-/issues?label_name%5B%5D=Bug',
               label: 'Bug tracker',
-              position: 'left',
             },
           ],
         },
@@ -86,6 +93,7 @@ module.exports = {
       '@docusaurus/preset-classic',
       {
         docs: {
+          path: 'docs',
           homePageId: 'about',
           sidebarPath: require.resolve('./sidebars.js'),
           editUrl:

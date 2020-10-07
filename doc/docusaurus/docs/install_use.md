@@ -67,10 +67,10 @@ on the [DUNE GitLab](https://gitlab.dune-project.org/).
 | [dune-istl](https://gitlab.dune-project.org/core/dune-istl)                                 | == 2.7 |
 | [dune-localfunctions](https://gitlab.dune-project.org/core/dune-localfunctions)             | == 2.7 |
 | [dune-functions](https://gitlab.dune-project.org/staging/dune-functions)                    | == 2.7 |
-| [COPASI/dune-logging](https://gitlab.dune-project.org/copasi/dune-logging)                  | support/dune-copasi-latest |
-| [COPASI/dune-typetree](https://gitlab.dune-project.org/copasi/dune-typetree)                | support/dune-copasi-latest |
-| [COPASI/dune-pdelab](https://gitlab.dune-project.org/copasi/dune-pdelab)                    | support/dune-copasi-latest |
-| [COPASI/dune-multidomaingrid](https://gitlab.dune-project.org/copasi/dune-multidomaingrid)  | support/dune-copasi-latest |
+| [COPASI/dune-logging](https://gitlab.dune-project.org/copasi/dune-logging)                  | `support/dune-copasi-latest` |
+| [COPASI/dune-typetree](https://gitlab.dune-project.org/copasi/dune-typetree)                | `support/dune-copasi-latest` |
+| [COPASI/dune-pdelab](https://gitlab.dune-project.org/copasi/dune-pdelab)                    | `support/dune-copasi-latest` |
+| [COPASI/dune-multidomaingrid](https://gitlab.dune-project.org/copasi/dune-multidomaingrid)  | `support/dune-copasi-latest` |
 
 ### Installation
 
