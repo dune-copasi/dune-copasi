@@ -26,12 +26,14 @@ namespace Dune::Copasi {
  * @tparam     G         Grid
  * @tparam     FEMorder  Order of the finite element method
  * @tparam     OT        PDELab ordering tag
- * @tparam     JM        Jacobian method
+ * @tparam     JMS        Jacobian method for single domain operator (interior)
+ * @tparam     JMM        Jacobian method for multidomain operator (interface)
  */
 template<class G,
          int FEMorder = 1,
          class OT = PDELab::EntityBlockedOrderingTag,
-         JacobianMethod JM = JacobianMethod::Analytical>
+         JacobianMethod JMS = JacobianMethod::Analytical,
+         JacobianMethod JMM = JacobianMethod::Numerical>
 struct ModelMultiDomainPkDiffusionReactionTraits
 {
   using Grid = G;
@@ -44,20 +46,22 @@ struct ModelMultiDomainPkDiffusionReactionTraits
 
   using OrderingTag = OT;
 
-  static constexpr JacobianMethod jacobian_method = JM;
+  static constexpr JacobianMethod jacobian_method_interior = JMS;
+  static constexpr JacobianMethod jacobian_method_interface = JMM;
 
   using SubModelTraits =
     ModelPkDiffusionReactionTraits<Grid,
                                    typename Grid::SubDomainGrid::LeafGridView,
                                    FEMorder,
                                    OrderingTag,
-                                   jacobian_method>;
+                                   jacobian_method_interior>;
 };
 
 template<class G,
          int FEMorder = 1,
          class OT = PDELab::EntityBlockedOrderingTag,
-         JacobianMethod JM = JacobianMethod::Analytical>
+         JacobianMethod JMS = JacobianMethod::Analytical,
+         JacobianMethod JMM = JacobianMethod::Numerical>
 struct ModelMultiDomainP0PkDiffusionReactionTraits
 {
   using Grid = G;
@@ -70,14 +74,15 @@ struct ModelMultiDomainP0PkDiffusionReactionTraits
 
   using OrderingTag = OT;
 
-  static constexpr JacobianMethod jacobian_method = JM;
+  static constexpr JacobianMethod jacobian_method_interior = JMS;
+  static constexpr JacobianMethod jacobian_method_interface = JMM;
 
   using SubModelTraits =
     ModelP0PkDiffusionReactionTraits<Grid,
                                      typename Grid::SubDomainGrid::LeafGridView,
                                      FEMorder,
                                      OrderingTag,
-                                     jacobian_method>;
+                                     jacobian_method_interior>;
 };
 
 /**
@@ -95,8 +100,6 @@ private:
   using Grid = typename Traits::Grid;
 
   using OT = typename Traits::OrderingTag;
-
-  static constexpr JacobianMethod JM = Traits::jacobian_method;
 
   using SubDomainGridView = typename Grid::SubDomainGrid::LeafGridView;
 
@@ -138,13 +141,13 @@ private:
   using LOP = LocalOperatorMultiDomainDiffusionReaction<
     Grid,
     typename Traits::SubModelTraits::LocalOperator,
-    JM>;
+    Traits::jacobian_method_interface>;
 
   //! Temporal local operator
   using TLOP = TemporalLocalOperatorMultiDomainDiffusionReaction<
     Grid,
     typename Traits::SubModelTraits::TemporalLocalOperator,
-    JM>;
+    Traits::jacobian_method_interface>;
 
   //! Matrix backend
   using MBE = Dune::PDELab::ISTL::BCRSMatrixBackend<>;

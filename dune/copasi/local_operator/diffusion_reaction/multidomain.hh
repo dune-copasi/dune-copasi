@@ -153,8 +153,8 @@ public:
     _components.resize(_size);
     _components_dn.resize(_size);
     for (std::size_t domain_i = 0; domain_i < _size; ++domain_i) {
-      _components[domain_i].assign(_component_name[domain_i].size(),0.);
-      _components_dn[domain_i].assign(_component_name[domain_i].size(),0.);
+      _components[domain_i].assign(_component_name[domain_i].size(),std::numeric_limits<double>::quiet_NaN());
+      _components_dn[domain_i].assign(_component_name[domain_i].size(),std::numeric_limits<double>::quiet_NaN());
       for (std::size_t comp_i = 0; comp_i < _component_name[domain_i].size();
            comp_i++) {
         for (std::size_t domain_o = 0; domain_o < _size; ++domain_o) {
@@ -236,6 +236,9 @@ public:
             handle_parser_error(e);
           }
 
+          if (JM == JacobianMethod::Numerical)
+            continue;
+
           // Do self jacobian
           for (std::size_t outflow_ii = 0; outflow_ii < comp_size_i; ++outflow_ii) {
             std::string jac_name = "d"+ _component_name[domain_i][outflow_i] + "__d" + _component_name[domain_i][outflow_ii] + "_i";
@@ -269,7 +272,8 @@ public:
           for (std::size_t outflow_io = 0; outflow_io < comp_size_o; ++outflow_io) {
 
             std::string jac_name = "d"+ _component_name[domain_i][outflow_i] + "__d" + _component_name[domain_o][outflow_io]+"_o";
-            std::string default_flux = outside_exists ? "-1" : "0";
+            bool outflux = _component_name[domain_i][outflow_i] == _component_name[domain_o][outflow_io];
+            std::string default_flux = outflux ? "-1" : "0";
             std::string expr = outflow_jac_config.get(jac_name,default_flux);
             _logger.debug(2,"Setup cross jacobian expression ({}): {}"_fmt, jac_name, expr);
 
@@ -355,47 +359,47 @@ public:
    * @tparam     LFSV          The test local function space
    * @tparam     LocalPattern  The local pattern
    */
-  template<typename LFSU, typename LFSV, typename LocalPattern>
-  void interface_pattern_skeleton(std::size_t domain_i, std::size_t domain_o,
-                        const LFSU& lfsu_di,
-                        const LFSV& lfsv_di,
-                        const LFSU& lfsu_do,
-                        const LFSV& lfsv_do,
-                        LocalPattern& pattern_io,
-                        LocalPattern& pattern_oi) const
-  {
-    auto lfs_size_i = lfsu_di.degree();
-    for (std::size_t comp_i = 0; comp_i < lfs_size_i; ++comp_i) {
-      std::array<std::size_t, 3> inside_comp{ domain_i, domain_o, comp_i };
-      auto it = _component_offset.find(inside_comp);
-      if (it != _component_offset.end()) {
-        auto comp_o = it->second;
-        auto& lfsv_ci = lfsv_di.child(comp_i);
-        auto& lfsu_co = lfsu_do.child(comp_o);
-        for (std::size_t dof_i = 0; dof_i < lfsv_ci.size(); dof_i++) {
-          for (std::size_t dof_o = 0; dof_o < lfsu_co.size(); dof_o++) {
-            pattern_io.addLink(lfsv_ci, dof_i, lfsu_co, dof_o);
-          }
-        }
-      }
-    }
+  // template<typename LFSU, typename LFSV, typename LocalPattern>
+  // void interface_pattern_skeleton(std::size_t domain_i, std::size_t domain_o,
+  //                       const LFSU& lfsu_di,
+  //                       const LFSV& lfsv_di,
+  //                       const LFSU& lfsu_do,
+  //                       const LFSV& lfsv_do,
+  //                       LocalPattern& pattern_io,
+  //                       LocalPattern& pattern_oi) const
+  // {
+  //   auto lfs_size_i = lfsu_di.degree();
+  //   for (std::size_t comp_i = 0; comp_i < lfs_size_i; ++comp_i) {
+  //     std::array<std::size_t, 3> inside_comp{ domain_i, domain_o, comp_i };
+  //     auto it = _component_offset.find(inside_comp);
+  //     if (it != _component_offset.end()) {
+  //       auto comp_o = it->second;
+  //       auto& lfsv_ci = lfsv_di.child(comp_i);
+  //       auto& lfsu_co = lfsu_do.child(comp_o);
+  //       for (std::size_t dof_i = 0; dof_i < lfsv_ci.size(); dof_i++) {
+  //         for (std::size_t dof_o = 0; dof_o < lfsu_co.size(); dof_o++) {
+  //           pattern_io.addLink(lfsv_ci, dof_i, lfsu_co, dof_o);
+  //         }
+  //       }
+  //     }
+  //   }
 
-    auto lfs_size_o = lfsu_do.degree();
-    for (std::size_t comp_o = 0; comp_o < lfs_size_o; ++comp_o) {
-      std::array<std::size_t, 3> outside_comp{ domain_o, domain_i, comp_o };
-      auto it = _component_offset.find(outside_comp);
-      if (it != _component_offset.end()) {
-        auto comp_i = it->second;
-        auto& lfsv_co = lfsv_do.child(comp_o);
-        auto& lfsu_ci = lfsu_di.child(comp_i);
-        for (std::size_t dof_o = 0; dof_o < lfsv_co.size(); dof_o++) {
-          for (std::size_t dof_i = 0; dof_i < lfsu_ci.size(); dof_i++) {
-            pattern_oi.addLink(lfsv_co, dof_o, lfsu_ci, dof_i);
-          }
-        }
-      }
-    }
-  }
+  //   auto lfs_size_o = lfsu_do.degree();
+  //   for (std::size_t comp_o = 0; comp_o < lfs_size_o; ++comp_o) {
+  //     std::array<std::size_t, 3> outside_comp{ domain_o, domain_i, comp_o };
+  //     auto it = _component_offset.find(outside_comp);
+  //     if (it != _component_offset.end()) {
+  //       auto comp_i = it->second;
+  //       auto& lfsv_co = lfsv_do.child(comp_o);
+  //       auto& lfsu_ci = lfsu_di.child(comp_i);
+  //       for (std::size_t dof_o = 0; dof_o < lfsv_co.size(); dof_o++) {
+  //         for (std::size_t dof_i = 0; dof_i < lfsu_ci.size(); dof_i++) {
+  //           pattern_oi.addLink(lfsv_co, dof_o, lfsu_ci, dof_i);
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
 
   /**
    * @brief      Pattern sckeleton
@@ -443,7 +447,8 @@ public:
     assert(lfsu_do.degree() == lfsv_do.degree());
 
     if (domain_i != domain_o)
-      interface_pattern_skeleton(domain_i,domain_o,lfsu_di,lfsv_di,lfsu_do,lfsv_do,pattern_io,pattern_oi);
+      Dune::PDELab::FullSkeletonPattern{}.pattern_skeleton(lfsu_di,lfsv_di,lfsu_do,lfsv_do,pattern_io,pattern_oi);
+      // interface_pattern_skeleton(domain_i,domain_o,lfsu_di,lfsv_di,lfsu_do,lfsv_do,pattern_io,pattern_oi);
     else if constexpr (SubLOP::doPatternSkeleton)
       _local_operator[domain_i]->pattern_skeleton(lfsu_di,lfsv_di,lfsu_do,lfsv_do,pattern_io,pattern_oi);
   }
@@ -715,6 +720,9 @@ public:
       local_basis_i.evaluateFunction(position_i, phiu_i);
       local_basis_o.evaluateFunction(position_o, phiu_o);
 
+      std::fill(_components[domain_i].begin(),_components[domain_i].end(),0.);
+      std::fill(_components[domain_o].begin(),_components[domain_o].end(),0.);
+
       // evaluate concentrations at quadrature point
       std::fill(u_i.begin(),u_i.end(),0.);
       std::fill(u_o.begin(),u_o.end(),0.);
@@ -726,9 +734,12 @@ public:
         for (std::size_t dof = 0; dof < local_basis_o.size(); dof++)
           _components[domain_o][comp] += x_coeff_local_o(comp, dof) * phiu_o[dof];
 
+      std::fill(_components_dn[domain_i].begin(),_components_dn[domain_i].end(),0.);
+      std::fill(_components_dn[domain_o].begin(),_components_dn[domain_o].end(),0.);
+
       if (local_basis_i.order() == 0)
       {
-        RF dn = (position_i - geo_i.center()).two_norm();
+        RF dn = (geo_f.center() - geo_i.center()).two_norm();
         for (std::size_t comp_i = 0; comp_i < components_i; comp_i++)
         {
           auto comp_o_it = _component_offset.find({domain_i,domain_o,comp_i});
@@ -750,14 +761,14 @@ public:
 
       if (local_basis_o.order() == 0)
       {
-        RF dn = (position_o - geo_o.center()).two_norm();
+        RF dn = (geo_f.center() - geo_o.center()).two_norm();
         for (std::size_t comp_o = 0; comp_o < components_i; comp_o++)
         {
           auto comp_i_it = _component_offset.find({domain_o,domain_i,comp_o});
           if (comp_i_it != _component_offset.end())
           {
             std::size_t comp_i = comp_i_it->second;
-            _components_dn[domain_o][comp_o] = (_components[domain_i][comp_i] - _components[domain_o][comp_o])/dn;
+            _components_dn[domain_o][comp_o] = - (_components[domain_o][comp_o] - _components[domain_i][comp_i])/dn;
           }
         }
       } else {
@@ -768,7 +779,7 @@ public:
 
         for (std::size_t comp_o = 0; comp_o < components_o; comp_o++)
           for (std::size_t j = 0; j < gradphi_i.size(); j++)
-            _components_dn[domain_o][comp_o] = (normal_f * gradphi_o[j]) * x_coeff_local_o(comp_o, j);
+            _components_dn[domain_o][comp_o] += - (normal_f * gradphi_o[j]) * x_coeff_local_o(comp_o, j);
       }
 
       // integration factor
@@ -782,7 +793,7 @@ public:
       const auto& parser_oi = _outflow_parser.find({domain_o,domain_i})->second;
       for (std::size_t comp_o = 0; comp_o < components_o; comp_o++)
         for (std::size_t dof = 0; dof < lfsu_do.child(comp_o).size(); dof++)
-          accumulate_o(comp_o, dof, - factor * parser_oi[comp_o].Eval() * phiu_o[dof]);
+          accumulate_o(comp_o, dof, factor * parser_oi[comp_o].Eval() * phiu_o[dof]);
     }
   }
 
@@ -900,6 +911,7 @@ public:
                          J& mat_oi,
                          J& mat_oo) const
   {
+    static_assert(AlwaysFalse<J>{}, "Not implemented, please use numerical jacobian");
     assert(lfsu_di.size() == lfsv_di.size());
     assert(lfsu_do.size() == lfsv_do.size());
 
@@ -1014,6 +1026,9 @@ public:
       local_basis_o.evaluateFunction(position_o, phiu_o);
 
       // evaluate concentrations at quadrature point
+      std::fill(_components[domain_i].begin(),_components[domain_i].end(),0.);
+      std::fill(_components[domain_o].begin(),_components[domain_o].end(),0.);
+
       for (std::size_t comp = 0; comp < components_i; comp++)
         for (std::size_t dof = 0; dof < local_basis_i.size(); dof++)
           _components[domain_i][comp] += x_coeff_local_i(comp, dof) * phiu_i[dof];
@@ -1021,6 +1036,9 @@ public:
       for (std::size_t comp = 0; comp < components_o; comp++)
         for (std::size_t dof = 0; dof < local_basis_o.size(); dof++)
           _components[domain_o][comp] += x_coeff_local_o(comp, dof) * phiu_o[dof];
+
+      std::fill(_components_dn[domain_i].begin(),_components_dn[domain_i].end(),0.);
+      std::fill(_components_dn[domain_o].begin(),_components_dn[domain_o].end(),0.);
 
       if (local_basis_i.order() == 0)
       {
@@ -1051,7 +1069,7 @@ public:
           if (comp_i_it != _component_offset.end())
           {
             std::size_t comp_i = comp_i_it->second;
-            _components_dn[domain_o][comp_o] = (_components[domain_i][comp_i] - _components[domain_o][comp_o])/dn_o;
+            _components_dn[domain_o][comp_o] = - (_components[domain_i][comp_i] - _components[domain_o][comp_o])/dn_o;
           }
         }
       } else {
@@ -1062,7 +1080,7 @@ public:
 
         for (std::size_t comp_o = 0; comp_o < components_o; comp_o++)
           for (std::size_t j = 0; j < gradphi_i.size(); j++)
-            _components_dn[domain_o][comp_o] = (normal_f * gradphi_o[j]) * x_coeff_local_o(comp_o, j);
+            _components_dn[domain_o][comp_o] = - (normal_f * gradphi_o[j]) * x_coeff_local_o(comp_o, j);
       }
 
 
@@ -1092,12 +1110,12 @@ public:
         for (std::size_t comp_oo = 0; comp_oo < components_o; comp_oo++)
           for (std::size_t i = 0; i < lfsu_do.child(comp_o).size(); i++)
             for (std::size_t j = 0; j < lfsu_do.child(comp_oo).size(); j++)
-              accumulate_oo(comp_o, i, comp_oo, j, - factor * parser_jac_oo[comp_o*components_o+comp_oo].Eval() * phiu_o[j]);
+              accumulate_oo(comp_o, i, comp_oo, j, factor * parser_jac_oo[comp_o*components_o+comp_oo].Eval() * phiu_o[j]);
 
         for (std::size_t comp_oi = 0; comp_oi < components_i; comp_oi++)
           for (std::size_t i = 0; i < lfsu_do.child(comp_o).size(); i++)
             for (std::size_t j = 0; j < lfsu_di.child(comp_oi).size(); j++)
-              accumulate_oi(comp_o, i, comp_oi, j, - factor * parser_jac_oi[comp_o*components_i+comp_oi].Eval() * phiu_i[j]);
+              accumulate_oi(comp_o, i, comp_oi, j, factor * parser_jac_oi[comp_o*components_i+comp_oi].Eval() * phiu_i[j]);
       }
     }
   }
