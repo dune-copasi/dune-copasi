@@ -172,8 +172,8 @@ Expressions in this section may contain [Input Data](input_data.md) functions.
 
 ##### `[model.<comp_k>.diffusion]`
 
-The `diffusion` subsection defines the diffusion associated with each
-*variable*.
+The `diffusion` subsection defines the self-diffusion coefficient associated
+with each *variable*.
 
 | Key | Type | Description |
 | -----------|-----| -------------- |
@@ -299,17 +299,20 @@ $\mathbf{n}_T$ is the fixed outer normal vector of an intersection (fixed menas
 that the direction does not change when viewed from one domain or the other).
 
 :::tip Example
-Let's say that our configuration file defines two compartments, `nucleous` and
-`cytoplasm`, and both of them contain a variable named the same, `u`, then,
-a dirichlet-neumann flux condition will look like this:
+Let's say that our configuration file defines two compartments, `nucleous` ($n$)
+and `cytoplasm` ($c$), and both of them contain a variable `u` ($u^n$ and
+$u^c$). Then, a boundary condition $\mathcal{T}^{nc}(u^n,u^c) =
+u^n-u^c$ for the nucleous and $\mathcal{T}^{cn}(u^c,u^n) =
+-\mathsf{D}^n\nabla u^n\cdot \mathbf{n}_T$ for the
+cytoplasm is
 ```ini
 [model.nucleous.outflow.cytoplasm]
-# Dirichlet boundary condition
+# Flux proportional to the difference of species
 u = u_i-u_o
 
 [model.cytoplasm.outflow.nucleous]
-# Neumann boundary condition
-u = du_o__dn
+# Flux in cytoplasm equal to the flux of u in nucleous (assume D^n = 0.1)
+u = -0.1 * du_o__dn
 ```
 :::
 

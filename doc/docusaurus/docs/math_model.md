@@ -45,7 +45,7 @@ $$
 \mathcal{D}^k_i\left(\bm{u}^k\right):=-\mathsf{D}^k_{i\star} \nabla \bm{u}^k,
 $$
 where $\mathsf{D}^k_{i\star}$ represents the $i$-th row of the self and
-cross-dispersion tensor $\mathsf{D}^k$, in other words,
+cross-diffusion tensor $\mathsf{D}^k$, in other words,
 $\mathsf{D}^k_{i\star}\nabla\bm{u}^k:=\sum_{i=1}^{N^k}\mathsf{D}^k_{ij}\nabla u^k_j$.
 
 ### Reaction Network
@@ -77,13 +77,13 @@ where $\partial\Omega$ represents the boundaries of the domain $\Omega$.
 ### Transmission Conditions
 
 The flux rate at which compartment species are transformed and moved across the
-membrane depends on its concentration and the dispersion coefficients at
+membrane depends on its concentration and the diffusion coefficients at
 which species can move on the surroundings of the membrane. In our model, we say
 that such a transport is equal to the outer flux $\mathcal{D}_i^k$ of the
 species $i$ leaving the compartment $k$ and is defined by a general
 **transmission condition**, $\mathcal{T}^{kl}_i$, that may take the form of
-typical Dirichlet, Neumann, and Robin boundary condition as well as complex
-chemical reaction networks, i.e.,
+typical Robin boundary condition as well as complex chemical reaction networks
+for the different species touching the membrane, i.e.,
 $$
 \mathcal{D}_i^{k}\left(\bm{u}^k\right)\cdot\mathbf{n}^k = \mathcal{T}_i^{kl}\left(\bm{u}^k,\bm{u}^l\right)\qquad \text{on }\Gamma^{kl},
 $$
