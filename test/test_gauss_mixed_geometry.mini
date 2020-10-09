@@ -45,6 +45,9 @@ du_du = 0
 [model.cubes.diffusion]
 u = {_diffusion}
 
+[model.cubes.outflow.triangles]
+u = u_i-u_o
+
 #### compare against a known solution
 [model.cubes.compare.expression]
 u = {_gauss_eq}
@@ -63,6 +66,9 @@ du_du = 0
 
 [model.triangles.diffusion]
 u = {_diffusion}
+
+[model.triangles.outflow.cubes]
+u = u_i-u_o
 
 #### compare against a known solution
 [model.triangles.compare.expression]

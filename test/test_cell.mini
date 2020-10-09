@@ -44,6 +44,9 @@ du_du = -5
 [model.cell.diffusion]
 u = 1.
 
+[model.cell.outflow.nucleoid]
+u = u_i-u_o
+
 ############################ Model for nucleoid ############################
 [model.nucleoid.initial]
 u = 5
@@ -62,6 +65,10 @@ dv_dv = 0
 [model.nucleoid.diffusion]
 u = 1.
 v = 1.
+
+[model.nucleoid.outflow.cell]
+u = u_i-u_o
+v = 0
 
 ######################### Compare with reference vtk ######################### 
 [wrapper.vtkcompare]

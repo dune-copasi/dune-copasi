@@ -41,6 +41,9 @@ dp65_cytoplasm_dp65_cytoplasm = 0
 [model.cytoplasm.diffusion]
 p65_cytoplasm = 0.01
 
+[model.cytoplasm.outflow.membrane]
+p65_cytoplasm = p65_cytoplasm_i - p65_cytoplasm_o
+
 ############################ Model for membrane ############################
 [model.membrane.initial]
 p65_cytoplasm = 0
@@ -60,6 +63,14 @@ p65_nucleus_p65_nucleus = -1
 p65_cytoplasm = 0
 p65_nucleus = 0
 
+[model.membrane.outflow.cytoplasm]
+p65_cytoplasm = -dp65_cytoplasm_o__dn
+p65_nucleus = 0
+
+[model.membrane.outflow.nucleus]
+p65_cytoplasm = 0
+p65_nucleus = dp65_nucleus_o__dn
+
 ############################ Model for nucleus ############################
 [model.nucleus.initial]
 p65_nucleus = 1+x
@@ -72,6 +83,9 @@ dp65_nucleus_dp65_nucleus = 0
 
 [model.nucleus.diffusion]
 p65_nucleus = 0.01
+
+[model.nucleus.outflow.membrane]
+p65_nucleus = p65_nucleus_i - p65_nucleus_o
 
 [model.writer]
 file_path = {__name}
