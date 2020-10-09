@@ -215,8 +215,6 @@ public:
             add_var(parser_i,expr,"d"+component_name[domain_i][comp_i]+"_i__dn", _components_dn[domain_i][comp_i]);
           }
           for (std::size_t comp_o = 0; comp_o < comp_size_o; ++comp_o) {
-            if (_component_offset.find({domain_o,domain_i,comp_o}) == _component_offset.end())
-              continue;
             add_var(parser_i,expr,component_name[domain_o][comp_o]+"_o", _components[domain_o][comp_o]);
             add_var(parser_i,expr,"d"+component_name[domain_o][comp_o]+"_o__dn", _components_dn[domain_o][comp_o]);
           }
