@@ -840,8 +840,8 @@ public:
                          J& mat_oi,
                          J& mat_oo) const
   {
-    assert(_size >= lfsu_i.degree());
-    assert(_size >= lfsu_o.degree());
+    assert(_lops.size() >= lfsu_i.degree());
+    assert(_lops.size() >= lfsu_o.degree());
     assert(lfsu_i.degree() == lfsv_i.degree());
     assert(lfsu_o.degree() == lfsv_o.degree());
 
@@ -1157,8 +1157,6 @@ class TemporalLocalOperatorMultiDomainDiffusionReaction
   using GridView = typename Grid::SubDomainGrid::LeafGridView;
   using SubLOP = SubLocalOperator;
 
-  std::size_t _size;
-
   std::vector<std::shared_ptr<SubLOP>> _lops;
 
 public:
@@ -1178,12 +1176,11 @@ public:
   TemporalLocalOperatorMultiDomainDiffusionReaction(
     std::shared_ptr<const Grid> grid,
     const ParameterTree& config)
-    : _size(config.sub("compartments").getValueKeys().size())
-    , _lops(_size)
   {
     const auto& compartments = config.sub("compartments").getValueKeys();
+    _lops.resize(compartments.size());
 
-    for (std::size_t i = 0; i < _size; ++i) {
+    for (std::size_t i = 0; i < _lops.size(); ++i) {
       const std::string compartement = compartments[i];
 
       int sub_domain_id =
@@ -1203,7 +1200,7 @@ public:
                       const LFSV& lfsv,
                       LocalPattern& pattern) const
   {
-    for (std::size_t i = 0; i < _size; ++i)
+    for (std::size_t i = 0; i < _lops.size(); ++i)
       _lops[i]->pattern_volume(lfsu.child(i), lfsv.child(i), pattern);
   }
 
@@ -1217,7 +1214,7 @@ public:
                     const LFSV& lfsv,
                     R& r) const
   {
-    for (std::size_t i = 0; i < _size; ++i) {
+    for (std::size_t i = 0; i < _lops.size(); ++i) {
       if (lfsu.child(i).size() > 0) {
         const auto& sub_lfsu = lfsu.child(i);
         const auto& sub_lfsv = lfsv.child(i);
@@ -1236,7 +1233,7 @@ public:
                        const LFSV& lfsv,
                        Mat& mat) const
   {
-    for (std::size_t i = 0; i < _size; ++i) {
+    for (std::size_t i = 0; i < _lops.size(); ++i) {
       if (lfsu.child(i).size() > 0) {
         const auto& sub_lfsu = lfsu.child(i);
         const auto& sub_lfsv = lfsv.child(i);
@@ -1256,7 +1253,7 @@ public:
                              const LFSV& lfsv,
                              R& r) const
   {
-    for (std::size_t i = 0; i < _size; ++i) {
+    for (std::size_t i = 0; i < _lops.size(); ++i) {
       if (lfsu.child(i).size() > 0) {
         const auto& sub_lfsu = lfsu.child(i);
         const auto& sub_lfsv = lfsv.child(i);
@@ -1276,7 +1273,7 @@ public:
                              const LFSV& lfsv,
                              R& r) const
   {
-    for (std::size_t i = 0; i < _size; ++i) {
+    for (std::size_t i = 0; i < _lops.size(); ++i) {
       if (lfsu.child(i).size() > 0) {
         const auto& sub_lfsu = lfsu.child(i);
         const auto& sub_lfsv = lfsv.child(i);
