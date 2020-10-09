@@ -11,7 +11,7 @@ Each `key=value` pair on the `[model.data]` section defines a
 indentifier. The corresponding `value` should contain the directory path for a
 16-bit grayscale TIFF file. These function are permitted to be used on the
 initialization of spacial variables for the compartments
-(i.e. `[mode.<compartment>.initial]`). For example, on the initialization of
+(i.e. `[model.<compartment>.initial]`). For example, on the initialization of
 variables for the `nucleus` compartment, the following math expressions for `u`
 and `v` are valid.
 
