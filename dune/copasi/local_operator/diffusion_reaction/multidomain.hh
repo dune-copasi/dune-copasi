@@ -67,21 +67,18 @@ class LocalOperatorMultiDomainDiffusionReaction
 
   const IndexSet& _index_set;
 
-  const std::size_t _size;
-
-  mutable std::vector<std::shared_ptr<SubLOP>> _local_operator;
-
-  std::vector<std::string> _compartment_name;
-  std::vector<std::vector<std::string>> _component_name;
+  // interior domain local operators
+  std::vector<std::shared_ptr<SubLOP>> _lops;
 
   // map (domain_i,domain_o,component_i) -> component_o
   std::map<std::array<std::size_t, 3>, std::size_t> _component_offset;
 
-  /// map: (domain_i,domain_o) -> domain_i outflow for each component
+  /// map: (domain_i,domain_o) -> vector of outflow_i persers
   std::map<std::array<std::size_t,2>,std::vector<mu::Parser>> _outflow_parser;
   std::map<std::array<std::size_t,2>,std::vector<mu::Parser>> _outflow_jac_parser;
   std::map<std::array<std::size_t,2>,std::vector<mu::Parser>> _outflow_cross_jac_parser;
 
+  // value of trial spaces (for parser evaluation)
   mutable std::vector<std::vector<double>> _components;
   mutable std::vector<std::vector<double>> _components_dn;
 
@@ -130,42 +127,41 @@ public:
     const ParameterTree& config)
     : _logger(Logging::Logging::componentLogger({}, "model"))
     , _index_set(grid->leafGridView().indexSet())
-    , _size(config.sub("compartments",true).getValueKeys().size())
-    , _local_operator(_size)
-    , _component_name(_size)
   {
-    _compartment_name = config.sub("compartments",true).getValueKeys();
+    auto& compartment_name = config.sub("compartments",true).getValueKeys();
+    _lops.resize(compartment_name.size());
+    std::vector<std::vector<std::string>> component_name{_lops.size()};
 
     // create local operators for each compartment
-    for (std::size_t i = 0; i < _size; ++i) {
+    for (std::size_t i = 0; i < _lops.size(); ++i) {
       int sub_domain_id =
-        config.sub("compartments",true).template get<int>(_compartment_name[i]);
+        config.sub("compartments",true).template get<int>(compartment_name[i]);
       GridView sub_grid_view = grid->subDomain(sub_domain_id).leafGridView();
 
-      const auto& sub_config = config.sub(_compartment_name[i],true);
-      _component_name[i] = sub_config.sub("reaction",true).getValueKeys();
-      std::sort(_component_name[i].begin(), _component_name[i].end());
+      const auto& sub_config = config.sub(compartment_name[i],true);
+      component_name[i] = sub_config.sub("reaction",true).getValueKeys();
+      std::sort(component_name[i].begin(), component_name[i].end());
 
       auto lp = std::make_shared<SubLOP>(sub_grid_view, sub_config);
-      _local_operator[i] = lp;
+      _lops[i] = lp;
     }
 
     // create mapping between all inside and outside components
-    _components.resize(_size);
-    _components_dn.resize(_size);
-    for (std::size_t domain_i = 0; domain_i < _size; ++domain_i) {
-      _components[domain_i].assign(_component_name[domain_i].size(),std::numeric_limits<double>::quiet_NaN());
-      _components_dn[domain_i].assign(_component_name[domain_i].size(),std::numeric_limits<double>::quiet_NaN());
-      for (std::size_t comp_i = 0; comp_i < _component_name[domain_i].size();
+    _components.resize(_lops.size());
+    _components_dn.resize(_lops.size());
+    for (std::size_t domain_i = 0; domain_i < _lops.size(); ++domain_i) {
+      _components[domain_i].assign(component_name[domain_i].size(),std::numeric_limits<double>::quiet_NaN());
+      _components_dn[domain_i].assign(component_name[domain_i].size(),std::numeric_limits<double>::quiet_NaN());
+      for (std::size_t comp_i = 0; comp_i < component_name[domain_i].size();
            comp_i++) {
-        for (std::size_t domain_o = 0; domain_o < _size; ++domain_o) {
+        for (std::size_t domain_o = 0; domain_o < _lops.size(); ++domain_o) {
           if (domain_i == domain_o)
             continue;
           for (std::size_t comp_o = 0;
-               comp_o < _component_name[domain_o].size();
+               comp_o < component_name[domain_o].size();
                comp_o++) {
-            if (_component_name[domain_i][comp_i] ==
-                _component_name[domain_o][comp_o]) {
+            if (component_name[domain_i][comp_i] ==
+                component_name[domain_o][comp_o]) {
               std::array<std::size_t, 3> key_i{ domain_i, domain_o, comp_i };
               _component_offset.insert(std::make_pair(key_i, comp_o));
             }
@@ -183,46 +179,46 @@ public:
     };
 
     // Create outflow parsers
-    for (std::size_t domain_i = 0; domain_i < _size; ++domain_i) {
-      for (std::size_t domain_o = 0; domain_o < _size; ++domain_o) {
-        _logger.trace("Transmission condition: {} - {}"_fmt, _compartment_name[domain_i], _compartment_name[domain_o]);
+    for (std::size_t domain_i = 0; domain_i < _lops.size(); ++domain_i) {
+      for (std::size_t domain_o = 0; domain_o < _lops.size(); ++domain_o) {
+        _logger.trace("Transmission condition: {} - {}"_fmt, compartment_name[domain_i], compartment_name[domain_o]);
         if (domain_i == domain_o)
           continue;
-        auto& outflow_config = config.sub(_compartment_name[domain_i],true).sub("outflow", true);
-        if (not outflow_config.hasSub(_compartment_name[domain_o]))
+        auto& outflow_config = config.sub(compartment_name[domain_i],true).sub("outflow", true);
+        if (not outflow_config.hasSub(compartment_name[domain_o]))
           continue;
-        auto& outflow_config_o = outflow_config.sub(_compartment_name[domain_o],true);
+        auto& outflow_config_o = outflow_config.sub(compartment_name[domain_o],true);
 
-        // std::string outflow_jac_section = _compartment_name[domain_i]
+        // std::string outflow_jac_section = compartment_name[domain_i]
         //                                   + ".outflow."
-        //                                   + _compartment_name[domain_o]
+        //                                   + compartment_name[domain_o]
         //                                   + ".jacobian";
         // auto& outflow_jac_config = config.sub(outflow_jac_section);
 
         auto& parser = _outflow_parser[{domain_i,domain_o}];
         auto& parser_jac = _outflow_jac_parser[{domain_i,domain_o}];
         auto& parser_cross_jac = _outflow_cross_jac_parser[{domain_i,domain_o}];
-        std::size_t comp_size_i = _component_name[domain_i].size();
-        std::size_t comp_size_o = _component_name[domain_o].size();
+        std::size_t comp_size_i = component_name[domain_i].size();
+        std::size_t comp_size_o = component_name[domain_o].size();
         parser.resize(comp_size_i);
         parser_jac.resize(comp_size_i * comp_size_i);
         parser_cross_jac.resize(comp_size_i * comp_size_o);
 
         // Do parser
         for (std::size_t outflow_i = 0; outflow_i < comp_size_i; ++outflow_i) {
-          std::string expr = outflow_config_o.template get<std::string>(_component_name[domain_i][outflow_i]);
-          _logger.debug(2,"Setup expression ({}): {}"_fmt, _component_name[domain_i][outflow_i], expr);
+          std::string expr = outflow_config_o.template get<std::string>(component_name[domain_i][outflow_i]);
+          _logger.debug(2,"Setup expression ({}): {}"_fmt, component_name[domain_i][outflow_i], expr);
 
           auto& parser_i = parser.at(outflow_i);
           for (std::size_t comp_i = 0; comp_i < comp_size_i; ++comp_i) {
-            add_var(parser_i,expr,_component_name[domain_i][comp_i]+"_i", _components[domain_i][comp_i]);
-            add_var(parser_i,expr,"d"+_component_name[domain_i][comp_i]+"_i__dn", _components_dn[domain_i][comp_i]);
+            add_var(parser_i,expr,component_name[domain_i][comp_i]+"_i", _components[domain_i][comp_i]);
+            add_var(parser_i,expr,"d"+component_name[domain_i][comp_i]+"_i__dn", _components_dn[domain_i][comp_i]);
           }
           for (std::size_t comp_o = 0; comp_o < comp_size_o; ++comp_o) {
             if (_component_offset.find({domain_o,domain_i,comp_o}) == _component_offset.end())
               continue;
-            add_var(parser_i,expr,_component_name[domain_o][comp_o]+"_o", _components[domain_o][comp_o]);
-            add_var(parser_i,expr,"d"+_component_name[domain_o][comp_o]+"_o__dn", _components_dn[domain_o][comp_o]);
+            add_var(parser_i,expr,component_name[domain_o][comp_o]+"_o", _components[domain_o][comp_o]);
+            add_var(parser_i,expr,"d"+component_name[domain_o][comp_o]+"_o__dn", _components_dn[domain_o][comp_o]);
           }
 
           try {
@@ -236,15 +232,15 @@ public:
           if (JM == JacobianMethod::Numerical)
             continue;
 
-        // std::string outflow_jac_section = _compartment_name[domain_i]
+        // std::string outflow_jac_section = compartment_name[domain_i]
         //                                   + ".outflow."
-        //                                   + _compartment_name[domain_o]
+        //                                   + compartment_name[domain_o]
         //                                   + ".jacobian";
         // auto& outflow_jac_config = config.sub(outflow_jac_section);
 
           // // Do self jacobian
           // for (std::size_t outflow_ii = 0; outflow_ii < comp_size_i; ++outflow_ii) {
-          //   std::string jac_name = "d"+ _component_name[domain_i][outflow_i] + "__d" + _component_name[domain_i][outflow_ii] + "_i";
+          //   std::string jac_name = "d"+ component_name[domain_i][outflow_i] + "__d" + component_name[domain_i][outflow_ii] + "_i";
           //   std::string default_flux = "0";
           //   std::string expr = outflow_jac_config.get(jac_name,default_flux);
           //     _logger.debug(2,"Setup self jacobian expression ({}): {}"_fmt, jac_name, expr);
@@ -252,14 +248,14 @@ public:
           //   std::size_t jac_index = outflow_i*comp_size_i+outflow_ii;
           //   auto& parser_i = parser_jac.at(jac_index);
           //   for (std::size_t comp_i = 0; comp_i < comp_size_i; ++comp_i) {
-          //     add_var(parser_i,expr,_component_name[domain_i][comp_i]+"_i", _components[domain_i][comp_i]);
-          //     add_var(parser_i,expr,"d"+_component_name[domain_i][comp_i]+"_i__dn", _components_dn[domain_i][comp_i]);
+          //     add_var(parser_i,expr,component_name[domain_i][comp_i]+"_i", _components[domain_i][comp_i]);
+          //     add_var(parser_i,expr,"d"+component_name[domain_i][comp_i]+"_i__dn", _components_dn[domain_i][comp_i]);
           //   }
           //   for (std::size_t comp_o = 0; comp_o < _components[domain_o].size(); ++comp_o) {
           //     if (_component_offset.find({domain_o,domain_i,comp_o}) == _component_offset.end())
           //       continue;
-          //     add_var(parser_i,expr,_component_name[domain_o][comp_o]+"_o", _components[domain_o][comp_o]);
-          //     add_var(parser_i,expr,"d"+_component_name[domain_o][comp_o]+"_o__dn", _components_dn[domain_o][comp_o]);
+          //     add_var(parser_i,expr,component_name[domain_o][comp_o]+"_o", _components[domain_o][comp_o]);
+          //     add_var(parser_i,expr,"d"+component_name[domain_o][comp_o]+"_o__dn", _components_dn[domain_o][comp_o]);
           //   }
 
           //   try {
@@ -274,8 +270,8 @@ public:
           // // Do cross jacobian
           // for (std::size_t outflow_io = 0; outflow_io < comp_size_o; ++outflow_io) {
 
-          //   std::string jac_name = "d"+ _component_name[domain_i][outflow_i] + "__d" + _component_name[domain_o][outflow_io]+"_o";
-          //   bool outflux = _component_name[domain_i][outflow_i] == _component_name[domain_o][outflow_io];
+          //   std::string jac_name = "d"+ component_name[domain_i][outflow_i] + "__d" + component_name[domain_o][outflow_io]+"_o";
+          //   bool outflux = component_name[domain_i][outflow_i] == component_name[domain_o][outflow_io];
           //   std::string default_flux = outflux ? "-1" : "0";
           //   std::string expr = outflow_jac_config.get(jac_name,default_flux);
           //   _logger.debug(2,"Setup cross jacobian expression ({}): {}"_fmt, jac_name, expr);
@@ -283,14 +279,14 @@ public:
           //   std::size_t jac_index = outflow_i*comp_size_o+outflow_io;
           //   auto& parser_i = parser_cross_jac.at(jac_index);
           //   for (std::size_t comp_i = 0; comp_i < comp_size_i; ++comp_i) {
-          //     add_var(parser_i,expr,_component_name[domain_i][comp_i]+"_i", _components[domain_i][comp_i]);
-          //     add_var(parser_i,expr,"d"+_component_name[domain_i][comp_i]+"_i__dn", _components_dn[domain_i][comp_i]);
+          //     add_var(parser_i,expr,component_name[domain_i][comp_i]+"_i", _components[domain_i][comp_i]);
+          //     add_var(parser_i,expr,"d"+component_name[domain_i][comp_i]+"_i__dn", _components_dn[domain_i][comp_i]);
           //   }
           //   for (std::size_t comp_o = 0; comp_o < comp_size_o; ++comp_o) {
           //     if (_component_offset.find({domain_o,domain_i,comp_o}) == _component_offset.end())
           //       continue;
-          //     add_var(parser_i,expr,_component_name[domain_o][comp_o]+"_o", _components[domain_o][comp_o]);
-          //     add_var(parser_i,expr,"d"+_component_name[domain_o][comp_o]+"_o__dn", _components_dn[domain_o][comp_o]);
+          //     add_var(parser_i,expr,component_name[domain_o][comp_o]+"_o", _components[domain_o][comp_o]);
+          //     add_var(parser_i,expr,"d"+component_name[domain_o][comp_o]+"_o__dn", _components_dn[domain_o][comp_o]);
           //   }
 
           //   try {
@@ -341,7 +337,7 @@ public:
                       LocalPattern& pattern) const
   {
     for (std::size_t i = 0; i < lfsu.degree(); ++i) {
-      _local_operator[i]->pattern_volume(lfsu.child(i), lfsv.child(i), pattern);
+      _lops[i]->pattern_volume(lfsu.child(i), lfsv.child(i), pattern);
     }
   }
 
@@ -430,7 +426,7 @@ public:
                         LocalPattern& pattern_oi) const
   {
     std::size_t domain_i(unused_domain), domain_o(unused_domain);
-    for (std::size_t k = 0; k < _size; k++) {
+    for (std::size_t k = 0; k < _lops.size(); k++) {
       if (lfsu_i.child(k).size() > 0)
         domain_i = k;
       if (lfsu_o.child(k).size() > 0)
@@ -445,7 +441,7 @@ public:
     const auto& lfsu_do = lfsu_o.child(domain_o);
     const auto& lfsv_do = lfsv_o.child(domain_o);
 
-    assert(lfsu_i.degree() == _size);
+    assert(lfsu_i.degree() == _lops.size());
     assert(lfsu_di.degree() == lfsv_di.degree());
     assert(lfsu_do.degree() == lfsv_do.degree());
 
@@ -453,7 +449,7 @@ public:
       Dune::PDELab::FullSkeletonPattern{}.pattern_skeleton(lfsu_di,lfsv_di,lfsu_do,lfsv_do,pattern_io,pattern_oi);
       // interface_pattern_skeleton(domain_i,domain_o,lfsu_di,lfsv_di,lfsu_do,lfsv_do,pattern_io,pattern_oi);
     else if constexpr (SubLOP::doPatternSkeleton)
-      _local_operator[domain_i]->pattern_skeleton(lfsu_di,lfsv_di,lfsu_do,lfsv_do,pattern_io,pattern_oi);
+      _lops[domain_i]->pattern_skeleton(lfsu_di,lfsv_di,lfsu_do,lfsv_do,pattern_io,pattern_oi);
   }
 
   /**
@@ -464,7 +460,7 @@ public:
   void setTime(double t)
   {
     Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>::setTime(t);
-    for (auto lp : _local_operator)
+    for (auto lp : _lops)
       lp->setTime(t);
   }
 
@@ -482,11 +478,11 @@ public:
                              const LFSV& lfsv,
                              R& r) const
   {
-    for (std::size_t i = 0; i < _size; ++i) {
+    for (std::size_t i = 0; i < _lops.size(); ++i) {
       if (lfsu.child(i).size() > 0) {
         const auto& sub_lfsu = lfsu.child(i);
         const auto& sub_lfsv = lfsv.child(i);
-        _local_operator[i]->jacobian_apply_volume(
+        _lops[i]->jacobian_apply_volume(
           eg, sub_lfsu, x, z, sub_lfsv, r);
       }
     }
@@ -505,11 +501,11 @@ public:
                              const LFSV& lfsv,
                              R& r) const
   {
-    for (std::size_t i = 0; i < _size; ++i) {
+    for (std::size_t i = 0; i < _lops.size(); ++i) {
       if (lfsu.child(i).size() > 0) {
         const auto& sub_lfsu = lfsu.child(i);
         const auto& sub_lfsv = lfsv.child(i);
-        _local_operator[i]->jacobian_apply_volume(eg, sub_lfsu, x, sub_lfsv, r);
+        _lops[i]->jacobian_apply_volume(eg, sub_lfsu, x, sub_lfsv, r);
       }
     }
   }
@@ -527,11 +523,11 @@ public:
                        const LFSV& lfsv,
                        M& mat) const
   {
-    for (std::size_t i = 0; i < _size; ++i) {
+    for (std::size_t i = 0; i < _lops.size(); ++i) {
       if (lfsu.child(i).size() > 0) {
         const auto& sub_lfsu = lfsu.child(i);
         const auto& sub_lfsv = lfsv.child(i);
-        _local_operator[i]->jacobian_volume(eg, sub_lfsu, x, sub_lfsv, mat);
+        _lops[i]->jacobian_volume(eg, sub_lfsu, x, sub_lfsv, mat);
       }
     }
   }
@@ -550,11 +546,11 @@ public:
                     R& r) const
   {
     // const auto& subdomain = eg.subDomain();
-    for (std::size_t i = 0; i < _size; ++i) {
+    for (std::size_t i = 0; i < _lops.size(); ++i) {
       if (lfsu.child(i).size() > 0) {
         const auto& sub_lfsu = lfsu.child(i);
         const auto& sub_lfsv = lfsv.child(i);
-        _local_operator[i]->alpha_volume(eg, sub_lfsu, x, sub_lfsv, r);
+        _lops[i]->alpha_volume(eg, sub_lfsu, x, sub_lfsv, r);
       }
     }
   }
@@ -595,8 +591,8 @@ public:
     const auto& entity_i = ig.inside();
     const auto& entity_o = ig.outside();
 
-    assert(_size >= lfsu_i.degree());
-    assert(_size >= lfsu_o.degree());
+    assert(_lops.size() >= lfsu_i.degree());
+    assert(_lops.size() >= lfsu_o.degree());
     assert(lfsu_i.degree() == lfsv_i.degree());
     assert(lfsu_o.degree() == lfsv_o.degree());
 
@@ -614,7 +610,7 @@ public:
     if (domain_i != domain_o)
       interface_alpha_skeleton(domain_i,domain_o,ig,lfsu_di,x_i,lfsv_di,lfsu_do,x_o,lfsv_do,r_i,r_o);
     else if constexpr (SubLocalOperator::doAlphaSkeleton)
-      _local_operator[domain_i]->alpha_skeleton(ig,lfsu_di,x_i,lfsv_di,lfsu_do,x_o,lfsv_do,r_i,r_o);
+      _lops[domain_i]->alpha_skeleton(ig,lfsu_di,x_i,lfsv_di,lfsu_do,x_o,lfsv_do,r_i,r_o);
   }
 
   /**
@@ -664,8 +660,8 @@ public:
     auto geo_in_i = entity_f.geometryInInside();
     auto geo_in_o = entity_f.geometryInOutside();
 
-    std::size_t components_i = _component_name[domain_i].size();
-    std::size_t components_o = _component_name[domain_o].size();
+    std::size_t components_i = _components[domain_i].size();
+    std::size_t components_o = _components[domain_o].size();
     assert(components_i == lfsu_di.degree());
     assert(components_o == lfsu_do.degree());
 
@@ -712,8 +708,6 @@ public:
 
     for (const auto& it : quadratureRule(geo_f, 3)) {
       const auto& position_f = it.position();
-      std::fill(gradphi_i.begin(), gradphi_i.end(), 0.);
-      std::fill(gradphi_o.begin(), gradphi_o.end(), 0.);
 
       // position of quadrature point in local coordinates of elements
       const auto position_i = geo_in_i.global(position_f);
@@ -739,6 +733,9 @@ public:
 
       std::fill(_components_dn[domain_i].begin(),_components_dn[domain_i].end(),0.);
       std::fill(_components_dn[domain_o].begin(),_components_dn[domain_o].end(),0.);
+
+      std::fill(gradphi_i.begin(), gradphi_i.end(), 0.);
+      std::fill(gradphi_o.begin(), gradphi_o.end(), 0.);
 
       if (local_basis_i.order() == 0)
       {
@@ -868,7 +865,7 @@ public:
     {
       if constexpr (SubLocalOperator::doAlphaSkeleton)
       {
-        _local_operator[domain_i]->jacobian_skeleton(ig,lfsu_di,x_i,lfsv_di,lfsu_do,x_o,lfsv_do,mat_ii,mat_io,mat_oi,mat_oo);
+        _lops[domain_i]->jacobian_skeleton(ig,lfsu_di,x_i,lfsv_di,lfsu_do,x_o,lfsv_do,mat_ii,mat_io,mat_oi,mat_oo);
       }
     }
     else if constexpr (JM == JacobianMethod::Numerical)
@@ -939,8 +936,8 @@ public:
     auto geo_in_i = entity_f.geometryInInside();
     auto geo_in_o = entity_f.geometryInOutside();
 
-    std::size_t components_i = _component_name[domain_i].size();
-    std::size_t components_o = _component_name[domain_o].size();
+    std::size_t components_i = _components[domain_i].size();
+    std::size_t components_o = _components[domain_o].size();
     assert(components_i == lfsu_di.degree());
     assert(components_o == lfsu_do.degree());
 
@@ -1164,7 +1161,7 @@ class TemporalLocalOperatorMultiDomainDiffusionReaction
 
   std::size_t _size;
 
-  std::vector<std::shared_ptr<SubLOP>> _local_operator;
+  std::vector<std::shared_ptr<SubLOP>> _lops;
 
 public:
   //! pattern assembly flags
@@ -1184,7 +1181,7 @@ public:
     std::shared_ptr<const Grid> grid,
     const ParameterTree& config)
     : _size(config.sub("compartments").getValueKeys().size())
-    , _local_operator(_size)
+    , _lops(_size)
   {
     const auto& compartments = config.sub("compartments").getValueKeys();
 
@@ -1196,7 +1193,7 @@ public:
       GridView sub_grid_view = grid->subDomain(sub_domain_id).leafGridView();
 
       const auto& sub_config = config.sub(compartments[i]);
-      _local_operator[i] = std::make_shared<SubLOP>(sub_grid_view, sub_config);
+      _lops[i] = std::make_shared<SubLOP>(sub_grid_view, sub_config);
     }
   }
 
@@ -1209,7 +1206,7 @@ public:
                       LocalPattern& pattern) const
   {
     for (std::size_t i = 0; i < _size; ++i)
-      _local_operator[i]->pattern_volume(lfsu.child(i), lfsv.child(i), pattern);
+      _lops[i]->pattern_volume(lfsu.child(i), lfsv.child(i), pattern);
   }
 
   /**
@@ -1226,7 +1223,7 @@ public:
       if (lfsu.child(i).size() > 0) {
         const auto& sub_lfsu = lfsu.child(i);
         const auto& sub_lfsv = lfsv.child(i);
-        _local_operator[i]->alpha_volume(eg, sub_lfsu, x, sub_lfsv, r);
+        _lops[i]->alpha_volume(eg, sub_lfsu, x, sub_lfsv, r);
       }
     }
   }
@@ -1245,7 +1242,7 @@ public:
       if (lfsu.child(i).size() > 0) {
         const auto& sub_lfsu = lfsu.child(i);
         const auto& sub_lfsv = lfsv.child(i);
-        _local_operator[i]->jacobian_volume(eg, sub_lfsu, x, sub_lfsv, mat);
+        _lops[i]->jacobian_volume(eg, sub_lfsu, x, sub_lfsv, mat);
       }
     }
   }
@@ -1265,7 +1262,7 @@ public:
       if (lfsu.child(i).size() > 0) {
         const auto& sub_lfsu = lfsu.child(i);
         const auto& sub_lfsv = lfsv.child(i);
-        _local_operator[i]->jacobian_apply_volume(
+        _lops[i]->jacobian_apply_volume(
           eg, sub_lfsu, x, z, sub_lfsv, r);
       }
     }
@@ -1285,7 +1282,7 @@ public:
       if (lfsu.child(i).size() > 0) {
         const auto& sub_lfsu = lfsu.child(i);
         const auto& sub_lfsv = lfsv.child(i);
-        _local_operator[i]->jacobian_apply_volume(eg, sub_lfsu, x, sub_lfsv, r);
+        _lops[i]->jacobian_apply_volume(eg, sub_lfsu, x, sub_lfsv, r);
       }
     }
   }
