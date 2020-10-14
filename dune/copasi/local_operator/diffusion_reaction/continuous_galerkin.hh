@@ -61,11 +61,17 @@ class LocalOperatorDiffusionReactionCG
   mutable LocalBasisCache<LBT> _test_cache;
 public:
 
+  //! selective assembly flags
+  static constexpr bool doSkipEntity = false;
+  static constexpr bool doSkipIntersection = false;
+
   //! pattern assembly flags
   static constexpr bool doPatternVolume = true;
+  static constexpr bool doPatternSkeleton = false;
 
   //! residual assembly flags
   static constexpr bool doAlphaVolume = true;
+  static constexpr bool doAlphaSkeleton = false;
 
   /**
    * @brief      Constructs a new instance.

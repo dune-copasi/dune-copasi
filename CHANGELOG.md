@@ -28,6 +28,7 @@ Types of changes
 
 ## [Unreleased] ([git-diff][Unreleased-diff])
 ### Added
+- Skip intersection methods in local operators !36
 - Parameters to control Newton's method !30
 ### Removed
 - Jacobian operator is managed by the stepper instead of the model !39

@@ -72,17 +72,18 @@ class LocalOperatorMultiDomainDiffusionReaction
 public:
 
   static_assert(not SubLOP::doSkeletonTwoSided);
+  static_assert(not SubLOP::doSkipEntity);
+
+  //! selective assembly flags
+  static constexpr bool doSkipEntity = false;
+  static constexpr bool doSkipIntersection = true;
 
   //! pattern assembly flags
   static constexpr bool doPatternVolume = SubLOP::doPatternVolume;
-
-  //! pattern assembly flags
   static constexpr bool doPatternSkeleton = true;
 
   //! residual assembly flags
   static constexpr bool doAlphaVolume = SubLOP::doAlphaVolume;
-
-  //! residual assembly flags
   static constexpr bool doAlphaSkeleton = true;
 
   /**
@@ -137,6 +138,31 @@ public:
           }
         }
       }
+    }
+  }
+
+  template<class EG>
+  std::size_t subDomain(const EG& entity) const
+  {
+    auto domain_set = _index_set.subDomains(entity);
+    assert(domain_set.size() == 1);
+    return *(domain_set.begin());
+  }
+
+  template<class IG>
+  void skip_intersection(const IG& ig, bool& skip) const
+  {
+    const auto& entity_i = ig.inside();
+    const auto& entity_o = ig.outside();
+
+    std::size_t domain_i = subDomain(entity_i);
+    std::size_t domain_o = subDomain(entity_o);
+
+    if (domain_i == domain_o) {
+      if constexpr (SubLOP::doSkipIntersection)
+        _local_operator[domain_i]->skip_intersection(ig,skip);
+      else
+        skip |= true;
     }
   }
 
@@ -407,14 +433,8 @@ public:
     assert(lfsu_i.degree() == lfsv_i.degree());
     assert(lfsu_o.degree() == lfsv_o.degree());
 
-    auto domain_set_i = _index_set.subDomains(entity_i);
-    auto domain_set_o = _index_set.subDomains(entity_o);
-
-    assert(domain_set_i.size() == 1);
-    assert(domain_set_o.size() == 1);
-
-    std::size_t domain_i = *(domain_set_i.begin());
-    std::size_t domain_o = *(domain_set_o.begin());
+    std::size_t domain_i = subDomain(entity_i);
+    std::size_t domain_o = subDomain(entity_o);
 
     const auto& lfsu_di = lfsu_i.child(domain_i);
     const auto& lfsv_di = lfsv_i.child(domain_i);
@@ -521,7 +541,6 @@ public:
       local_basis_o.evaluateFunction(position_o, phiu_o);
 
       // evaluate concentrations at quadrature point
-
       std::fill(u_i.begin(),u_i.end(),0.);
       std::fill(u_o.begin(),u_o.end(),0.);
       for (std::size_t comp = 0; comp < components_i; comp++)
@@ -610,14 +629,8 @@ public:
     const auto& entity_i = ig.inside();
     const auto& entity_o = ig.outside();
 
-    auto domain_set_i = _index_set.subDomains(entity_i);
-    auto domain_set_o = _index_set.subDomains(entity_o);
-
-    assert(domain_set_i.size() == 1);
-    assert(domain_set_o.size() == 1);
-
-    std::size_t domain_i = *(domain_set_i.begin());
-    std::size_t domain_o = *(domain_set_o.begin());
+    std::size_t domain_i = subDomain(entity_i);
+    std::size_t domain_o = subDomain(entity_o);
 
     const auto& lfsu_di = lfsu_i.child(domain_i);
     const auto& lfsv_di = lfsv_i.child(domain_i);

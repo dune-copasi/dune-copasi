@@ -45,16 +45,16 @@ class LocalOperatorDiffusionReactionFV
 
 public:
 
+  //! selective assembly flags
+  static constexpr bool doSkipEntity = false;
+  static constexpr bool doSkipIntersection = false;
+
   //! pattern assembly flags
   static constexpr bool doPatternVolume = true;
-
-  //! residual assembly flags
-  static constexpr bool doAlphaVolume = true;
-
-  //! pattern assembly flags
   static constexpr bool doPatternSkeleton = true;
 
   //! residual assembly flags
+  static constexpr bool doAlphaVolume = true;
   static constexpr bool doAlphaSkeleton = true;
 
   LocalOperatorDiffusionReactionFV(GridView grid_view,

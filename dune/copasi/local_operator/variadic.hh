@@ -171,8 +171,9 @@ static auto jacobianApplyBoundary = [](const auto& lop, auto&... args)
 // local operators should implement one sided skeletons
 // TODO: fix this problem by zeoring outside part and call outside part.
 // Local operators should only do work for its type of finite element!
+// Warning: There is no selective assembly of this operator
 template<class FiniteElementMapper, class... LocalOperators>
-class VariadicLocalOperator : public PDELab::LocalOperatorDefaultFlags
+class VariadicLocalOperator : public Dune::PDELab::LocalOperatorDefaultFlags
 {
   template<bool... Args>
   bool constexpr static disjunction()
@@ -251,6 +252,10 @@ class VariadicLocalOperator : public PDELab::LocalOperatorDefaultFlags
   }
 
 public:
+
+  //! selective assembly flags
+  static constexpr bool doSkipEntity = false;
+  static constexpr bool doSkipIntersection = false;
   enum {doPatternVolume             = disjunction<LocalOperators::doPatternVolume...>()};
   enum {doPatternVolumePostSkeleton = disjunction<LocalOperators::doPatternVolumePostSkeleton...>()};
   enum {doPatternSkeleton           = disjunction<LocalOperators::doPatternSkeleton...>()};
