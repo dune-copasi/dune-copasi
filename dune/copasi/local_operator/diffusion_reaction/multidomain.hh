@@ -522,7 +522,8 @@ public:
 
       // evaluate concentrations at quadrature point
 
-      u_i.clear(), u_o.clear();
+      std::fill(u_i.begin(),u_i.end(),0.);
+      std::fill(u_o.begin(),u_o.end(),0.);
       for (std::size_t comp = 0; comp < components_i; comp++)
         for (std::size_t dof = 0; dof < local_basis_i.size(); dof++)
           u_i[comp] += x_coeff_local_i(comp, dof) * phiu_i[dof];
