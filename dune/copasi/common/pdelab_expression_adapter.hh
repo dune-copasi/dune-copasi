@@ -75,16 +75,6 @@ public:
 
     if (do_compile_parser)
       compile_parser();
-
-    _logger.debug("ExpressionToGridFunctionAdapter constructed"_fmt);
-  }
-
-  /**
-   * @brief      Destroys the object.
-   */
-  ~ExpressionToGridFunctionAdapter()
-  {
-    _logger.debug("ExpressionToGridFunctionAdapter deconstructed"_fmt);
   }
 
   /**
