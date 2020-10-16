@@ -31,11 +31,24 @@ dune_add_test(NAME            test_tiff_grayscale
               LABELS          unit)
 
 add_custom_target(build_system_tests DEPENDS dune_copasi)
+
 add_executable(dune_copasi_sd_compare EXCLUDE_FROM_ALL dune_copasi_sd_compare.cc)
 add_executable(dune_copasi_md_compare EXCLUDE_FROM_ALL dune_copasi_md_compare.cc)
+add_executable(dune_copasi_md_jacobian EXCLUDE_FROM_ALL test_jacobian.cc)
+
 target_link_libraries(dune_copasi_sd_compare PRIVATE dune_copasi_sd_lib)
 target_link_libraries(dune_copasi_md_compare PRIVATE dune_copasi_md_lib)
-add_dependencies(build_system_tests dune_copasi_sd_compare dune_copasi_md_compare)
+target_link_libraries(dune_copasi_md_jacobian PRIVATE dune_copasi_md_lib)
+
+add_dependencies(build_system_tests
+  dune_copasi_sd
+  dune_copasi_sd_compare
+  dune_copasi_md_compare
+)
+
+add_dependencies(build_unit_tests
+  dune_copasi_md_jacobian
+)
 
 if (dune-testtools_FOUND)
 
@@ -94,17 +107,19 @@ if (dune-testtools_FOUND)
     TARGET          dune_copasi_md
     INIFILE         test_no_writer.mini)
 
-  dune_add_system_test(
-    SOURCE          test_jacobian.cc
-    BASENAME        dune_copasi_test_jacobian
-    SCRIPT          dune_vtkcompare.py
-    INIFILE         test_jacobian.mini)
+  add_system_test_per_target(
+    TARGET          dune_copasi_md_jacobian
+    INIFILE         test_cell.mini)
 
-  target_link_libraries(dune_copasi_test_jacobian PRIVATE dune_copasi_lib)
-  add_dependencies(build_system_tests dune_copasi_sd)
-  add_dependencies(build_unit_tests dune_copasi_test_jacobian)
-  set_property(TEST "dune_copasi_test_jacobian_analytical" PROPERTY LABELS unit)
-  set_property(TEST "dune_copasi_test_jacobian_numerical" PROPERTY LABELS unit)
+  set_property(TEST "dune_copasi_md_jacobian_test_cell" PROPERTY LABELS unit)
+  set_property(TEST "dune_copasi_md_jacobian_test_cell" PROPERTY LABELS unit)
+
+  add_system_test_per_target(
+    TARGET          dune_copasi_md_jacobian
+    INIFILE         test_NFkappaB.mini)
+
+  set_property(TEST "dune_copasi_md_jacobian_test_NFkappaB" PROPERTY LABELS unit)
+  set_property(TEST "dune_copasi_md_jacobian_test_NFkappaB" PROPERTY LABELS unit)
 
 endif()
 
