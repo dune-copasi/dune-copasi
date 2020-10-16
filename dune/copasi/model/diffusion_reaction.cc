@@ -269,14 +269,6 @@ ModelDiffusionReaction<Traits>::setup_grid_operator()
 
 template<class Traits>
 void
-ModelDiffusionReaction<Traits>::setup_jacobian_operator()
-{
-  _logger.debug("Create jacobian operator"_fmt);
-  _jacobian_operator = std::make_shared<JacobianOperator>(*_grid_operator);
-}
-
-template<class Traits>
-void
 ModelDiffusionReaction<Traits>::setup_vtk_writer()
 {
   _logger.debug("Setup VTK writer"_fmt);
@@ -366,8 +358,6 @@ ModelDiffusionReaction<Traits>::setup(BitFlags<ModelSetup::Stages> setup_policy)
       setup_local_operator();
     if (setup_policy.test(ModelSetup::Stages::GridOperator))
       setup_grid_operator();
-    if (setup_policy.test(ModelSetup::Stages::JacobianOperator))
-      setup_jacobian_operator();
     if (setup_policy.test(ModelSetup::Stages::Writer))
       setup_vtk_writer();
   }

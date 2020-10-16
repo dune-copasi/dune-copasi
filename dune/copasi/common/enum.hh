@@ -21,8 +21,7 @@ enum class Stages
   Constraints = 1 << 4,
   LocalOperator = 1 << 5,
   GridOperator = 1 << 6,
-  JacobianOperator = 1 << 7,
-  Writer = 1 << 8
+  Writer = 1 << 7
 };
 
 //! Policy that setup the grid function spaces in a model
@@ -47,10 +46,6 @@ static constexpr Stages setup_local_operator =
 //! Policy that setup the grid operator in a model
 static constexpr Stages setup_grid_operator =
   setup_local_operator | Stages::GridOperator;
-
-//! Policy that setup the jacobian operator in a model
-static constexpr Stages setup_jacobian_operator =
-  setup_grid_operator | Stages::JacobianOperator;
 
 //! Policy that setup the writer in a model
 static constexpr Stages setup_writer =

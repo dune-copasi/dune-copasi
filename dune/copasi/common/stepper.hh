@@ -299,45 +299,45 @@ private:
   auto& get_solver(const System& system) const
   {
     using Coefficients = typename System::State::Coefficients;
-    using GridOperator = typename System::GridOperator;
-    using JacobianOperator = typename System::JacobianOperator;
+    using InstationaryGridOperator = typename System::InstationaryGridOperator;
+    using LinearSolver = Dune::PDELab::ISTLBackend_NOVLP_BCGS_SSORk<InstationaryGridOperator>;
     using NonLinearOperator =
-      PDELab::Newton<GridOperator, JacobianOperator, Coefficients>;
+      PDELab::Newton<InstationaryGridOperator, LinearSolver, Coefficients>;
     using OneStepOperator = PDELab::
-      OneStepMethod<Time, GridOperator, NonLinearOperator, Coefficients>;
+      OneStepMethod<Time, InstationaryGridOperator, NonLinearOperator, Coefficients>;
 
     using InternalState = std::tuple<System const*,
-                                     GridOperator const*,
-                                     JacobianOperator const*,
+                                     InstationaryGridOperator const*,
+                                     std::shared_ptr<LinearSolver>,
                                      std::shared_ptr<NonLinearOperator>,
                                      std::shared_ptr<OneStepOperator>>;
 
-    GridOperator& grid_operator = *system.get_grid_operator();
-    JacobianOperator& jacobian_operator = *system.get_jacobian_operator();
+    InstationaryGridOperator& grid_operator = *system.get_instationary_grid_operator();
+
+    auto linear_solver = std::make_unique<LinearSolver>(grid_operator);
 
     // If internal data correspond to input, return cached one-step-operator.
     if (_internal_state.has_value() and
         _internal_state.type() == typeid(InternalState)) {
       auto& internal_state = *std::any_cast<InternalState>(&_internal_state);
       if (std::get<0>(internal_state) == &system and
-          std::get<1>(internal_state) == &grid_operator and
-          std::get<2>(internal_state) == &jacobian_operator)
+          std::get<1>(internal_state) == &grid_operator)
         return *std::get<4>(internal_state);
     }
 
     _logger.trace("Get non-linear operator"_fmt);
     auto non_linear_operator =
-      std::make_shared<NonLinearOperator>(grid_operator, jacobian_operator);
+      std::make_unique<NonLinearOperator>(grid_operator, *linear_solver);
 
     _logger.trace("Get one step operator"_fmt);
-    auto one_step_operator = std::make_shared<OneStepOperator>(
+    auto one_step_operator = std::make_unique<OneStepOperator>(
       *_rk_method, grid_operator, *non_linear_operator);
     one_step_operator->setVerbosityLevel(5);
 
     _internal_state =
       std::make_any<InternalState>(&system,
                                    &grid_operator,
-                                   &jacobian_operator,
+                                   std::move(linear_solver),
                                    std::move(non_linear_operator),
                                    std::move(one_step_operator));
     return *std::get<4>(*std::any_cast<InternalState>(&_internal_state));

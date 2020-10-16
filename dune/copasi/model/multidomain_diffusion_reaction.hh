@@ -160,9 +160,6 @@ private:
   //! Instationary grid operator
   using GOI = Dune::PDELab::OneStepGridOperator<GOS, GOT>;
 
-  //! Linear solver backend
-  using JO = Dune::PDELab::ISTLBackend_NOVLP_BCGS_SSORk<GOI>;
-
   //! Entity transformation between grids
   using EntityTransformation =
     Dune::Copasi::MultiDomainEntityTransformation<Grid>;
@@ -189,10 +186,10 @@ public:
   using ConstState = Dune::Copasi::ConstModelState<Grid, GFS, X>;
 
   //! Grid operator type
-  using GridOperator = GOI;
+  using StationaryGridOperator = GOS;
 
-  //! Jacobian operator type
-  using JacobianOperator = JO;
+  //! Grid operator type
+  using InstationaryGridOperator = GOI;
 
   /**
    * @brief      Constructs a new instance.
@@ -252,8 +249,6 @@ public:
         setup_local_operator();
       if (_grid_operator)
         setup_grid_operator();
-      if (_jacobian_operator)
-        setup_jacobian_operator();
     }
   }
 
@@ -352,14 +347,15 @@ public:
   get_grid_functions() const;
 
   //! warning this is not completely const correct. grid operators may modify local operators and thus the model on certain calls
-  std::shared_ptr<GridOperator> get_grid_operator() const
+  std::shared_ptr<StationaryGridOperator> get_stationary_grid_operator() const
   {
-    return _grid_operator;
+    return _spatial_grid_operator;
   }
 
-  std::shared_ptr<JacobianOperator> get_jacobian_operator() const
+  //! warning this is not completely const correct. grid operators may modify local operators and thus the model on certain calls
+  std::shared_ptr<InstationaryGridOperator> get_instationary_grid_operator() const
   {
-    return _jacobian_operator;
+    return _grid_operator;
   }
 
 protected:
@@ -379,7 +375,6 @@ private:
   auto setup_local_operator(std::size_t) const;
   void setup_local_operator();
   void setup_grid_operator();
-  void setup_jacobian_operator();
   void setup_solvers();
   void setup_vtk_writer();
 
@@ -400,7 +395,6 @@ private:
   std::shared_ptr<GOS> _spatial_grid_operator;
   std::shared_ptr<GOT> _temporal_grid_operator;
   std::shared_ptr<GOI> _grid_operator;
-  std::shared_ptr<JO> _jacobian_operator;
 
   std::size_t _domains;
 };
