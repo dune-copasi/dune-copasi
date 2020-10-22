@@ -229,7 +229,7 @@ public:
     auto accumulate = [&](const std::size_t& component,
                           const std::size_t& dof,
                           const auto& value) {
-      r.accumulate(lfsu.child(component), dof, value);
+      r.accumulate(lfsv.child(component), dof, value);
     };
 
     // get entity
@@ -303,7 +303,7 @@ public:
                           const std::size_t& dof_j,
                           const auto& value) {
       mat.accumulate(
-        lfsv.child(component_i), dof_i, lfsu.child(component_j), dof_j, value);
+        lfsv.child(component_i), dof_i, lfsv.child(component_j), dof_j, value);
     };
 
     // get entity
@@ -395,13 +395,13 @@ public:
     auto accumulate_i = [&](const std::size_t& component,
                             const std::size_t& dof,
                             const auto& value) {
-      r_i.accumulate(lfsu_i.child(component), dof, value);
+      r_i.accumulate(lfsv_i.child(component), dof, value);
     };
 
     auto accumulate_o = [&](const std::size_t& component,
                             const std::size_t& dof,
                             const auto& value) {
-      r_o.accumulate(lfsu_o.child(component), dof, value);
+      r_o.accumulate(lfsv_o.child(component), dof, value);
     };
 
     // get cell entities from both sides of the intersection
@@ -508,9 +508,9 @@ public:
                              const std::size_t& component_j,
                              const std::size_t& dof_j,
                              const auto& value) {
-      mat_ii.accumulate(lfsu_i.child(component_i),
+      mat_ii.accumulate(lfsv_i.child(component_i),
                         dof_i,
-                        lfsu_i.child(component_j),
+                        lfsv_i.child(component_j),
                         dof_j,
                         value);
     };
@@ -520,9 +520,9 @@ public:
                              const std::size_t& component_j,
                              const std::size_t& dof_j,
                              const auto& value) {
-      mat_io.accumulate(lfsu_i.child(component_i),
+      mat_io.accumulate(lfsv_i.child(component_i),
                         dof_i,
-                        lfsu_o.child(component_j),
+                        lfsv_o.child(component_j),
                         dof_j,
                         value);
     };
@@ -544,9 +544,9 @@ public:
                              const std::size_t& component_j,
                              const std::size_t& dof_j,
                              const auto& value) {
-      mat_oo.accumulate(lfsu_o.child(component_i),
+      mat_oo.accumulate(lfsv_o.child(component_i),
                         dof_i,
-                        lfsu_o.child(component_j),
+                        lfsv_o.child(component_j),
                         dof_j,
                         value);
     };
