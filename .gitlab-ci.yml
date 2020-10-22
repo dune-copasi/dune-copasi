@@ -96,6 +96,7 @@ stages:
     paths:
       - build-cmake/test
     expire_in: 1 day
+    when: always
   <<: *default_tags
 
 .system_tests: &system_tests
@@ -109,6 +110,7 @@ stages:
       - cd ..
       - build-cmake/test
     expire_in: 1 day
+    when: always
   <<: *default_tags
 
 .deploy: &deploy
