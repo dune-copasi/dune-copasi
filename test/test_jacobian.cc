@@ -161,7 +161,7 @@ main(int argc, char** argv)
         auto diff_norm = native(analytic_matrix).frobenius_norm();
 
         // max allowed relative jacobian error
-        auto max_error = model_config.get("jacobian_error",1e-7);
+        auto max_error = model_config.get("jacobian_error",1e-6);
 
         log.info(2, "Difference norm (diff_norm): {}"_fmt,diff_norm);
         log.info(2, "Error (diff_norm/num_norm): {}"_fmt,diff_norm/numeric_norm);
