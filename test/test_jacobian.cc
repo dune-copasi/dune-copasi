@@ -102,7 +102,7 @@ main(int argc, char** argv)
       using AnalyticTraits = ModelMultiDomainP0PkDiffusionReactionTraits<
         Grid,
         order,
-        Dune::PDELab::LexicographicOrderingTag,
+        Dune::PDELab::EntityBlockedOrderingTag,
         JacobianMethod::Analytical>;
       ModelMultiDomainDiffusionReaction<AnalyticTraits> analytic(md_grid_ptr,
                                                                  model_config);
@@ -110,7 +110,7 @@ main(int argc, char** argv)
       using NumericTraits = ModelMultiDomainP0PkDiffusionReactionTraits<
         Grid,
         order,
-        Dune::PDELab::LexicographicOrderingTag,
+        Dune::PDELab::EntityBlockedOrderingTag,
         JacobianMethod::Numerical>;
       ModelMultiDomainDiffusionReaction<NumericTraits> numeric(md_grid_ptr,
                                                                model_config);
@@ -127,8 +127,16 @@ main(int argc, char** argv)
       auto analytic_matrix = AnalyticMatrix{*analytic_grid_op};
       auto numeric_matrix = NumericMatrix{*numeric_grid_op};
 
-      auto compare_matrix = [&](const auto& an_x, const auto& nu_x)
-      {
+      auto compare_matrix = [&](const auto& an_x, const auto& nu_x) {
+        auto log_matrix = [log](const auto& name, const auto& mat) {
+          if (log.level() >= Dune::Logging::LogLevel::trace) {
+            std::stringstream ss;
+            Dune::printmatrix(ss,mat,name,"");
+            for (std::string line; std::getline(ss, line);)
+              log.trace(2, "{}"_fmt, line);
+          }
+        };
+
         using namespace Dune::PDELab::Backend;
         log.info("Comparing jacobians"_fmt);
         log.info(2, "Vector analytic norm: {}"_fmt,native(an_x).two_norm());
@@ -144,21 +152,13 @@ main(int argc, char** argv)
         log.info(2, "Analytic jacobian norm (an_norm): {}"_fmt,analitic_norm);
         log.info(2, "Numeric jacobian norm (num_norm): {}"_fmt,numeric_norm);
 
+        log_matrix("Analytic Matrix", native(analytic_matrix));
+        log_matrix("Numeric Matrix", native(numeric_matrix));
+
         static_assert(std::is_same_v<AnalyticMatrix, NumericMatrix>);
         native(analytic_matrix) -= native(numeric_matrix);
+        log_matrix("Diff Matrix", native(analytic_matrix));
         auto diff_norm = native(analytic_matrix).frobenius_norm();
-
-        // Uncomment in case you want to inspect the matrices in the log
-
-        // std::stringstream ssa;
-        // Dune::printmatrix(ssa,native(analytic_matrix),"Analytic Matrix","");
-        // for (std::string line; std::getline(ssa, line);)
-        //   log.detail(2, "{}"_fmt, line);
-
-        // std::stringstream ssn;
-        // Dune::printmatrix(ssn,native(numeric_matrix),"Numeric Matrix","");
-        // for (std::string line; std::getline(ssn, line);)
-        //   log.detail(2, "{}"_fmt, line);
 
         // max allowed relative jacobian error
         auto max_error = model_config.get("jacobian_error",1e-7);
@@ -186,21 +186,21 @@ main(int argc, char** argv)
       analytic_x = 1.;
       compare_matrix(analytic_x,numeric_x);
 
-      // {
-      //   std::uniform_real_distribution<double> unif(0.,10.);
-      //   std::default_random_engine re;
-      //   auto rand = [&](){return unif(re);};
-      //   std::generate(analytic_x.begin(), analytic_x.end(), rand);
-      //   compare_matrix(analytic_x,numeric_x);
-      // }
+      {
+        std::uniform_real_distribution<double> unif(0.,10.);
+        std::default_random_engine re;
+        auto rand = [&](){return unif(re);};
+        std::generate(analytic_x.begin(), analytic_x.end(), rand);
+        compare_matrix(analytic_x,numeric_x);
+      }
 
-      // {
-      //   std::uniform_real_distribution<double> unif(0.,10000.);
-      //   std::default_random_engine re;
-      //   auto rand = [&](){return unif(re);};
-      //   std::generate(analytic_x.begin(), analytic_x.end(), rand);
-      //   compare_matrix(analytic_x,numeric_x);
-      // }
+      {
+        std::uniform_real_distribution<double> unif(0.,10000.);
+        std::default_random_engine re;
+        auto rand = [&](){return unif(re);};
+        std::generate(analytic_x.begin(), analytic_x.end(), rand);
+        compare_matrix(analytic_x,numeric_x);
+      }
     };
 
     // maximum polynomial order instantiated
