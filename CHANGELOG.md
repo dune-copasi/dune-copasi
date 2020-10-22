@@ -27,6 +27,11 @@ Types of changes
  -->
 
 ## [Unreleased] ([git-diff][Unreleased-diff])
+### Removed
+- Jacobian operator is managed by the stepper instead of the model !39
+- Jacobian tests are improved and extended to cover more cases !39
+### Fixed
+- Improper vector allocation in multidomain intersections !39
 
 ## [0.3.0] ([git-diff][0.3.0-diff]) - 2020-10-07
 ### Added
@@ -82,6 +87,8 @@ Types of changes
 [Unreleased-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v0.3.0...master
 [0.3.0-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v0.2.0...v0.3.0
 [0.2.0-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v0.1.0...v0.2.0
+
+[Unreleased]: https://gitlab.dune-project.org/copasi/dune-copasi/-/tree/master
 
 [0.3.0]: https://gitlab.dune-project.org/copasi/dune-copasi/-/releases/v0.3.0
 [0.2.0]: https://gitlab.dune-project.org/copasi/dune-copasi/-/releases/v0.2.0
