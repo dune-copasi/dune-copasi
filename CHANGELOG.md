@@ -27,6 +27,8 @@ Types of changes
  -->
 
 ## [Unreleased] ([git-diff][Unreleased-diff])
+### Added
+- Parameters to control Newton's method !30
 ### Removed
 - Jacobian operator is managed by the stepper instead of the model !39
 - Jacobian tests are improved and extended to cover more cases !39
