@@ -126,6 +126,16 @@ p65_IkB_cytoplasm = 1
 IkBa_mRNA_cytoplasm = 1
 IkBa_cytoplasm = 1
 
+[model.cytoplasm.outflow.cytoplasm_nucleus]
+p65_cytoplasm = p65_cytoplasm_i - p65_cytoplasm_o
+IkBa_p = IkBa_p_i - IkBa_p_o
+IKKb = IKKb_i - IKKb_o
+IKKb_p = IKKb_p_i - IKKb_p_o
+TNFa = TNFa_i - TNFa_o
+p65_IkB_cytoplasm = p65_IkB_cytoplasm_i - p65_IkB_cytoplasm_o
+IkBa_mRNA_cytoplasm = IkBa_mRNA_cytoplasm_i - IkBa_mRNA_cytoplasm_o
+IkBa_cytoplasm = IkBa_cytoplasm_i - IkBa_cytoplasm_o
+
 [model.nucleus.initial]
 IkBa_mRNA_2 = 5.14124
 p65_nucleus = 0.0832677
@@ -187,6 +197,14 @@ IkBa_nucleus = 1
 p65_IkB_nucleus = 1
 IkBa_mRNA_nucleus = 1
 IkBa_mRNA_1 = 1
+
+[model.nucleus.outflow.cytoplasm_nucleus]
+IkBa_mRNA_2 = IkBa_mRNA_2_i - IkBa_mRNA_2_o
+p65_nucleus = p65_nucleus_i - p65_nucleus_o
+IkBa_nucleus = IkBa_nucleus_i - IkBa_nucleus_o
+p65_IkB_nucleus = p65_IkB_nucleus_i - p65_IkB_nucleus_o
+IkBa_mRNA_nucleus = IkBa_mRNA_nucleus_i - IkBa_mRNA_nucleus_o
+IkBa_mRNA_1 = IkBa_mRNA_1_i - IkBa_mRNA_1_o
 
 [model.cytoplasm_nucleus.initial]
 p65_cytoplasm = 0.00166609
@@ -433,3 +451,35 @@ IkBa_nucleus = 1
 p65_IkB_nucleus = 1
 IkBa_mRNA_nucleus = 1
 IkBa_mRNA_1 = 1
+
+[model.cytoplasm_nucleus.outflow.cytoplasm]
+p65_cytoplasm = p65_cytoplasm_i - p65_cytoplasm_o
+IkBa_p = IkBa_p_i - IkBa_p_o
+IKKb = IKKb_i - IKKb_o
+IKKb_p = IKKb_p_i - IKKb_p_o
+TNFa = TNFa_i - TNFa_o
+p65_IkB_cytoplasm = p65_IkB_cytoplasm_i - p65_IkB_cytoplasm_o
+IkBa_mRNA_cytoplasm = IkBa_mRNA_cytoplasm_i - IkBa_mRNA_cytoplasm_o
+IkBa_cytoplasm = IkBa_cytoplasm_i - IkBa_cytoplasm_o
+IkBa_mRNA_2 = 0
+p65_nucleus = 0
+IkBa_nucleus = 0
+p65_IkB_nucleus = 0
+IkBa_mRNA_nucleus = 0
+IkBa_mRNA_1 = 0
+
+[model.cytoplasm_nucleus.outflow.nucleus]
+p65_cytoplasm = 0
+IkBa_p = 0
+IKKb = 0
+IKKb_p = 0
+TNFa = 0
+p65_IkB_cytoplasm = 0
+IkBa_mRNA_cytoplasm = 0
+IkBa_cytoplasm = 0
+IkBa_mRNA_2 = IkBa_mRNA_2_i - IkBa_mRNA_2_o
+p65_nucleus = p65_nucleus_i - p65_nucleus_o
+IkBa_nucleus = IkBa_nucleus_i - IkBa_nucleus_o
+p65_IkB_nucleus = p65_IkB_nucleus_i - p65_IkB_nucleus_o
+IkBa_mRNA_nucleus = IkBa_mRNA_nucleus_i - IkBa_mRNA_nucleus_o
+IkBa_mRNA_1 = IkBa_mRNA_1_i - IkBa_mRNA_1_o
