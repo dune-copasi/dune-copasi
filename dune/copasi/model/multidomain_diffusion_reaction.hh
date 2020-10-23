@@ -33,7 +33,7 @@ template<class G,
          int FEMorder = 1,
          class OT = PDELab::EntityBlockedOrderingTag,
          JacobianMethod JMS = JacobianMethod::Analytical,
-         JacobianMethod JMM = JacobianMethod::Numerical>
+         JacobianMethod JMM = JacobianMethod::Analytical>
 struct ModelMultiDomainPkDiffusionReactionTraits
 {
   using Grid = G;
@@ -61,7 +61,7 @@ template<class G,
          int FEMorder = 1,
          class OT = PDELab::EntityBlockedOrderingTag,
          JacobianMethod JMS = JacobianMethod::Analytical,
-         JacobianMethod JMM = JacobianMethod::Numerical>
+         JacobianMethod JMM = JacobianMethod::Analytical>
 struct ModelMultiDomainP0PkDiffusionReactionTraits
 {
   using Grid = G;
