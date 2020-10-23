@@ -48,6 +48,10 @@ u = {_diffusion}
 [model.cubes.outflow.triangles]
 u = u_i-u_o
 
+[model.cubes.outflow.triangles.jacobian]
+du__du_i = 1
+du__du_o = -1
+
 #### compare against a known solution
 [model.cubes.compare.expression]
 u = {_gauss_eq}
@@ -69,6 +73,10 @@ u = {_diffusion}
 
 [model.triangles.outflow.cubes]
 u = u_i-u_o
+
+[model.triangles.outflow.cubes.jacobian]
+du__du_i = 1
+du__du_o = -1
 
 #### compare against a known solution
 [model.triangles.compare.expression]

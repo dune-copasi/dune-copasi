@@ -47,6 +47,10 @@ u = 1.
 [model.cell.outflow.nucleoid]
 u = u_i-u_o
 
+[model.cell.outflow.nucleoid.jacobian]
+du__du_i = 1
+du__du_o = -1
+
 ############################ Model for nucleoid ############################
 [model.nucleoid.initial]
 u = 5
@@ -70,10 +74,14 @@ v = 1.
 u = u_i-u_o
 v = 0
 
-######################### Compare with reference vtk ######################### 
+[model.nucleoid.outflow.cell.jacobian]
+du__du_i = 1
+du__du_o = -1
+
+######################### Compare with reference vtk #########################
 [wrapper.vtkcompare]
 name = {__name}/{__name}-cell-00005 {__name}/{__name}-nucleoid-00005
 reference = reference/cell-00005 reference/nucleoid-00005
 extension = vtu vtu
-relative = 2e-2
-absolute = 1e-9
+relative = 2e-12
+absolute = 1e-12
