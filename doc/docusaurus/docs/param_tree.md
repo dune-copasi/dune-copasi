@@ -85,8 +85,31 @@ This section sets the settings for the evolution in time of the forward model.
 | `max_step` | `float` | Minimum time step allowed |
 | `decrease_factor` | `float` | Time step decrease factor when time step fails |
 | `increase_factor` | `float` | Time step increase factor when time step succeds |
+| `[newton]` | subsection | Parameters for the Newton method at each timestep |
 
 The possible `rk_id`s can be found at the end of this document.
+
+#### `[model.newton]`
+
+| Key | Type | Description |
+| -----------|-----| -------------- |
+| `reduction` | `float` | Threshold for termination, relative to first linear defect
+| `absolute_limit` | `float` | Threshold for termination, absolute to linear defect
+| `min_linear_reduction` | `float` | The linear reduction will be determined as mininum of this and the one needed to achieve second order newton convergence
+| `fixed_linear_reduction`   | `bool` | Whenever `true`, the linear reduction rate will always be fixed to `min_linear_reduction`
+| `max_iterations` | `integer` | Maximum number of linear searchs allowed
+| `reassemble_threshold` | `float` | If the reduction drops below this the linear operator is reassembled to ensure convergence
+| `keep_matrix` | `bool` | Whether the jacobian matrix should be kept across time steps
+| `force_iteration` | `bool` | Enforce first iteration even if required reduction is acheived
+| `[linear_search]` | subsection | Parameters for linear search |
+
+#### `[model.newton.linear_search]`
+
+| Key | Type | Description |
+| -----------|-----| -------------- |
+| `strategy` | `string` | `noLineSearch` or `hackbuschReusken` or `hackbuschReuskenAcceptBest`
+| `max_iterations` | `integer` | Maximum iterations on Hackbusch-Reusken linear search
+| `damping_factor`   | `float` | Damping factor for Hackbusch-Reusken linear search
 
 #### `[model.compartment]`
 

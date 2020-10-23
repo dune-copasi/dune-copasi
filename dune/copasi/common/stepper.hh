@@ -372,11 +372,14 @@ private:
       DUNE_THROW(IOError, "Not valid linear search strategy: " << ls_strategy);
     }
 
-    auto ls_max_it = ls.template get<uint>("max_iterations");
-    non_linear_operator->setLineSearchMaxIterations(ls_max_it);
+    if (ls_strategy != "noLineSearch")
+    {
+      auto ls_max_it = ls.template get<uint>("max_iterations");
+      non_linear_operator->setLineSearchMaxIterations(ls_max_it);
 
-    auto ls_damping = ls.template get<double>("damping_factor");
-    non_linear_operator->setLineSearchDampingFactor(ls_damping);
+      auto ls_damping = ls.template get<double>("damping_factor");
+      non_linear_operator->setLineSearchDampingFactor(ls_damping);
+    }
 
     _logger.trace("Get one step operator"_fmt);
     auto one_step_operator = std::make_unique<OneStepOperator>(
