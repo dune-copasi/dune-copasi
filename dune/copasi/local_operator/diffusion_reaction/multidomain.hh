@@ -715,12 +715,9 @@ public:
       local_basis_i.evaluateFunction(position_i, phiu_i);
       local_basis_o.evaluateFunction(position_o, phiu_o);
 
+      // evaluate concentrations at quadrature point
       std::fill(_components[domain_i].begin(),_components[domain_i].end(),0.);
       std::fill(_components[domain_o].begin(),_components[domain_o].end(),0.);
-
-      // evaluate concentrations at quadrature point
-      std::fill(u_i.begin(),u_i.end(),0.);
-      std::fill(u_o.begin(),u_o.end(),0.);
       for (std::size_t comp = 0; comp < components_i; comp++)
         for (std::size_t dof = 0; dof < local_basis_i.size(); dof++)
           _components[domain_i][comp] += x_coeff_local_i(comp, dof) * phiu_i[dof];
