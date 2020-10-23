@@ -1,7 +1,8 @@
 # Test: Check that the first steps of a pure diffusive problem evolve as a
 #   gaussian process
 
-import logging.ini
+import default_logging.ini
+import default_time_stepping.ini
 
 _diffusion = 0.005
 _t0 = 1.
@@ -19,14 +20,11 @@ initial_level = 4
 order = 0, 1 | expand geometry_type
 
 [model.time_stepping]
-rk_method = alexander_2
 begin = {_t0}
 end = 2
 initial_step = 1e-2
 min_step = 1e-3
 max_step = 1e-1
-decrease_factor = 0.5
-increase_factor = 1.5
 
 [model.writer]
 file_path = {__name}

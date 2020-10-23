@@ -1,6 +1,7 @@
 # Test: An inifile without `writer` section must be valid
 
-import logging.ini
+import default_logging.ini
+import default_time_stepping.ini
 
 __name = test_no_writer
 
@@ -13,14 +14,11 @@ initial_level = 0
 order = 1
 
 [model.time_stepping]
-rk_method = alexander_2
 begin = 0
 end = 1
 initial_step = 0.1
 min_step = 1e-3
 max_step = 1e-0
-decrease_factor = 0.9
-increase_factor = 1.1
 
 [model.compartments]
 domain     = 0

@@ -1,4 +1,7 @@
-import logging.ini
+# Test: Compare a simple exponential ODE with its analytic result
+
+import default_logging.ini
+import default_time_stepping.ini
 
 _grow_rate = 0.2
 _initial = 1
@@ -14,14 +17,11 @@ initial_level = 0
 order = 1
 
 [model.time_stepping]
-rk_method = alexander_2
 begin = 0
 end = 10
 initial_step = 1e-2
 min_step = 1e-3
 max_step = 1e-1
-decrease_factor = 0.5
-increase_factor = 1.5
 
 [model.writer]
 file_path = {__name}

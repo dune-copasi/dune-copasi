@@ -183,10 +183,13 @@ public:
    * @brief Construct a new object
    *
    * @param rk_method   PDELab time stepping Runge-Kutta paramameters
+   * @param solver_parameters parameter options for the newton solver
    */
   RKStepper(
-    std::unique_ptr<PDELab::TimeSteppingParameterInterface<Time>> rk_method)
+    std::unique_ptr<PDELab::TimeSteppingParameterInterface<Time>> rk_method,
+    const ParameterTree& solver_parameters)
     : _rk_method{ std::move(rk_method) }
+    , _solver_parameters{ solver_parameters }
     , _logger{ Logging::Logging::componentLogger({}, "stepper") }
   {
     _logger.detail("Setting up time stepper"_fmt);
@@ -197,9 +200,10 @@ public:
    * @brief Construct a new object
    *
    * @param rk_method   Keyword with the RK method type
+   * @param solver_parameters parameter options for the newton solver
    */
-  RKStepper( std::string rk_method)
-    : RKStepper(make_rk_method(rk_method))
+  RKStepper(std::string rk_method, const ParameterTree& solver_parameters)
+    : RKStepper(make_rk_method(rk_method), solver_parameters)
   {}
 
   /**
@@ -294,7 +298,7 @@ public:
   const Logging::Logger& logger() const { return _logger; }
 
 private:
-  //! Setup and cache solver for a system
+  //! Setup and cache solver for a given system
   template<class System>
   auto& get_solver(const System& system) const
   {
@@ -329,6 +333,51 @@ private:
     auto non_linear_operator =
       std::make_unique<NonLinearOperator>(grid_operator, *linear_solver);
 
+    // Add settings to the newton solver
+    auto reduction = _solver_parameters.template get<double>("reduction");
+    non_linear_operator->setReduction(reduction);
+
+    auto min_reduction =
+      _solver_parameters.template get<double>("min_linear_reduction");
+    non_linear_operator->setMinLinearReduction(min_reduction);
+
+    auto fixed_reduction =
+      _solver_parameters.template get<bool>("fixed_linear_reduction");
+    non_linear_operator->setFixedLinearReduction(fixed_reduction);
+
+    auto max_it = _solver_parameters.template get<uint>("max_iterations");
+    non_linear_operator->setMaxIterations(max_it);
+
+    auto abs_limit = _solver_parameters.template get<double>("absolute_limit");
+    non_linear_operator->setAbsoluteLimit(abs_limit);
+
+    auto reassemble =
+      _solver_parameters.template get<double>("reassemble_threshold");
+    non_linear_operator->setReassembleThreshold(reassemble);
+
+    auto keep_matrix = _solver_parameters.template get<bool>("keep_matrix");
+    non_linear_operator->setKeepMatrix(keep_matrix);
+
+    auto force_iteration =
+      _solver_parameters.template get<bool>("force_iteration");
+    non_linear_operator->setForceIteration(force_iteration);
+
+    const auto& ls = _solver_parameters.sub("linear_search", true);
+
+    auto ls_strategy = ls.template get<std::string>("strategy");
+    try {
+      non_linear_operator->setLineSearchStrategy(ls_strategy);
+    } catch (const Dune::Exception& e) {
+      _logger.error("Not valid linear search strategy: {}"_fmt, ls_strategy);
+      DUNE_THROW(IOError, "Not valid linear search strategy: " << ls_strategy);
+    }
+
+    auto ls_max_it = ls.template get<uint>("max_iterations");
+    non_linear_operator->setLineSearchMaxIterations(ls_max_it);
+
+    auto ls_damping = ls.template get<double>("damping_factor");
+    non_linear_operator->setLineSearchDampingFactor(ls_damping);
+
     _logger.trace("Get one step operator"_fmt);
     auto one_step_operator = std::make_unique<OneStepOperator>(
       *_rk_method, grid_operator, *non_linear_operator);
@@ -346,6 +395,7 @@ private:
 private:
   std::unique_ptr<const PDELab::TimeSteppingParameterInterface<Time>>
     _rk_method;
+  const ParameterTree _solver_parameters;
   const Logging::Logger _logger;
   mutable std::any _internal_state;
 };
@@ -459,8 +509,10 @@ make_default_stepper(const ParameterTree& config)
   log.trace("Decrease factor: {}"_fmt,decrease_factor);
   log.trace("Runge-Kutta method: {}"_fmt,rk_type);
 
+
+  const auto& newton_parameters = config.sub("newton", true);
   using RKStepper = Dune::Copasi::RKStepper<double>;
-  auto rk_stepper = RKStepper{ rk_type };
+  auto rk_stepper = RKStepper{ rk_type, newton_parameters };
   using Stepper = Dune::Copasi::SimpleAdaptiveStepper<RKStepper>;
   return Stepper{
     std::move(rk_stepper), min_step, max_step, decrease_factor, increase_factor

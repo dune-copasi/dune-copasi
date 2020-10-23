@@ -1,7 +1,8 @@
 # Test that checks fluxes on membranes with a reference vtk file produced with
 #   previous versions of dune_copasi_md
 
-import logging.ini
+import default_logging.ini
+import default_time_stepping.ini
 
 __name = test_in_out
 
@@ -14,15 +15,11 @@ initial_level = 1
 order = 1
 
 [model.time_stepping]
-rk_method = alexander_2
 begin = 0
 end = 1
 initial_step = 0.3
 min_step = 1e-3
 max_step = 0.35
-decrease_factor = 0.5
-increase_factor = 1.5
-
 [model.writer]
 file_path = {__name}
 

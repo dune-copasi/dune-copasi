@@ -1,7 +1,8 @@
 # Test: Check that complicated problems have an approximately same analytic and
 #   numeric jacobian
 
-import logging.ini
+import default_logging.ini
+import default_time_stepping.ini
 
 __name = test_NFkappaB
 
@@ -14,14 +15,11 @@ initial_level = 0
 order = 1
 
 [model.time_stepping]
-rk_method = alexander_2
 begin = 0.
 end = 365
 initial_step = 1e-0
 min_step = 1e-3
 max_step = 1e-0
-decrease_factor = 0.9
-increase_factor = 1.1
 
 [model.compartments]
 cytoplasm = 0

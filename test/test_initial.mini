@@ -1,6 +1,7 @@
 # Test: Check the interpolation output for math expression initialization
 
-import logging.ini
+import default_logging.ini
+import default_time_stepping.ini
 
 _diffusion = 0.01
 _t0 = 1.
@@ -18,15 +19,11 @@ initial_level = 6
 order = 0, 1 | expand geometry_type
 
 [model.time_stepping]
-rk_method = alexander_2
 begin = {_t0}
 end = {_t0}
-step = 0.1
 initial_step = 0.1
 min_step = 1e-3
 max_step = 1e-0
-decrease_factor = 0.9
-increase_factor = 1.1
 
 [model.compartments]
 domain = 0

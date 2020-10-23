@@ -1,7 +1,8 @@
 # Test: Checks interpolation of TIFF files with a reference vtk file
 #   produced with previous versions of dune_copasi_sd/md
 
-import logging.ini
+import default_logging.ini
+import default_time_stepping.ini
 
 __name = test_tiff
 
@@ -14,15 +15,11 @@ initial_level = 3
 order = 1
 
 [model.time_stepping]
-rk_method = alexander_2
 begin = 0.
 end = 0.
-step = 0.1
 initial_step = 0.1
 min_step = 1e-3
 max_step = 1e-0
-decrease_factor = 0.9
-increase_factor = 1.1
 
 [model.writer]
 file_path = {__name}
