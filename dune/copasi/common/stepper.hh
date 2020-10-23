@@ -345,7 +345,7 @@ private:
       _solver_parameters.template get<bool>("fixed_linear_reduction");
     non_linear_operator->setFixedLinearReduction(fixed_reduction);
 
-    auto max_it = _solver_parameters.template get<uint>("max_iterations");
+    auto max_it = _solver_parameters.template get<unsigned int>("max_iterations");
     non_linear_operator->setMaxIterations(max_it);
 
     auto abs_limit = _solver_parameters.template get<double>("absolute_limit");
@@ -374,7 +374,7 @@ private:
 
     if (ls_strategy != "noLineSearch")
     {
-      auto ls_max_it = ls.template get<uint>("max_iterations");
+      auto ls_max_it = ls.template get<unsigned int>("max_iterations");
       non_linear_operator->setLineSearchMaxIterations(ls_max_it);
 
       auto ls_damping = ls.template get<double>("damping_factor");
