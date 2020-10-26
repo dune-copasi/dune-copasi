@@ -129,21 +129,21 @@ Notice that `dune-copasi` uses 0-based
 
 :::tip Example
 Let's say that there is two *physical groups* in our gmsh file
-and we are going to name them as `nucleous` and `cytoplasm` compartments:
+and we are going to name them as `nucleus` and `cytoplasm` compartments:
 
 ```ini
 [model.compartments]
- # nucleous corresponds to the physical group 1 in the gmsh file
-nucleous  = 0
+ # nucleus corresponds to the physical group 1 in the gmsh file
+nucleus  = 0
  # cytoplasm corresponds to the physical group 2 in the gmsh file
 cytoplasm = 1
 
 # They then become available as new compartment subsections
-[model.nucleous]
-# Parameters for the nucleous compartment
+[model.nucleus]
+# Parameters for the nucleus compartment
 
 [model.cytoplasm]
-# Parameters for the nucleous compartment
+# Parameters for the nucleus compartment
 ```
 :::
 
@@ -194,9 +194,9 @@ expression.
 
 :::tip Example
 The variables `u` and `v` are available to each other for a subsection
-`[model.nucleous.reaction]`
+`[model.nucleus.reaction]`
 ```ini
-[model.nucleous.reaction]
+[model.nucleus.reaction]
 u = u*v
 v = u*v
 ```
@@ -217,24 +217,24 @@ Similar to `[model.<comp_k>.reaction]`, math expressions here allow all
 compartmenet *variables* to be used.
 
 :::tip Example
-The section `[model.nucleous]` for a [Gray-Scott model with F=0.0420 and
+The section `[model.nucleus]` for a [Gray-Scott model with F=0.0420 and
 k=0.0610](http://mrob.com/pub/comp/xmorphia/F420/F420-k610.html) may look like
 this:
 
 ```ini
-[model.nucleous.initial]
+[model.nucleus.initial]
 u = 0.5
 v = (x>0) && (x<0.5) && (y>0.) && (y<0.5) ? 1 : 0
 
-[model.nucleous.diffusion]
+[model.nucleus.diffusion]
 u = 2e-5
 v = 2e-5/2
 
-[model.nucleous.reaction]
+[model.nucleus.reaction]
 u = -u*v^2+0.0420*(1-u)
 v = u*v^2-(0.0420+0.0610)*v
 
-[model.nucleous.reaction.jacobian]
+[model.nucleus.reaction.jacobian]
 du__du = -v^2-0.0420
 du__dv = -2*u*v
 dv__du = v^2
@@ -276,19 +276,19 @@ $\mathbf{n}^k$ is the unit outer normal vector of $\Omega^k$ on the
 intersection.
 
 :::tip Example
-Let's say that our configuration file defines two compartments, `nucleous` ($n$)
+Let's say that our configuration file defines two compartments, `nucleus` ($n$)
 and `cytoplasm` ($c$), and both of them contain a variable `u` ($u^n$ and
 $u^c$). Then, a boundary condition $\mathcal{T}^{nc}(u^n,u^c) =
-u^n-u^c$ for the nucleous and $\mathcal{T}^{cn}(u^c,u^n) =
+u^n-u^c$ for the nucleus and $\mathcal{T}^{cn}(u^c,u^n) =
 -\mathsf{D}^n\nabla u^n\cdot \mathbf{n}_T$ for the
 cytoplasm is
 ```ini
-[model.nucleous.outflow.cytoplasm]
+[model.nucleus.outflow.cytoplasm]
 # Flux proportional to the difference of species
 u = u_i-u_o
 
-[model.cytoplasm.outflow.nucleous]
-# Flux in cytoplasm equal to the outflow of u in nucleous (assume D = 0.1)
+[model.cytoplasm.outflow.nucleus]
+# Flux in cytoplasm equal to the outflow of u in nucleus (assume D = 0.1)
 u = 0.1 * du_o__dn
 ```
 :::
@@ -312,11 +312,11 @@ default and there is only need to specify the non-zero entries.
 Following the example for the outflow, its jacobian would be
 
 ```ini
-[model.nucleous.outflow.cytoplasm.jacobian]
+[model.nucleus.outflow.cytoplasm.jacobian]
 du__du_i = 1
 du__du_o = -1
 
-[model.cytoplasm.outflow.nucleous.jacobian]
+[model.cytoplasm.outflow.nucleus.jacobian]
 # du__du_i = 0
 # du__du_o = 0
 ```

@@ -26,7 +26,7 @@ increase_factor = 1.1
 
 [model.compartments]
 cell     = 0
-nucleoid = 1
+nucleus = 1
 
 [model.writer]
 file_path = {__name}
@@ -44,44 +44,44 @@ du_du = -5
 [model.cell.diffusion]
 u = 1.
 
-[model.cell.outflow.nucleoid]
+[model.cell.outflow.nucleus]
 u = u_i-u_o
 
-[model.cell.outflow.nucleoid.jacobian]
+[model.cell.outflow.nucleus.jacobian]
 du__du_i = 1
 du__du_o = -1
 
-############################ Model for nucleoid ############################
-[model.nucleoid.initial]
+############################ Model for nucleus ############################
+[model.nucleus.initial]
 u = 5
 v = 10
 
-[model.nucleoid.reaction]
+[model.nucleus.reaction]
 u = -u*v
 v = -10*u
 
-[model.nucleoid.reaction.jacobian]
+[model.nucleus.reaction.jacobian]
 du_du = -v
 du_dv = -u
 dv_du = -10
 dv_dv = 0
 
-[model.nucleoid.diffusion]
+[model.nucleus.diffusion]
 u = 1.
 v = 1.
 
-[model.nucleoid.outflow.cell]
+[model.nucleus.outflow.cell]
 u = u_i-u_o
 v = 0
 
-[model.nucleoid.outflow.cell.jacobian]
+[model.nucleus.outflow.cell.jacobian]
 du__du_i = 1
 du__du_o = -1
 
 ######################### Compare with reference vtk #########################
 [wrapper.vtkcompare]
-name = {__name}/{__name}-cell-00005 {__name}/{__name}-nucleoid-00005
-reference = reference/cell-00005 reference/nucleoid-00005
+name = {__name}/{__name}-cell-00005 {__name}/{__name}-nucleus-00005
+reference = reference/cell-00005 reference/nucleus-00005
 extension = vtu vtu
 relative = 2e-12
 absolute = 1e-12
