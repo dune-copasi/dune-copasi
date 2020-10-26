@@ -256,29 +256,6 @@ the exterior $l$-th domain $\Omega^l$.
 
 <!-- | `[boundary]` | `math_expr` | Outflow configuration for boundary membranes | -->
 
-<!--
-##### `[model.<comp_k>.outflow.boundary]`
-
-Currently, the boundary outflow is set to $0$, that is, no flow condition.
-No key is required for this.
-
-| Key | Type | Description |
-| -----------|-----| -------------- |
-| `[jacobian]` | subsection | Outflow jacobian entries |
-
-:::tip Comming feature
-Custom boundary outflow will be available in upcoming releases.
-:::
-
-##### `[model.<comp_k>.outflow.boundary.jacobian]`
-
-The jacobian of the outflow is currently calculated analitically.
-No key is required for this.
-
-:::tip Comming feature
-Custom boundary jacobian will be available in upcoming releases.
-::: -->
-
 ##### `[model.<comp_k>.outflow.<comp_l>]`
 
 This section contains the transmmission condition $\mathcal{T}^{kl}_i$ for each
@@ -293,10 +270,10 @@ The math expressions in this subsection are allowed to use all *variables* from
 both `<comp_k>` and `<comp_l>` compartments. Because they may have the same
 name, the parser distinguish them by assigin a `_i` (inside) sufix for variables
 in `<comp_k>` and `_o` (outside) for variables in `<comp_l>`. Additionally,
-their normal gradients, $\nabla u_i^k\cdot \mathbf{n}_T$ and
-$\nabla u_j^l\cdot \mathbf{n}_T$, are also available as `d<var_i>__dn`. Here,
-$\mathbf{n}_T$ is the fixed outer normal vector of an intersection (fixed menas
-that the direction does not change when viewed from one domain or the other).
+their normal gradients, $\nabla u_i^k\cdot \mathbf{n}^k$ and
+$\nabla u_j^l\cdot \mathbf{n}^l$, are also available as `d<var_i>__dn`. Here,
+$\mathbf{n}^k$ is the unit outer normal vector of $\Omega^k$ on the
+intersection.
 
 :::tip Example
 Let's say that our configuration file defines two compartments, `nucleous` ($n$)
@@ -311,16 +288,39 @@ cytoplasm is
 u = u_i-u_o
 
 [model.cytoplasm.outflow.nucleous]
-# Flux in cytoplasm equal to the flux of u in nucleous (assume D^n = 0.1)
-u = -0.1 * du_o__dn
+# Flux in cytoplasm equal to the outflow of u in nucleous (assume D = 0.1)
+u = 0.1 * du_o__dn
 ```
 :::
 
-
 ##### `[model.<comp_k>.outflow.<comp_l>.jacobian]`
 
-The jacobian of the outflow is currently calculated numerically.
-No key is required for this.
+The jacobian for the outflow works similarly as the one for the reaction. That
+is, all *variables* from inside and outside are available as well as their
+normal gradients. Additionally, you have to distiguish between jacobians with
+respect to inside and outside *variables*.
+
+| Key | Type | Description |
+| -----------|-----| -------------- |
+| `d<var_i>__d<var_j>_i` | `math_expr` | Self-domain jacobian entries |
+| `d<var_i>__d<var_j>_o` | `math_expr` | Cross-domain jacobian entries |
+
+Now, since in most cases these jacobians are zero, that case is assumed by
+default and there is only need to specify the non-zero entries.
+
+:::tip Example
+Following the example for the outflow, its jacobian would be
+
+```ini
+[model.nucleous.outflow.cytoplasm.jacobian]
+du__du_i = 1
+du__du_o = -1
+
+[model.cytoplasm.outflow.nucleous.jacobian]
+# du__du_i = 0
+# du__du_o = 0
+```
+:::
 
 ### `[logging]`
 

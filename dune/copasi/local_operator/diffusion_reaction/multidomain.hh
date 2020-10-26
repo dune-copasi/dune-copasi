@@ -693,6 +693,9 @@ public:
 
     auto normal_f = ig.centerUnitOuterNormal();
 
+    auto dn_i = (geo_f.center() - geo_i.center()).two_norm();
+    auto dn_o = (geo_f.center() - geo_o.center()).two_norm();
+
     for (const auto& it : quadratureRule(geo_f, 3)) {
       const auto& position_f = it.position();
 
@@ -723,14 +726,13 @@ public:
 
       if (local_basis_i.order() == 0)
       {
-        RF dn = (geo_f.center() - geo_i.center()).two_norm();
         for (std::size_t comp_i = 0; comp_i < components_i; comp_i++)
         {
           auto comp_o_it = _component_offset.find({domain_i,domain_o,comp_i});
           if (comp_o_it != _component_offset.end())
           {
             std::size_t comp_o = comp_o_it->second;
-            _components_dn[domain_i][comp_i] = (_components[domain_o][comp_o] - _components[domain_i][comp_i])/dn;
+            _components_dn[domain_i][comp_i] = (_components[domain_o][comp_o] - _components[domain_i][comp_i])/dn_i;
           }
         }
       } else {
@@ -745,14 +747,13 @@ public:
 
       if (local_basis_o.order() == 0)
       {
-        RF dn = (geo_f.center() - geo_o.center()).two_norm();
         for (std::size_t comp_o = 0; comp_o < components_i; comp_o++)
         {
           auto comp_i_it = _component_offset.find({domain_o,domain_i,comp_o});
           if (comp_i_it != _component_offset.end())
           {
             std::size_t comp_i = comp_i_it->second;
-            _components_dn[domain_o][comp_o] = (_components[domain_o][comp_o] - _components[domain_i][comp_i])/dn;
+            _components_dn[domain_o][comp_o] = (_components[domain_i][comp_i] - _components[domain_o][comp_o])/dn_o;
           }
         }
       } else {
@@ -763,7 +764,7 @@ public:
 
         for (std::size_t comp_o = 0; comp_o < components_o; comp_o++)
           for (std::size_t j = 0; j < gradphi_i.size(); j++)
-            _components_dn[domain_o][comp_o] += (normal_f * gradphi_o[j]) * x_coeff_local_o(comp_o, j);
+            _components_dn[domain_o][comp_o] -= (normal_f * gradphi_o[j]) * x_coeff_local_o(comp_o, j);
       }
 
       // integration factor
@@ -848,11 +849,11 @@ public:
     if (domain_i == domain_o)
     {
       if constexpr (SubLocalOperator::doAlphaSkeleton)
-      {
         _lops[domain_i]->jacobian_skeleton(ig,lfsu_di,x_i,lfsv_di,lfsu_do,x_o,lfsv_do,mat_ii,mat_io,mat_oi,mat_oo);
-      }
     }
-    else if constexpr (JM == JacobianMethod::Numerical)
+    else
+    {
+      if constexpr (JM == JacobianMethod::Numerical)
       PDELab::NumericalJacobianSkeleton<
         LocalOperatorMultiDomainDiffusionReaction>::jacobian_skeleton(ig,
                                                                       lfsu_i,
@@ -865,8 +866,9 @@ public:
                                                                       mat_io,
                                                                       mat_oi,
                                                                       mat_oo);
-    else
-      interface_jacobian_skeleton(domain_i,domain_o,ig,lfsu_di,x_i,lfsv_di,lfsu_do,x_o,lfsv_do,mat_ii,mat_io,mat_oi,mat_oo);
+      else
+        interface_jacobian_skeleton(domain_i,domain_o,ig,lfsu_di,x_i,lfsv_di,lfsu_do,x_o,lfsv_do,mat_ii,mat_io,mat_oi,mat_oo);
+    }
   }
 
   /**
@@ -907,7 +909,6 @@ public:
   {
     assert(lfsu_di.size() == lfsv_di.size());
     assert(lfsu_do.size() == lfsv_do.size());
-
 
     const auto& entity_f = ig.intersection();
     const auto& entity_i = ig.inside();
@@ -1062,7 +1063,7 @@ public:
           if (comp_i_it != _component_offset.end())
           {
             std::size_t comp_i = comp_i_it->second;
-            _components_dn[domain_o][comp_o] = - (_components[domain_i][comp_i] - _components[domain_o][comp_o])/dn_o;
+            _components_dn[domain_o][comp_o] = (_components[domain_i][comp_i] - _components[domain_o][comp_o])/dn_o;
           }
         }
       } else {
@@ -1073,10 +1074,8 @@ public:
 
         for (std::size_t comp_o = 0; comp_o < components_o; comp_o++)
           for (std::size_t j = 0; j < gradphi_i.size(); j++)
-            _components_dn[domain_o][comp_o] = - (normal_f * gradphi_o[j]) * x_coeff_local_o(comp_o, j);
+            _components_dn[domain_o][comp_o] -= (normal_f * gradphi_o[j]) * x_coeff_local_o(comp_o, j);
       }
-
-
 
       // integration factor
       auto factor = it.weight() * geo_f.integrationElement(position_f);
