@@ -4,6 +4,8 @@
 #include <tuple>
 #include <type_traits>
 
+#include <dune/pdelab/localoperator/flags.hh>
+
 namespace Dune::Copasi {
 
 //! Helper lambda functions which apply functions to local operators
@@ -170,7 +172,7 @@ static auto jacobianApplyBoundary = [](const auto& lop, auto&... args)
 // TODO: fix this problem by zeoring outside part and call outside part.
 // Local operators should only do work for its type of finite element!
 template<class FiniteElementMapper, class... LocalOperators>
-class VariadicLocalOperator
+class VariadicLocalOperator : public PDELab::LocalOperatorDefaultFlags
 {
   template<bool... Args>
   bool constexpr static disjunction()

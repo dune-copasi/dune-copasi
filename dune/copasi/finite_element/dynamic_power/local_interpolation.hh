@@ -16,7 +16,7 @@ namespace Dune::Copasi {
  *
  * @tparam     Interpolation  The base interpolation
  */
-template<class Interpolation>
+template<class Interpolation, class DomainType>
 class DynamicPowerLocalInterpolation
 {
 public:
@@ -100,8 +100,13 @@ public:
   {
     out.clear();
 
+    // convert f in callable
+    auto&& callable =
+      Impl::makeFunctionWithCallOperator<DomainType>(f);
+
+    using Range = decltype(callable(std::declval<DomainType>()));
+
     // the range of the function must be indexable
-    using Range = typename F::RangeType;
     static_assert(IsIndexable<Range>::value);
 
     // if field on the range is indexable, we assume that they correspond to the
@@ -119,17 +124,12 @@ public:
       assert(_power_size == 1);
       _interpolation->interpolate(f, out);
     } else {
-
-      // convert f in callable
-      auto&& callable =
-        Impl::makeFunctionWithCallOperator<typename F::DomainType>(f);
-
       for (std::size_t i = 0; i < _power_size; ++i) {
 
         std::vector<C> base_out;
 
         // specializate callable for component i
-        auto callable_i = [&](typename F::DomainType x) {
+        auto callable_i = [&](const auto& x) {
           return callable(x)[i];
         };
 

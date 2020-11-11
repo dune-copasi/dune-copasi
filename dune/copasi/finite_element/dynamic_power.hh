@@ -30,7 +30,7 @@ class DynamicPowerLocalFiniteElement
   using LocalCoefficients =
     DynamicPowerLocalCoefficients<BaseLocalCoefficients>;
   using LocalInterpolation =
-    DynamicPowerLocalInterpolation<BaseLocalInterpolation>;
+    DynamicPowerLocalInterpolation<BaseLocalInterpolation, typename LocalBasis::Traits::DomainType>;
 
 public:
   using Traits =
