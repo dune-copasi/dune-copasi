@@ -34,6 +34,7 @@ Types of changes
 - Jacobian tests are improved and extended to cover more cases !39
 ### Fixed
 - Improper vector allocation in multidomain intersections !39
+- Final timestep reduction to reach `end_time` failed in adaptive stepper !43
 
 ## [0.3.0] ([git-diff][0.3.0-diff]) - 2020-10-07
 ### Added
