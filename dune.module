@@ -4,7 +4,7 @@
 
 #Name of the module
 Module: dune-copasi
-Version: 0.3.0
+Version: 0.4.0-git
 Maintainer: santiago.ospina@iwr.uni-heidelberg.de
 #depending on
 Depends: dune-logging dune-uggrid (>= 2.6) dune-pdelab (>= 2.6) dune-multidomaingrid (>= 2.6)

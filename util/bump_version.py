@@ -3,6 +3,9 @@
 # This script updates version of the code in all places where it has to be hard coded
 # and it updates the changelog
 
+# TODO update .gitlab.yml for dependency image
+# TODO conditionally to update CHANGELOG
+
 import sys
 import os
 import re
