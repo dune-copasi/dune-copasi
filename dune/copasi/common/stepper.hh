@@ -51,7 +51,9 @@ public:
   template<class System, class State, class Time>
   void do_step(System& system, const State& in, State& out, Time& dt) const
   {
-    asImpl().do_step(system, in, out, dt);
+    DUNE_THROW(NotImplemented,
+               "The derived type '" << className<Impl>()
+                                    << "' lacks implementation of do_step");
   }
 
   /**
@@ -71,7 +73,7 @@ public:
   {
     auto in = system.state();
     auto out = in;
-    do_step(system, in, out, dt);
+    asImpl().do_step(system, in, out, dt);
     if (out)
       system.set_state(out);
   }
@@ -109,14 +111,8 @@ public:
     out = in;
     auto prev_out = in;
     while (FloatCmp::lt<double>(out.time, end_time)) {
-      if (FloatCmp::gt<double>(dt, end_time - out.time)) {
-        logger.detail("Reduce step to match end time: {:.2f}s -> {:.2f}"_fmt,
-                      dt,
-                      end_time - out.time);
-        dt = end_time - out.time;
-      }
       std::swap(prev_out, out);
-      do_step(system, prev_out, out, dt);
+      asImpl().do_step(system, prev_out, out, dt);
       if (not out) {
         logger.warn("Evolving system could not reach final time"_fmt);
         break;
@@ -149,7 +145,7 @@ public:
   {
     auto in = system.state();
     auto out = in;
-    evolve(system, in, out, dt, end_time, callable);
+    asImpl().evolve(system, in, out, dt, end_time, callable);
     if (out)
       system.set_state(out);
   }
@@ -416,6 +412,7 @@ template<class SimpleStepper>
 class SimpleAdaptiveStepper
   : public BaseStepper<SimpleAdaptiveStepper<SimpleStepper>>
 {
+  using Base = BaseStepper<SimpleAdaptiveStepper<SimpleStepper>>;
 public:
   using Time = typename SimpleStepper::Time;
 
@@ -487,6 +484,32 @@ public:
       "Increasing step size: {:.2f}s -> {:.2f}s"_fmt, dt, new_step);
     dt = new_step;
   }
+
+  //! @copydoc BaseStepper::evolve()
+  template<class System, class State, class Time, class Callable>
+  void evolve(
+    System& system,
+    const State& in,
+    State& out,
+    Time& dt,
+    const Time& end_time,
+    Callable&& callable = [](const auto& state) {}) const
+  {
+    Base::evolve(system,in,out,dt,end_time,callable);
+
+    // reduce last timestep adaptively until end_time is exactly reached
+    while (FloatCmp::lt<double>(out.time, end_time)) {
+      if (FloatCmp::gt<double>(dt, end_time - out.time)) {
+        logger().detail("Reduce step to match end time: {:.2f}s -> {:.2f}"_fmt,
+                      dt,
+                      end_time - out.time);
+        dt = end_time - out.time;
+      }
+      _stepper.evolve(system,in,out,dt,end_time,callable);
+    }
+  }
+
+  using Base::evolve;
 
   //! Return stepper logger
   const Logging::Logger& logger() const { return _stepper.logger(); }
