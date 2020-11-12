@@ -81,8 +81,9 @@ public:
   /**
    * @brief Evolve the system until `end_time`
    *
-   * @details The input state is advanced by time steps until `end_time` is
-   * reached and placed in `out` state.
+   * @details The input state is advanced by time steps `dt` to approach
+   * `end_time` from below. The application of each timestep is performed using
+   * the `do_step` method, which may adapt the timestep `dt` adaptively.
    *
    * @tparam System   System that contain suitable operators to advance in time
    * @tparam State    State to perform time-advance with
@@ -110,11 +111,11 @@ public:
     logger.notice("Evolving system: {:.2f}s -> {:.2f}s"_fmt, in.time, end_time);
     out = in;
     auto prev_out = in;
-    while (FloatCmp::lt<double>(out.time, end_time)) {
+    while (FloatCmp::le<double>(out.time+dt, end_time)) {
       std::swap(prev_out, out);
       asImpl().do_step(system, prev_out, out, dt);
       if (not out) {
-        logger.warn("Evolving system could not reach final time"_fmt);
+        logger.warn("Evolving system could not approach final time"_fmt);
         break;
       }
       callable(out);
@@ -124,7 +125,9 @@ public:
   /**
    * @brief Evolve the system until `end_time`
    *
-   * @details The system state is advanced by time steps until `end_time`
+   * @details The input state is advanced by time steps `dt` to approach
+   * `end_time` from below. The application of each timestep is performed using
+   * the `do_step` method, which may adapt the timestep `dt` adaptively.
    *
    * @tparam System   System that contain suitable operators to advance in time
    * @tparam Time     Valid time type to operate with
@@ -497,7 +500,11 @@ public:
   {
     Base::evolve(system,in,out,dt,end_time,callable);
 
+    if (not out)
+      return;
+
     // reduce last timestep adaptively until end_time is exactly reached
+    auto prev_out = out;
     while (FloatCmp::lt<double>(out.time, end_time)) {
       if (FloatCmp::gt<double>(dt, end_time - out.time)) {
         logger().detail("Reduce step to match end time: {:.2f}s -> {:.2f}"_fmt,
@@ -505,7 +512,11 @@ public:
                       end_time - out.time);
         dt = end_time - out.time;
       }
-      _stepper.evolve(system,in,out,dt,end_time,callable);
+      std::swap(prev_out, out);
+      _stepper.do_step(system, prev_out, out, dt);
+      if (not out)
+        out = prev_out; // return the last usable solution
+      callable(out);
     }
   }
 
