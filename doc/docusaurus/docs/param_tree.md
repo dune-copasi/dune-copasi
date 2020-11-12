@@ -59,7 +59,7 @@ model.
 
 | Key | Type | Description |
 | -----------|-----| -------------- |
-| `[<data_name>]` | `path` | 16-bit grayscale TIFF file |
+| `<data_name>` | `path` | 16-bit grayscale TIFF file |
 
 See [Input Data](input_data.md) section for more information about usage.
 
@@ -291,6 +291,13 @@ u = u_i-u_o
 # Flux in cytoplasm equal to the outflow of u in nucleus (assume D = 0.1)
 u = 0.1 * du_o__dn
 ```
+:::
+
+:::caution
+For compartments solved with Finite Volume method, the normal gradient
+`d<var_i>__dn` is only available for variables that exist on both compartments.
+Otherwise, it will be evaluated to
+[NaN](https://en.wikipedia.org/wiki/NaN#Quiet_NaN).
 :::
 
 ##### `[model.<comp_k>.outflow.<comp_l>.jacobian]`

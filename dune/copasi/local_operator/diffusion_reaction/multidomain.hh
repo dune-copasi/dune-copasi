@@ -70,7 +70,7 @@ class LocalOperatorMultiDomainDiffusionReaction
   // interior domain local operators
   std::vector<std::shared_ptr<SubLOP>> _lops;
 
-  // map (domain_i,domain_o,component_i) -> component_o
+  // same-named components (domain_i,domain_o,component_i) -> component_o
   std::map<std::array<std::size_t, 3>, std::size_t> _component_offset;
 
   /// map: (domain_i,domain_o) -> vector of outflow_i persers
@@ -243,8 +243,6 @@ public:
               add_var(parser_i,expr,"d"+component_name[domain_i][comp_i]+"_i__dn", _components_dn[domain_i][comp_i]);
             }
             for (std::size_t comp_o = 0; comp_o < _components[domain_o].size(); ++comp_o) {
-              if (_component_offset.find({domain_o,domain_i,comp_o}) == _component_offset.end())
-                continue;
               add_var(parser_i,expr,component_name[domain_o][comp_o]+"_o", _components[domain_o][comp_o]);
               add_var(parser_i,expr,"d"+component_name[domain_o][comp_o]+"_o__dn", _components_dn[domain_o][comp_o]);
             }
@@ -272,8 +270,6 @@ public:
               add_var(parser_i,expr,"d"+component_name[domain_i][comp_i]+"_i__dn", _components_dn[domain_i][comp_i]);
             }
             for (std::size_t comp_o = 0; comp_o < comp_size_o; ++comp_o) {
-              if (_component_offset.find({domain_o,domain_i,comp_o}) == _component_offset.end())
-                continue;
               add_var(parser_i,expr,component_name[domain_o][comp_o]+"_o", _components[domain_o][comp_o]);
               add_var(parser_i,expr,"d"+component_name[domain_o][comp_o]+"_o__dn", _components_dn[domain_o][comp_o]);
             }
@@ -734,6 +730,9 @@ public:
             std::size_t comp_o = comp_o_it->second;
             _components_dn[domain_i][comp_i] = (_components[domain_o][comp_o] - _components[domain_i][comp_i])/dn_i;
           }
+          else {
+            _components_dn[domain_o][comp_o] = std::numeric_limits<double>::quiet_NaN();
+          }
         }
       } else {
         local_basis_i.evaluateJacobian(position_i,jacphi_i);
@@ -754,6 +753,9 @@ public:
           {
             std::size_t comp_i = comp_i_it->second;
             _components_dn[domain_o][comp_o] = (_components[domain_i][comp_i] - _components[domain_o][comp_o])/dn_o;
+          }
+          else {
+            _components_dn[domain_o][comp_o] = std::numeric_limits<double>::quiet_NaN();
           }
         }
       } else {
@@ -1044,6 +1046,9 @@ public:
             std::size_t comp_o = comp_o_it->second;
             _components_dn[domain_i][comp_i] = (_components[domain_o][comp_o] - _components[domain_i][comp_i])/dn_i;
           }
+          else {
+            _components_dn[domain_o][comp_o] = std::numeric_limits<double>::quiet_NaN();
+          }
         }
       } else {
         local_basis_i.evaluateJacobian(position_i,jacphi_i);
@@ -1064,6 +1069,9 @@ public:
           {
             std::size_t comp_i = comp_i_it->second;
             _components_dn[domain_o][comp_o] = (_components[domain_i][comp_i] - _components[domain_o][comp_o])/dn_o;
+          }
+          else {
+            _components_dn[domain_o][comp_o] = std::numeric_limits<double>::quiet_NaN();
           }
         }
       } else {
