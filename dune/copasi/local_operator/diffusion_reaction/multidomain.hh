@@ -731,7 +731,7 @@ public:
             _components_dn[domain_i][comp_i] = (_components[domain_o][comp_o] - _components[domain_i][comp_i])/dn_i;
           }
           else {
-            _components_dn[domain_o][comp_o] = std::numeric_limits<double>::quiet_NaN();
+            _components_dn[domain_i][comp_i] = std::numeric_limits<double>::quiet_NaN();
           }
         }
       } else {
@@ -1047,7 +1047,7 @@ public:
             _components_dn[domain_i][comp_i] = (_components[domain_o][comp_o] - _components[domain_i][comp_i])/dn_i;
           }
           else {
-            _components_dn[domain_o][comp_o] = std::numeric_limits<double>::quiet_NaN();
+            _components_dn[domain_i][comp_i] = std::numeric_limits<double>::quiet_NaN();
           }
         }
       } else {
