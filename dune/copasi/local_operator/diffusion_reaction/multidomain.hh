@@ -178,16 +178,17 @@ public:
       }
     };
 
-    // Create outflow parsers
+    // Create boundary parsers
     for (std::size_t domain_i = 0; domain_i < _lops.size(); ++domain_i) {
       for (std::size_t domain_o = 0; domain_o < _lops.size(); ++domain_o) {
         _logger.trace("Transmission condition: {} - {}"_fmt, compartment_name[domain_i], compartment_name[domain_o]);
         if (domain_i == domain_o)
           continue;
-        auto& outflow_config = config.sub(compartment_name[domain_i],true).sub("outflow", true);
-        if (not outflow_config.hasSub(compartment_name[domain_o]))
+        auto& boundary_config = config.sub(compartment_name[domain_i],true).sub("boundary", true);
+        if (not boundary_config.hasSub(compartment_name[domain_o]))
           continue;
-        auto& outflow_config_o = outflow_config.sub(compartment_name[domain_o],true);
+        auto& boundary_config_o = boundary_config.sub(compartment_name[domain_o],true);
+        auto& outflow_config = boundary_config_o.sub("outflow",true);
 
         auto& parser = _outflow_parser[{domain_i,domain_o}];
         auto& parser_jac = _outflow_jac_parser[{domain_i,domain_o}];
@@ -200,7 +201,7 @@ public:
 
         // Do parser
         for (std::size_t outflow_i = 0; outflow_i < comp_size_i; ++outflow_i) {
-          auto expr = outflow_config_o.template get<std::string>(component_name[domain_i][outflow_i]);
+          auto expr = outflow_config.template get<std::string>(component_name[domain_i][outflow_i]);
           _logger.debug(2,"Setup expression ({}): {}"_fmt, component_name[domain_i][outflow_i], expr);
 
           auto& parser_i = parser.at(outflow_i);
@@ -224,11 +225,7 @@ public:
           if (JM == JacobianMethod::Numerical)
             continue;
 
-        std::string outflow_jac_section = compartment_name[domain_i]
-                                          + ".outflow."
-                                          + compartment_name[domain_o]
-                                          + ".jacobian";
-        auto& outflow_jac_config = config.sub(outflow_jac_section,true);
+        auto& outflow_jac_config = outflow_config.sub("jacobian",true);
 
           // Do self jacobian
           for (std::size_t outflow_ii = 0; outflow_ii < comp_size_i; ++outflow_ii) {
@@ -259,7 +256,7 @@ public:
           // Do cross jacobian
           for (std::size_t outflow_io = 0; outflow_io < comp_size_o; ++outflow_io) {
 
-            std::string jac_name = "d"+ component_name[domain_i][outflow_i] + "__d" + component_name[domain_o][outflow_io]+"_o";
+            std::string jac_name = "d"+ component_name[domain_i][outflow_i] + "__d" + component_name[domain_o][outflow_io];
             auto expr = outflow_jac_config.template get<std::string>(jac_name,"0");
             _logger.debug(2,"Setup cross jacobian expression ({}): {}"_fmt, jac_name, expr);
 

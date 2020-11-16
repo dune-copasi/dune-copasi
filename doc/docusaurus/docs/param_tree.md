@@ -242,21 +242,19 @@ dv__dv = 2*u*v-(0.0420+0.0610)
 ```
 :::
 
-##### `[model.<comp_k>.outflow]`
+##### `[model.<comp_k>.boundary]`
 
-The outflow section encapsulates the information for the transmmission condition
-$\mathcal{T}^{kl}_\star$. The `[<comp_l>]` subsection will determine the
-outflow conditions for the membrane $\Gamma^{kl}$ where `<comp_k>`
-corresponds to the interior $k$-th domain $\Omega^k$ and `<comp_l>` to
-the exterior $l$-th domain $\Omega^l$.
+The boundary section encapsulates the information for the transmmission condition
+$\mathcal{T}^{kl}_\star$ and boundary coniditions. The `[<comp_l>]` subsection
+will determine the outflow conditions for the membrane $\Gamma^{kl}$ where
+`<comp_k>` corresponds to the interior $k$-th domain $\Omega^k$ and `<comp_l>`
+to the exterior $l$-th domain $\Omega^l$.
 
 | Key | Type | Description |
 | -----------|-----| -------------- |
-| `[<comp_l>]` | subsection | Outflow for membranes between `<comp_k>` and `<comp_l>` |
+| `[<comp_l>.outflow]` | subsection | Outflow for membranes between `<comp_k>` and `<comp_l>` |
 
-<!-- | `[boundary]` | `math_expr` | Outflow configuration for boundary membranes | -->
-
-##### `[model.<comp_k>.outflow.<comp_l>]`
+##### `[model.<comp_k>.boundary.<comp_l>.outflow]`
 
 This section contains the transmmission condition $\mathcal{T}^{kl}_i$ for each
 *variable*, `<var_i>` in `<comp_k>`.
@@ -283,11 +281,11 @@ u^n-u^c$ for the nucleus and $\mathcal{T}^{cn}(u^c,u^n) =
 -\mathsf{D}^n\nabla u^n\cdot \mathbf{n}_T$ for the
 cytoplasm is
 ```ini
-[model.nucleus.outflow.cytoplasm]
+[model.nucleus.boundary.cytoplasm.outflow]
 # Flux proportional to the difference of species
 u = u_i-u_o
 
-[model.cytoplasm.outflow.nucleus]
+[model.cytoplasm.boundary.nucleus.outflow]
 # Flux in cytoplasm equal to the outflow of u in nucleus (assume D = 0.1)
 u = 0.1 * du_o__dn
 ```
@@ -300,7 +298,7 @@ Otherwise, it will be evaluated to
 [NaN](https://en.wikipedia.org/wiki/NaN#Quiet_NaN).
 :::
 
-##### `[model.<comp_k>.outflow.<comp_l>.jacobian]`
+##### `[model.<comp_k>.boundary.<comp_l>.outflow.jacobian]`
 
 The jacobian for the outflow works similarly as the one for the reaction. That
 is, all *variables* from inside and outside are available as well as their
@@ -319,11 +317,11 @@ default and there is only need to specify the non-zero entries.
 Following the example for the outflow, its jacobian would be
 
 ```ini
-[model.nucleus.outflow.cytoplasm.jacobian]
+[model.nucleus.boundary.cytoplasm.outflow.jacobian]
 du__du_i = 1
 du__du_o = -1
 
-[model.cytoplasm.outflow.nucleus.jacobian]
+[model.cytoplasm.boundary.nucleus.outflow.jacobian]
 # du__du_i = 0
 # du__du_o = 0
 ```

@@ -125,7 +125,7 @@ p65_IkB_cytoplasm = 1
 IkBa_mRNA_cytoplasm = 1
 IkBa_cytoplasm = 1
 
-[model.cytoplasm.outflow.cytoplasm_nucleus]
+[model.cytoplasm.boundary.cytoplasm_nucleus.outflow]
 p65_cytoplasm = p65_cytoplasm_i - p65_cytoplasm_o
 IkBa_p = IkBa_p_i - IkBa_p_o
 IKKb = IKKb_i - IKKb_o
@@ -135,7 +135,7 @@ p65_IkB_cytoplasm = p65_IkB_cytoplasm_i - p65_IkB_cytoplasm_o
 IkBa_mRNA_cytoplasm = IkBa_mRNA_cytoplasm_i - IkBa_mRNA_cytoplasm_o
 IkBa_cytoplasm = IkBa_cytoplasm_i - IkBa_cytoplasm_o
 
-[model.cytoplasm.outflow.cytoplasm_nucleus.jacobian]
+[model.cytoplasm.boundary.cytoplasm_nucleus.outflow.jacobian]
 # Self jacobian
 dp65_cytoplasm__dp65_cytoplasm_i = 1
 dIkBa_p__dIkBa_p_i = 1
@@ -217,7 +217,7 @@ p65_IkB_nucleus = 1
 IkBa_mRNA_nucleus = 1
 IkBa_mRNA_1 = 1
 
-[model.nucleus.outflow.cytoplasm_nucleus]
+[model.nucleus.boundary.cytoplasm_nucleus.outflow]
 IkBa_mRNA_2 = IkBa_mRNA_2_i - IkBa_mRNA_2_o
 p65_nucleus = p65_nucleus_i - p65_nucleus_o
 IkBa_nucleus = IkBa_nucleus_i - IkBa_nucleus_o
@@ -225,7 +225,7 @@ p65_IkB_nucleus = p65_IkB_nucleus_i - p65_IkB_nucleus_o
 IkBa_mRNA_nucleus = IkBa_mRNA_nucleus_i - IkBa_mRNA_nucleus_o
 IkBa_mRNA_1 = IkBa_mRNA_1_i - IkBa_mRNA_1_o
 
-[model.nucleus.outflow.cytoplasm_nucleus.jacobian]
+[model.nucleus.boundary.cytoplasm_nucleus.outflow.jacobian]
 # Self jacobian
 dIkBa_mRNA_2__dIkBa_mRNA_2_i = 1
 dp65_nucleus__dp65_nucleus_i = 1
@@ -487,7 +487,7 @@ p65_IkB_nucleus = 1
 IkBa_mRNA_nucleus = 1
 IkBa_mRNA_1 = 1
 
-[model.cytoplasm_nucleus.outflow.cytoplasm]
+[model.cytoplasm_nucleus.boundary.cytoplasm.outflow]
 p65_cytoplasm = p65_cytoplasm_i - p65_cytoplasm_o
 IkBa_p = IkBa_p_i - IkBa_p_o
 IKKb = IKKb_i - IKKb_o
@@ -503,7 +503,7 @@ p65_IkB_nucleus = 0
 IkBa_mRNA_nucleus = 0
 IkBa_mRNA_1 = 0
 
-[model.cytoplasm_nucleus.outflow.nucleus]
+[model.cytoplasm_nucleus.boundary.nucleus.outflow]
 p65_cytoplasm = 0
 IkBa_p = 0
 IKKb = 0
@@ -519,7 +519,7 @@ p65_IkB_nucleus = p65_IkB_nucleus_i - p65_IkB_nucleus_o
 IkBa_mRNA_nucleus = IkBa_mRNA_nucleus_i - IkBa_mRNA_nucleus_o
 IkBa_mRNA_1 = IkBa_mRNA_1_i - IkBa_mRNA_1_o
 
-[model.cytoplasm_nucleus.outflow.nucleus.jacobian]
+[model.cytoplasm_nucleus.boundary.nucleus.outflow.jacobian]
 # Self jacobian
 dIkBa_mRNA_2__dIkBa_mRNA_2_i = 1
 dp65_nucleus__dp65_nucleus_i = 1

@@ -44,10 +44,10 @@ du_du = -5
 [model.cell.diffusion]
 u = 1.
 
-[model.cell.outflow.nucleus]
+[model.cell.boundary.nucleus.outflow]
 u = u_i-u_o
 
-[model.cell.outflow.nucleus.jacobian]
+[model.cell.boundary.nucleus.outflow.jacobian]
 du__du_i = 1
 du__du_o = -1
 
@@ -70,11 +70,11 @@ dv_dv = 0
 u = 1.
 v = 1.
 
-[model.nucleus.outflow.cell]
+[model.nucleus.boundary.cell.outflow]
 u = u_i-u_o
 v = 0
 
-[model.nucleus.outflow.cell.jacobian]
+[model.nucleus.boundary.cell.outflow.jacobian]
 du__du_i = 1
 du__du_o = -1
 

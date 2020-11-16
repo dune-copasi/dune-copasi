@@ -45,10 +45,10 @@ du_du = 0
 [model.cubes.diffusion]
 u = {_diffusion}
 
-[model.cubes.outflow.triangles]
+[model.cubes.boundary.triangles.outflow]
 u = u_i-u_o
 
-[model.cubes.outflow.triangles.jacobian]
+[model.cubes.boundary.triangles.outflow.jacobian]
 du__du_i = 1
 du__du_o = -1
 
@@ -71,10 +71,10 @@ du_du = 0
 [model.triangles.diffusion]
 u = {_diffusion}
 
-[model.triangles.outflow.cubes]
+[model.triangles.boundary.cubes.outflow]
 u = u_i-u_o
 
-[model.triangles.outflow.cubes.jacobian]
+[model.triangles.boundary.cubes.outflow.jacobian]
 du__du_i = 1
 du__du_o = -1
 
