@@ -303,7 +303,7 @@ public:
 
     if (domain_i == domain_o) {
       if constexpr (SubLOP::doSkipIntersection)
-        _local_operator[domain_i]->skip_intersection(ig,skip);
+        _lops[domain_i]->skip_intersection(ig,skip);
       else
         skip |= true;
     }
