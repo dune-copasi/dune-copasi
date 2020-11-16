@@ -225,7 +225,7 @@ public:
           if (JM == JacobianMethod::Numerical)
             continue;
 
-        auto& outflow_jac_config = outflow_config.sub("jacobian",true);
+        auto& outflow_jac_config = outflow_config.sub("jacobian");
 
           // Do self jacobian
           for (std::size_t outflow_ii = 0; outflow_ii < comp_size_i; ++outflow_ii) {
