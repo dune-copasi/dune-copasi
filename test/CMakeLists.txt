@@ -86,6 +86,10 @@ if (dune-testtools_FOUND)
     INIFILE         test_tiff.mini)
 
   add_system_test_per_target(
+    TARGET          dune_copasi_sd
+    INIFILE         test_brusselator.mini)
+
+  add_system_test_per_target(
     TARGET          dune_copasi_md
     SCRIPT          dune_vtkcompare.py
     INIFILE         test_tiff.mini)

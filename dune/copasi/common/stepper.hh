@@ -82,7 +82,7 @@ public:
    * @brief Evolve the system until `end_time`
    *
    * @details The input state is advanced by time steps `dt` to approach
-   * `end_time` from below. The application of each timestep is performed using
+   * `end_time`. The application of each timestep is performed using
    * the `do_step` method, which may adapt the timestep `dt` adaptively.
    *
    * @tparam System   System that contain suitable operators to advance in time
@@ -97,6 +97,8 @@ public:
    * @param end_time  Final time that `out` state must reach
    * @param callable  A function called with an state at the end of each
    * succesful step
+   * @param snap_to_end_time True if `end_time` must be reached exactly,
+   * otherwise it will be reached from below with the provided dt.
    */
   template<class System, class State, class Time, class Callable>
   void evolve(
@@ -105,7 +107,8 @@ public:
     State& out,
     Time& dt,
     const Time& end_time,
-    Callable&& callable = [](const auto& state) {}) const
+    Callable&& callable = [](const auto& state) {},
+    bool snap_to_end_time = true) const
   {
     const auto& logger = asImpl().logger();
     logger.notice("Evolving system: {:.2f}s -> {:.2f}s"_fmt, in.time, end_time);
@@ -120,13 +123,19 @@ public:
       }
       callable(out);
     }
+
+    if (out and snap_to_end_time)
+    {
+      std::swap(prev_out, out);
+      asImpl().snap_to_time(system,prev_out,out,dt,end_time,callable);
+    }
   }
 
   /**
    * @brief Evolve the system until `end_time`
    *
    * @details The input state is advanced by time steps `dt` to approach
-   * `end_time` from below. The application of each timestep is performed using
+   * `end_time`. The application of each timestep is performed using
    * the `do_step` method, which may adapt the timestep `dt` adaptively.
    *
    * @tparam System   System that contain suitable operators to advance in time
@@ -138,19 +147,108 @@ public:
    * @param end_time  Final time that `out` state must reach
    * @param callable  A function called with an state at the end of each
    * succesful step
+   * @param snap_to_end_time True if `end_time` must be reached exactly,
+   * otherwise it will be reached from below with the provided dt.
    */
   template<class System, class Time, class Callable>
   void evolve(
     System& system,
     Time& dt,
     const Time& end_time,
-    Callable&& callable = [](const auto& state) {}) const
+    Callable&& callable = [](const auto& state) {},
+    bool snap_to_end_time = true) const
   {
     auto in = system.state();
     auto out = in;
-    asImpl().evolve(system, in, out, dt, end_time, callable);
+    asImpl().evolve(system, in, out, dt, end_time, callable, snap_to_end_time);
     if (out)
       system.set_state(out);
+  }
+
+  /**
+   * @brief Snap the output to a specific time
+   * @details This method is used to advance very small timesteps with a very
+   * basic adaptivity algorithm. It differs from evolve in that the steps
+   * might be done with a more suitable stepper for wide range of timesteps.
+   *
+   * @tparam System   System that contain suitable operators to advance in time
+   * @tparam Time     Valid time type to operate with
+   * @param system    System that contain suitable operators to advance in time.
+   * If the step is not possible, the system stays with its initial state
+   * @param dt        Delta time to perform first step. If the step is not
+   * possible, stepper may modify it to a suitable value
+   * @param snap_time  Final time that `out` state must reach
+   * @param callable  A function called with an state at the end of each
+   * succesful step
+   */
+  template<class System, class State, class Time, class Callable>
+  void snap_to_time(
+    System& system,
+    const State& in,
+    State& out,
+    Time& dt,
+    const Time& snap_time,
+    Callable&& callable) const
+  {
+    // use self implementation as default stepper
+    snap_to_time(asImpl(),system,in,out,dt,snap_time,callable);
+  }
+
+protected:
+  /**
+   * @copydoc BaseStepper::snap_to_time()
+   * @details Default implementation
+   *
+   * @tparam Stepper Class that fullfils the stepper interface.
+   * @param stepper object to perfom `do_step` with.
+   */
+  template<class Stepper, class System, class State, class Time, class Callable>
+  static void snap_to_time(
+    const Stepper& stepper,
+    System& system,
+    const State& in,
+    State& out,
+    Time& dt,
+    const Time& snap_time,
+    Callable&& callable)
+  {
+    auto& logger = stepper.logger();
+
+    logger.info(2, "Snapping current time to {:.2f}"_fmt, snap_time);
+
+    // enough iterations to explore 4 orders of magnitude
+    std::size_t max_it = 15, it = 0;
+
+    // reduce last timestep adaptively until time is exactly reached
+    out = in;
+    auto prev_out = in;
+    while (FloatCmp::lt<double>(out.time, snap_time)) {
+
+      if (max_it == it++) {
+        DUNE_THROW(RangeError,
+                   "Snapping time exceeded maximum interation count");
+        return;
+      }
+
+      auto new_dt = std::min(dt, snap_time - out.time);
+      logger.detail(2, "Snapping step size {:.2f}s -> {:.2f}s"_fmt, dt, new_dt);
+      dt = new_dt;
+
+      std::swap(prev_out, out);
+      stepper.do_step(system, prev_out, out, dt);
+
+      if (out) {
+        callable(out);
+        logger.detail(
+          2, "Increasing step size: {:.2f}s -> {:.2f}s"_fmt, dt, dt * 1.5);
+        dt *= 1.5;
+      } else {
+        out = prev_out;
+        logger.detail(
+          2, "Reducing step size: {:.2f}s -> {:.2f}s"_fmt, dt, dt * 0.5);
+        dt *= 0.5;
+      }
+    }
   }
 
 private:
@@ -281,11 +379,11 @@ public:
 
     } catch (const Dune::PDELab::NewtonError& e) {
       out.coefficients.reset(); // set output to an invalid state
-      _logger.warn("Step failed (NewtonError)"_fmt);
+      _logger.warn(2, "Step failed (NewtonError)"_fmt);
       _logger.trace("{}"_fmt, e.what());
     } catch (const Dune::MathError& e) {
       out.coefficients.reset(); // set output to an invalid state
-      _logger.warn("Step failed (MathError)"_fmt);
+      _logger.warn(2, "Step failed (MathError)"_fmt);
       _logger.trace("{}"_fmt, e.what());
     }
 
@@ -471,8 +569,8 @@ public:
 
     _stepper.do_step(system, in, out, dt);
     while (not out) {
-      logger().warn(
-        "Reducing step size: {}s -> {}s"_fmt, dt, dt * _decrease_factor);
+      logger().detail(2,
+        "Reducing step size: {:.2f}s -> {:.2f}s"_fmt, dt, dt * _decrease_factor);
       dt = dt * _decrease_factor;
       if (FloatCmp::lt<Time>(dt, _min_step))
         DUNE_THROW(MathError,
@@ -483,44 +581,28 @@ public:
     }
 
     auto new_step = std::min<Time>(_max_step, dt * _increase_factor);
-    logger().detail(
+    logger().detail(2,
       "Increasing step size: {:.2f}s -> {:.2f}s"_fmt, dt, new_step);
     dt = new_step;
   }
 
-  //! @copydoc BaseStepper::evolve()
+  /**
+   * @copydoc BaseStepper::snap_to_time()
+   * @details This class overloads the default implementation in oder to make
+   * steps with the simple stepper. That is, without restrictions on maximum and
+   * minimum timesteps.
+   */
   template<class System, class State, class Time, class Callable>
-  void evolve(
+  void snap_to_time(
     System& system,
     const State& in,
     State& out,
     Time& dt,
-    const Time& end_time,
-    Callable&& callable = [](const auto& state) {}) const
+    const Time& time,
+    Callable&& callable) const
   {
-    Base::evolve(system,in,out,dt,end_time,callable);
-
-    if (not out)
-      return;
-
-    // reduce last timestep adaptively until end_time is exactly reached
-    auto prev_out = out;
-    while (FloatCmp::lt<double>(out.time, end_time)) {
-      if (FloatCmp::gt<double>(dt, end_time - out.time)) {
-        logger().detail("Reduce step to match end time: {:.2f}s -> {:.2f}"_fmt,
-                      dt,
-                      end_time - out.time);
-        dt = end_time - out.time;
-      }
-      std::swap(prev_out, out);
-      _stepper.do_step(system, prev_out, out, dt);
-      if (not out)
-        out = prev_out; // return the last usable solution
-      callable(out);
-    }
+    Base::snap_to_time(_stepper,system,in,out,dt,time,callable);
   }
-
-  using Base::evolve;
 
   //! Return stepper logger
   const Logging::Logger& logger() const { return _stepper.logger(); }
