@@ -30,12 +30,14 @@ Types of changes
 ### Added
 - Skip intersection methods in local operators !36
 - Parameters to control Newton's method !30
+- Stepper interface to snap solution to a specific time !45
 ### Removed
 - Jacobian operator is managed by the stepper instead of the model !39
 - Jacobian tests are improved and extended to cover more cases !39
 ### Fixed
 - Improper vector allocation in multidomain intersections !39
 - Final timestep reduction to reach `end_time` failed in adaptive stepper !43
+- Infinite loop when final adaptive step failed !45
 
 ## [0.3.0] ([git-diff][0.3.0-diff]) - 2020-10-07
 ### Added

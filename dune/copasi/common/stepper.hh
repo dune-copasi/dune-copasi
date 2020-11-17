@@ -182,16 +182,15 @@ public:
    * succesful step
    */
   template<class System, class State, class Time, class Callable>
-  void snap_to_time(
-    System& system,
-    const State& in,
-    State& out,
-    Time& dt,
-    const Time& snap_time,
-    Callable&& callable) const
+  void snap_to_time(System& system,
+                    const State& in,
+                    State& out,
+                    Time& dt,
+                    const Time& snap_time,
+                    Callable&& callable) const
   {
     // use self implementation as default stepper
-    snap_to_time(asImpl(),system,in,out,dt,snap_time,callable);
+    snap_to_time(asImpl(), system, in, out, dt, snap_time, callable);
   }
 
 protected:
@@ -203,14 +202,13 @@ protected:
    * @param stepper object to perfom `do_step` with.
    */
   template<class Stepper, class System, class State, class Time, class Callable>
-  static void snap_to_time(
-    const Stepper& stepper,
-    System& system,
-    const State& in,
-    State& out,
-    Time& dt,
-    const Time& snap_time,
-    Callable&& callable)
+  static void snap_to_time(const Stepper& stepper,
+                           System& system,
+                           const State& in,
+                           State& out,
+                           Time& dt,
+                           const Time& snap_time,
+                           Callable&& callable)
   {
     auto& logger = stepper.logger();
 
@@ -593,15 +591,14 @@ public:
    * minimum timesteps.
    */
   template<class System, class State, class Time, class Callable>
-  void snap_to_time(
-    System& system,
-    const State& in,
-    State& out,
-    Time& dt,
-    const Time& time,
-    Callable&& callable) const
+  void snap_to_time(System& system,
+                    const State& in,
+                    State& out,
+                    Time& dt,
+                    const Time& time,
+                    Callable&& callable) const
   {
-    Base::snap_to_time(_stepper,system,in,out,dt,time,callable);
+    Base::snap_to_time(_stepper, system, in, out, dt, time, callable);
   }
 
   //! Return stepper logger
