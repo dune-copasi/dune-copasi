@@ -6,6 +6,7 @@
 
 #include <tiffio.h>
 
+#include <algorithm>
 #include <memory>
 #include <queue>
 #include <string>
@@ -173,18 +174,12 @@ public:
   template<class DF>
   double operator()(const DF& x, const DF& y)
   {
-    // return 0 if not in the domain
-    if (FloatCmp::lt((float)x, _x_off) or FloatCmp::lt((float)y, _y_off))
-      return 0;
-
-    const T i = _x_res * (_x_off + x);
-    const T j = _row_size - _y_res * (_y_off + y) - 1;
-
-    // return 0 if not in the domain
-    if (i >= cols() or j >= rows())
-      return 0;
-    else
-      return (*this)[j][i];
+    int i = static_cast<int>(_x_res * (x - _x_off));
+    int j = _row_size - static_cast<int>(_y_res * (y - _y_off)) - 1;
+    // clamp invalid pixel indices to nearest valid pixel
+    i = std::clamp(i, 0, _col_size - 1);
+    j = std::clamp(j, 0, _row_size - 1);
+    return (*this)[j][i];
   }
 
   /**
