@@ -32,7 +32,7 @@ expressions:
 
 Additionally, there are other variables that are conditionally available to
 define the expression. These variables depend on the context of its definition.
-An example of it, is the reaction expressions within a compartment. If the
+An example of it is the reaction expressions within a compartment. If the
 section `[model.nucleous.reaction]` defines expresions `u`, `v`, and `w`,
 then, they all will be available to each other. E.g.
 

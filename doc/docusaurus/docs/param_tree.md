@@ -9,27 +9,26 @@ sidebar_label: Parameter Tree
 A parameter tree is a collection of *key–value pairs* that may be grouped by
 sections. We call it a *tree* because sections may contain also other sections.
 Here, we follow the [`DUNE` ini file convention](ini_file.md) to refer to
-sections and keyords. In addition, keywords between angle brackets (i.e.
-`<key>`) refer to **multiple** user defined keywords.
+sections and keywords. In addition, keywords between angle brackets (i.e.
+`<key>`) are references to **multiple** user-defined keywords of the same kind.
 
 ### `[grid]`
 
 The grid is entred by a [GMSH file][GMSH] and should be formed by triangles and
-recangles in 2D, tetraedra and hexahedra in 3D. It must define
-*physical group*s each refering to a different compartment.
+recangles in 2D or tetraedra and hexahedra in 3D. It must define
+*physical group*s, each refering to a different compartment.
 Each *physical group* can only be formed the same collection of geometric types.
 
-:::caution Bug in GMSH reader
-The GMSH file should not contain the `$PhysicalGroup` section at the
-begining of the file (this is a knwon bug in the `dune-grid` GMSH reader).
-:::
-
-| Key | Type |Description |
+| Key | Type | Description |
 | ----------------| -------------- | ----- |
 | `dimension`     | `integer` | The dimension of the grid |
 | `file`          | `path` | [GMSH v2 file][GMSH] directory absolute or relative to the executable |
 | `initial_level` | `integer` | The refinement level to start the simulation with |
 
+:::caution Bug in GMSH reader
+The GMSH file should not contain the `$PhysicalGroup` section at the
+begining of the file (this is a knwon bug in the `dune-grid` GMSH reader).
+:::
 
 ### `[model]`
 
@@ -159,7 +158,7 @@ the same namings must be used on all the `[model.<comp_k>]` subsections.
 | `[initial]` | subsection | List of *variables* and their initial conditions |
 | `[diffusion]` | subsection | List of *variables* and their diffusion coefficient |
 | `[reaction]` | subsection | List of *variables* and their reaction networks |
-| `[outflow]` | subsection | Definition of output fluxes on this `<comp_k>` |
+| `[boundary]` | subsection | Definition of boundary fluxes on this `<comp_k>` |
 
 ##### `[model.<comp_k>.initial]`
 
@@ -244,9 +243,9 @@ dv__dv = 2*u*v-(0.0420+0.0610)
 
 ##### `[model.<comp_k>.boundary]`
 
-The boundary section encapsulates the information for the transmmission condition
-$\mathcal{T}^{kl}_\star$ and boundary coniditions. The `[<comp_l>]` subsection
-will determine the outflow conditions for the membrane $\Gamma^{kl}$ where
+The boundary section encapsulates the information for the transmmission conditios
+$\mathcal{T}^{kl}_\star$. It contains subsections for every other compartment
+`<comp_l>` making reference to the membrane defined by $\Gamma^{kl}$, where
 `<comp_k>` corresponds to the interior $k$-th domain $\Omega^k$ and `<comp_l>`
 to the exterior $l$-th domain $\Omega^l$.
 
@@ -301,8 +300,8 @@ Otherwise, it will be evaluated to
 ##### `[model.<comp_k>.boundary.<comp_l>.outflow.jacobian]`
 
 The jacobian for the outflow works similarly as the one for the reaction. That
-is, all *variables* from inside and outside are available as well as their
-normal gradients. Additionally, you have to distiguish between jacobians with
+is, all *variables* from inside and outside as well as their normal gradients
+are available. Additionally, you have to distiguish between jacobians with
 respect to inside and outside *variables*.
 
 | Key | Type | Description |
@@ -310,8 +309,8 @@ respect to inside and outside *variables*.
 | `d<var_i>__d<var_j>_i` | `math_expr` | Self-domain jacobian entries |
 | `d<var_i>__d<var_j>_o` | `math_expr` | Cross-domain jacobian entries |
 
-Now, since in most cases these jacobians are zero, that case is assumed by
-default and there is only need to specify the non-zero entries.
+Now, since in most cases these jacobians are zero, there is only need to specify
+the non-zero entries. The rest will be assumed to be zero.
 
 :::tip Example
 Following the example for the outflow, its jacobian would be
