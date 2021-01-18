@@ -21,6 +21,8 @@
 #include <algorithm>
 #include <map>
 #include <vector>
+#include <utility>
+#include <set>
 
 namespace Dune::Copasi {
 
@@ -73,6 +75,9 @@ class LocalOperatorMultiDomainDiffusionReaction
 
   // same-named components (domain_i,domain_o,component_i) -> component_o
   std::map<std::array<std::size_t, 3>, std::size_t> _component_offset;
+
+  // cross jacobian indices (domain_i,domain_o,component_i) -> (self jacobian, cross jacobian indices)
+  std::map<std::array<std::size_t, 3>, std::pair<std::set<std::size_t>,std::set<std::size_t>>> _jac_map;
 
   /// map: (domain_i,domain_o) -> vector of outflow_i persers
   std::map<std::array<std::size_t,2>,std::vector<mu::Parser>> _outflow_parser;
@@ -134,7 +139,7 @@ public:
         std::make_shared<SubLOP>(sub_grid_view, sub_config);
     }
 
-    // create mapping between all inside and outside components
+    // create mapping between all inside and outside components (only for FV)
     _components.resize(_lops.size());
     _components_dn.resize(_lops.size());
     for (std::size_t domain_i = 0; domain_i < _lops.size(); ++domain_i) {
@@ -167,6 +172,8 @@ public:
           parser.DefineVar(name, &var);
         }
       };
+
+    // TODO fill _jac_map with indices of non-zero entries
 
     // Create boundary parsers
     for (std::size_t domain_i = 0; domain_i < _lops.size(); ++domain_i) {
@@ -203,6 +210,8 @@ public:
                         component_name[domain_i][outflow_i],
                         expr);
 
+          std::set<std::size_t> self_map, cross_map;
+
           auto& parser_o = parser.at(outflow_i);
           for (std::size_t comp_i = 0; comp_i < comp_size_i; ++comp_i) {
             add_var(parser_o,
@@ -213,6 +222,8 @@ public:
                     expr,
                     "d" + component_name[domain_i][comp_i] + "_i__dn",
                     _components_dn[domain_i][comp_i]);
+            if (expr.find(component_name[domain_i][comp_i] + "_i") != std::string::npos)
+              self_map.insert(comp_i);
           }
           for (std::size_t comp_o = 0; comp_o < comp_size_o; ++comp_o) {
             add_var(parser_o,
@@ -223,6 +234,8 @@ public:
                     expr,
                     "d" + component_name[domain_o][comp_o] + "_o__dn",
                     _components_dn[domain_o][comp_o]);
+            if (expr.find(component_name[domain_o][comp_o] + "_o") != std::string::npos)
+              cross_map.insert(comp_o);
           }
 
           try {
@@ -232,6 +245,9 @@ public:
           } catch (mu::Parser::exception_type& e) {
             Impl::handle_parser_error(e);
           }
+
+          _jac_map[std::array{ domain_i, domain_o, outflow_i }] =
+            std::make_pair(std::move(self_map), std::move(cross_map));
 
           if (JM == JacobianMethod::Numerical)
             continue;
@@ -386,47 +402,59 @@ public:
    * @tparam     LFSV          The test local function space
    * @tparam     LocalPattern  The local pattern
    */
-  // template<typename LFSU, typename LFSV, typename LocalPattern>
-  // void interface_pattern_skeleton(std::size_t domain_i, std::size_t domain_o,
-  //                       const LFSU& lfsu_di,
-  //                       const LFSV& lfsv_di,
-  //                       const LFSU& lfsu_do,
-  //                       const LFSV& lfsv_do,
-  //                       LocalPattern& pattern_io,
-  //                       LocalPattern& pattern_oi) const
-  // {
-  //   auto lfs_size_i = lfsu_di.degree();
-  //   for (std::size_t comp_i = 0; comp_i < lfs_size_i; ++comp_i) {
-  //     std::array<std::size_t, 3> inside_comp{ domain_i, domain_o, comp_i };
-  //     auto it = _component_offset.find(inside_comp);
-  //     if (it != _component_offset.end()) {
-  //       auto comp_o = it->second;
-  //       auto& lfsv_ci = lfsv_di.child(comp_i);
-  //       auto& lfsu_co = lfsu_do.child(comp_o);
-  //       for (std::size_t dof_i = 0; dof_i < lfsv_ci.size(); dof_i++) {
-  //         for (std::size_t dof_o = 0; dof_o < lfsu_co.size(); dof_o++) {
-  //           pattern_io.addLink(lfsv_ci, dof_i, lfsu_co, dof_o);
-  //         }
-  //       }
-  //     }
-  //   }
+  template<typename LFSU, typename LFSV, typename LocalPattern>
+  void interface_pattern_skeleton(std::size_t domain_i, std::size_t domain_o,
+                        const LFSU& lfsu_di,
+                        const LFSV& lfsv_di,
+                        const LFSU& lfsu_do,
+                        const LFSV& lfsv_do,
+                        LocalPattern& pattern_io,
+                        LocalPattern& pattern_oi) const
+  {
+    for (std::size_t comp_i = 0; comp_i < lfsu_di.degree(); ++comp_i) {
+      auto& lfsv_ci = lfsv_di.child(comp_i);
+      std::array<std::size_t, 3> inside_comp{ domain_i, domain_o, comp_i };
+      auto it = _jac_map.find(inside_comp);
+      if (it != _jac_map.end())
+        continue;
+      auto& self_map = it->second.first;
+      auto& cross_map = it->second.second;
+      for (auto&& comp_ii : self_map) {
+        auto& lfsu_cii = lfsu_di.child(comp_ii);
+        for (std::size_t dof_i = 0; dof_i < lfsv_ci.size(); dof_i++)
+          for (std::size_t dof_ii = 0; dof_ii < lfsu_cii.size(); dof_ii++)
+            pattern_io.addLink(lfsv_ci, dof_i, lfsu_cii, dof_ii);
+      }
+      for (auto&& comp_o : cross_map) {
+        auto& lfsu_co = lfsu_do.child(comp_o);
+        for (std::size_t dof_i = 0; dof_i < lfsv_ci.size(); dof_i++)
+          for (std::size_t dof_o = 0; dof_o < lfsu_co.size(); dof_o++)
+            pattern_io.addLink(lfsv_ci, dof_i, lfsu_co, dof_o);
+      }
+    }
 
-  //   auto lfs_size_o = lfsu_do.degree();
-  //   for (std::size_t comp_o = 0; comp_o < lfs_size_o; ++comp_o) {
-  //     std::array<std::size_t, 3> outside_comp{ domain_o, domain_i, comp_o };
-  //     auto it = _component_offset.find(outside_comp);
-  //     if (it != _component_offset.end()) {
-  //       auto comp_i = it->second;
-  //       auto& lfsv_co = lfsv_do.child(comp_o);
-  //       auto& lfsu_ci = lfsu_di.child(comp_i);
-  //       for (std::size_t dof_o = 0; dof_o < lfsv_co.size(); dof_o++) {
-  //         for (std::size_t dof_i = 0; dof_i < lfsu_ci.size(); dof_i++) {
-  //           pattern_oi.addLink(lfsv_co, dof_o, lfsu_ci, dof_i);
-  //         }
-  //       }
-  //     }
-  //   }
-  // }
+    for (std::size_t comp_o = 0; comp_o < lfsu_do.degree(); ++comp_o) {
+      auto& lfsv_co = lfsv_do.child(comp_o);
+      std::array<std::size_t, 3> outside_comp{ domain_o, domain_i, comp_o };
+      auto it = _jac_map.find(outside_comp);
+      if (it != _jac_map.end())
+        continue;
+      auto& self_map = it->second.first;
+      auto& cross_map = it->second.second;
+      for (auto&& comp_oo : self_map) {
+        auto& lfsu_coo = lfsu_do.child(comp_oo);
+        for (std::size_t dof_o = 0; dof_o < lfsv_co.size(); dof_o++)
+          for (std::size_t dof_oo = 0; dof_oo < lfsu_coo.size(); dof_oo++)
+            pattern_oi.addLink(lfsv_co, dof_o, lfsu_coo, dof_oo);
+      }
+      for (auto&& comp_i : cross_map) {
+        auto& lfsu_ci = lfsu_do.child(comp_i);
+        for (std::size_t dof_o = 0; dof_o < lfsv_co.size(); dof_o++)
+          for (std::size_t dof_i = 0; dof_i < lfsu_ci.size(); dof_i++)
+            pattern_oi.addLink(lfsv_co, dof_o, lfsu_ci, dof_i);
+      }
+    }
+  }
 
   /**
    * @brief      Pattern sckeleton
@@ -474,8 +502,7 @@ public:
     assert(lfsu_do.degree() == lfsv_do.degree());
 
     if (domain_i != domain_o)
-      Dune::PDELab::FullSkeletonPattern{}.pattern_skeleton(lfsu_di,lfsv_di,lfsu_do,lfsv_do,pattern_io,pattern_oi);
-      // interface_pattern_skeleton(domain_i,domain_o,lfsu_di,lfsv_di,lfsu_do,lfsv_do,pattern_io,pattern_oi);
+      interface_pattern_skeleton(domain_i,domain_o,lfsu_di,lfsv_di,lfsu_do,lfsv_do,pattern_io,pattern_oi);
     else if constexpr (SubLOP::doPatternSkeleton)
       _lops[domain_i]->pattern_skeleton(lfsu_di,lfsv_di,lfsu_do,lfsv_do,pattern_io,pattern_oi);
   }
