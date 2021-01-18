@@ -102,7 +102,7 @@ public:
 
     // convert f in callable
     auto&& callable =
-      Impl::makeFunctionWithCallOperator<DomainType>(f);
+      ::Dune::Impl::makeFunctionWithCallOperator<DomainType>(f);
 
     using Range = decltype(callable(std::declval<DomainType>()));
 
