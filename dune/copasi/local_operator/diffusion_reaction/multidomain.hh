@@ -120,29 +120,34 @@ public:
     // create local operators for each compartment
     for (std::size_t i = 0; i < _lops.size(); ++i) {
       int sub_domain_id =
-        config.sub("compartments",true).template get<int>(compartment_name[i]);
+        config.sub("compartments", true).template get<int>(compartment_name[i]);
       GridView sub_grid_view = grid->subDomain(sub_domain_id).leafGridView();
 
-      const auto& sub_config = config.sub(compartment_name[sub_domain_id],true);
-      component_name[sub_domain_id] = sub_config.sub("reaction",true).getValueKeys();
-      std::sort(component_name[sub_domain_id].begin(), component_name[sub_domain_id].end());
+      const auto& sub_config =
+        config.sub(compartment_name[sub_domain_id], true);
+      component_name[sub_domain_id] =
+        sub_config.sub("reaction", true).getValueKeys();
+      std::sort(component_name[sub_domain_id].begin(),
+                component_name[sub_domain_id].end());
 
-      _lops[sub_domain_id] = std::make_shared<SubLOP>(sub_grid_view, sub_config);
+      _lops[sub_domain_id] =
+        std::make_shared<SubLOP>(sub_grid_view, sub_config);
     }
 
     // create mapping between all inside and outside components
     _components.resize(_lops.size());
     _components_dn.resize(_lops.size());
     for (std::size_t domain_i = 0; domain_i < _lops.size(); ++domain_i) {
-      _components[domain_i].assign(component_name[domain_i].size(),std::numeric_limits<double>::quiet_NaN());
-      _components_dn[domain_i].assign(component_name[domain_i].size(),std::numeric_limits<double>::quiet_NaN());
+      _components[domain_i].assign(component_name[domain_i].size(),
+                                   std::numeric_limits<double>::quiet_NaN());
+      _components_dn[domain_i].assign(component_name[domain_i].size(),
+                                      std::numeric_limits<double>::quiet_NaN());
       for (std::size_t comp_i = 0; comp_i < component_name[domain_i].size();
            comp_i++) {
         for (std::size_t domain_o = 0; domain_o < _lops.size(); ++domain_o) {
           if (domain_i == domain_o)
             continue;
-          for (std::size_t comp_o = 0;
-               comp_o < component_name[domain_o].size();
+          for (std::size_t comp_o = 0; comp_o < component_name[domain_o].size();
                comp_o++) {
             if (component_name[domain_i][comp_i] ==
                 component_name[domain_o][comp_o]) {
@@ -155,28 +160,34 @@ public:
     }
 
     // Helper lambda to register variables into the parser
-    auto add_var = [&](auto& parser, const auto& expr, const auto& name, auto& var) {
-      if (expr.find(name) != std::string::npos){
-        _logger.trace(4,"Adding variable: {}"_fmt, name);
-        parser.DefineVar(name, &var);
-      }
-    };
+    auto add_var =
+      [&](auto& parser, const auto& expr, const auto& name, auto& var) {
+        if (expr.find(name) != std::string::npos) {
+          _logger.trace(4, "Adding variable: {}"_fmt, name);
+          parser.DefineVar(name, &var);
+        }
+      };
 
     // Create boundary parsers
     for (std::size_t domain_i = 0; domain_i < _lops.size(); ++domain_i) {
       for (std::size_t domain_o = 0; domain_o < _lops.size(); ++domain_o) {
-        _logger.trace("Transmission condition: {} - {}"_fmt, compartment_name[domain_i], compartment_name[domain_o]);
+        _logger.trace("Transmission condition: {} - {}"_fmt,
+                      compartment_name[domain_i],
+                      compartment_name[domain_o]);
         if (domain_i == domain_o)
           continue;
-        auto& boundary_config = config.sub(compartment_name[domain_i],true).sub("boundary", true);
+        auto& boundary_config =
+          config.sub(compartment_name[domain_i], true).sub("boundary", true);
         if (not boundary_config.hasSub(compartment_name[domain_o]))
           continue;
-        auto& boundary_config_o = boundary_config.sub(compartment_name[domain_o],true);
-        auto& outflow_config = boundary_config_o.sub("outflow",true);
+        auto& boundary_config_o =
+          boundary_config.sub(compartment_name[domain_o], true);
+        auto& outflow_config = boundary_config_o.sub("outflow", true);
 
-        auto& parser = _outflow_parser[{domain_i,domain_o}];
-        auto& parser_jac = _outflow_jac_parser[{domain_i,domain_o}];
-        auto& parser_cross_jac = _outflow_cross_jac_parser[{domain_i,domain_o}];
+        auto& parser = _outflow_parser[{ domain_i, domain_o }];
+        auto& parser_jac = _outflow_jac_parser[{ domain_i, domain_o }];
+        auto& parser_cross_jac =
+          _outflow_cross_jac_parser[{ domain_i, domain_o }];
         std::size_t comp_size_i = component_name[domain_i].size();
         std::size_t comp_size_o = component_name[domain_o].size();
         parser.resize(comp_size_i);
@@ -185,17 +196,33 @@ public:
 
         // Do parser
         for (std::size_t outflow_i = 0; outflow_i < comp_size_i; ++outflow_i) {
-          auto expr = outflow_config.template get<std::string>(component_name[domain_i][outflow_i]);
-          _logger.debug(2,"Setup expression ({}): {}"_fmt, component_name[domain_i][outflow_i], expr);
+          auto expr = outflow_config.template get<std::string>(
+            component_name[domain_i][outflow_i]);
+          _logger.debug(2,
+                        "Setup expression ({}): {}"_fmt,
+                        component_name[domain_i][outflow_i],
+                        expr);
 
           auto& parser_i = parser.at(outflow_i);
           for (std::size_t comp_i = 0; comp_i < comp_size_i; ++comp_i) {
-            add_var(parser_i,expr,component_name[domain_i][comp_i]+"_i", _components[domain_i][comp_i]);
-            add_var(parser_i,expr,"d"+component_name[domain_i][comp_i]+"_i__dn", _components_dn[domain_i][comp_i]);
+            add_var(parser_i,
+                    expr,
+                    component_name[domain_i][comp_i] + "_i",
+                    _components[domain_i][comp_i]);
+            add_var(parser_i,
+                    expr,
+                    "d" + component_name[domain_i][comp_i] + "_i__dn",
+                    _components_dn[domain_i][comp_i]);
           }
           for (std::size_t comp_o = 0; comp_o < comp_size_o; ++comp_o) {
-            add_var(parser_i,expr,component_name[domain_o][comp_o]+"_o", _components[domain_o][comp_o]);
-            add_var(parser_i,expr,"d"+component_name[domain_o][comp_o]+"_o__dn", _components_dn[domain_o][comp_o]);
+            add_var(parser_i,
+                    expr,
+                    component_name[domain_o][comp_o] + "_o",
+                    _components[domain_o][comp_o]);
+            add_var(parser_i,
+                    expr,
+                    "d" + component_name[domain_o][comp_o] + "_o__dn",
+                    _components_dn[domain_o][comp_o]);
           }
 
           try {
@@ -212,20 +239,38 @@ public:
           auto& outflow_jac_config = outflow_config.sub("jacobian");
 
           // Do self jacobian
-          for (std::size_t outflow_ii = 0; outflow_ii < comp_size_i; ++outflow_ii) {
-            std::string jac_name = "d"+ component_name[domain_i][outflow_i] + "__d" + component_name[domain_i][outflow_ii] + "_i";
-            std::string expr = outflow_jac_config.template get<std::string>(jac_name,"0");
-              _logger.debug(2,"Setup self jacobian expression ({}): {}"_fmt, jac_name, expr);
+          for (std::size_t outflow_ii = 0; outflow_ii < comp_size_i;
+               ++outflow_ii) {
+            std::string jac_name = "d" + component_name[domain_i][outflow_i] +
+                                   "__d" +
+                                   component_name[domain_i][outflow_ii] + "_i";
+            std::string expr =
+              outflow_jac_config.template get<std::string>(jac_name, "0");
+            _logger.debug(
+              2, "Setup self jacobian expression ({}): {}"_fmt, jac_name, expr);
 
-            std::size_t jac_index = outflow_i*comp_size_i+outflow_ii;
+            std::size_t jac_index = outflow_i * comp_size_i + outflow_ii;
             auto& parser_i = parser_jac.at(jac_index);
             for (std::size_t comp_i = 0; comp_i < comp_size_i; ++comp_i) {
-              add_var(parser_i,expr,component_name[domain_i][comp_i]+"_i", _components[domain_i][comp_i]);
-              add_var(parser_i,expr,"d"+component_name[domain_i][comp_i]+"_i__dn", _components_dn[domain_i][comp_i]);
+              add_var(parser_i,
+                      expr,
+                      component_name[domain_i][comp_i] + "_i",
+                      _components[domain_i][comp_i]);
+              add_var(parser_i,
+                      expr,
+                      "d" + component_name[domain_i][comp_i] + "_i__dn",
+                      _components_dn[domain_i][comp_i]);
             }
-            for (std::size_t comp_o = 0; comp_o < _components[domain_o].size(); ++comp_o) {
-              add_var(parser_i,expr,component_name[domain_o][comp_o]+"_o", _components[domain_o][comp_o]);
-              add_var(parser_i,expr,"d"+component_name[domain_o][comp_o]+"_o__dn", _components_dn[domain_o][comp_o]);
+            for (std::size_t comp_o = 0; comp_o < _components[domain_o].size();
+                 ++comp_o) {
+              add_var(parser_i,
+                      expr,
+                      component_name[domain_o][comp_o] + "_o",
+                      _components[domain_o][comp_o]);
+              add_var(parser_i,
+                      expr,
+                      "d" + component_name[domain_o][comp_o] + "_o__dn",
+                      _components_dn[domain_o][comp_o]);
             }
 
             try {
@@ -238,21 +283,39 @@ public:
           }
 
           // Do cross jacobian
-          for (std::size_t outflow_io = 0; outflow_io < comp_size_o; ++outflow_io) {
+          for (std::size_t outflow_io = 0; outflow_io < comp_size_o;
+               ++outflow_io) {
 
-            std::string jac_name = "d"+ component_name[domain_i][outflow_i] + "__d" + component_name[domain_o][outflow_io];
-            auto expr = outflow_jac_config.template get<std::string>(jac_name,"0");
-            _logger.debug(2,"Setup cross jacobian expression ({}): {}"_fmt, jac_name, expr);
+            std::string jac_name = "d" + component_name[domain_i][outflow_i] +
+                                   "__d" + component_name[domain_o][outflow_io];
+            auto expr =
+              outflow_jac_config.template get<std::string>(jac_name, "0");
+            _logger.debug(2,
+                          "Setup cross jacobian expression ({}): {}"_fmt,
+                          jac_name,
+                          expr);
 
-            std::size_t jac_index = outflow_i*comp_size_o+outflow_io;
+            std::size_t jac_index = outflow_i * comp_size_o + outflow_io;
             auto& parser_i = parser_cross_jac.at(jac_index);
             for (std::size_t comp_i = 0; comp_i < comp_size_i; ++comp_i) {
-              add_var(parser_i,expr,component_name[domain_i][comp_i]+"_i", _components[domain_i][comp_i]);
-              add_var(parser_i,expr,"d"+component_name[domain_i][comp_i]+"_i__dn", _components_dn[domain_i][comp_i]);
+              add_var(parser_i,
+                      expr,
+                      component_name[domain_i][comp_i] + "_i",
+                      _components[domain_i][comp_i]);
+              add_var(parser_i,
+                      expr,
+                      "d" + component_name[domain_i][comp_i] + "_i__dn",
+                      _components_dn[domain_i][comp_i]);
             }
             for (std::size_t comp_o = 0; comp_o < comp_size_o; ++comp_o) {
-              add_var(parser_i,expr,component_name[domain_o][comp_o]+"_o", _components[domain_o][comp_o]);
-              add_var(parser_i,expr,"d"+component_name[domain_o][comp_o]+"_o__dn", _components_dn[domain_o][comp_o]);
+              add_var(parser_i,
+                      expr,
+                      component_name[domain_o][comp_o] + "_o",
+                      _components[domain_o][comp_o]);
+              add_var(parser_i,
+                      expr,
+                      "d" + component_name[domain_o][comp_o] + "_o__dn",
+                      _components_dn[domain_o][comp_o]);
             }
 
             try {
