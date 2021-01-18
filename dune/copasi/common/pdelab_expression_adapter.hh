@@ -22,7 +22,7 @@ namespace Impl {
    *
    * @param[in]  e     Exception thrown by the parser
    */
-  void handle_parser_error(const mu::Parser::exception_type& e)
+  static void handle_parser_error(const mu::Parser::exception_type& e)
   {
     DUNE_THROW(IOError,
     "Evaluating muParser expression failed:" << std::endl
