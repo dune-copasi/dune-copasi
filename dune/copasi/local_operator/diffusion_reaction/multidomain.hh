@@ -203,32 +203,32 @@ public:
                         component_name[domain_i][outflow_i],
                         expr);
 
-          auto& parser_i = parser.at(outflow_i);
+          auto& parser_o = parser.at(outflow_i);
           for (std::size_t comp_i = 0; comp_i < comp_size_i; ++comp_i) {
-            add_var(parser_i,
+            add_var(parser_o,
                     expr,
                     component_name[domain_i][comp_i] + "_i",
                     _components[domain_i][comp_i]);
-            add_var(parser_i,
+            add_var(parser_o,
                     expr,
                     "d" + component_name[domain_i][comp_i] + "_i__dn",
                     _components_dn[domain_i][comp_i]);
           }
           for (std::size_t comp_o = 0; comp_o < comp_size_o; ++comp_o) {
-            add_var(parser_i,
+            add_var(parser_o,
                     expr,
                     component_name[domain_o][comp_o] + "_o",
                     _components[domain_o][comp_o]);
-            add_var(parser_i,
+            add_var(parser_o,
                     expr,
                     "d" + component_name[domain_o][comp_o] + "_o__dn",
                     _components_dn[domain_o][comp_o]);
           }
 
           try {
-            parser_i.SetExpr(expr);
+            parser_o.SetExpr(expr);
             // try to compile expression
-            parser_i.Eval();
+            parser_o.Eval();
           } catch (mu::Parser::exception_type& e) {
             Impl::handle_parser_error(e);
           }
@@ -250,33 +250,33 @@ public:
               2, "Setup self jacobian expression ({}): {}"_fmt, jac_name, expr);
 
             std::size_t jac_index = outflow_i * comp_size_i + outflow_ii;
-            auto& parser_i = parser_jac.at(jac_index);
+            auto& parser_sj = parser_jac.at(jac_index);
             for (std::size_t comp_i = 0; comp_i < comp_size_i; ++comp_i) {
-              add_var(parser_i,
+              add_var(parser_sj,
                       expr,
                       component_name[domain_i][comp_i] + "_i",
                       _components[domain_i][comp_i]);
-              add_var(parser_i,
+              add_var(parser_sj,
                       expr,
                       "d" + component_name[domain_i][comp_i] + "_i__dn",
                       _components_dn[domain_i][comp_i]);
             }
             for (std::size_t comp_o = 0; comp_o < _components[domain_o].size();
                  ++comp_o) {
-              add_var(parser_i,
+              add_var(parser_sj,
                       expr,
                       component_name[domain_o][comp_o] + "_o",
                       _components[domain_o][comp_o]);
-              add_var(parser_i,
+              add_var(parser_sj,
                       expr,
                       "d" + component_name[domain_o][comp_o] + "_o__dn",
                       _components_dn[domain_o][comp_o]);
             }
 
             try {
-              parser_i.SetExpr(expr);
+              parser_sj.SetExpr(expr);
               // try to compile expression
-              parser_i.Eval();
+              parser_sj.Eval();
             } catch (mu::Parser::exception_type& e) {
               Impl::handle_parser_error(e);
             }
@@ -296,32 +296,32 @@ public:
                           expr);
 
             std::size_t jac_index = outflow_i * comp_size_o + outflow_io;
-            auto& parser_i = parser_cross_jac.at(jac_index);
+            auto& parser_cj = parser_cross_jac.at(jac_index);
             for (std::size_t comp_i = 0; comp_i < comp_size_i; ++comp_i) {
-              add_var(parser_i,
+              add_var(parser_cj,
                       expr,
                       component_name[domain_i][comp_i] + "_i",
                       _components[domain_i][comp_i]);
-              add_var(parser_i,
+              add_var(parser_cj,
                       expr,
                       "d" + component_name[domain_i][comp_i] + "_i__dn",
                       _components_dn[domain_i][comp_i]);
             }
             for (std::size_t comp_o = 0; comp_o < comp_size_o; ++comp_o) {
-              add_var(parser_i,
+              add_var(parser_cj,
                       expr,
                       component_name[domain_o][comp_o] + "_o",
                       _components[domain_o][comp_o]);
-              add_var(parser_i,
+              add_var(parser_cj,
                       expr,
                       "d" + component_name[domain_o][comp_o] + "_o__dn",
                       _components_dn[domain_o][comp_o]);
             }
 
             try {
-              parser_i.SetExpr(expr);
+              parser_cj.SetExpr(expr);
               // try to compile expression
-              parser_i.Eval();
+              parser_cj.Eval();
             } catch (mu::Parser::exception_type& e) {
               Impl::handle_parser_error(e);
             }
