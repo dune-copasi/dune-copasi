@@ -123,12 +123,11 @@ public:
         config.sub("compartments",true).template get<int>(compartment_name[i]);
       GridView sub_grid_view = grid->subDomain(sub_domain_id).leafGridView();
 
-      const auto& sub_config = config.sub(compartment_name[i],true);
-      component_name[i] = sub_config.sub("reaction",true).getValueKeys();
-      std::sort(component_name[i].begin(), component_name[i].end());
+      const auto& sub_config = config.sub(compartment_name[sub_domain_id],true);
+      component_name[sub_domain_id] = sub_config.sub("reaction",true).getValueKeys();
+      std::sort(component_name[sub_domain_id].begin(), component_name[sub_domain_id].end());
 
-      auto lp = std::make_shared<SubLOP>(sub_grid_view, sub_config);
-      _lops[i] = lp;
+      _lops[sub_domain_id] = std::make_shared<SubLOP>(sub_grid_view, sub_config);
     }
 
     // create mapping between all inside and outside components
@@ -210,7 +209,7 @@ public:
           if (JM == JacobianMethod::Numerical)
             continue;
 
-        auto& outflow_jac_config = outflow_config.sub("jacobian");
+          auto& outflow_jac_config = outflow_config.sub("jacobian");
 
           // Do self jacobian
           for (std::size_t outflow_ii = 0; outflow_ii < comp_size_i; ++outflow_ii) {
