@@ -16,6 +16,25 @@
 
 namespace Dune::Copasi {
 
+namespace Impl {
+  /**
+   * @brief      Output information on the parser error and throw DUNE exception
+   *
+   * @param[in]  e     Exception thrown by the parser
+   */
+  void handle_parser_error(const mu::Parser::exception_type& e)
+  {
+    DUNE_THROW(IOError,
+    "Evaluating muParser expression failed:" << std::endl
+    << "  Parsed expression:   " << e.GetExpr() << std::endl
+    << "  Token:               " << e.GetToken() << std::endl
+    << "  Error position:      " << e.GetPos() << std::endl
+    << "  Error code:          " << int(e.GetPos()) << std::endl
+    << "  Error message:       " << e.GetMsg() << std::endl
+    );
+  }
+}
+
 /**
  * @brief      Converts an interface to match an expression to a PDELab grid
  *             function.
@@ -106,7 +125,7 @@ public:
     try {
       y = _parser.Eval();
     } catch (mu::Parser::exception_type& e) {
-      handle_parser_error(e);
+      Impl::handle_parser_error(e);
     }
   }
 
@@ -134,7 +153,7 @@ public:
       // try to evaluate once
       _parser.Eval();
     } catch (mu::Parser::exception_type& e) {
-      handle_parser_error(e);
+      Impl::handle_parser_error(e);
     }
     _compiled = true;
   }
@@ -158,21 +177,6 @@ public:
   void set_time(double t) { _time = t; }
 
 private:
-  /**
-   * @brief      Output information on the parser error and throw DUNE exception
-   *
-   * @param[in]  e     Exception thrown by the parser
-   */
-  void handle_parser_error(const mu::Parser::exception_type& e) const
-  {
-    _logger.error("Evaluating muParser expression failed:"_fmt);
-    _logger.error("  Parsed expression:   {}"_fmt, e.GetExpr());
-    _logger.error("  Token:               {}"_fmt, e.GetToken());
-    _logger.error("  Error position:      {}"_fmt, e.GetPos());
-    _logger.error("  Error code:          {}"_fmt, int(e.GetCode()));
-    _logger.error("  Error message:       {}"_fmt, e.GetMsg());
-    DUNE_THROW(IOError, "Error evaluating muParser expression");
-  }
 
   Logging::Logger _logger;
 

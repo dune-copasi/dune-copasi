@@ -2,6 +2,7 @@
 #define DUNE_COPASI_LOCAL_OPERATOR_MULTIDOMAIN_DIFFUSION_REACTION_HH
 
 #include <dune/copasi/common/enum.hh>
+#include <dune/copasi/common/pdelab_expression_adapter.hh>
 #include <dune/copasi/concepts/grid.hh>
 
 #include <dune/pdelab/localoperator/flags.hh>
@@ -98,22 +99,6 @@ public:
   //! residual assembly flags
   static constexpr bool doAlphaVolume = SubLOP::doAlphaVolume;
   static constexpr bool doAlphaSkeleton = true;
-
-  /**
-   * @brief      Output information on the parser error and throw DUNE exception
-   *
-   * @param[in]  e     Exception thrown by the parser
-   */
-  void handle_parser_error(const mu::Parser::exception_type& e) const
-  {
-    _logger.error("Evaluating muParser expression failed:"_fmt);
-    _logger.error("  Parsed expression:   {}"_fmt, e.GetExpr());
-    _logger.error("  Token:               {}"_fmt, e.GetToken());
-    _logger.error("  Error position:      {}"_fmt, e.GetPos());
-    _logger.error("  Error code:          {}"_fmt, int(e.GetCode()));
-    _logger.error("  Error message:       {}"_fmt, e.GetMsg());
-    DUNE_THROW(IOError, "Error evaluating muParser expression");
-  }
 
   /**
    * @brief      Constructs a new instance.
@@ -219,7 +204,7 @@ public:
             // try to compile expression
             parser_i.Eval();
           } catch (mu::Parser::exception_type& e) {
-            handle_parser_error(e);
+            Impl::handle_parser_error(e);
           }
 
           if (JM == JacobianMethod::Numerical)
@@ -249,7 +234,7 @@ public:
               // try to compile expression
               parser_i.Eval();
             } catch (mu::Parser::exception_type& e) {
-              handle_parser_error(e);
+              Impl::handle_parser_error(e);
             }
           }
 
@@ -276,7 +261,7 @@ public:
               // try to compile expression
               parser_i.Eval();
             } catch (mu::Parser::exception_type& e) {
-              handle_parser_error(e);
+              Impl::handle_parser_error(e);
             }
           }
         }
