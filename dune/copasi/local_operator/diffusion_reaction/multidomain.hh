@@ -356,20 +356,21 @@ public:
   }
 
   template<class IG>
-  void skip_intersection(const IG& ig, bool& skip) const
+  bool skip_intersection(const IG& ig) const
   {
     const auto& entity_i = ig.inside();
-    const auto& entity_o = ig.outside();
-
     std::size_t domain_i = subDomain(entity_i);
-    std::size_t domain_o = subDomain(entity_o);
 
-    if (domain_i == domain_o) {
-      if constexpr (SubLOP::doSkipIntersection)
-        _lops[domain_i]->skip_intersection(ig,skip);
-      else
-        skip |= true;
+    bool skip = false;
+    if constexpr (SubLOP::doSkipIntersection)
+      skip = _lops[domain_i]->skip_intersection(ig);
+
+    if (ig.neighbor()) {
+      const auto& entity_o = ig.outside();
+      std::size_t domain_o = subDomain(entity_o);
+      skip &= (domain_i != domain_o);
     }
+    return skip;
   }
 
   /**
