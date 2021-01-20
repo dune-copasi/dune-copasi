@@ -32,6 +32,8 @@ Types of changes
 - Skip intersection methods in local operators !36
 - Parameters to control Newton's method !30
 - Stepper interface to snap solution to a specific time !45
+### Changed
+- TIFF images are clamped instead of zeroed when evaluated outside its domain !47
 ### Removed
 - Automatic flux between compartment components with same name !30
 - Jacobian operator is managed by the stepper instead of the model !39
