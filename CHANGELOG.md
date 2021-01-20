@@ -39,6 +39,7 @@ Types of changes
 - Jacobian operator is managed by the stepper instead of the model !39
 - Jacobian tests are improved and extended to cover more cases !39
 ### Fixed
+- Wrong rounding on y pixels on TIFF file reads !47
 - Improper vector allocation in multidomain intersections !39
 - Final timestep reduction to reach `end_time` failed in adaptive stepper !43
 - Infinite loop when final adaptive step failed !45
