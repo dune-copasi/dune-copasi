@@ -25,5 +25,8 @@ u = fnc_1(x, y) + fnc_2( -x, -y)
 v = 30 * fnc_1(x, t)
 ```
 
+:::caution Out of domain behavior
 If the resulting function is evaluated outside the domain of the TIFF image, the
-function will evaluate to `0`.
+arguments will be [clamped](https://en.wikipedia.org/wiki/Clamping_(graphics)) to
+the nearest valid point in the domain.
+:::
