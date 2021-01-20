@@ -118,9 +118,9 @@ public:
     : _logger(Logging::Logging::componentLogger({}, "model"))
     , _index_set(grid->leafGridView().indexSet())
   {
-    auto& compartment_name = config.sub("compartments",true).getValueKeys();
+    auto& compartment_name = config.sub("compartments", true).getValueKeys();
     _lops.resize(compartment_name.size());
-    std::vector<std::vector<std::string>> component_name{_lops.size()};
+    std::vector<std::vector<std::string>> component_name{ _lops.size() };
 
     // create local operators for each compartment
     for (std::size_t i = 0; i < _lops.size(); ++i) {
@@ -173,8 +173,6 @@ public:
         }
       };
 
-    // TODO fill _jac_map with indices of non-zero entries
-
     // Create boundary parsers
     for (std::size_t domain_i = 0; domain_i < _lops.size(); ++domain_i) {
       for (std::size_t domain_o = 0; domain_o < _lops.size(); ++domain_o) {
@@ -205,7 +203,7 @@ public:
         for (std::size_t outflow_i = 0; outflow_i < comp_size_i; ++outflow_i) {
           auto expr = outflow_config.template get<std::string>(
             component_name[domain_i][outflow_i]);
-          _logger.debug(2,
+          _logger.trace(2,
                         "Setup expression ({}): {}"_fmt,
                         component_name[domain_i][outflow_i],
                         expr);
@@ -222,7 +220,8 @@ public:
                     expr,
                     "d" + component_name[domain_i][comp_i] + "_i__dn",
                     _components_dn[domain_i][comp_i]);
-            if (expr.find(component_name[domain_i][comp_i] + "_i") != std::string::npos)
+            if (expr.find(component_name[domain_i][comp_i] + "_i") !=
+                std::string::npos)
               self_map.insert(comp_i);
           }
           for (std::size_t comp_o = 0; comp_o < comp_size_o; ++comp_o) {
@@ -234,7 +233,8 @@ public:
                     expr,
                     "d" + component_name[domain_o][comp_o] + "_o__dn",
                     _components_dn[domain_o][comp_o]);
-            if (expr.find(component_name[domain_o][comp_o] + "_o") != std::string::npos)
+            if (expr.find(component_name[domain_o][comp_o] + "_o") !=
+                std::string::npos)
               cross_map.insert(comp_o);
           }
 
@@ -262,7 +262,7 @@ public:
                                    component_name[domain_i][outflow_ii] + "_i";
             std::string expr =
               outflow_jac_config.template get<std::string>(jac_name, "0");
-            _logger.debug(
+            _logger.trace(
               2, "Setup self jacobian expression ({}): {}"_fmt, jac_name, expr);
 
             std::size_t jac_index = outflow_i * comp_size_i + outflow_ii;
@@ -306,7 +306,7 @@ public:
                                    "__d" + component_name[domain_o][outflow_io];
             auto expr =
               outflow_jac_config.template get<std::string>(jac_name, "0");
-            _logger.debug(2,
+            _logger.trace(2,
                           "Setup cross jacobian expression ({}): {}"_fmt,
                           jac_name,
                           expr);
@@ -343,6 +343,30 @@ public:
             }
           }
         }
+      }
+    }
+
+    {
+      // log interface pattern
+      _logger.debug("Interface jacobian pattern:"_fmt);
+      auto cache_interface = std::array{ unused_domain, unused_domain };
+      for (auto&& [key, value] : _jac_map) {
+        if (cache_interface[0] != key[0] and cache_interface[1] != key[1])
+          _logger.debug(2,
+                        "{} -> {}"_fmt,
+                        compartment_name[key[0]],
+                        compartment_name[key[1]]);
+        cache_interface[0] = key[0], cache_interface[1] = key[1];
+        for (auto&& self : value.first)
+          _logger.debug(4,
+                        "{}_i -> {}_i"_fmt,
+                        component_name[key[0]][key[2]],
+                        component_name[key[0]][self]);
+        for (auto&& cross : value.second)
+          _logger.debug(4,
+                        "{}_i -> {}_o"_fmt,
+                        component_name[key[0]][key[2]],
+                        component_name[key[1]][cross]);
       }
     }
   }
@@ -416,8 +440,6 @@ public:
       auto& lfsv_ci = lfsv_di.child(comp_i);
       std::array<std::size_t, 3> inside_comp{ domain_i, domain_o, comp_i };
       auto it = _jac_map.find(inside_comp);
-      if (it != _jac_map.end())
-        continue;
       auto& self_map = it->second.first;
       auto& cross_map = it->second.second;
       for (auto&& comp_ii : self_map) {
@@ -438,8 +460,6 @@ public:
       auto& lfsv_co = lfsv_do.child(comp_o);
       std::array<std::size_t, 3> outside_comp{ domain_o, domain_i, comp_o };
       auto it = _jac_map.find(outside_comp);
-      if (it != _jac_map.end())
-        continue;
       auto& self_map = it->second.first;
       auto& cross_map = it->second.second;
       for (auto&& comp_oo : self_map) {

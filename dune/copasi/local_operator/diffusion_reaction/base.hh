@@ -158,8 +158,11 @@ struct LocalOperatorDiffusionReactionBase
       }
     }
 
+    // log compartment pattern
+    _logger.debug("Compartment jacobian pattern:"_fmt);
     for (auto i : _component_pattern) {
-      _logger.trace("pattern <{},{}>"_fmt, i.first, i.second);
+      _logger.debug(
+        2, "{} -> {}"_fmt, diffusion_keys[i.first], diffusion_keys[i.second]);
     }
   }
 
