@@ -8,7 +8,7 @@ install:
   - set PATH=C:\msys64\usr\bin;%PATH%
   # download muparser, gmp and libtiff as static libraries: install to C:\libs
   - appveyor DownloadFile "https://github.com/spatial-model-editor/sme_deps_common/releases/latest/download/sme_deps_common_win64.tgz"
-  - tar xf sme_deps_common_win64.tgz -C /
+  - tar xf sme_deps_common_win64.tgz -C C:\
   - dir "C:\smelibs"
   - cd C:\msys64\home\appveyor
 
