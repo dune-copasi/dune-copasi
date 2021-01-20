@@ -440,6 +440,8 @@ public:
       auto& lfsv_ci = lfsv_di.child(comp_i);
       std::array<std::size_t, 3> inside_comp{ domain_i, domain_o, comp_i };
       auto it = _jac_map.find(inside_comp);
+     if (it == _jac_map.end())
+        continue;
       auto& self_map = it->second.first;
       auto& cross_map = it->second.second;
       for (auto&& comp_ii : self_map) {
@@ -460,6 +462,8 @@ public:
       auto& lfsv_co = lfsv_do.child(comp_o);
       std::array<std::size_t, 3> outside_comp{ domain_o, domain_i, comp_o };
       auto it = _jac_map.find(outside_comp);
+     if (it == _jac_map.end())
+        continue;
       auto& self_map = it->second.first;
       auto& cross_map = it->second.second;
       for (auto&& comp_oo : self_map) {
