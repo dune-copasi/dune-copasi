@@ -292,16 +292,13 @@ public:
         for (std::size_t dof = 0; dof < phi.size(); dof++)
           u[comp] += x_coeff_local(comp, dof) * phi[dof];
 
-      // get reaction term
-      for (std::size_t k = 0; k < _components; k++) {
-        _reaction_gf[k]->update(u);
-        _reaction_gf[k]->evaluate(entity, position, reaction[k]);
-      }
-
       RF factor = point.weight() * geo.integrationElement(position);
 
       // contribution for each component
       for (std::size_t k = 0; k < _components; k++) {
+        // get reaction term
+        _reaction_gf[k]->update(u);
+        _reaction_gf[k]->evaluate(entity, position, reaction[k]);
         // compute gradient u_h
         FieldVector<RF, dim> graduh(.0);
         for (std::size_t d = 0; d < dim; d++)
@@ -401,15 +398,6 @@ public:
         for (std::size_t dof = 0; dof < basis_size; dof++) //  ansatz func. loop
           u[comp] += x_coeff_local(comp, dof) * phi[dof];
 
-      // evaluate reaction term
-      for (std::size_t k = 0; k < _components; k++) {
-        for (std::size_t l = 0; l < _components; l++) {
-          const auto j = _components * k + l;
-          _jacobian_gf[j]->update(u);
-          _jacobian_gf[j]->evaluate(entity, position, jacobian[j]);
-        }
-      }
-
       // get jacobian and determinant
       FieldMatrix<DF, dim, dim> S = geo.jacobianInverseTransposed(position);
       RF factor = point.weight() * geo.integrationElement(position);
@@ -432,6 +420,9 @@ public:
           if (not do_link(k, l))
             continue;
           const auto j = _components * k + l;
+          // evaluate reaction term
+          _jacobian_gf[j]->update(u);
+          _jacobian_gf[j]->evaluate(entity, position, jacobian[j]);
           for (std::size_t m = 0; m < basis_size; m++) {
             for (std::size_t n = 0; n < basis_size; n++) {
               typename M::value_type ljac =
