@@ -473,7 +473,7 @@ public:
             pattern_oi.addLink(lfsv_co, dof_o, lfsu_coo, dof_oo);
       }
       for (auto&& comp_i : cross_map) {
-        auto& lfsu_ci = lfsu_do.child(comp_i);
+        auto& lfsu_ci = lfsu_di.child(comp_i);
         for (std::size_t dof_o = 0; dof_o < lfsv_co.size(); dof_o++)
           for (std::size_t dof_i = 0; dof_i < lfsu_ci.size(); dof_i++)
             pattern_oi.addLink(lfsv_co, dof_o, lfsu_ci, dof_i);
