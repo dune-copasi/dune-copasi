@@ -28,10 +28,12 @@ Types of changes
 
 ## [Unreleased] ([git-diff][Unreleased-diff])
 ### Added
+- Custom membrane flux !30
 - Skip intersection methods in local operators !36
 - Parameters to control Newton's method !30
 - Stepper interface to snap solution to a specific time !45
 ### Removed
+- Automatic flux between compartment components with same name !30
 - Jacobian operator is managed by the stepper instead of the model !39
 - Jacobian tests are improved and extended to cover more cases !39
 ### Fixed
