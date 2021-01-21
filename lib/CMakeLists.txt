@@ -1,5 +1,7 @@
-option(BUILD_SHARED_LIBS "Global flag to cause add_library() to create shared libraries if on" OFF)
+option(BUILD_SHARED_LIBS "Global flag to cause add_library() to create shared libraries if ON" OFF)
 option(DUNE_COPASI_COMPILE_3D "Compile 3D cases in libraries and executables" OFF)
+
+# Common library
 
 add_library(dune_copasi_lib STATIC ../dune/copasi/model/base.cc)
 
@@ -20,6 +22,12 @@ elseif(Filesystem_FOUND)
   target_link_libraries(dune_copasi_lib PUBLIC std::filesystem)
 endif()
 
+if(BUILD_SHARED_LIBS)
+  install(TARGETS dune_copasi_lib)
+endif()
+
+# MultiDomain library
+
 add_library(dune_copasi_md_lib_fv EXCLUDE_FROM_ALL dune_copasi_md_fv.cc)
 target_link_libraries(dune_copasi_md_lib_fv PUBLIC dune_copasi_lib)
 
@@ -35,6 +43,17 @@ target_link_libraries(dune_copasi_md_lib INTERFACE
   dune_copasi_md_lib_cg
   dune_copasi_md_lib_fv_cg
 )
+
+if(DUNE_COPASI_MD_EXECUTABLE AND BUILD_SHARED_LIBS)
+  install(TARGETS
+        dune_copasi_md_lib_fv
+        dune_copasi_md_lib_cg
+        dune_copasi_md_lib_fv_cg
+      COMPONENT MultiDomain
+    )
+endif()
+
+# SingleDomain library
 
 add_library(dune_copasi_sd_lib_fv EXCLUDE_FROM_ALL dune_copasi_sd_fv.cc)
 target_link_libraries(dune_copasi_sd_lib_fv PUBLIC dune_copasi_lib)
@@ -52,13 +71,12 @@ target_link_libraries(dune_copasi_sd_lib INTERFACE
   dune_copasi_sd_lib_fv_cg
 )
 
-install(TARGETS dune_copasi_lib
-  dune_copasi_md_lib_fv
-  dune_copasi_md_lib_cg
-  dune_copasi_md_lib_fv_cg
-  dune_copasi_sd_lib_fv
-  dune_copasi_sd_lib_cg
-  dune_copasi_sd_lib_fv_cg
-  COMPONENT Development
-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-)
+if(DUNE_COPASI_SD_EXECUTABLE AND BUILD_SHARED_LIBS)
+  install(TARGETS
+      dune_copasi_sd_lib_fv
+      dune_copasi_sd_lib_cg
+      dune_copasi_sd_lib_fv_cg
+    COMPONENT SigleDomain
+  )
+endif()
+

@@ -35,7 +35,7 @@ docker pull registry.dune-project.org/copasi/dune-copasi/dune-copasi:latest
 ### Run `DuneCopasi`
 Finally, run the `dune_copasi_md` executable from the container
 ```bash
-# TODO
+dune_copasi_md config.ini
 ```
 
 ## Manual Installation
@@ -156,7 +156,7 @@ file. Otherwise, the executable will be under `bin/` folder on the installed
 directory.
 
 ```bash
-# TODO
+dune_copasi_md config.ini
 ```
 
 To find out the appropiated contents on the configuration file, check out

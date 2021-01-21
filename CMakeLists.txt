@@ -32,6 +32,20 @@ if(USE_FALLBACK_FILESYSTEM)
           DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/ghc")
 endif()
 
+
+# Single domain target
+set(DUNE_COPASI_SD_EXECUTABLE OFF
+    CACHE BOOL "Build singledomain executable by default"
+)
+
+# Multiple domain target
+set(DUNE_COPASI_MD_EXECUTABLE ON
+    CACHE BOOL "Build multidomain executable by default"
+)
+
+# main dune-copasi target
+add_custom_target(dune_copasi ALL)
+
 add_subdirectory(src)
 add_subdirectory(dune)
 add_subdirectory(lib)
