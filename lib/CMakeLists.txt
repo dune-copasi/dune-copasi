@@ -1,3 +1,5 @@
+include(GNUInstallDirs)
+
 option(BUILD_SHARED_LIBS "Global flag to cause add_library() to create shared libraries if ON" OFF)
 option(DUNE_COPASI_COMPILE_3D "Compile 3D cases in libraries and executables" OFF)
 
@@ -50,6 +52,7 @@ if(DUNE_COPASI_MD_EXECUTABLE AND BUILD_SHARED_LIBS)
         dune_copasi_md_lib_cg
         dune_copasi_md_lib_fv_cg
       COMPONENT MultiDomain
+      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     )
 endif()
 
@@ -77,6 +80,7 @@ if(DUNE_COPASI_SD_EXECUTABLE AND BUILD_SHARED_LIBS)
       dune_copasi_sd_lib_cg
       dune_copasi_sd_lib_fv_cg
     COMPONENT SigleDomain
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   )
 endif()
 
