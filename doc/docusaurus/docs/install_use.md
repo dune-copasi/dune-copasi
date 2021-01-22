@@ -147,31 +147,31 @@ git clone -b latest https://gitlab.dune-project.org/copasi/dune-copasi
 
 Then build and install the `DUNE` modules with the `dunecontrol` script:
 ```bash
-# configure and build dune modules
-./dune-common/bin/dunecontrol make all
 
-# install dune-copasi (this operation may requiere sudo)
-./dune-common/bin/dunecontrol bexec make install
+# add custom build options...
+# set install directory to /opt/dune/
+echo 'CMAKE_FLAGS+=" -DCMAKE_INSTALL_PREFIX=/opt/dune"' >> dune.opts
+
+# configure and build dune modules
+./dune-common/bin/dunecontrol --opts=dune.opts all
+
+# install binaries and libraries into /opt/dune/
+./dune-common/bin/dunecontrol --only=dune-copasi bexec make install
 
 # remove source and build files
-cd .. && rm -r ~/dune-modules
+cd ~ && rm -r ~/dune-modules
+
+# include dune binaries into your path
+echo export PATH="/opt/dune/bin:$PATH" >> $HOME/.bashrc
 ```
 
 For further info on dune module installation process, please check out
 the [dune-project web page](https://www.dune-project.org/doc/installation/).
 
-:::tip Custom installation path
-If you don't want to install the `DUNE` modules system-wide, you can set the
-`CMAKE_INSTALL_PREFIX` to a custom directory. See CMake documentation
-[here](https://cmake.org/cmake/help/latest/variable/CMAKE_INSTALL_PREFIX.html).
-:::
-
 ### Run `DuneCopasi`
 
-In case you installed `DuneCopasi` system-wide, you should be able to call the
-program `dune_copasi_md` from your command line accompained with a configuration
-file. Otherwise, the executable will be under `bin/` folder on the installed
-directory selected by `CMAKE_INSTALL_PREFIX`.
+Now, you should be able to call the program `dune_copasi_md` from your command
+line accompained with a configuration file:
 
 ```bash
 dune_copasi_md config.ini
