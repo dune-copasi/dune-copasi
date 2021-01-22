@@ -31,7 +31,8 @@ stages:
   TOOLCHAIN: gcc-8-17
   DUNECI_OS: debian
   DUNECI_BASE_IMAGE: ${CI_REGISTRY}/docker/ci/debian:10
-  DUNE_COPASI_BASE_IMAGE: ${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${TOOLCHAIN}-${BASE_IMAGE_VERSION}
+  DUNE_COPASI_BUILD_IMAGE: ${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${TOOLCHAIN}-${BASE_IMAGE_VERSION}
+  DUNE_COPASI_DEPLOY_IMAGE: debian:buster
   DEPLOY_LATEST: "true"
 
 .debian_clang: &debian_clang
@@ -39,21 +40,24 @@ stages:
   TOOLCHAIN: clang-6-17
   DUNECI_OS: debian
   DUNECI_BASE_IMAGE: ${CI_REGISTRY}/docker/ci/debian:10
-  DUNE_COPASI_BASE_IMAGE: ${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${TOOLCHAIN}-${BASE_IMAGE_VERSION}
+  DUNE_COPASI_BUILD_IMAGE: ${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${TOOLCHAIN}-${BASE_IMAGE_VERSION}
+  DUNE_COPASI_DEPLOY_IMAGE: debian:buster
 
 .ubuntu_gcc: &ubuntu_gcc
   <<: *global_variables
   TOOLCHAIN: gcc-7-17
   DUNECI_OS: ubuntu
   DUNECI_BASE_IMAGE: ${CI_REGISTRY}/docker/ci/ubuntu:18.04
-  DUNE_COPASI_BASE_IMAGE: ${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${TOOLCHAIN}-${BASE_IMAGE_VERSION}
+  DUNE_COPASI_BUILD_IMAGE: ${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${TOOLCHAIN}-${BASE_IMAGE_VERSION}
+  DUNE_COPASI_DEPLOY_IMAGE: ubuntu:18.04
 
 .ubuntu_clang: &ubuntu_clang
   <<: *global_variables
   TOOLCHAIN: clang-6-17
   DUNECI_OS: ubuntu
   DUNECI_BASE_IMAGE: ${CI_REGISTRY}/docker/ci/ubuntu:18.04
-  DUNE_COPASI_BASE_IMAGE: ${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${TOOLCHAIN}-${BASE_IMAGE_VERSION}
+  DUNE_COPASI_BUILD_IMAGE: ${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${TOOLCHAIN}-${BASE_IMAGE_VERSION}
+  DUNE_COPASI_DEPLOY_IMAGE: ubuntu:18.04
 
 .setup: &setup
   image: ${DOCKER_IMAGE}
@@ -63,8 +67,8 @@ stages:
     - docker build -f docker/dependencies.dockerfile
         --build-arg BASE_IMAGE=${DUNECI_BASE_IMAGE}
         --build-arg TOOLCHAIN=${TOOLCHAIN}
-        -t ${DUNE_COPASI_BASE_IMAGE} .
-    - docker push ${DUNE_COPASI_BASE_IMAGE}
+        -t ${DUNE_COPASI_BUILD_IMAGE} .
+    - docker push ${DUNE_COPASI_BUILD_IMAGE}
     - docker logout $CI_REGISTRY/copasi/dune-copasi
   rules:
     - if: '$REBUILD_BASE_IMAGE'
@@ -74,7 +78,7 @@ stages:
   <<: *dind_docker_tags
 
 .build: &build
-  image: ${DUNE_COPASI_BASE_IMAGE}
+  image: ${DUNE_COPASI_BUILD_IMAGE}
   stage: build
   script:
     - cd ..
@@ -86,7 +90,7 @@ stages:
   <<: *default_tags
 
 .unit_tests: &unit_tests
-  image: ${DUNE_COPASI_BASE_IMAGE}
+  image: ${DUNE_COPASI_BUILD_IMAGE}
   stage: unit_tests
   script:
     - echo 'CMAKE_FLAGS+=" -DCMAKE_BUILD_TYPE=Debug"' >> /duneci/cmake-flags/dune_copasi.opts
@@ -100,7 +104,7 @@ stages:
   <<: *default_tags
 
 .system_tests: &system_tests
-  image: ${DUNE_COPASI_BASE_IMAGE}
+  image: ${DUNE_COPASI_BUILD_IMAGE}
   stage: system_tests
   script:
     - cd ..
@@ -120,7 +124,8 @@ stages:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY/copasi/dune-copasi
     - DOCKER_TAG="${DUNECI_OS}-${TOOLCHAIN}-${CI_COMMIT_REF_NAME}"
     - docker build -f docker/dune-copasi.dockerfile
-      --build-arg BASE_IMAGE=${DUNE_COPASI_BASE_IMAGE}
+      --build-arg BUILD_IMAGE=${DUNE_COPASI_BUILD_IMAGE}
+      --build-arg PRODUCTION_IMAGE=${DUNE_COPASI_DEPLOY_IMAGE}
       --build-arg BRANCH=${CI_COMMIT_REF_NAME}
       -t $CI_REGISTRY/copasi/dune-copasi/dune-copasi:${DOCKER_TAG} .
     - docker push $CI_REGISTRY/copasi/dune-copasi/dune-copasi:${DOCKER_TAG}

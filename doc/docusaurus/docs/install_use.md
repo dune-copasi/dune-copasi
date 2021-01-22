@@ -47,7 +47,7 @@ To run the `dune_copasi_md` executable from the container with a configuration
 file `config.ini`, execute the following command on the terminal:
 
 ```bash
-docker run -v $PWD:/duneci/dune-copasi registry.dune-project.org/copasi/dune-copasi/dune-copasi:latest dune_copasi_md config.ini
+docker run -v $PWD:/dunecopasi registry.dune-project.org/copasi/dune-copasi/dune-copasi:latest dune_copasi_md config.ini
 ```
 
 The results of those computations will be written on current
