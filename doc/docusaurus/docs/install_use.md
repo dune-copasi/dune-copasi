@@ -27,7 +27,7 @@ To be able to share data between your operating system and within the docker
 image create a folder with read/write/execute rights to _any_ user:
 
 ```bash
-mkdir -m 777 dune-copasi && cd dune-copasi
+mkdir -m 777 dunecopasi && cd dunecopasi
 ```
 
 This working directory will be accessible to your text editor and paraview as
@@ -156,7 +156,7 @@ echo 'CMAKE_FLAGS+=" -DCMAKE_INSTALL_PREFIX=/opt/dune"' >> dune.opts
 ./dune-common/bin/dunecontrol --opts=dune.opts all
 
 # install binaries and libraries into /opt/dune/
-./dune-common/bin/dunecontrol --only=dune-copasi bexec make install
+./dune-common/bin/dunecontrol bexec make install
 
 # remove source and build files
 cd ~ && rm -r ~/dune-modules

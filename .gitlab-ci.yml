@@ -6,6 +6,7 @@ stages:
   - unit_tests
   - system_tests
   - deploy
+  - deploy_test
 
 .default_tags: &default_tags
   tags:
@@ -141,6 +142,16 @@ stages:
     - if: '$CI_COMMIT_BRANCH == "latest"'
   <<: *dind_docker_tags
 
+
+.deploy_test: &deploy_test
+  <<: *deploy
+  stage: deploy_test
+  script:
+    - mkdir -m 777 dunecopasi && cd dunecopasi
+    - cp test/test_cell.mini dunecopasi
+    - docker run -v $PWD $CI_REGISTRY/copasi/dune-copasi/dune-copasi:${DOCKER_TAG} dune_copasi_md test_cell.mini
+
+
 # debian gcc
 setup:debian_gcc:
   variables:
@@ -176,6 +187,14 @@ deploy:debian_gcc:
   <<: *deploy
   dependencies:
     - system_tests:debian_gcc
+
+deploy_test:debian_gcc:
+  variables:
+    <<: *docker_variables
+    <<: *debian_gcc
+  <<: *deploy_test
+  dependencies:
+    - deploy:debian_gcc
 
 # # ubuntu gcc
 # setup:ubuntu_gcc:
@@ -213,6 +232,14 @@ deploy:debian_gcc:
 #   dependencies:
 #     - system_tests:ubuntu_gcc
 
+# deploy_test:ubuntu_gcc:
+#   variables:
+#     <<: *docker_variables
+#     <<: *ubuntu_gcc
+#   <<: *deploy_test
+#   dependencies:
+#     - deploy:ubuntu_gcc
+
 # debian clang
 setup:debian_clang:
   variables:
@@ -249,6 +276,14 @@ deploy:debian_clang:
   dependencies:
     - system_tests:debian_clang
 
+deploy_test:debian_clang:
+  variables:
+    <<: *docker_variables
+    <<: *debian_clang
+  <<: *deploy_test
+  dependencies:
+    - deploy:debian_clang
+
 # # ubuntu clang
 # setup:ubuntu_clang:
 #   <<: *ubuntu_clang
@@ -277,3 +312,11 @@ deploy:debian_clang:
 #   <<: *deploy
 #   dependencies:
 #     - system_tests:ubuntu_clang
+
+# deploy_test:ubuntu_clang:
+#   variables:
+#     <<: *docker_variables
+#     <<: *ubuntu_clang
+#   <<: *deploy_test
+#   dependencies:
+#     - deploy:ubuntu_clang
