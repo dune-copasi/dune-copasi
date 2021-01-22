@@ -7,15 +7,12 @@ sidebar_label: Install & Use
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-:::caution Work In Progres
-:::
-
 There are two forms to use `DuneCopasi`. The first and easiest one is using a
 [Docker Container](https://www.docker.com/) where the software is boundled such
 that no installation other than docker is required. On the second one, the
 compilation of the source code is compulsory.
 
-## Containerized Usage
+## Docker Usage
 
 In this mode, there is no need to fullfil specific requirements other than
 those for docker installation.
@@ -24,19 +21,38 @@ those for docker installation.
 First, get and install Docker following the
 [docker installation instructions](https://docs.docker.com/get-docker/).
 
-### Pull Container
-Then, you may get the latest stable `DuneCopasi` container by pulling it from
-the [GitLab registry](https://gitlab.dune-project.org/copasi/dune-copasi/container_registry)
+### Prepare working directory
+
+To be able to share data between your operating system and within the docker
+image create a folder with read/write/execute rights to _any_ user:
 
 ```bash
-docker pull registry.dune-project.org/copasi/dune-copasi/dune-copasi:latest
+mkdir 777 dune-copasi && cd dune-copasi
 ```
 
-### Run `DuneCopasi`
-Finally, run the `dune_copasi_md` executable from the container
-```bash
-dune_copasi_md config.ini
+This working directory will be accessible to your text editor and paraview as
+well as to the `dune_copasi_md` executable inside the docker container. Thus,
+move or create your configuration files into it at will.
+
 ```
+nano config.ini
+# set-up/write ini file for dune-copasi...
+```
+
+### Run `dune_copasi_md`
+
+Then, you may use the latest stable container by pulling/runing it from our
+[GitLab registry](https://gitlab.dune-project.org/copasi/dune-copasi/container_registry)
+To run the `dune_copasi_md` executable from the container with a configuration
+file `config.ini`, execute the following command on the terminal:
+
+```bash
+docker run -v $PWD:/duneci/dune-copasi registry.dune-project.org/copasi/dune-copasi/dune-copasi:latest dune_copasi_md config.ini
+```
+
+The results of those computations will be written on current
+directory as mentioned above. For more information about running docker images,
+visit the `docker run` [documentation](https://docs.docker.com/engine/reference/run/).
 
 ## Manual Installation
 
@@ -153,7 +169,7 @@ If you don't want to install the `DUNE` modules system-wide, you can set the
 In case you installed `DuneCopasi` system-wide, you should be able to call the
 program `dune_copasi_md` from your command line accompained with a configuration
 file. Otherwise, the executable will be under `bin/` folder on the installed
-directory.
+directory selected by `CMAKE_INSTALL_PREFIX`.
 
 ```bash
 dune_copasi_md config.ini
