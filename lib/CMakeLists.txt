@@ -29,58 +29,60 @@ if(BUILD_SHARED_LIBS)
 endif()
 
 # MultiDomain library
+if(DUNE_COPASI_MD_EXECUTABLE)
+  add_library(dune_copasi_md_lib_fv dune_copasi_md_fv.cc)
+  target_link_libraries(dune_copasi_md_lib_fv PUBLIC dune_copasi_lib)
 
-add_library(dune_copasi_md_lib_fv EXCLUDE_FROM_ALL dune_copasi_md_fv.cc)
-target_link_libraries(dune_copasi_md_lib_fv PUBLIC dune_copasi_lib)
+  add_library(dune_copasi_md_lib_cg dune_copasi_md_cg.cc)
+  target_link_libraries(dune_copasi_md_lib_cg PUBLIC dune_copasi_lib)
 
-add_library(dune_copasi_md_lib_cg EXCLUDE_FROM_ALL dune_copasi_md_cg.cc)
-target_link_libraries(dune_copasi_md_lib_cg PUBLIC dune_copasi_lib)
+  add_library(dune_copasi_md_lib_fv_cg dune_copasi_md_fv_cg.cc)
+  target_link_libraries(dune_copasi_md_lib_fv_cg PUBLIC dune_copasi_lib)
 
-add_library(dune_copasi_md_lib_fv_cg EXCLUDE_FROM_ALL dune_copasi_md_fv_cg.cc)
-target_link_libraries(dune_copasi_md_lib_fv_cg PUBLIC dune_copasi_lib)
+  add_library(dune_copasi_md_lib INTERFACE)
+  target_link_libraries(dune_copasi_md_lib INTERFACE
+    dune_copasi_md_lib_fv
+    dune_copasi_md_lib_cg
+    dune_copasi_md_lib_fv_cg
+  )
 
-add_library(dune_copasi_md_lib INTERFACE)
-target_link_libraries(dune_copasi_md_lib INTERFACE
-  dune_copasi_md_lib_fv
-  dune_copasi_md_lib_cg
-  dune_copasi_md_lib_fv_cg
-)
-
-if(DUNE_COPASI_MD_EXECUTABLE AND BUILD_SHARED_LIBS)
-  install(TARGETS
-        dune_copasi_md_lib_fv
-        dune_copasi_md_lib_cg
-        dune_copasi_md_lib_fv_cg
-      COMPONENT MultiDomain
-      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    )
+  if(BUILD_SHARED_LIBS)
+    install(TARGETS
+          dune_copasi_md_lib_fv
+          dune_copasi_md_lib_cg
+          dune_copasi_md_lib_fv_cg
+        COMPONENT MultiDomain
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+      )
+  endif()
 endif()
 
 # SingleDomain library
+if(DUNE_COPASI_SD_EXECUTABLE)
+  add_library(dune_copasi_sd_lib_fv dune_copasi_sd_fv.cc)
+  target_link_libraries(dune_copasi_sd_lib_fv PUBLIC dune_copasi_lib)
 
-add_library(dune_copasi_sd_lib_fv EXCLUDE_FROM_ALL dune_copasi_sd_fv.cc)
-target_link_libraries(dune_copasi_sd_lib_fv PUBLIC dune_copasi_lib)
+  add_library(dune_copasi_sd_lib_cg dune_copasi_sd_cg.cc)
+  target_link_libraries(dune_copasi_sd_lib_cg PUBLIC dune_copasi_lib)
 
-add_library(dune_copasi_sd_lib_cg EXCLUDE_FROM_ALL dune_copasi_sd_cg.cc)
-target_link_libraries(dune_copasi_sd_lib_cg PUBLIC dune_copasi_lib)
+  add_library(dune_copasi_sd_lib_fv_cg dune_copasi_sd_fv_cg.cc)
+  target_link_libraries(dune_copasi_sd_lib_fv_cg PUBLIC dune_copasi_lib)
 
-add_library(dune_copasi_sd_lib_fv_cg EXCLUDE_FROM_ALL dune_copasi_sd_fv_cg.cc)
-target_link_libraries(dune_copasi_sd_lib_fv_cg PUBLIC dune_copasi_lib)
-
-add_library(dune_copasi_sd_lib INTERFACE)
-target_link_libraries(dune_copasi_sd_lib INTERFACE
-  dune_copasi_sd_lib_fv
-  dune_copasi_sd_lib_cg
-  dune_copasi_sd_lib_fv_cg
-)
-
-if(DUNE_COPASI_SD_EXECUTABLE AND BUILD_SHARED_LIBS)
-  install(TARGETS
-      dune_copasi_sd_lib_fv
-      dune_copasi_sd_lib_cg
-      dune_copasi_sd_lib_fv_cg
-    COMPONENT SigleDomain
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  add_library(dune_copasi_sd_lib INTERFACE)
+  target_link_libraries(dune_copasi_sd_lib INTERFACE
+    dune_copasi_sd_lib_fv
+    dune_copasi_sd_lib_cg
+    dune_copasi_sd_lib_fv_cg
   )
+
+  if(BUILD_SHARED_LIBS)
+    install(TARGETS
+        dune_copasi_sd_lib_fv
+        dune_copasi_sd_lib_cg
+        dune_copasi_sd_lib_fv_cg
+      COMPONENT SigleDomain
+      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    )
+  endif()
 endif()
 
