@@ -27,7 +27,7 @@ To be able to share data between your operating system and within the docker
 image create a folder with read/write/execute rights to _any_ user:
 
 ```bash
-mkdir 777 dune-copasi && cd dune-copasi
+mkdir -m 777 dune-copasi && cd dune-copasi
 ```
 
 This working directory will be accessible to your text editor and paraview as
