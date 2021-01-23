@@ -1,0 +1,8 @@
+@PACKAGE_INIT@
+
+get_filename_component(dune_copasi_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+include(CMakeFindDependencyMacro)
+
+if(NOT TARGET dune_copasi::dune_copasi)
+    include("${dune_copasi_CMAKE_DIR}/dune-copasi-targets.cmake")
+endif()

@@ -6,6 +6,7 @@ if(DUNE_COPASI_SD_EXECUTABLE)
   target_link_libraries(dune_copasi_sd PRIVATE dune_copasi_sd_lib)
   add_dependencies(dune_copasi dune_copasi_sd)
   install(TARGETS dune_copasi_sd
+    EXPORT dune_copasi
     COMPONENT SigleDomain
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif()
@@ -16,6 +17,7 @@ if(DUNE_COPASI_MD_EXECUTABLE)
   target_link_libraries(dune_copasi_md PRIVATE dune_copasi_md_lib)
   add_dependencies(dune_copasi dune_copasi_md)
   install(TARGETS dune_copasi_md
+    EXPORT dune_copasi
     COMPONENT MultiDomain
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif()

@@ -7,7 +7,7 @@ RUN ln -s /duneci/toolchains/${TOOLCHAIN} /duneci/toolchain
 
 ENV PATH=/duneci/install/bin:$PATH
 
-RUN echo 'CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_SETUP=1"' >> /duneci/cmake-flags/enable_virtualenv
+RUN echo 'CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_SETUP=1 -DDUNE_PYTHON_VIRTUALENV_PATH=/duneci/install/dune-python-venv"' >> /duneci/cmake-flags/enable_virtualenv
 RUN duneci-install-module -b releases/2.7 https://gitlab.dune-project.org/core/dune-common.git \
     && duneci-install-module -b releases/2.7 https://gitlab.dune-project.org/core/dune-geometry.git \
     && duneci-install-module -b releases/2.7 https://gitlab.dune-project.org/staging/dune-uggrid.git \
@@ -20,4 +20,4 @@ RUN duneci-install-module -b releases/2.7 https://gitlab.dune-project.org/core/d
     && duneci-install-module -b support/dune-copasi-v0.3 --recursive https://gitlab.dune-project.org/copasi/dune-logging.git \
     && duneci-install-module -b support/dune-copasi-v0.3 https://gitlab.dune-project.org/copasi/dune-pdelab.git \
     && duneci-install-module -b support/dune-copasi-v0.3 https://gitlab.dune-project.org/copasi/dune-multidomaingrid.git
-RUN dunecontrol --opts=/duneci/dune.opts bexec cmake --build . -- install && rm -rf /duneci/modules/*
+RUN find modules/* -prune -type d -exec cmake --build '{}'/build-cmake --target install \;

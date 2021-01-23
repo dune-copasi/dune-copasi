@@ -25,7 +25,7 @@ elseif(Filesystem_FOUND)
 endif()
 
 if(BUILD_SHARED_LIBS)
-  install(TARGETS dune_copasi_lib)
+  install(TARGETS dune_copasi_lib EXPORT dune_copasi)
 endif()
 
 # MultiDomain library
@@ -51,6 +51,7 @@ if(DUNE_COPASI_MD_EXECUTABLE)
           dune_copasi_md_lib_fv
           dune_copasi_md_lib_cg
           dune_copasi_md_lib_fv_cg
+        EXPORT dune_copasi
         COMPONENT MultiDomain
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
       )
@@ -82,6 +83,7 @@ if(DUNE_COPASI_SD_EXECUTABLE)
         dune_copasi_sd_lib_fv_cg
       COMPONENT SigleDomain
       LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+      EXPORT dune_copasi
     )
   endif()
 endif()

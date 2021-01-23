@@ -58,3 +58,20 @@ add_subdirectory(cmake/modules)
 
 # finalize the dune project, e.g. generating config.h etc.
 finalize_dune_project(GENERATE_CONFIG_H_CMAKE)
+
+install(EXPORT dune_copasi
+  FILE
+    dune-copasi-targets.cmake
+  NAMESPACE
+    dune_copasi::
+  DESTINATION
+    "${CMAKE_INSTALL_LIBDIR}/cmake/dune-copasi"
+)
+
+include(CMakePackageConfigHelpers)
+configure_package_config_file(
+    "dune-copasi-config.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/dune-copasi-config.cmake"
+  INSTALL_DESTINATION
+    "${CMAKE_INSTALL_LIBDIR}/cmake/dune-copasi-config"
+)
