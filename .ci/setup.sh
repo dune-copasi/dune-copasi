@@ -73,19 +73,19 @@ if [[ $MSYSTEM ]]; then
 fi
 
 # patch cmake macro to avoid build failure when fortran compiler not found, e.g. on osx
-cd dune-common
-wget https://gist.githubusercontent.com/lkeegan/059984b71f8aeb0bbc062e85ad7ee377/raw/e9c7af42c47fe765547e60833a72b5ff1e78123c/cmake-patch.txt
-echo '' >> cmake-patch.txt
-git apply cmake-patch.txt
-# another patch for missing header in cmake install list
-git apply ../dune-copasi/.ci/dune-common.patch
-cd ../
+if [[ "$OSTYPE" == "darwin"* ]]; then
+	cd dune-common
+	wget https://gist.githubusercontent.com/lkeegan/059984b71f8aeb0bbc062e85ad7ee377/raw/e9c7af42c47fe765547e60833a72b5ff1e78123c/cmake-patch.txt
+	echo '' >> cmake-patch.txt
+	git apply cmake-patch.txt
+	# another patch for missing header in cmake install list
+	git apply ../dune-copasi/.ci/dune-common.patch
+	cd ../
+fi
 
 cd dune-logging
 git apply ../dune-copasi/.ci/dune-logging.patch
 cd ../
-
-ls
 
 # python virtual environment does not work in windows yet
 if [[ ! $MSYSTEM ]]; then
@@ -96,3 +96,6 @@ for repo in dune-testtools dune-logging dune-pdelab dune-multidomaingrid
 do
   ${DUNECONTROL} --opts=${DUNE_OPTIONS_FILE} --module=$repo all
 done
+
+${DUNECONTROL} --opts=${DUNE_OPTIONS_FILE} --module=$repo bexec cmake --build . --target install
+rm -rf dune-*

@@ -44,6 +44,8 @@ install:
   - echo 'CMAKE_FLAGS+=" -DDUNE_USE_ONLY_STATIC_LIBS=ON -DCMAKE_BUILD_TYPE=Release"' >> dune.opts
   - echo 'CMAKE_FLAGS+=" -DF77=true -DCMAKE_PREFIX_PATH=/opt/smelibs"' >> dune.opts
   - echo 'CMAKE_FLAGS+=" -Dmuparser_INCLUDE_DIR:PATH=/opt/smelibs/include -Dmuparser_LIBRARIES:FILEPATH=opt/smelibs/lib/libmuparser.a"' >> dune.opts
+  - echo 'CMAKE_FLAGS+=" -DCMAKE_INSTALL_PREFIX:PATH=/opt/dune"' >> dune.opts
+  - echo 'CMAKE_FLAGS+=" -DCMAKE_PREFIX_PATH:PATH=/opt/dune"' >> dune.opts
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then echo 'CMAKE_FLAGS+=" -DPYTHON_EXECUTABLE:FILEPATH=/usr/bin/python3"' >> dune.opts; fi
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then echo 'CMAKE_FLAGS+=" -DUSE_FALLBACK_FILESYSTEM=ON"' >> dune.opts ; fi
   - echo 'MAKE_FLAGS="-j2 VERBOSE=1"' >> dune.opts

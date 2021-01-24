@@ -1,5 +1,5 @@
-#ifdef HAVE_CONFIG_H
-#include "config.h"
+#ifdef HAVE_DUNE_COPASI_CONFIG_H
+#include <dune/copasi/config.h>
 #endif
 
 #include <dune/copasi/concepts/typetree.hh>

@@ -28,7 +28,7 @@ module.exports = {
       disableSwitch: true,
     },
     prism: {
-      additionalLanguages: ['ini'],
+      additionalLanguages: ['ini','cmake'],
     },
     announcementBar: {
       id: 'supportus',

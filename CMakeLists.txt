@@ -22,8 +22,6 @@ include(DuneMacros)
 # start a dune project with information from dune.module
 dune_project()
 
-dune_enable_all_packages()
-
 set(USE_FALLBACK_FILESYSTEM no CACHE BOOL "Use bundled std::filesystem alternative (enable this for macOS older than 10.15)")
 if(USE_FALLBACK_FILESYSTEM)
   add_subdirectory(ext/ghc)
@@ -52,18 +50,22 @@ set(DUNE_COPASI_MD_LIBRARY ${DUNE_COPASI_MD_EXECUTABLE}
 # main target
 add_library(dune-copasi)
 
+# add dune dependencies to this target
+dune_target_enable_all_packages(dune-copasi)
+
+# add directories for includes and libs
+target_link_directories(dune-copasi PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_LIBDIR}>
+)
+
 target_include_directories(dune-copasi PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
   $<INSTALL_INTERFACE:include>
 )
 
+# add dependencies
 target_link_libraries(dune-copasi PUBLIC ${DUNE_LIBS} TIFF::TIFF muparser::muparser)
-
-option(DUNE_COPASI_COMPILE_3D "Compile 3D cases in libraries and executables" OFF)
-
-if (DUNE_COPASI_COMPILE_3D)
-  target_compile_definitions(dune-copasi PUBLIC DUNE_COPASI_COMPILE_3D)
-endif()
 
 if(USE_FALLBACK_FILESYSTEM)
   target_compile_definitions(dune-copasi PUBLIC DUNE_COPASI_USE_FALLBACK_FILESYSTEM)
@@ -72,22 +74,48 @@ elseif(Filesystem_FOUND)
   target_link_libraries(dune-copasi PUBLIC std::filesystem)
 endif()
 
+option(DUNE_COPASI_COMPILE_3D "Compile 3D cases in libraries and executables" OFF)
+
+if (DUNE_COPASI_COMPILE_3D)
+  target_compile_definitions(dune-copasi PUBLIC DUNE_COPASI_COMPILE_3D)
+endif()
 
 add_subdirectory(dune)
 add_subdirectory(lib)
 add_subdirectory(src)
-if (dune-testtools_FOUND)
-  add_subdirectory(python)
-endif()
 add_subdirectory(doc)
 add_subdirectory(cmake/modules)
 
+# if (DUNE_PYTHON_VIRTUALENV_SETUP)
+#   dune_python_install_package(PATH python)
+#   add_subdirectory(python)
+# endif()
+
+# finalize the dune project: Generate and install config.h, cmake target and version file
+include(SetupDuneCopasiConfig)
+finalize_dune_project(GENERATE_CONFIG_H_CMAKE)
+
+target_compile_definitions(dune-copasi INTERFACE HAVE_DUNE_COPASI_CONFIG_H)
+
+# install generated config in build and install directories
+file(COPY
+    "${CMAKE_CURRENT_BINARY_DIR}/config.h"
+    DESTINATION
+    "${CMAKE_CURRENT_BINARY_DIR}/dune/copasi"
+)
+
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/dune/copasi/config.h"
+        COMPONENT Development
+        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/dune/copasi")
+
+# taget configuration for downstream projects
 install(TARGETS dune-copasi
   EXPORT dune-copasi-targets
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
+# export targets to be used with the installed package
 install(EXPORT dune-copasi-targets
   FILE
     dune-copasi-targets.cmake
@@ -97,10 +125,17 @@ install(EXPORT dune-copasi-targets
     "${CMAKE_INSTALL_LIBDIR}/cmake/dune-copasi"
 )
 
-# finalize the dune project: Generate and install config.h, cmake targets and version
-include(SetupDuneCopasiConfig)
-finalize_dune_project(GENERATE_CONFIG_H_CMAKE)
+# export targets to be used with build directories
+export(EXPORT dune-copasi-targets
+  FILE
+    ${CMAKE_CURRENT_BINARY_DIR}/dune-copasi-targets.cmake
+  NAMESPACE
+    dune::
+)
 
+# include tests as a sub project
+add_library(dune::dune-copasi ALIAS dune-copasi)
 add_subdirectory(test)
 
-# include(CPack)
+# enable cmake packaging
+include(DuneCopasiCPack)

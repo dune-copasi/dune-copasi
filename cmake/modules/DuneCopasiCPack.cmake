@@ -1,0 +1,13 @@
+include(InstallRequiredSystemLibraries)
+
+set(CPACK_GENERATOR "STGZ;TGZ;TZ")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Solver for reaction-diffusion systems in multiple compartments")
+set(CPACK_PACKAGE_VENDOR "IWR, Universität Heidelberg")
+set(CPACK_PACKAGE_CONTACT "santiago.ospina@iwr.uni-heidelberg.de")
+set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+# set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/Copyright.txt")
+set(CPACK_PACKAGE_VERSION_MAJOR "0")
+set(CPACK_PACKAGE_VERSION_MINOR "4")
+set(CPACK_PACKAGE_VERSION_PATCH "0")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "CMake ${CMake_VERSION_MAJOR}.${CMake_VERSION_MINOR}")
+include(CPack)

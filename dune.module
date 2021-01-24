@@ -7,5 +7,5 @@ Module: dune-copasi
 Version: 0.4.0-git
 Maintainer: santiago.ospina@iwr.uni-heidelberg.de
 #depending on
-Depends: dune-logging dune-uggrid (>= 2.6) dune-pdelab (>= 2.6) dune-multidomaingrid (>= 2.6)
+Depends: dune-logging dune-uggrid (>= 2.7) dune-pdelab (>= 2.7) dune-multidomaingrid (>= 2.7)
 Suggests: dune-testtools

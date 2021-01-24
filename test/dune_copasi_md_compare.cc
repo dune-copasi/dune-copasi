@@ -1,5 +1,5 @@
-#ifdef HAVE_CONFIG_H
-#include "config.h"
+#ifdef HAVE_DUNE_COPASI_CONFIG_H
+#include <dune/copasi/config.h>
 #endif
 
 #include "grid_function_compare.hh"
@@ -10,6 +10,9 @@
 #include <dune/copasi/grid/multidomain_gmsh_reader.hh>
 #include <dune/copasi/model/diffusion_reaction.hh>
 #include <dune/copasi/model/multidomain_diffusion_reaction.hh>
+#ifndef DUNE_COPASI_MD_LIBRARY
+#include <dune/copasi/model/multidomain_diffusion_reaction.cc>
+#endif
 
 #include <dune/grid/multidomaingrid.hh>
 

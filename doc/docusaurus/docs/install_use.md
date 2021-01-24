@@ -180,7 +180,7 @@ dune-copasi-md config.ini
 To find out the appropiated contents on the configuration file, check out
 the [Parameter Tree](param_tree.md) documentation.
 
-## Using the C++ API
+## Importing CMake targets
 
 In order to use the C++ interface, you must have compiled and (optionally)
 installed all the dune packages from source. Then, you will be able to import
@@ -192,4 +192,11 @@ commands in CMake:
 find_package(dune-copasi IMPORTED)
 target_link_libraries(my_app PRIVATE dune::dune-copasi)
 # ...
+```
+
+If the `CMAKE_INSTALL_PREFIX` options was used on installation, be sure to also
+include it on the app build settings:
+
+```bash
+cmake -DCMAKE_INSTALL_PREFIX=/opt/dune /path/to/app/source/
 ```

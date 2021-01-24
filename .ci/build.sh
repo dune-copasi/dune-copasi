@@ -17,3 +17,5 @@ gcc --version
 cmake --version
 
 ${DUNECONTROL} --opts=${DUNE_OPTIONS_FILE} --only=dune-copasi all
+${DUNECONTROL} --opts=${DUNE_OPTIONS_FILE} --module=$repo bexec cmake --build . --target install
+rm -rf dune-copasi

@@ -14,6 +14,5 @@ setup(name='dune.copasi',
   author_email='santiago.ospina@iwr.uni-heidelberg.de',
   url='http://copasi.org',
   packages=['dune.copasi'],
-  install_requires=['dune.testtools'],
   scripts=dune_copasi_scripts()
 )
