@@ -31,7 +31,7 @@ mkdir -m 777 dunecopasi && cd dunecopasi
 ```
 
 This working directory will be accessible to your text editor and paraview as
-well as to the `dune_copasi_md` executable inside the docker container. Thus,
+well as to the `dune-copasi-md` executable inside the docker container. Thus,
 move or create your configuration files into it at will.
 
 ```
@@ -39,17 +39,17 @@ nano config.ini
 # set-up/write ini file for dune-copasi...
 ```
 
-### Run `dune_copasi_md`
+### Run the program
 
 Then, you may use the latest stable container by pulling/runing it from our
 [GitLab registry](https://gitlab.dune-project.org/copasi/dune-copasi/container_registry)
-To run the `dune_copasi_md` executable from the container with a configuration
+To run the `dune-copasi-md` executable from the container with a configuration
 file `config.ini`, execute the following command on the terminal:
 
 ```bash
 docker run -v $PWD:/dunecopasi \
   registry.dune-project.org/copasi/dune-copasi/dune-copasi:latest \
-  dune_copasi_md config.ini
+  dune-copasi-md config.ini
 ```
 
 The results of those computations will be written on current
@@ -168,14 +168,28 @@ echo export PATH="/opt/dune/bin:$PATH" >> $HOME/.bashrc
 For further info on dune module installation process, please check out
 the [dune-project web page](https://www.dune-project.org/doc/installation/).
 
-### Run `DuneCopasi`
+### Run the program
 
-Now, you should be able to call the program `dune_copasi_md` from your command
+Now, you should be able to call the program `dune-copasi-md` from your command
 line accompained with a configuration file:
 
 ```bash
-dune_copasi_md config.ini
+dune-copasi-md config.ini
 ```
 
 To find out the appropiated contents on the configuration file, check out
 the [Parameter Tree](param_tree.md) documentation.
+
+## Using the C++ API
+
+In order to use the C++ interface, you must have compiled and (optionally)
+installed all the dune packages from source. Then, you will be able to import
+and link the CMake targets for `dune-copasi` by simply calling the following
+commands in CMake:
+
+```cmake
+# ...
+find_package(dune-copasi IMPORTED)
+target_link_libraries(my_app PRIVATE dune::dune-copasi)
+# ...
+```

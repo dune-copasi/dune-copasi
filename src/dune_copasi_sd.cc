@@ -7,6 +7,9 @@
 #include <dune/copasi/grid/mark_stripes.hh>
 #include <dune/copasi/grid/multidomain_gmsh_reader.hh>
 #include <dune/copasi/model/diffusion_reaction.hh>
+#ifndef DUNE_COPASI_SD_LIBRARY
+#include <dune/copasi/model/diffusion_reaction.cc>
+#endif
 
 #include <dune/grid/multidomaingrid.hh>
 

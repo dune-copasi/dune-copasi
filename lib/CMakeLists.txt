@@ -1,90 +1,46 @@
 include(GNUInstallDirs)
 
 option(BUILD_SHARED_LIBS "Global flag to cause add_library() to create shared libraries if ON" OFF)
-option(DUNE_COPASI_COMPILE_3D "Compile 3D cases in libraries and executables" OFF)
 
-# Common library
-
-add_library(dune_copasi_lib STATIC ../dune/copasi/model/base.cc)
-
-target_link_libraries(dune_copasi_lib PUBLIC ${DUNE_LIBS} TIFF::TIFF muparser::muparser)
-target_include_directories(dune_copasi_lib INTERFACE
-  $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
-  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+target_include_directories(dune-copasi
+  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-if (DUNE_COPASI_COMPILE_3D)
-  target_compile_definitions(dune_copasi_lib PUBLIC DUNE_COPASI_COMPILE_3D)
+# SingleDomain library
+add_library(dune-copasi-sd-lib
+  EXCLUDE_FROM_ALL
+    "${CMAKE_CURRENT_SOURCE_DIR}/dune_copasi_sd_fv.cc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/dune_copasi_sd_cg.cc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/dune_copasi_sd_fv_cg.cc"
+)
+if(DUNE_COPASI_SD_LIBRARY)
+  set_target_properties(dune-copasi-sd-lib PROPERTIES EXCLUDE_FROM_ALL OFF)
+  target_link_libraries(dune-copasi PUBLIC dune-copasi-sd-lib)
+  target_compile_definitions(dune-copasi PUBLIC DUNE_COPASI_SD_LIBRARY)
+  install(TARGETS dune-copasi-sd-lib
+    EXPORT dune-copasi-targets
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    OPTIONAL
+  )
 endif()
 
-if(USE_FALLBACK_FILESYSTEM)
-  target_compile_definitions(dune_copasi_lib PUBLIC DUNE_COPASI_USE_FALLBACK_FILESYSTEM)
-  target_link_libraries(dune_copasi_lib PUBLIC ghc_filesystem)
-elseif(Filesystem_FOUND)
-  target_link_libraries(dune_copasi_lib PUBLIC std::filesystem)
-endif()
-
-if(BUILD_SHARED_LIBS)
-  install(TARGETS dune_copasi_lib EXPORT dune_copasi)
-endif()
 
 # MultiDomain library
-if(DUNE_COPASI_MD_EXECUTABLE)
-  add_library(dune_copasi_md_lib_fv dune_copasi_md_fv.cc)
-  target_link_libraries(dune_copasi_md_lib_fv PUBLIC dune_copasi_lib)
-
-  add_library(dune_copasi_md_lib_cg dune_copasi_md_cg.cc)
-  target_link_libraries(dune_copasi_md_lib_cg PUBLIC dune_copasi_lib)
-
-  add_library(dune_copasi_md_lib_fv_cg dune_copasi_md_fv_cg.cc)
-  target_link_libraries(dune_copasi_md_lib_fv_cg PUBLIC dune_copasi_lib)
-
-  add_library(dune_copasi_md_lib INTERFACE)
-  target_link_libraries(dune_copasi_md_lib INTERFACE
-    dune_copasi_md_lib_fv
-    dune_copasi_md_lib_cg
-    dune_copasi_md_lib_fv_cg
+add_library(dune-copasi-md-lib
+  EXCLUDE_FROM_ALL
+    "${CMAKE_CURRENT_SOURCE_DIR}/dune_copasi_md_fv.cc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/dune_copasi_md_cg.cc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/dune_copasi_md_fv_cg.cc"
+)
+if(DUNE_COPASI_MD_LIBRARY)
+  set_target_properties(dune-copasi-md-lib PROPERTIES EXCLUDE_FROM_ALL OFF)
+  target_link_libraries(dune-copasi PUBLIC dune-copasi-md-lib)
+  target_compile_definitions(dune-copasi PUBLIC DUNE_COPASI_MD_LIBRARY)
+  install(TARGETS dune-copasi-md-lib
+    EXPORT dune-copasi-targets
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    OPTIONAL
   )
-
-  if(BUILD_SHARED_LIBS)
-    install(TARGETS
-          dune_copasi_md_lib_fv
-          dune_copasi_md_lib_cg
-          dune_copasi_md_lib_fv_cg
-        EXPORT dune_copasi
-        COMPONENT MultiDomain
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-      )
-  endif()
 endif()
-
-# SingleDomain library
-if(DUNE_COPASI_SD_EXECUTABLE)
-  add_library(dune_copasi_sd_lib_fv dune_copasi_sd_fv.cc)
-  target_link_libraries(dune_copasi_sd_lib_fv PUBLIC dune_copasi_lib)
-
-  add_library(dune_copasi_sd_lib_cg dune_copasi_sd_cg.cc)
-  target_link_libraries(dune_copasi_sd_lib_cg PUBLIC dune_copasi_lib)
-
-  add_library(dune_copasi_sd_lib_fv_cg dune_copasi_sd_fv_cg.cc)
-  target_link_libraries(dune_copasi_sd_lib_fv_cg PUBLIC dune_copasi_lib)
-
-  add_library(dune_copasi_sd_lib INTERFACE)
-  target_link_libraries(dune_copasi_sd_lib INTERFACE
-    dune_copasi_sd_lib_fv
-    dune_copasi_sd_lib_cg
-    dune_copasi_sd_lib_fv_cg
-  )
-
-  if(BUILD_SHARED_LIBS)
-    install(TARGETS
-        dune_copasi_sd_lib_fv
-        dune_copasi_sd_lib_cg
-        dune_copasi_sd_lib_fv_cg
-      COMPONENT SigleDomain
-      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-      EXPORT dune_copasi
-    )
-  endif()
-endif()
-

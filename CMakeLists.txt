@@ -1,6 +1,4 @@
-# We require version CMake version 3.1 to prevent issues
-# with dune_enable_all_packages and older CMake versions.
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.13)
 project(dune-copasi CXX)
 
 if(NOT (dune-common_DIR OR dune-common_ROOT OR
@@ -13,8 +11,10 @@ cmake_policy(SET CMP0074 NEW)
 
 #find dune-common and set the module path
 find_package(dune-common REQUIRED)
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules"
-  ${dune-common_MODULE_PATH})
+list(APPEND CMAKE_MODULE_PATH
+  "${PROJECT_SOURCE_DIR}/cmake/modules"
+  "${dune-common_MODULE_PATH}"
+)
 
 #include the dune macros
 include(DuneMacros)
@@ -35,43 +35,72 @@ endif()
 
 # Single domain target
 set(DUNE_COPASI_SD_EXECUTABLE OFF
-    CACHE BOOL "Build singledomain executable by default"
+    CACHE BOOL "Build SingleDomain executable by default"
+)
+set(DUNE_COPASI_SD_LIBRARY ${DUNE_COPASI_SD_EXECUTABLE}
+    CACHE BOOL "Include precompiled SingleDomain objects in dune-copasi library (optional)"
 )
 
 # Multiple domain target
 set(DUNE_COPASI_MD_EXECUTABLE ON
-    CACHE BOOL "Build multidomain executable by default"
+    CACHE BOOL "Build MultiDimain executable by default"
+)
+set(DUNE_COPASI_MD_LIBRARY ${DUNE_COPASI_MD_EXECUTABLE}
+    CACHE BOOL "Include precompiled MultiDimain objects in dune-copasi library (optional)"
 )
 
 # main target
-add_custom_target(dune_copasi ALL)
+add_library(dune-copasi)
 
-add_subdirectory(src)
+target_include_directories(dune-copasi PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+  $<INSTALL_INTERFACE:include>
+)
+
+target_link_libraries(dune-copasi PUBLIC ${DUNE_LIBS} TIFF::TIFF muparser::muparser)
+
+option(DUNE_COPASI_COMPILE_3D "Compile 3D cases in libraries and executables" OFF)
+
+if (DUNE_COPASI_COMPILE_3D)
+  target_compile_definitions(dune-copasi PUBLIC DUNE_COPASI_COMPILE_3D)
+endif()
+
+if(USE_FALLBACK_FILESYSTEM)
+  target_compile_definitions(dune-copasi PUBLIC DUNE_COPASI_USE_FALLBACK_FILESYSTEM)
+  target_link_libraries(dune-copasi PUBLIC ghc_filesystem)
+elseif(Filesystem_FOUND)
+  target_link_libraries(dune-copasi PUBLIC std::filesystem)
+endif()
+
+
 add_subdirectory(dune)
 add_subdirectory(lib)
+add_subdirectory(src)
 if (dune-testtools_FOUND)
   add_subdirectory(python)
 endif()
 add_subdirectory(doc)
-add_subdirectory(test)
 add_subdirectory(cmake/modules)
 
-# finalize the dune project, e.g. generating config.h etc.
-finalize_dune_project(GENERATE_CONFIG_H_CMAKE)
+install(TARGETS dune-copasi
+  EXPORT dune-copasi-targets
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
 
-install(EXPORT dune_copasi
+install(EXPORT dune-copasi-targets
   FILE
     dune-copasi-targets.cmake
   NAMESPACE
-    dune_copasi::
+    dune::
   DESTINATION
     "${CMAKE_INSTALL_LIBDIR}/cmake/dune-copasi"
 )
 
-include(CMakePackageConfigHelpers)
-configure_package_config_file(
-    "dune-copasi-config.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/dune-copasi-config.cmake"
-  INSTALL_DESTINATION
-    "${CMAKE_INSTALL_LIBDIR}/cmake/dune-copasi-config"
-)
+# finalize the dune project: Generate and install config.h, cmake targets and version
+include(SetupDuneCopasiConfig)
+finalize_dune_project(GENERATE_CONFIG_H_CMAKE)
+
+add_subdirectory(test)
+
+# include(CPack)

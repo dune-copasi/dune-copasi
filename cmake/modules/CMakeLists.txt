@@ -1,3 +1,7 @@
-set(modules "DuneCopasiMacros.cmake")
 
-install(FILES ${modules} DESTINATION ${DUNE_INSTALL_MODULEDIR})
+install(FILES
+    DuneCopasiMacros.cmake
+    FindFilesystem.cmake
+    Findmuparser.cmake
+    SetupDuneCopasiConfig.cmake
+  DESTINATION ${DUNE_INSTALL_MODULEDIR})

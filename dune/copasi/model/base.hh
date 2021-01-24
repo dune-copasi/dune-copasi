@@ -68,7 +68,6 @@ protected:
 
 private:
   AdaptivityPolicy _adapt_policy;
-  double _begin_time, _end_time, _current_time;
 };
 
 } // namespace Dune::Copasi
