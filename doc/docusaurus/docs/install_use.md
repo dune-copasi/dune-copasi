@@ -194,9 +194,11 @@ target_link_libraries(my_app PRIVATE dune::dune-copasi)
 # ...
 ```
 
-If the `CMAKE_INSTALL_PREFIX` options was used on installation, be sure to also
-include it on the app build settings:
+If the `CMAKE_INSTALL_PREFIX` options was used on CMake configuration
+dune-copasi, be sure to also include it as a CMake prefix
+`-CMAKE_PREFIX_PATH` on the app build settings. This way, CMake can find our
+targets:
 
 ```bash
-cmake -DCMAKE_INSTALL_PREFIX=/opt/dune /path/to/app/source/
+cmake --DCMAKE_PREFIX_PATH=/opt/dune /path/to/app/source/
 ```

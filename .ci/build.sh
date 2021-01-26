@@ -1,4 +1,16 @@
+#!/usr/bin/env bash
+
 # build script for all CIs
+# requisites
+#   * DUNE_OPTIONS_FILE is defined
+#   * DUNECONTROL is defined or dunecontrol is in the PATH
+
+set -e
+
+if [[ -z "$DUNECONTROL" ]]
+then
+  DUNECONTROL="dunecontrol"
+fi
 
 # make sure we get the right mingw64 version of g++ on appveyor
 PATH=/mingw64/bin:$PATH
@@ -17,5 +29,5 @@ gcc --version
 cmake --version
 
 ${DUNECONTROL} --opts=${DUNE_OPTIONS_FILE} --only=dune-copasi all
-${DUNECONTROL} --opts=${DUNE_OPTIONS_FILE} --module=$repo bexec cmake --build . --target install
-rm -rf dune-copasi
+cmake --build dune-copasi/build-cmake --target install
+rm -rf dune-copasi/build-cmake

@@ -1,4 +1,11 @@
+#!/usr/bin/env bash
+
 # dependencies setup script for Travis and AppVeyor CI
+# requisites
+#   * DUNE_OPTIONS_FILE is defined
+#   * DUNCONTROL defined or CMAKE_INSTALL_PREFIX should install in a folder reachable by PATH
+
+set -e
 
 DUNE_VERSION="2.7"
 
@@ -6,7 +13,6 @@ DUNE_VERSION="2.7"
 PATH=/mingw64/bin:$PATH
 echo "PATH=$PATH"
 echo "MSYSTEM: $MSYSTEM"
-echo "DUNECONTROL: ${DUNECONTROL}"
 echo "DUNE_OPTIONS_FILE: ${DUNE_OPTIONS_FILE}"
 cat ${DUNE_OPTIONS_FILE}
 echo "PWD: $PWD"
@@ -31,7 +37,6 @@ pip3 --version
 
 which cmake
 cmake --version
-
 
 # download Dune dependencies
 for repo in core/dune-common core/dune-geometry core/dune-grid core/dune-istl core/dune-localfunctions staging/dune-functions staging/dune-uggrid
@@ -73,29 +78,39 @@ if [[ $MSYSTEM ]]; then
 fi
 
 # patch cmake macro to avoid build failure when fortran compiler not found, e.g. on osx
+cd dune-common
 if [[ "$OSTYPE" == "darwin"* ]]; then
-	cd dune-common
 	wget https://gist.githubusercontent.com/lkeegan/059984b71f8aeb0bbc062e85ad7ee377/raw/e9c7af42c47fe765547e60833a72b5ff1e78123c/cmake-patch.txt
 	echo '' >> cmake-patch.txt
 	git apply cmake-patch.txt
-	# another patch for missing header in cmake install list
-	git apply ../dune-copasi/.ci/dune-common.patch
-	cd ../
 fi
+
+# another patch for missing header in cmake install list
+git apply ../dune-copasi/.ci/dune-common.patch
+cd ../
+
 
 cd dune-logging
 git apply ../dune-copasi/.ci/dune-logging.patch
 cd ../
 
-# python virtual environment does not work in windows yet
+MODULES="logging uggrid geometry grid localfunctions istl typetree functions pdelab multidomaingrid "
 if [[ ! $MSYSTEM ]]; then
-	${DUNECONTROL} --opts=${DUNE_OPTIONS_FILE} --module=dune-testtools all
+	MODULES+="testtools"
 fi
 
-for repo in dune-testtools dune-logging dune-pdelab dune-multidomaingrid
-do
-  ${DUNECONTROL} --opts=${DUNE_OPTIONS_FILE} --module=$repo all
-done
+./dune-common/bin/dunecontrol --opts=${DUNE_OPTIONS_FILE} --only=dune-common all
+cmake --build dune-common/build-cmake/ --target install
+rm -rf dune-common
 
-${DUNECONTROL} --opts=${DUNE_OPTIONS_FILE} --module=$repo bexec cmake --build . --target install
-rm -rf dune-*
+if [[ -z "$DUNECONTROL" ]]
+then
+  DUNECONTROL=dunecontrol
+fi
+
+for module in $MODULES
+do
+	${DUNECONTROL} --opts=${DUNE_OPTIONS_FILE} --only=dune-$module all
+	cmake --build dune-$module/build-cmake/ --target install
+	rm -rf dune-$module
+done

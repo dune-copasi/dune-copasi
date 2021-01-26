@@ -1,4 +1,8 @@
+#!/usr/bin/env bash
+
 # unit tests script for all CIs
+
+set -e
 
 # make sure we get the right mingw64 version of g++ on appveyor
 PATH=/mingw64/bin:$PATH
@@ -13,7 +17,7 @@ g++ --version
 gcc --version
 cmake --version
 
-mkdir dune-copasi/test/cmake-build && cd dune-copasi/test/cmake-build
+mkdir dune-copasi/test/build-cmake && cd dune-copasi/test/build-cmake
 cmake --build ..
 cmake --target build_unit_tests
 ctest -j4 -L "unit" --output-on-failure
