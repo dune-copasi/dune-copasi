@@ -136,6 +136,3 @@ export(EXPORT dune-copasi-targets
 # include tests as a sub project
 add_library(dune::dune-copasi ALIAS dune-copasi)
 add_subdirectory(test)
-
-# enable cmake packaging
-include(DuneCopasiCPack)
