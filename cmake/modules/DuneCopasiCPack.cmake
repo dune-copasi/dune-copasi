@@ -10,4 +10,6 @@ set(CPACK_PACKAGE_VERSION_MAJOR "0")
 set(CPACK_PACKAGE_VERSION_MINOR "4")
 set(CPACK_PACKAGE_VERSION_PATCH "0")
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "CMake ${CMake_VERSION_MAJOR}.${CMake_VERSION_MINOR}")
+
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libscotchparmetis-dev,libldl2,libspqr2,libumfpack5,libarpack++2c2a,libsuperlu5,libgmpxx4ldbl,libopenblas-base,libtiff5,libmuparser2v5")
 include(CPack)

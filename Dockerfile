@@ -11,11 +11,11 @@ ENV PATH=/duneci/install/bin:$PATH
 
 RUN    ln -s /duneci/toolchains/${TOOLCHAIN} /duneci/toolchain \
     && export PATH=/duneci/install/bin:$PATH
-RUN    echo 'CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_SETUP=1"' >> /duneci/cmake-flags/enable_virtualenv \
-    && echo 'CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_PATH=/duneci/install/dune-python-venv"' >> /duneci/cmake-flags/enable_virtualenv \
-    && echo 'CMAKE_FLAGS+=" -DCMAKE_PREFIX_PATH:PATH=/duneci/install"' >> /duneci/cmake-flags/install_path \
-    && echo 'CMAKE_FLAGS+=" -DCMAKE_INSTALL_PREFIX:PATH=/duneci/install"' >> /duneci/cmake-flags/install_path \
-    && echo 'CMAKE_FLAGS+=" -DCMAKE_GENERATOR="Ninja' >> /duneci/cmake-flags/cmake_generator
+RUN    echo 'CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_SETUP=1"' >> /duneci/cmake-flags/dune-copasi \
+    && echo 'CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_PATH=/duneci/install/dune-python-venv"' >> /duneci/cmake-flags/dune-copasi \
+    && echo 'CMAKE_FLAGS+=" -DCMAKE_PREFIX_PATH:PATH=/duneci/install"' >> /duneci/cmake-flags/dune-copasi \
+    && echo 'CMAKE_FLAGS+=" -DCMAKE_INSTALL_PREFIX:PATH=/duneci/install"' >> /duneci/cmake-flags/dune-copasi \
+    && echo 'CMAKE_FLAGS+=" -DCMAKE_GENERATOR="Ninja' >> /duneci/cmake-flags/dune-copasi
 WORKDIR /duneci/modules
 RUN mkdir -p /duneci/modules/dune-copasi/.ci
 COPY --chown=duneci ./.ci /duneci/modules/dune-copasi/.ci
@@ -27,10 +27,10 @@ FROM setup-env AS build-env
 ENV DUNE_OPTIONS_FILE=/duneci/dune.opts
 ENV PATH=/duneci/install/bin:$PATH
 
-RUN    echo 'CMAKE_FLAGS+=" -DDUNE_COPASI_SD_EXECUTABLE=ON"' >> /duneci/cmake-flags/production \
-    && echo 'CMAKE_FLAGS+=" -DDUNE_COPASI_MD_EXECUTABLE=ON"' >> /duneci/cmake-flags/production \
-    && echo 'CMAKE_FLAGS+=" -DCMAKE_CXX_FLAGS_RELEASE='"'"'-O3 -fvisibility=hidden -fpic -static-libstdc++'"'"' "' >> /duneci/cmake-flags/production \
-    && echo 'CMAKE_FLAGS+=" -DCMAKE_BUILD_TYPE=Release"' >> /duneci/cmake-flags/production
+RUN    echo 'CMAKE_FLAGS+=" -DDUNE_COPASI_SD_EXECUTABLE=ON"' >> /duneci/cmake-flags/dune-copasi \
+    && echo 'CMAKE_FLAGS+=" -DDUNE_COPASI_MD_EXECUTABLE=ON"' >> /duneci/cmake-flags/dune-copasi \
+    && echo 'CMAKE_FLAGS+=" -DCMAKE_CXX_FLAGS_RELEASE='"'"'-O3 -fvisibility=hidden -fpic -static-libstdc++'"'"' "' >> /duneci/cmake-flags/dune-copasi \
+    && echo 'CMAKE_FLAGS+=" -DCMAKE_BUILD_TYPE=Release"' >> /duneci/cmake-flags/dune-copasi
 
 WORKDIR /duneci/modules
 COPY --chown=duneci ./ /duneci/modules/dune-copasi
