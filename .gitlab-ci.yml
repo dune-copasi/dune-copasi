@@ -79,12 +79,15 @@ stages:
   image: ${DEPENDENCIES_IMAGE}
   stage: build
   script:
-    - echo 'CMAKE_FLAGS+=" -DCMAKE_INSTALL_PREFIX=$PWD/dune-copasi-install"' >> /duneci/cmake-flags/dune-copasi
+    - echo 'CMAKE_FLAGS+=" -DCMAKE_INSTALL_PREFIX=$CI_PROJECT_DIR/dune-copasi-install"' >> /duneci/cmake-flags/dune-copasi
+    - echo 'CMAKE_FLAGS+=" -DCMAKE_CXX_FLAGS_RELEASE=-O3"' >> /duneci/cmake-flags/dune-copasi
+    - echo 'CMAKE_FLAGS+=" -DDUNE_COPASI_SD_EXECUTABLE=ON"' >> /duneci/cmake-flags/dune-copasi
+    - echo 'CMAKE_FLAGS+=" -DDUNE_COPASI_MD_EXECUTABLE=ON"' >> /duneci/cmake-flags/dune-copasi
     - cd ..
     - bash dune-copasi/.ci/build.sh
   artifacts:
     paths:
-      - dune-copasi-install
+      - $CI_PROJECT_DIR/dune-copasi-install
     expire_in: 30 mins
   <<: *default_tags
 
@@ -93,7 +96,7 @@ stages:
   stage: unit_tests
   script:
     - echo 'CMAKE_FLAGS+=" -DCMAKE_BUILD_TYPE=Debug"' >> /duneci/cmake-flags/dune-copasi
-    - echo 'CMAKE_FLAGS+=" -DCMAKE_PREFIX_PATH=$PWD/dune-copasi-install"' >> /duneci/cmake-flags/dune-copasi
+    - echo 'CMAKE_FLAGS+=" -DCMAKE_PREFIX_PATH=$CI_PROJECT_DIR/dune-copasi-install"' >> /duneci/cmake-flags/dune-copasi
     - cd ..
     - bash dune-copasi/.ci/unit_tests.sh
   artifacts:
@@ -107,7 +110,7 @@ stages:
   image: ${DEPENDENCIES_IMAGE}
   stage: system_tests
   script:
-    - echo 'CMAKE_FLAGS+=" -DCMAKE_PREFIX_PATH=$PWD/dune-copasi-install"' >> /duneci/cmake-flags/dune-copasi
+    - echo 'CMAKE_FLAGS+=" -DCMAKE_PREFIX_PATH=$CI_PROJECT_DIR/dune-copasi-install"' >> /duneci/cmake-flags/dune-copasi
     - cd ..
     - bash dune-copasi/.ci/system_tests.sh
   artifacts:

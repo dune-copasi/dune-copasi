@@ -7,7 +7,7 @@ set(DUNE_CUSTOM_PKG_CONFIG_SECTION
 "
 include(CMakeFindDependencyMacro)
 find_dependency(dune-common REQUIRED)
-list(APPEND CMAKE_MODULE_PATH \${dune-common_MODULE_PATH})
+list(APPEND CMAKE_MODULE_PATH \${dune-common_MODULE_PATH} \${dune-copasi_MODULE_PATH})
 include(DuneMacros)
 
 include(CheckCXXFeatures)
