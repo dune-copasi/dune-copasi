@@ -106,6 +106,9 @@ target_link_libraries(dune-copasi-md-jacobian PRIVATE dune-copasi::dune-copasi)
 
 add_dependencies(build_system_tests
   dune-copasi-md-compare
+)
+
+add_dependencies(build_unit_tests
   dune-copasi-md-jacobian
 )
 
