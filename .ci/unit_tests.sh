@@ -27,5 +27,5 @@ mkdir dune-copasi/test/build-cmake && cd dune-copasi/test/build-cmake
 echo "cmake $CMAKE_FLAGS .."
 eval cmake $CMAKE_FLAGS ..
 
-cmake --target build_unit_tests
+cmake --build . --target build_unit_tests
 ctest -j4 -L "unit" --output-on-failure

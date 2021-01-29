@@ -4,7 +4,7 @@ project(dune-copasi CXX)
 if(NOT (dune-common_DIR OR dune-common_ROOT OR
       "${CMAKE_PREFIX_PATH}" MATCHES ".*dune-common.*"))
     string(REPLACE  ${CMAKE_PROJECT_NAME} dune-common dune-common_DIR
-      ${PROJECT_BINARY_DIR})
+      "${PROJECT_BINARY_DIR}")
 endif()
 
 cmake_policy(SET CMP0074 NEW)
@@ -98,41 +98,39 @@ finalize_dune_project(GENERATE_CONFIG_H_CMAKE)
 target_compile_definitions(dune-copasi INTERFACE HAVE_DUNE_COPASI_CONFIG_H)
 
 # install generated config in build and install directories
-file(COPY
-    "${CMAKE_CURRENT_BINARY_DIR}/config.h"
-    DESTINATION
-    "${CMAKE_CURRENT_BINARY_DIR}/dune/copasi"
+file(COPY "${CMAKE_CURRENT_BINARY_DIR}/config.h"
+     DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/dune/copasi"
 )
 
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/dune/copasi/config.h"
         COMPONENT Development
-        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/dune/copasi")
+        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/dune/copasi"
+)
 
 # taget configuration for downstream projects
 install(TARGETS dune-copasi
-  EXPORT dune-copasi-targets
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        EXPORT dune-copasi-targets
+        LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+          COMPONENT Libraries
+          NAMELINK_COMPONENT Development
+        ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+          COMPONENT Development
 )
 
 # export targets to be used with the installed package
 install(EXPORT dune-copasi-targets
-  FILE
-    dune-copasi-targets.cmake
-  NAMESPACE
-    dune::
-  DESTINATION
-    "${CMAKE_INSTALL_LIBDIR}/cmake/dune-copasi"
+        FILE dune-copasi-targets.cmake
+        NAMESPACE dune-copasi::
+        COMPONENT Development
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/dune-copasi"
 )
 
 # export targets to be used with build directories
 export(EXPORT dune-copasi-targets
-  FILE
-    ${CMAKE_CURRENT_BINARY_DIR}/dune-copasi-targets.cmake
-  NAMESPACE
-    dune::
+       FILE "${CMAKE_CURRENT_BINARY_DIR}/dune-copasi-targets.cmake"
+       NAMESPACE dune-copasi::
 )
 
 # include tests as a sub project
-add_library(dune::dune-copasi ALIAS dune-copasi)
-add_subdirectory(test)
+add_library(dune-copasi:: ALIAS dune-copasi)
+# add_subdirectory(test)

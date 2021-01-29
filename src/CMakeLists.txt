@@ -6,26 +6,28 @@ target_sources(dune-copasi
 )
 
 # SingleDomain executable
-add_executable(dune-copasi-sd EXCLUDE_FROM_ALL "${CMAKE_CURRENT_SOURCE_DIR}/dune_copasi_sd.cc")
-target_link_libraries(dune-copasi-sd PRIVATE dune-copasi)
+add_executable(singledomain-exec EXCLUDE_FROM_ALL "${CMAKE_CURRENT_SOURCE_DIR}/dune_copasi_sd.cc")
+target_link_libraries(singledomain-exec PRIVATE dune-copasi)
 if(DUNE_COPASI_SD_EXECUTABLE)
-  set_target_properties(dune-copasi-sd PROPERTIES EXCLUDE_FROM_ALL OFF)
-  install(TARGETS dune-copasi-sd
+  set_target_properties(singledomain-exec PROPERTIES EXCLUDE_FROM_ALL OFF)
+  install(TARGETS singledomain-exec
   EXPORT dune-copasi-targets
-    COMPONENT MultiDomain
+    COMPONENT Runtime
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   )
 endif()
+set_property(TARGET singledomain-exec PROPERTY RUNTIME_OUTPUT_NAME dune-copasi-sd)
 
 # MultiDomain executable
 
-add_executable(dune-copasi-md EXCLUDE_FROM_ALL "${CMAKE_CURRENT_SOURCE_DIR}/dune_copasi_md.cc")
-target_link_libraries(dune-copasi-md PRIVATE dune-copasi)
+add_executable(multidomain-exec EXCLUDE_FROM_ALL "${CMAKE_CURRENT_SOURCE_DIR}/dune_copasi_md.cc")
+target_link_libraries(multidomain-exec PRIVATE dune-copasi)
 if(DUNE_COPASI_MD_EXECUTABLE)
-  set_target_properties(dune-copasi-md PROPERTIES EXCLUDE_FROM_ALL OFF)
-  install(TARGETS dune-copasi-md
+  set_target_properties(multidomain-exec PROPERTIES EXCLUDE_FROM_ALL OFF)
+  install(TARGETS multidomain-exec
     EXPORT dune-copasi-targets
-    COMPONENT MultiDomain
+    COMPONENT Runtime
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   )
 endif()
+set_property(TARGET multidomain-exec PROPERTY RUNTIME_OUTPUT_NAME dune-copasi-md)
