@@ -60,7 +60,7 @@ target_link_directories(dune-copasi PUBLIC
 )
 
 target_include_directories(dune-copasi PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/lib>
   $<INSTALL_INTERFACE:include>
 )
 
@@ -101,8 +101,18 @@ target_compile_definitions(dune-copasi INTERFACE HAVE_DUNE_COPASI_CONFIG_H)
 file(COPY "${CMAKE_CURRENT_BINARY_DIR}/config.h"
      DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/dune/copasi"
 )
-
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/dune/copasi/config.h"
+        COMPONENT Development
+        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/dune/copasi"
+)
+
+# If the FC.h file is generated (dune-common<=2.7), install into build and install directories
+file(TOUCH "${CMAKE_CURRENT_BINARY_DIR}/FC.h")
+file(COPY "${CMAKE_CURRENT_BINARY_DIR}/FC.h"
+     DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/dune/copasi"
+)
+
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/dune/copasi/FC.h"
         COMPONENT Development
         DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/dune/copasi"
 )
