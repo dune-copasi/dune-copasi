@@ -1,8 +1,6 @@
 # This settings define the installed cmake config file. It adds a minimal setup
 # for the dune requirements without cluttering the whole project with old CMake
 
-set_property(GLOBAL PROPERTY DUNE_MODULE_LIBRARIES dune-copasi)
-
 set(DUNE_CUSTOM_PKG_CONFIG_SECTION
 "
 include(CMakeFindDependencyMacro)
@@ -17,9 +15,6 @@ include(DuneMPI)
 set(DUNE_PYTHON_VIRTUALENV_SETUP ${DUNE_PYTHON_VIRTUALENV_SETUP})
 
 set(ProjectName dune-copasi)
-define_property(GLOBAL PROPERTY DUNE_MODULE_LIBRARIES
-  BRIEF_DOCS \"List of libraries of the module. DO NOT EDIT!\"
-  FULL_DOCS \"List of libraries of the module. Used to generate CMake's package configuration files. DO NOT EDIT!\")
 
 find_file(\${ProjectName}_MODULE_DIR dune.module
   HINTS
@@ -35,4 +30,8 @@ dune_module_information(\${\${ProjectName}_MODULE_DIR})
 dune_create_dependency_tree()
 dune_process_dependency_macros()
 unset(ProjectName)
+
+#import the target
+get_filename_component(_dir \"\${CMAKE_CURRENT_LIST_FILE}\" PATH)
+include(\"\${_dir}/dune-copasi-targets.cmake\")
 ")

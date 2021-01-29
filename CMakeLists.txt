@@ -49,6 +49,8 @@ set(DUNE_COPASI_MD_LIBRARY ${DUNE_COPASI_MD_EXECUTABLE}
 
 # main target
 add_library(dune-copasi)
+set_target_properties(dune-copasi PROPERTIES LIBRARY_OUTPUT_NAME dunecopasi)
+set_target_properties(dune-copasi PROPERTIES ARCHIVE_OUTPUT_NAME dunecopasi)
 
 # add dune dependencies to this target
 dune_target_enable_all_packages(dune-copasi)
@@ -142,5 +144,5 @@ export(EXPORT dune-copasi-targets
 )
 
 # include tests as a sub project
-add_library(dune-copasi:: ALIAS dune-copasi)
-# add_subdirectory(test)
+add_library(dune-copasi::dune-copasi ALIAS dune-copasi)
+add_subdirectory(test)

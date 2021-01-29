@@ -16,6 +16,8 @@ target_link_directories(singldomain-lib PUBLIC
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_LIBDIR}>
 )
 target_link_libraries(singldomain-lib PRIVATE dune-copasi)
+set_target_properties(singldomain-lib PROPERTIES LIBRARY_OUTPUT_NAME dunecopasisd)
+set_target_properties(singldomain-lib PROPERTIES ARCHIVE_OUTPUT_NAME dunecopasisd)
 
 if(DUNE_COPASI_SD_LIBRARY)
   set_target_properties(singldomain-lib PROPERTIES EXCLUDE_FROM_ALL OFF)
@@ -44,6 +46,8 @@ target_link_directories(multidomain-lib PUBLIC
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_LIBDIR}>
 )
 target_link_libraries(multidomain-lib PRIVATE dune-copasi)
+set_target_properties(multidomain-lib PROPERTIES LIBRARY_OUTPUT_NAME dunecopasimd)
+set_target_properties(multidomain-lib PROPERTIES ARCHIVE_OUTPUT_NAME dunecopasimd)
 
 if(DUNE_COPASI_MD_LIBRARY)
   set_target_properties(multidomain-lib PROPERTIES EXCLUDE_FROM_ALL OFF)
