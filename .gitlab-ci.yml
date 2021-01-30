@@ -6,7 +6,6 @@ stages:
   - unit_tests
   - system_tests
   - deploy
-  - deploy_test
 
 .default_tags: &default_tags
   tags:
@@ -22,6 +21,7 @@ stages:
   BASE_IMAGE_VERSION: v0.4.0-git
 
 .docker_variables: &docker_variables
+  DOCKER_BUILDKIT: 1
   DOCKER_IMAGE: docker:19.03.1
   DOCKER_HOST: tcp://docker:2375/
   DOCKER_DRIVER: overlay2
@@ -64,6 +64,7 @@ stages:
     - docker build
         --build-arg BASE_IMAGE=${BASE_IMAGE}
         --build-arg TOOLCHAIN=${TOOLCHAIN}
+        --build-arg BUILDKIT_INLINE_CACHE=1
         --target setup-env
         -t ${DEPENDENCIES_IMAGE} .
     - docker push ${DEPENDENCIES_IMAGE}
@@ -125,33 +126,50 @@ stages:
   image: ${DOCKER_IMAGE}
   stage: deploy
   script:
+    # login into registry
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY/copasi/dune-copasi
     - DOCKER_TAG="${DUNECI_OS}-${TOOLCHAIN}-${CI_COMMIT_REF_NAME}"
+    - DOCKER_DEPLOY_IMAGE=$CI_REGISTRY/copasi/dune-copasi/dune-copasi:${DOCKER_TAG}
+    # set directory to get packages from the image
+    - mkdir -p $CI_PROJECT_DIR/packages
+    # build dockerfile from repositroy
     - docker build
       --build-arg BASE_IMAGE=${BASE_IMAGE}
       --build-arg TOOLCHAIN=${TOOLCHAIN}
+      --target build-env
       --cache-from ${DEPENDENCIES_IMAGE}
-      -t $CI_REGISTRY/copasi/dune-copasi/dune-copasi:${DOCKER_TAG} .
-    - docker push $CI_REGISTRY/copasi/dune-copasi/dune-copasi:${DOCKER_TAG}
-    - if [ "$CI_COMMIT_BRANCH" == "latest" && $DEPLOY_LATEST ]; then
-        docker tag $CI_REGISTRY/copasi/dune-copasi/dune-copasi:${DOCKER_TAG} $CI_REGISTRY/copasi/dune-copasi/dune-copasi:latest
-        docker push $CI_REGISTRY/copasi/dune-copasi/dune-copasi:latest
+      -t build-image .
+    # run image and get its id
+    - DOCKER_ID=$(eval docker run -t -d --entrypoint bash build-image)
+      # move runtime files in packages folder into a local artifact folder
+    - mkdir -p -m o+w $CI_PROJECT_DIR/packages
+    - PACKAGE=$(docker exec ${DOCKER_ID} sh -c "ls /duneci/packages/dune-copasi-*-Runtime.deb")
+    - docker cp ${DOCKER_ID}:${PACKAGE} ${CI_PROJECT_DIR}/packages
+    - docker stop ${DOCKER_ID}
+    # build final production image
+    - docker build
+      --build-arg BASE_IMAGE=${BASE_IMAGE}
+      --build-arg TOOLCHAIN=${TOOLCHAIN}
+      --target production-env
+      --cache-from build-image
+      -t ${DOCKER_DEPLOY_IMAGE} .
+    # push images into registry
+    - docker push ${DOCKER_DEPLOY_IMAGE}
+    - if [[ "$CI_COMMIT_BRANCH" == "latest" && ! -z "${DEPLOY_LATEST}" ]]
+      then
+        docker tag ${DOCKER_DEPLOY_IMAGE} ${CI_REGISTRY}/copasi/dune-copasi/dune-copasi:latest
+        docker push ${CI_REGISTRY}/copasi/dune-copasi/dune-copasi:latest
       fi
-    - docker logout $CI_REGISTRY/copasi/dune-copasi
+    - docker logout ${CI_REGISTRY}/copasi/dune-copasi
   rules:
     - if: '$CI_COMMIT_TAG'
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
     - if: '$CI_COMMIT_BRANCH == "latest"'
+  artifacts:
+    paths:
+      - packages
+    expire_in: never
   <<: *dind_docker_tags
-
-
-.deploy_test: &deploy_test
-  <<: *deploy
-  stage: deploy_test
-  script:
-    - mkdir -m 777 dunecopasi && cd dunecopasi
-    - cp test/test_cell.mini dunecopasi
-    - docker run -v $PWD $CI_REGISTRY/copasi/dune-copasi/dune-copasi:${DOCKER_TAG} dune-copasi-md test_cell.mini
 
 # debian gcc
 setup:debian_gcc:
@@ -189,14 +207,6 @@ deploy:debian_gcc:
   dependencies:
     - system_tests:debian_gcc
 
-deploy_test:debian_gcc:
-  variables:
-    <<: *docker_variables
-    <<: *debian_gcc
-  <<: *deploy_test
-  dependencies:
-    - deploy:debian_gcc
-
 # # ubuntu gcc
 # setup:ubuntu_gcc:
 #   variables:
@@ -232,14 +242,6 @@ deploy_test:debian_gcc:
 #   <<: *deploy
 #   dependencies:
 #     - system_tests:ubuntu_gcc
-
-# deploy_test:ubuntu_gcc:
-#   variables:
-#     <<: *docker_variables
-#     <<: *ubuntu_gcc
-#   <<: *deploy_test
-#   dependencies:
-#     - deploy:ubuntu_gcc
 
 # debian clang
 setup:debian_clang:
@@ -277,14 +279,6 @@ deploy:debian_clang:
   dependencies:
     - system_tests:debian_clang
 
-deploy_test:debian_clang:
-  variables:
-    <<: *docker_variables
-    <<: *debian_clang
-  <<: *deploy_test
-  dependencies:
-    - deploy:debian_clang
-
 # # ubuntu clang
 # setup:ubuntu_clang:
 #   <<: *ubuntu_clang
@@ -313,11 +307,3 @@ deploy_test:debian_clang:
 #   <<: *deploy
 #   dependencies:
 #     - system_tests:ubuntu_clang
-
-# deploy_test:ubuntu_clang:
-#   variables:
-#     <<: *docker_variables
-#     <<: *ubuntu_clang
-#   <<: *deploy_test
-#   dependencies:
-#     - deploy:ubuntu_clang

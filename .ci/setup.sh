@@ -3,7 +3,6 @@
 # dependencies setup script for Travis and AppVeyor CI
 # requisites
 #   * DUNE_OPTIONS_FILE is defined
-#   * DUNCONTROL defined or CMAKE_INSTALL_PREFIX should install in a folder reachable by PATH
 
 set -e
 
@@ -94,6 +93,7 @@ cd dune-logging
 git apply ../dune-copasi/.ci/dune-logging.patch
 cd ../
 
+# hardcoded *ordered* dependencies!
 MODULES="logging uggrid geometry grid localfunctions istl typetree functions pdelab multidomaingrid "
 if [[ ! $MSYSTEM ]]; then
 	MODULES+="testtools"
@@ -103,9 +103,29 @@ fi
 cmake --build dune-common/build-cmake/ --target install
 rm -rf dune-common
 
-if [[ -z "$DUNECONTROL" ]]
-then
-  DUNECONTROL=dunecontrol
+# get cmake flags
+CMAKE_FLAGS=
+if test "x$DUNE_OPTIONS_FILE" != "x"; then
+  CMAKE_FLAGS="$(. $DUNE_OPTIONS_FILE; eval echo \$CMAKE_FLAGS)"
+fi
+
+# get install prefix
+for flag in $CMAKE_FLAGS; do
+  [[ ${flag#-D} == CMAKE_INSTALL_PREFIX* ]] && CMAKE_INSTALL_PREFIX="${flag#-DCMAKE_INSTALL_PREFIX:PATH=}"
+done
+
+# define DUNECONTROL path
+if test "x$DUNECONTROL" == "x"; then
+	if test "x$CMAKE_INSTALL_PREFIX" != "x"; then
+  	DUNECONTROL="$CMAKE_INSTALL_PREFIX/bin/dunecontrol"
+	else
+		DUNECONTROL=dunecontrol
+	fi
+fi
+
+if ! command -v $DUNECONTROL &> /dev/null; then
+	echo "ERROR: '$DUNECONTROL' cannot be executed"
+	exit 1
 fi
 
 for module in $MODULES
