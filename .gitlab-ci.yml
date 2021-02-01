@@ -182,30 +182,30 @@ setup:debian_gcc:
 build:debian_gcc:
   variables:
     <<: *debian_gcc
-  <<: *build
-  dependencies:
+    <<: *build
+  needs:
     - setup:debian_gcc
 
 unit_tests:debian_gcc:
   variables:
     <<: *debian_gcc
-  <<: *unit_tests
-  dependencies:
+    <<: *unit_tests
+  needs:
     - build:debian_gcc
 
 system_tests:debian_gcc:
   variables:
     <<: *debian_gcc
-  <<: *system_tests
-  dependencies:
+    <<: *system_tests
+  needs:
     - build:debian_gcc
 
 deploy:debian_gcc:
   variables:
     <<: *docker_variables
     <<: *debian_gcc
-  <<: *deploy
-  dependencies:
+    <<: *deploy
+  needs:
     - system_tests:debian_gcc
 
 # # ubuntu gcc
@@ -218,30 +218,30 @@ deploy:debian_gcc:
 # build:ubuntu_gcc:
 #   variables:
 #     <<: *ubuntu_gcc
-#   <<: *build
-#   dependencies:
+#     <<: *build
+#   needs:
 #     - setup:ubuntu_gcc
 
 # unit_tests:ubuntu_gcc:
 #   variables:
 #     <<: *ubuntu_gcc
-#   <<: *unit_tests
-#   dependencies:
+#     <<: *unit_tests
+#   needs:
 #     - build:ubuntu_gcc
 
 # system_tests:ubuntu_gcc:
 #   variables:
 #     <<: *ubuntu_gcc
-#   <<: *system_tests
-#   dependencies:
+#     <<: *system_tests
+#   needs:
 #     - build:ubuntu_gcc
 
 # deploy:ubuntu_gcc:
 #   variables:
 #     <<: *docker_variables
 #     <<: *ubuntu_gcc
-#   <<: *deploy
-#   dependencies:
+#     <<: *deploy
+#   needs:
 #     - system_tests:ubuntu_gcc
 
 # debian clang
@@ -254,30 +254,30 @@ setup:debian_clang:
 build:debian_clang:
   variables:
     <<: *debian_clang
-  <<: *build
-  dependencies:
+    <<: *build
+  needs:
     - setup:debian_clang
 
 unit_tests:debian_clang:
   variables:
     <<: *debian_clang
-  <<: *unit_tests
-  dependencies:
+    <<: *unit_tests
+  needs:
     - build:debian_clang
 
 system_tests:debian_clang:
   variables:
     <<: *debian_clang
-  <<: *system_tests
-  dependencies:
+    <<: *system_tests
+  needs:
     - build:debian_clang
 
 deploy:debian_clang:
   variables:
     <<: *docker_variables
     <<: *debian_clang
-  <<: *deploy
-  dependencies:
+    <<: *deploy
+  needs:
     - system_tests:debian_clang
 
 # # ubuntu clang
@@ -287,24 +287,24 @@ deploy:debian_clang:
 
 # build:ubuntu_clang:
 #   <<: *ubuntu_clang
-#   <<: *build
-#   dependencies:
+#     <<: *build
+#   needs:
 #     - setup:ubuntu_clang
 
 # unit_tests:ubuntu_clang:
 #   <<: *ubuntu_clang
-#   <<: *unit_tests
-#   dependencies:
+#     <<: *unit_tests
+#   needs:
 #     - build:ubuntu_clang
 
 # system_tests:ubuntu_clang:
 #   <<: *ubuntu_clang
-#   <<: *system_tests
-#   dependencies:
+#     <<: *system_tests
+#   needs:
 #     - build:ubuntu_clang
 
 # deploy:ubuntu_clang:
 #   <<: *ubuntu_clang
-#   <<: *deploy
-#   dependencies:
+#     <<: *deploy
+#   needs:
 #     - system_tests:ubuntu_clang

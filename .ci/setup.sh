@@ -4,8 +4,6 @@
 # requisites
 #   * DUNE_OPTIONS_FILE is defined
 
-set -e
-
 DUNE_VERSION="2.7"
 
 # make sure we get the right mingw64 version of g++ on appveyor

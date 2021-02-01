@@ -5,26 +5,26 @@ target_include_directories(dune-copasi
 )
 
 # SingleDomain library
-add_library(singldomain-lib
+add_library(singledomain-lib
   EXCLUDE_FROM_ALL
     dune_copasi_sd_fv.cc
     dune_copasi_sd_cg.cc
     dune_copasi_sd_fv_cg.cc
 )
-target_link_directories(singldomain-lib PUBLIC
+target_link_directories(singledomain-lib PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_LIBDIR}>
 )
-target_link_libraries(singldomain-lib PRIVATE dune-copasi)
-set_target_properties(singldomain-lib PROPERTIES LIBRARY_OUTPUT_NAME dunecopasisd)
-set_target_properties(singldomain-lib PROPERTIES ARCHIVE_OUTPUT_NAME dunecopasisd)
+target_link_libraries(singledomain-lib PRIVATE dune-copasi)
+set_target_properties(singledomain-lib PROPERTIES LIBRARY_OUTPUT_NAME dunecopasisd)
+set_target_properties(singledomain-lib PROPERTIES ARCHIVE_OUTPUT_NAME dunecopasisd)
 
 if(DUNE_COPASI_SD_LIBRARY)
-  set_target_properties(singldomain-lib PROPERTIES EXCLUDE_FROM_ALL OFF)
-  target_link_libraries(dune-copasi INTERFACE singldomain-lib)
+  set_target_properties(singledomain-lib PROPERTIES EXCLUDE_FROM_ALL OFF)
+  target_link_libraries(dune-copasi INTERFACE singledomain-lib)
   target_compile_definitions(dune-copasi INTERFACE DUNE_COPASI_SD_LIBRARY)
 
-  install(TARGETS singldomain-lib
+  install(TARGETS singledomain-lib
     EXPORT dune-copasi-targets
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
       COMPONENT Libraries

@@ -2,8 +2,6 @@
 
 # system tests script for all CIs
 
-set -e
-
 # make sure we get the right mingw64 version of g++ on appveyor
 PATH=/mingw64/bin:$PATH
 echo "PATH=$PATH"
