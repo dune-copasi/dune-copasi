@@ -155,7 +155,8 @@ stages:
       -t ${DOCKER_DEPLOY_IMAGE} .
     # push images into registry
     - docker push ${DOCKER_DEPLOY_IMAGE}
-    - if [[ "$CI_COMMIT_BRANCH" == "latest" && ! -z "${DEPLOY_LATEST}" ]]
+    - |
+      if [[ "$CI_COMMIT_BRANCH" == "latest" && ! -z "${DEPLOY_LATEST}" ]]
       then
         docker tag ${DOCKER_DEPLOY_IMAGE} ${CI_REGISTRY}/copasi/dune-copasi/dune-copasi:latest
         docker push ${CI_REGISTRY}/copasi/dune-copasi/dune-copasi:latest
