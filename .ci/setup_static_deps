@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+
+# input
+#   OS_TARGET=linux|osx|win32|win64
+#   INSTALL_PREFIX
+# output
+#   CMAKE_FLAGS
+#   CMAKE_PREFIX_PATH
+
+set -e
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+source $DIR/util
+
+prefix_content() {
+  ls "${INSTALL_PREFIX}"
+}
+
+# set up onfailure function
+ONFAILURE_PROG+=" git gcc g++ python pip python3 pip3 cmake"
+ONFAILURE_VARS+=" OS_TARGET INSTALL_PREFIX CMAKE_FLAGS CMAKE_PREFIX_PATH"
+ONFAILURE_CMD+=" ls prefix_content"
+
+trap onfailure EXIT
+
+if [[ ! "$OS_TARGET" =~ ^(linux|osx|win32|win64)$ ]]; then
+    echo "$OS_TARGET is not a known OS target"
+    exit 1
+fi
+
+echo "Downloading static libs for OS_TARGET: ${OS_TARGET}"
+echo ""
+wget "https://github.com/spatial-model-editor/sme_deps_common/releases/latest/download/sme_deps_common_${OS_TARGET}.tgz"
+tar xvf sme_deps_common_${OS_TARGET}.tgz
+
+[ -z "$INSTALL_PREFIX" ] && echo "Install prefix is empty" && exit 1
+
+# copy libs to desired location
+mkdir -p "${INSTALL_PREFIX}"
+if [[ "$OS_TARGET" == *"win"* ]]; then
+   mv smelibs/* "${INSTALL_PREFIX}"
+else
+   mv opt/smelibs/* "${INSTALL_PREFIX}"
+fi
+
+CMAKE_FLAGS+=" -DGMPXX_INCLUDE_DIR:PATH='"${INSTALL_PREFIX}"/include' "
+CMAKE_FLAGS+=" -DGMPXX_LIB:FILEPATH='"${INSTALL_PREFIX}"/lib/libgmpxx.a' "
+CMAKE_FLAGS+=" -DGMP_LIB:FILEPATH='"${INSTALL_PREFIX}"/lib/libgmp.a' "
+CMAKE_FLAGS+=" -Dfmt_ROOT='"${INSTALL_PREFIX}"' "
+CMAKE_FLAGS+=" -DCMAKE_DISABLE_FIND_PACKAGE_QuadMath=TRUE"
+CMAKE_FLAGS+=" -DDUNE_USE_ONLY_STATIC_LIBS=ON -DF77=true"
+CMAKE_PREFIX_PATH+="${INSTALL_PREFIX};"
+
+trap - EXIT

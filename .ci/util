@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+
+# This is a helper function to diagnose error on different systems.
+# Use `onfailure` function together with the `trap` command:
+#
+#   trap onfailure EXIT
+#
+#   # some custom script
+#
+#   trap - EXIT
+
+# default executables to check binary folder and version on failure
+[ -z "$ONFAILURE_PROG" ] && ONFAILURE_PROG='bash'
+
+# default variables to expand on failure
+[ -z "$ONFAILURE_VARS" ] && ONFAILURE_VARS="PATH"
+
+# default commands to run on failure
+[ -z "$ONFAILURE_CMD" ] && ONFAILURE_CMD="pwd"
+
+# default exit code on failure
+[ -z "$ONFAILURE_EXIT" ] && ONFAILURE_EXIT=1
+
+onfailure() {
+
+  # lets assume no symlink is used
+  DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+  # do not exit this function even on case of failures
+  set +e
+
+  RED=$(tput setaf 1 :-"" 2>/dev/null)
+  GREEN=$(tput setaf 2 :-"" 2>/dev/null)
+  YELLOW=$(tput setaf 3 :-"" 2>/dev/null)
+  RESET=$(tput sgr0 :-"" 2>/dev/null)
+
+  echo "************************************************************************"
+  echo $RED ""
+  echo "A failure has been produced when calling '${DIR}/${0}'"
+  echo "The following output is a diagnosis for the current system."
+  echo "" $RESET
+
+  echo "*************************** $GREEN Executables Info $RESET **************************"
+  for i in $(echo $ONFAILURE_PROG); do
+    echo "[${YELLOW}${i}${RESET}]:"
+    if command -v $i &> /dev/null; then
+      echo "  which:"
+      echo "$(eval which $i)" | sed 's/^/    /'
+      echo "  version:"
+      echo "$(eval $i --version)" | sed 's/^/    /'
+    else
+      echo $RED "NOT FOUND" $RESET | sed 's/^/  /'
+    fi
+    echo ""
+  done
+
+  echo "*************************** $GREEN Variables $RESET *********************************"
+  for i in $(echo $ONFAILURE_VARS); do
+    echo "[${YELLOW}${i}${RESET}]:"
+    VAR=$(eval echo "\$$i")
+    if [ -z "$VAR" ]; then
+      echo $RED "NOT FOUND" $RESET | sed 's/^/  /'
+    else
+      echo "$VAR" | sed 's/^/  /'
+    fi
+    echo ""
+  done
+
+  echo "*************************** $GREEN Custom Commands $RESET ****************************"
+  for i in $(echo $ONFAILURE_CMD); do
+    echo "[${YELLOW}${i}${RESET}]:"
+    FUNC="$($i 2>&1)"
+    if [ -z "$FUNC" ]; then
+      echo $RED "NOT OUTPUT" $RESET | sed 's/^/  /'
+    else
+      echo "$FUNC" | sed 's/^/  /'
+    fi
+    echo ""
+  done
+
+  echo "************************************************************************"
+
+	exit ${ONFAILURE_EXIT}
+}
