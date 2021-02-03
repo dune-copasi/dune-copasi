@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-16.04
     env:
       INSTALL_PREFIX: '/opt/smelibs'
-      # SUDOCMD: 'sudo'
+      SUDOCMD: 'sudo'
       OS_TARGET: 'linux'
       # USE_FALLBACK_FILESYSTEM: 'OFF'
     defaults:
@@ -33,7 +33,7 @@ jobs:
     runs-on: macos-10.15
     env:
       INSTALL_PREFIX: '/opt/smelibs'
-      # SUDOCMD: 'sudo'
+      SUDOCMD: 'sudo'
       MACOSX_DEPLOYMENT_TARGET: '10.14'
       OS_TARGET: 'osx'
       # USE_FALLBACK_FILESYSTEM: 'ON'
@@ -43,7 +43,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Setup static dependencies
-        run: sudo ./.ci/setup_static_deps
+        run: ./.ci/setup_static_deps
       # - uses: actions/upload-artifact@v2
       #   with:
       #     path: ./artefacts/*
@@ -53,7 +53,7 @@ jobs:
     runs-on: windows-2019
     env:
       INSTALL_PREFIX: '/c/smelibs'
-      # SUDOCMD: ''
+      SUDOCMD: ''
       OS_TARGET: 'win64'
       # USE_FALLBACK_FILESYSTEM: 'OFF'
     defaults:

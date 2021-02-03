@@ -3,6 +3,7 @@
 # input
 #   OS_TARGET=linux|osx|win32|win64
 #   INSTALL_PREFIX
+#   (optional) SUDOCMD
 # output
 #   CMAKE_FLAGS
 #   CMAKE_PREFIX_PATH
@@ -16,9 +17,9 @@ prefix_content() {
   ls "${INSTALL_PREFIX}"
 }
 
-# set up onfailure function
+# set up verbose output in case of failure
 ONFAILURE_PROG+=" git gcc g++ python pip python3 pip3 cmake"
-ONFAILURE_VARS+=" OS_TARGET INSTALL_PREFIX CMAKE_FLAGS CMAKE_PREFIX_PATH VERBOSE_TAR"
+ONFAILURE_VARS+=" SUDOCMD OS_TARGET INSTALL_PREFIX CMAKE_FLAGS CMAKE_PREFIX_PATH VERBOSE_TAR"
 ONFAILURE_CMD+=" ls prefix_content"
 
 trap onfailure EXIT
@@ -40,9 +41,9 @@ echo "Moving libs to install prefix: ${INSTALL_PREFIX}"
 # copy libs to desired location
 mkdir -p "${INSTALL_PREFIX}"
 if [[ "$OS_TARGET" == *"win"* ]]; then
-   mv smelibs/* "${INSTALL_PREFIX}"
+   $SUDOCMD mv smelibs/* "${INSTALL_PREFIX}"
 else
-   mv opt/smelibs/* "${INSTALL_PREFIX}"
+   $SUDOCMD mv opt/smelibs/* "${INSTALL_PREFIX}"
 fi
 
 echo "Setting cmake flags"
