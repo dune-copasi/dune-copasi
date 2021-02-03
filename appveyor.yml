@@ -23,7 +23,7 @@ before_build:
   - echo CMAKE_FLAGS+=" -DGMP_LIB:FILEPATH=C:/smelibs/lib/libgmp.a " >> C:\msys64\home\appveyor\dune.txt
   - echo CMAKE_FLAGS+=" -DCMAKE_PREFIX_PATH=C:/smelibs;C:/dune" >> C:\msys64\home\appveyor\dune.txt
   - echo CMAKE_FLAGS+=" -Dfmt_ROOT=C:/smelibs " >> C:\msys64\home\appveyor\dune.txt
-  - echo CMAKE_FLAGS+=" -DCMAKE_INSTALL_PREFIX:PATH=C:/dune" >> C:\msys64\home\appveyor\dune.txt
+  - echo CMAKE_FLAGS+=" -DCMAKE_INSTALL_PREFIX=C:/dune" >> C:\msys64\home\appveyor\dune.txt
   - echo MAKE_FLAGS="-j2 VERBOSE=1" >> C:\msys64\home\appveyor\dune.txt
   - type C:\msys64\home\appveyor\dune.txt
   - set DUNE_OPTIONS_FILE=dune.txt
