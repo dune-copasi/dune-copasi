@@ -30,7 +30,7 @@ fi
 
 echo "Downloading static libs for OS_TARGET: ${OS_TARGET}"
 echo ""
-wget "https://github.com/spatial-model-editor/sme_deps_common/releases/latest/download/sme_deps_common_${OS_TARGET}.tgz"
+wget -nv "https://github.com/spatial-model-editor/sme_deps_common/releases/latest/download/sme_deps_common_${OS_TARGET}.tgz"
 VERBOSE_TAR=$(tar xvf sme_deps_common_${OS_TARGET}.tgz)
 
 [ -z "$INSTALL_PREFIX" ] && echo "Install prefix is empty" && exit 1
