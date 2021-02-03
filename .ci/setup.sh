@@ -4,36 +4,46 @@
 # requisites
 #   * DUNE_OPTIONS_FILE is defined
 
+set -e
+
 DUNE_VERSION="2.7"
 
 # make sure we get the right mingw64 version of g++ on appveyor
 PATH=/mingw64/bin:$PATH
-echo "PATH=$PATH"
-echo "MSYSTEM: $MSYSTEM"
-echo "DUNE_OPTIONS_FILE: ${DUNE_OPTIONS_FILE}"
-cat ${DUNE_OPTIONS_FILE}
-echo "PWD: $PWD"
 
-which g++
-g++ --version
+onfailure() {
+	echo $PWD
+	ls
 
-which gcc
-gcc --version
+	echo "PATH=$PATH"
+	echo "MSYSTEM: $MSYSTEM"
+	echo "DUNE_OPTIONS_FILE: ${DUNE_OPTIONS_FILE}"
+	cat ${DUNE_OPTIONS_FILE}
+	echo "PWD: $PWD"
 
-which python
-python --version
+	which g++
+	g++ --version
 
-which python3
-python3 --version
+	which gcc
+	gcc --version
 
-which pip
-pip --version
+	which python
+	python --version
 
-which pip3
-pip3 --version
+	which python3
+	python3 --version
 
-which cmake
-cmake --version
+	which pip
+	pip --version
+
+	which pip3
+	pip3 --version
+
+	which cmake
+	cmake --version
+}
+
+trap onfailure EXIT
 
 # download Dune dependencies
 for repo in core/dune-common core/dune-geometry core/dune-grid core/dune-istl core/dune-localfunctions staging/dune-functions staging/dune-uggrid
