@@ -39,7 +39,7 @@ VERBOSE_TAR=$(tar xvf sme_deps_common_${OS_TARGET}.tgz)
 echo "Moving libs to install prefix: ${INSTALL_PREFIX}"
 
 # copy libs to desired location
-mkdir -p "${INSTALL_PREFIX}"
+$SUDOCMD mkdir -p "${INSTALL_PREFIX}"
 if [[ "$OS_TARGET" == *"win"* ]]; then
    $SUDOCMD mv smelibs/* "${INSTALL_PREFIX}"
 else
