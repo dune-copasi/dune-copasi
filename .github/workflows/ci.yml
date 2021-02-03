@@ -21,7 +21,7 @@ jobs:
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 100
     - uses: actions/checkout@v2
     - name: Setup static dependencies
-      run: ./ci/setup_static_deps
+      run: ./.ci/setup_static_deps
     # - name: Build script
     #   run: ./build.sh
     # - uses: actions/upload-artifact@v2
@@ -43,7 +43,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Setup static dependencies
-        run: ./ci/setup_static_deps
+        run: ./.ci/setup_static_deps
       # - uses: actions/upload-artifact@v2
       #   with:
       #     path: ./artefacts/*
@@ -67,7 +67,7 @@ jobs:
           update: true
           install: mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake make git
       - name: Setup static dependencies
-        run: ./ci/setup_static_deps
+        run: ./.ci/setup_static_deps
       # - uses: actions/upload-artifact@v2
       #   with:
       #     path: ./artefacts/*
@@ -91,7 +91,7 @@ jobs:
           update: true
           install: mingw-w64-i686-gcc mingw-w64-i686-cmake make git
       - name: Setup static dependencies
-        run: ./ci/setup_static_deps
+        run: ./.ci/setup_static_deps
       # - uses: actions/upload-artifact@v2
       #   with:
       #     path: ./artefacts/*
