@@ -1,0 +1,51 @@
+# #!/usr/bin/env bash
+
+# # unit tests script for all CIs
+
+# input
+#   DUNE_OPTIONS_FILE absolute path to options file
+
+set -e
+
+# options file may be passed as argument
+[ ! -z "$1" ] && DUNE_OPTIONS_FILE="$1"
+
+# load useful functions
+CALL_DIR=$PWD
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+source $SCRIPT_DIR/util
+
+
+SOURCEDIR=${SCRIPT_DIR}/../test
+BUILDDIR=${PWD}/build-system-tests
+
+print_opts_file() {
+  cat "${DUNE_OPTIONS_FILE}"
+}
+
+cleanup() {
+  echo "removig intermediate results"
+  rm -rf "${BUILDDIR}"
+}
+
+# set up verbose output in case of failure
+ONFAILURE_PROG="git gcc g++ python pip python3 pip3 cmake curl $SUDOCMD"
+ONFAILURE_VARS="PATH MSYSTEM SUDOCMD SETUP_DUNE_TESTTOOLS DUNE_OPTIONS_FILE CMAKE_FLAGS CMAKE_INSTALL_PREFIX REPO BRANCH PATCHES"
+ONFAILURE_CMD="ls cleanup print_opts_file"
+
+trap onfailure EXIT
+
+[[ -d ${BUILDDIR} ]] && ONFAILURE_MESSAGE+="run this script where no folder 'build-system-tests' exists\n" && exit 1
+mkdir $BUILDDIR && cd $BUILDDIR
+
+if test "x$DUNE_OPTIONS_FILE" != "x"; then
+  CMAKE_FLAGS="$(. $DUNE_OPTIONS_FILE; eval echo \$CMAKE_FLAGS)"
+fi
+
+echo "cmake $CMAKE_FLAGS $BUILDDIR"
+eval cmake $CMAKE_FLAGS $BUILDDIR
+
+cmake --build . --target build_system_tests
+ctest -j4 -L "unit" --output-on-failure
+
+trap cleanup EXIT

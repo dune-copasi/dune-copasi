@@ -70,7 +70,7 @@ SETUP_dune_common_PATCHES="${PWD}/dune-common.patch"
 
 # hardcoded **ordered** dependencies
 MODULES="common logging uggrid geometry grid localfunctions istl typetree functions pdelab multidomaingrid"
-if [[ $SETUP_DUNE_TESTTOOLS ]]; then
+if [[ ! "$SETUP_DUNE_TESTTOOLS" =~ ^(ON|on|1|yes|true|TRUE)$ ]]
 	MODULES+=" testtools"
 fi
 

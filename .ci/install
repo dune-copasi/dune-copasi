@@ -17,6 +17,9 @@ CALL_DIR=$PWD
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 source $SCRIPT_DIR/util
 
+SOURCEDIR=${SCRIPT_DIR}/..
+BUILDDIR=${PWD}/build-cmake
+
 # options file may be passed as argument
 [ ! -z "$1" ] && DUNE_OPTIONS_FILE="$1"
 
@@ -38,8 +41,6 @@ trap onfailure EXIT
 
 CMAKE_FLAGS="$(. ${DUNE_OPTIONS_FILE}; eval echo \$CMAKE_FLAGS)"
 
-SOURCEDIR=${SCRIPT_DIR}/..
-BUILDDIR=${SOURCEDIR}/build-cmake
 [[ -d ${BUILDDIR} ]] && ONFAILURE_MESSAGE+="run this script where no folder 'build-cmake' exists\n" && exit 1
 mkdir $BUILDDIR && cd $BUILDDIR
 
