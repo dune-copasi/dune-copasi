@@ -43,7 +43,7 @@ jobs:
     - name: Setup dune dependencies
       run: |
         echo "CMAKE_FLAGS=$CMAKE_FLAGS $JOB_CMAKE_FLAGS" > dune.opts
-        ./.ci/setup_dune dune.opts
+        ./.ci/setup_dune $PWD/dune.opts
     # - name: Build script
     #   run: ./build.sh
     # - uses: actions/upload-artifact@v2

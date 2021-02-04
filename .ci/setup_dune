@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # input
-#   DUNE_OPTIONS_FILE
+#   DUNE_OPTIONS_FILE absolute path to options file
 #   (optional) SETUP_DUNE_TESTTOOLS
 #   (optional) SUDOCMD
 
