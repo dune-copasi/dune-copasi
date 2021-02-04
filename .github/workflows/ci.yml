@@ -31,6 +31,7 @@ jobs:
       INSTALL_PREFIX: '/opt/smelibs'
       SUDOCMD: 'sudo'
       OS_TARGET: 'linux'
+      TERM: 'xterm-256color'
     defaults:
       run:
         shell: bash
@@ -66,10 +67,6 @@ jobs:
       run:
         shell: bash
     steps:
-      - name: Setup OS
-        run: |
-          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
-          brew install ncurses
       - uses: actions/checkout@v2
       - name: Setup static dependencies
         run: ./.ci/setup_static_deps

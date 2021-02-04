@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 # input
-#   OS_TARGET=linux|osx|win32|win64
 #   DUNE_OPTIONS_FILE absolute path to options file
 #   (optional) SETUP_DUNE_TESTTOOLS
 #   (optional) SUDOCMD
@@ -138,15 +137,15 @@ for module in $MODULES; do
   # msys git replaces symlinks with a text file containing the linked file location
   # so here we identify all such files, and replace them with the linked file
   # note msys defines MSYSTEM variable: use this to check if we are on msys/windows
-  if [[ "$OS_TARGET" == *"win"* ]]; then
-    cd $repo
+  if [[ $MSYSTEM ]]; then
+    cd dune-$module
     for f in $(git ls-files -s | awk '/120000/{print $4}')
     do
       dname=$(dirname "$f")
       fname=$(basename "$f")
       relf=$(cat $f)
-      src="$pwd/$repo/$dname/$relf"
-      dst="$pwd/$repo/$dname/$fname"
+      src="$pwd/dune-$module/$dname/$relf"
+      dst="$pwd/dune-$module/$dname/$fname"
       echo "  - copying $src --> $dst"
       cp $src $dst
     done
