@@ -5,8 +5,7 @@ on: push
 env:
   USE_FALLBACK_FILESYSTEM: 'OFF'
   CMAKE_FLAGS: >
-    " -G '"'"'Unix Makefiles'"'"'
-      -DCMAKE_CXX_STANDARD=17
+    " -DCMAKE_CXX_STANDARD=17
       -DCMAKE_BUILD_TYPE=Release
       -DDUNE_PYTHON_VIRTUALENV_SETUP=0
       -DDUNE_PYTHON_ALLOW_GET_PIP=0
