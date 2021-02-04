@@ -8,6 +8,7 @@ ARG TOOLCHAIN=clang-6-17
 
 ENV DUNE_OPTIONS_FILE=/duneci/dune.opts
 ENV PATH=/duneci/install/bin:$PATH
+ENV TERM=xterm-256color
 
 RUN    ln -s /duneci/toolchains/${TOOLCHAIN} /duneci/toolchain \
     && export PATH=/duneci/install/bin:$PATH
@@ -27,6 +28,7 @@ FROM setup-env AS build-env
 
 ENV DUNE_OPTIONS_FILE=/duneci/dune.opts
 ENV PATH=/duneci/install/bin:$PATH
+ENV TERM=xterm-256color
 
 RUN    echo 'CMAKE_FLAGS+=" -DDUNE_COPASI_SD_EXECUTABLE=ON"' >> /duneci/cmake-flags/dune-copasi \
     && echo 'CMAKE_FLAGS+=" -DDUNE_COPASI_MD_EXECUTABLE=ON"' >> /duneci/cmake-flags/dune-copasi \
@@ -37,7 +39,7 @@ WORKDIR /duneci/modules
 COPY --chown=duneci ./ /duneci/modules/dune-copasi
 RUN ./dune-copasi/.ci/install /duneci/dune.opts
 
-WORKDIR /duneci/modules/dune-copasi/build-cmake/
+WORKDIR /duneci/modules/build-cmake/
 RUN cpack -G DEB -B /duneci/packages CPackConfig.cmake
 
 # move results to a -lighter- production  image
