@@ -40,6 +40,9 @@ trap onfailure EXIT
 [[ "$(ls)" == *setup-dune* ]] && ONFAILURE_MESSAGE+="run this script where no folder 'setup-dune' exists\n" && exit 1
 mkdir setup-dune && cd setup-dune
 
+# make sure we get the right mingw64 version of g++ on appveyor
+[[ $MSYSTEM ]] && PATH=/mingw64/bin:$PATH
+
 # setup dune repositories, branches, and patches
 for module in common geometry grid istl localfunctions; do
   eval SETUP_dune_${module}_BRANCH=\"releases/2.7\"
