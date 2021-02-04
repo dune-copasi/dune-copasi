@@ -4,6 +4,7 @@ on: push
 
 env:
   USE_FALLBACK_FILESYSTEM: 'OFF'
+  CXX_FLAGS: '-fvisibility=hidden -fpic -static-libstdc++'
   CMAKE_FLAGS: >
     " -DCMAKE_CXX_STANDARD=17
       -DCMAKE_BUILD_TYPE=Release
@@ -19,6 +20,7 @@ env:
       -DCMAKE_PREFIX_PATH='${INSTALL_PREFIX}/dune;${INSTALL_PREFIX}'
       -DGMPXX_INCLUDE_DIR:PATH='${INSTALL_PREFIX}/include'
       -DUSE_FALLBACK_FILESYSTEM=${USE_FALLBACK_FILESYSTEM}
+      -DCMAKE_CXX_FLAGS='${CXX_FLAGS}'
     "
 
 jobs:
