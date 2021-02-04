@@ -156,7 +156,7 @@ for module in $MODULES; do
   # apply patches
   if [[ ! -z $PATCHES ]]; then
     echo "Applying patches: $PATCHES"
-    git -C dune-$module apply -v --inaccurate-eof --unsafe-paths $PATCHES
+    git -C dune-$module apply -v $PATCHES
   fi
   echo ""
 
