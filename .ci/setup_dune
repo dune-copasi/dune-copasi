@@ -5,6 +5,12 @@
 #   (optional) SETUP_DUNE_TESTTOOLS
 #   (optional) SUDOCMD
 
+set +e
+
+# set colors for better print
+GREEN=$(tput setaf 2 :-"" 2>/dev/null)
+RESET=$(tput sgr0 :-"" 2>/dev/null)
+
 set -e
 
 # options file may be passed as argument
@@ -118,10 +124,6 @@ fi
 # download dune dependencies
 for module in $MODULES; do
 
-  set +e
-  GREEN=$(tput setaf 2 :-"" 2>/dev/null)
-  RESET=$(tput sgr0 :-"" 2>/dev/null)
-  set -e
   echo ""
   echo $GREEN "============================ Setting up dune-$module ============================" $RESET
   echo ""
