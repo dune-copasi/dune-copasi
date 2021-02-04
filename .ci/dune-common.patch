@@ -1,3 +1,16 @@
+diff --git a/cmake/modules/DuneMacros.cmake b/cmake/modules/DuneMacros.cmake
+index 1c9b0412..778c9a92 100644
+--- a/cmake/modules/DuneMacros.cmake
++++ b/cmake/modules/DuneMacros.cmake
+@@ -977,8 +977,6 @@ endif()
+     configure_file(config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
+   endif()
+ 
+-  include(CPack)
+-
+   feature_summary(WHAT ALL)
+ 
+   # check if CXX flag overloading has been enabled
 diff --git a/dune/common/std/CMakeLists.txt b/dune/common/std/CMakeLists.txt
 index 40004d3c..94a2d7ac 100644
 --- a/dune/common/std/CMakeLists.txt
