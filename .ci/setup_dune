@@ -155,8 +155,10 @@ for module in $MODULES; do
 
   # apply patches
   if [[ ! -z $PATCHES ]]; then
+    cd dune-$module
     echo "Applying patches: $PATCHES"
-    git -C dune-$module apply -v $PATCHES
+    git apply -v $PATCHES
+    cd ..
   fi
   echo ""
 
