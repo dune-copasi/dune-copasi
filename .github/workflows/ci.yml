@@ -63,6 +63,7 @@ jobs:
       MACOSX_DEPLOYMENT_TARGET: '10.14'
       OS_TARGET: 'osx'
       USE_FALLBACK_FILESYSTEM: 'ON'
+      TERM: 'xterm-256color'
     defaults:
       run:
         shell: bash
