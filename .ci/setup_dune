@@ -4,6 +4,7 @@
 #   DUNE_OPTIONS_FILE absolute path to options file
 #   (optional) SETUP_DUNE_TESTTOOLS
 #   (optional) SUDOCMD
+#   (optional) RECURSIVE
 
 set +e
 
@@ -128,7 +129,8 @@ for module in $MODULES; do
   BRANCH="$(eval echo \$SETUP_dune_${module}_BRANCH)"
   PATCHES="$(eval echo \$SETUP_dune_${module}_PATCHES)"
 
-  git clone -b $BRANCH --depth 1 --recursive $REPO
+  [[ ! -z "$RECURSIVE" ]] && RECURSIVE="--recursive"
+  git clone -b $BRANCH --depth 1 $RECURSIVE $REPO
 
   # on windows, symlinks from git repos don't work
   # msys git replaces symlinks with a text file containing the linked file location
