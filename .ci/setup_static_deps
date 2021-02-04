@@ -31,7 +31,7 @@ ONFAILURE_CMD="ls prefix_content cleanup"
 
 trap onfailure EXIT
 
-[[ "$(ls)" == *setup-static-deps* ]] && ONFAILURE_MESSAGE+="run this script where no folder 'setup-static-deps' exists\n" && exit 1
+[[ -d ${PWD}/setup-static-deps ]] && ONFAILURE_MESSAGE+="run this script where no folder 'setup-static-deps' exists\n" && exit 1
 mkdir setup-static-deps && cd setup-static-deps
 
 if [[ ! "$OS_TARGET" =~ ^(linux|osx|win32|win64)$ ]]; then
