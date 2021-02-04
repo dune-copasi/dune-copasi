@@ -168,10 +168,11 @@ for module in $MODULES; do
     DUNECONTROL=$CMAKE_INSTALL_PREFIX/bin/dunecontrol
   fi
 
+  # control path must be explicitely set on windows when dune-common is installed
   export DUNE_CONTROL_PATH=$PWD
 
   # configure, build, and install module
-  $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module --debug all
+  $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module all
   $SUDOCMD $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module bexec cmake --build . --target install
 
   # we want to know where the build dir is located
