@@ -48,6 +48,5 @@ echo "cmake $CMAKE_FLAGS $SOURCEDIR"
 eval cmake $CMAKE_FLAGS $SOURCEDIR
 
 cmake --build $BUILD_PATH --target install
-rm -rf $BUILD_PATH
 
 trap cleanup EXIT

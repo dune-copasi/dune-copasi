@@ -158,7 +158,7 @@ for module in $MODULES; do
     echo "Applying patches: $PATCHES"
     # change line ending to DOS if OS is windows
     for patch in $PATCHES; do
-      [[ $MSYSTEM ]] && unix2dos $patch $patch
+      [[ $MSYSTEM ]] && dos2unix $patch $patch
     done
     git -C dune-$module apply -v $PATCHES
   fi
