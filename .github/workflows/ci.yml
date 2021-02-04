@@ -7,7 +7,8 @@ env:
   SETUP_DUNE_TESTTOOLS: 'OFF'
   CXX_FLAGS: '-fvisibility=hidden -fpic -static-libstdc++'
   CMAKE_FLAGS: >
-    " -DCMAKE_CXX_STANDARD=17
+    " -G 'Unix Makefiles'
+      -DCMAKE_CXX_STANDARD=17
       -DCMAKE_BUILD_TYPE=Release
       -DDUNE_PYTHON_VIRTUALENV_SETUP=0
       -DDUNE_PYTHON_ALLOW_GET_PIP=0
