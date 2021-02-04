@@ -149,6 +149,7 @@ for module in $MODULES; do
       echo "  - copying $src --> $dst"
       cp $src $dst
     done
+    cd ..
   fi
 
   # apply patches
