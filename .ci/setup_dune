@@ -68,12 +68,11 @@ if [[ "$OS_TARGET" == *"osx"* ]]; then
   printf "\n" >> "${PWD}/dune-common.patch"
 fi
 
-
 SETUP_dune_common_PATCHES="${PWD}/dune-common.patch"
 
 # hardcoded **ordered** dependencies
 MODULES="common logging uggrid geometry grid localfunctions istl typetree functions pdelab multidomaingrid"
-if [[ ! "$SETUP_DUNE_TESTTOOLS" =~ ^(ON|on|1|yes|true|TRUE)$ ]]
+if [[ ! "$SETUP_DUNE_TESTTOOLS" =~ ^(ON|on|1|yes|true|TRUE)$ ]]; then
 	MODULES+=" testtools"
 fi
 
