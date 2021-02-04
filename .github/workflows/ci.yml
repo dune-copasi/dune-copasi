@@ -35,7 +35,7 @@ jobs:
       run:
         shell: bash
     steps:
-    - name: Set gcc version
+    - name: Set OS
       run: |
         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 100
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 100
@@ -66,6 +66,10 @@ jobs:
       run:
         shell: bash
     steps:
+      - name: Setup OS
+        run: |
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+          brew install ncurses
       - uses: actions/checkout@v2
       - name: Setup static dependencies
         run: ./.ci/setup_static_deps
