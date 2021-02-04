@@ -70,11 +70,6 @@ curl https://gist.githubusercontent.com/lkeegan/059984b71f8aeb0bbc062e85ad7ee377
 echo '' >> "cmake-patch.txt"
 SETUP_dune_common_PATCHES+=" ${PWD}/cmake-patch.txt"
 
-# change line ending to DOS if OS is windows
-[[ $MSYSTEM ]] && unix2dos "${SCRIPT_DIR}/dune-common.patch"
-[[ $MSYSTEM ]] && unix2dos "${PWD}/cmake-patch.txt"
-[[ $MSYSTEM ]] && unix2dos "${SCRIPT_DIR}/dune-logging.patch"
-
 # hardcoded **ordered** dependencies
 MODULES="common logging uggrid geometry grid localfunctions istl typetree functions pdelab multidomaingrid"
 if [[ "$SETUP_DUNE_TESTTOOLS" =~ ^(ON|on|1|yes|true|TRUE)$ ]]; then
@@ -161,6 +156,10 @@ for module in $MODULES; do
   # apply patches
   if [[ ! -z $PATCHES ]]; then
     echo "Applying patches: $PATCHES"
+    # change line ending to DOS if OS is windows
+    for patch in $PATCHES; do
+      [[ $MSYSTEM ]] && unix2dos $patch $patch
+    done
     git -C dune-$module apply -v $PATCHES
   fi
   echo ""
