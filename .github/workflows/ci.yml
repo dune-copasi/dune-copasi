@@ -14,7 +14,7 @@ env:
       -DF77=true                                              \
       -DDUNE_COPASI_SD_EXECUTABLE=ON                          \
       -DDUNE_COPASI_MD_EXECUTABLE=ON                          \
-      -DCMAKE_INSTALL_PREFIX:PATH='${INSTALL_PREFIX}/dune'    \
+      -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}/dune    \
       -DCMAKE_PREFIX_PATH='${INSTALL_PREFIX}'                 \
       -DGMPXX_INCLUDE_DIR:PATH='${INSTALL_PREFIX}/include'    "
 
