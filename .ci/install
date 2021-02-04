@@ -18,7 +18,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 source $SCRIPT_DIR/util
 
 SOURCEDIR=${SCRIPT_DIR}/..
-BUILDDIR=${PWD}/build-cmake
+export BUILDDIR=${PWD}/build-cmake
 
 # options file may be passed as argument
 [ ! -z "$1" ] && DUNE_OPTIONS_FILE="$1"

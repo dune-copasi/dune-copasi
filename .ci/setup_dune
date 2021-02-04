@@ -63,13 +63,15 @@ SETUP_dune_testtools_REPO="https://gitlab.dune-project.org/quality/dune-testtool
 
 cat ${SCRIPT_DIR}/dune-common.patch >> "${PWD}/dune-common.patch"
 
+SETUP_dune_common_PATCHES="${SCRIPT_DIR}/dune-common.patch"
+SETUP_dune_logging_PATCHES="${SCRIPT_DIR}/dune-logging.patch"
+
 if [[ "$OS_TARGET" == "osx" ]]; then
   curl https://gist.githubusercontent.com/lkeegan/059984b71f8aeb0bbc062e85ad7ee377/raw/e9c7af42c47fe765547e60833a72b5ff1e78123c/cmake-patch.txt >> "${PWD}/cmake.patch"
   echo '' >> "${PWD}/cmake.patch"
+  SETUP_dune_common_PATCHES+=" ${PWD}/cmake.patch"
 fi
 
-SETUP_dune_common_PATCHES="${SCRIPT_DIR}/dune-common.patch ${PWD}/cmake.patch"
-SETUP_dune_logging_PATCHES="${SCRIPT_DIR}/dune-logging.patch"
 
 # hardcoded **ordered** dependencies
 MODULES="common logging uggrid geometry grid localfunctions istl typetree functions pdelab multidomaingrid"
