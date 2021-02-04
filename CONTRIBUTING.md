@@ -1,6 +1,6 @@
 # Contributing
 
-When contributing to `DuneCopasi`, first discuss the change you wish to make via the
+When contributing to `dune-copasi`, first discuss the change you wish to make via the
 [issue tracker](https://gitlab.dune-project.org/copasi/dune-copasi/-/issues).
 Try to do this before anything else. This will greately improve both your and
 our experience working together :-). We follow the

@@ -7,70 +7,229 @@ sidebar_label: Install & Use
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-There are two forms to use `DuneCopasi`. The first and easiest one is using a
-[Docker Container](https://www.docker.com/) where the software is boundled such
-that no installation other than docker is required. On the second one, the
-compilation of the source code is compulsory.
+## Usage
 
-## Docker Usage
+There three different ways to use `dune-copasi` to resolve diffusion-reaction
+systems:
+* [GUI: Graphical User Interface](#graphical-user-interface)
+* [INI: Configuration File](#configuration-file)
+* [API: Application Programming Interface](#application-programming-interface)
 
-In this mode, there is no need to fullfil specific requirements other than
-those for docker installation.
+### Graphical User Interface
 
-### Install Docker
+The [Spatial Model Editor](https://github.com/spatial-model-editor/spatial-model-editor) is a **user friendly** GUI editor to create and edit 2D
+spatial *Systems Biology Markup Language* ([SBML](https://en.wikipedia.org/wiki/SBML))
+models of bio-chemical reactions and simulate them with `dune-copasi`. A big
+adventage of this package is that is tailored for biologists and is availalbe
+with just a pair of clicks on the major plataforms. Find more information
+[here](https://spatial-model-editor.readthedocs.io/en/latest/quickstart/get-started.html)!
+
+![sme](/img/spatial-model-editor.png)
+
+### Configuration File
+
+In this form, `dune-copasi` provides one executable for single compartment
+systems (`dune-copasi-sd`) and another one for multiple compartment systems (`dune-copasi-md`). Both executables expect one `INI` configuration file which
+shall contain all the information to perform the simulation.
+
+```bash
+dune-copasi-md config.ini
+```
+
+Find more information on the [INI file](ini_file.md) and
+the [Parameter Tree](param_tree.md) documentation.
+
+### Application Programming Interface
+
+The `dune-copasi` C++ objects may be consumed by other programs in order
+to generate custom simulation rules, to couple intermediate steps with other
+tools, or to implement another GUI, etc. In such a case, `dune-copasi` must be
+available in development mode and the downstream library is expected to
+[consume the library](#importing-cmake-targets) by using the
+[CMake build system](cmake.org) and use the [C++ objects](api.md) in code.
+
+## Installation
+
+### Graphical User Interface
+
+To install the Spatial Model Editor, please refer to its installation
+instructions:
+
+* https://spatial-model-editor.readthedocs.io/en/stable/quickstart/get-started.html#installation
+
+### Docker Runner
+
+The easiest form to use our executables for INI usage, is by using a
+[Docker Container](https://www.docker.com/). There, the software is boundled
+such that no installation other than docker is required.
+
+#### Install Docker
 First, get and install Docker following the
 [docker installation instructions](https://docs.docker.com/get-docker/).
 
-### Prepare working directory
+#### Prepare working directory
 
-To be able to share data between your operating system and within the docker
-image create a folder with read/write/execute rights to _any_ user:
+To be able to easily share data between your operating system and the docker
+container, prepare a working directory with read/write rights to _other users_
+(e.g. a folder named `dune-copasi`):
 
 ```bash
-mkdir -m 777 dunecopasi && cd dunecopasi
+mkdir -m o+rw dune-copasi && cd dune-copasi
 ```
 
-This working directory will be accessible to your text editor and paraview as
+This working directory will be accessible to your text editor, paraview as
 well as to the `dune-copasi-md` executable inside the docker container. Thus,
 move or create your configuration files into it at will.
 
 ```
+# setup/write ini and input files for dune-copasi...
 nano config.ini
-# set-up/write ini file for dune-copasi...
 ```
 
-### Run the program
+#### Run the program
 
-Then, you may use the latest stable container by pulling/runing it from our
-[GitLab registry](https://gitlab.dune-project.org/copasi/dune-copasi/container_registry)
-To run the `dune-copasi-md` executable from the container with a configuration
-file `config.ini`, execute the following command on the terminal:
+Here, you may pull and run the latest stable container from our
+[GitLab registry](https://gitlab.dune-project.org/copasi/dune-copasi/container_registry). To do so, call the docker container with a configuration
+file `config.ini` using one of the following commands on the terminal:
+
+<Tabs
+  groupId="docker-run"
+  defaultValue="md"
+  values={[
+      {label: 'Multi Domain', value: 'md', },
+      {label: 'Single Domain', value: 'sd', },
+    ]
+  }>
+
+  <TabItem value="md">
 
 ```bash
-docker run -v $PWD:/dunecopasi \
+docker run -v $PWD \
   registry.dune-project.org/copasi/dune-copasi/dune-copasi:latest \
-  dune-copasi-md config.ini
+  config.ini
 ```
+
+  </TabItem>
+  <TabItem value="sd">
+
+```bash
+docker run -v $PWD \
+  --entrypoint=dune-copasi-sd \
+  registry.dune-project.org/copasi/dune-copasi/dune-copasi:latest \
+  config.ini
+```
+
+  </TabItem>
+</Tabs>
 
 The results of those computations will be written on current
 directory as mentioned above. For more information about running docker images,
 visit the `docker run` [documentation](https://docs.docker.com/engine/reference/run/).
+<!-- 
+### Debian/Ubuntu Package
 
-## Manual Installation
+For Debian and Ubuntu users that want to make use of `dune-copasi`
+with [INI](#configuration-file) usage, installation is as simple as:
 
-Locally building and installing `DuneCopasi` requires to first obtain the
-dependencies, then compile the dependent dune modules and finally installing on
-a final directory.
+<Tabs
+  groupId="package-manager"
+  defaultValue="apt"
+  values={[
+      {label: 'Debian/Ubuntu (apt)', value: 'apt', },
+      {label: 'macOS/Linux (brew)', value: 'brew', },
+    ]
+  }>
 
-### Dependencies
+  <TabItem value="apt">
 
-The following list of software is required to install and use `DuneCopasi`:
+```bash
+curl -fsSL TODO -o dune-copasi-runtime.deb
+apt install ./dune-copasi-runtime.deb
+```
 
-:::info
-Notice that some required dune modules are forks of original reopsitories and
-are placed under the [COPASI namespace](https://gitlab.dune-project.org/copasi/)
-on the [DUNE GitLab](https://gitlab.dune-project.org/).
-:::
+  </TabItem>
+  <TabItem value="brew">
+
+```bash
+brew tap dune-copasi/tap
+brew install dune-copasi@0.3
+```
+
+  </TabItem>
+</Tabs>
+
+
+Once installed, the programs `dune-copasi-sd` and `dune-copasi-md` will be
+available on the command line:
+
+```bash
+dune-copasi-md config.ini
+```
+
+To remove the package call the following command on the terminal
+
+<Tabs
+  groupId="package-manager"
+  defaultValue="apt"
+  values={[
+      {label: 'Debian/Ubuntu (apt)', value: 'apt', },
+      {label: 'macOS/Linux (brew)', value: 'brew', },
+    ]
+  }>
+
+  <TabItem value="apt">
+
+```bash
+apt remove dune-copasi-runtime
+```
+
+  </TabItem>
+  <TabItem value="brew">
+
+```bash
+brew uninstall dune-copasi@0.3
+```
+
+  </TabItem>
+</Tabs>
+ -->
+
+### Docker Build
+
+Advanced users, who may want to make minimal modifications the `dune-copasi`
+code but do not to install all the dependencies may opt for a docker build. In
+this case, you must download the `dune-copasi` source code, modify it, and build
+a new local docker image.
+
+```bash
+# fetch source code from git
+git clone ssh://git@gitlab.dune-project.org:22022/copasi/dune-copasi.git
+
+# checkout the branch you want to modify (e.g. latest)
+git checkout latest
+
+# enter dune-copasi directory
+cd dune-copasi
+
+# modify source code at will
+# ...
+
+# build a new docker image from modified code (tag: dune-copasi)
+docker build -t dune-copasi .
+```
+
+This will build all dune dependencies as well as the new modified version of
+`dune-copasi`. Then, follow the [Docker runner guide](#docker-runner) to run
+the new image with tag `dune-copasi`.
+
+### Manual Installation
+
+Locally building and installing `dune-copasi` requires to first obtain, compile
+and install the dependencies.
+
+#### Dependencies
+
+The following list of software is required to install and use `Dune-copasi`:
 
 | Software | Version/Branch |
 | ---------| -------------- |
@@ -90,20 +249,27 @@ on the [DUNE GitLab](https://gitlab.dune-project.org/).
 | [COPASI/dune-pdelab](https://gitlab.dune-project.org/copasi/dune-pdelab)                    | `support/dune-copasi-latest` |
 | [COPASI/dune-multidomaingrid](https://gitlab.dune-project.org/copasi/dune-multidomaingrid)  | `support/dune-copasi-latest` |
 
-### Installation
+:::info
+Notice that some required dune modules are forks of original reopsitories and
+are placed under the [COPASI namespace](https://gitlab.dune-project.org/copasi/)
+on the [DUNE GitLab](https://gitlab.dune-project.org/).
+:::
 
-The first four can be obtained by your prefered package manager in unix-like operating systems. e.g.
+#### Installation
+
+The first four dependencies can be obtained by your prefered package manager in
+unix-like operating systems. e.g.
 
 <Tabs
-  groupId="operating-systems"
-  defaultValue="win"
+  groupId="package-manager"
+  defaultValue="apt"
   values={[
-      {label: 'Debian/Ubuntu', value: 'deb', },
-      {label: 'macOS', value: 'mac', },
+      {label: 'Debian/Ubuntu (apt)', value: 'apt', },
+      {label: 'macOS/Linux (brew)', value: 'brew', },
     ]
   }>
 
-  <TabItem value="deb">
+  <TabItem value="apt">
 
 ```bash
 apt update
@@ -111,10 +277,9 @@ apt install cmake gcc g++ libtiff-dev libmuparser-dev git
 ```
 
   </TabItem>
-  <TabItem value="mac">
+  <TabItem value="brew">
 
 ```bash
-# Apple Command Line Tools and Brew assumed to be available
 brew update
 brew install cmake gcc libtiff muparser git
 ```
@@ -122,9 +287,9 @@ brew install cmake gcc libtiff muparser git
   </TabItem>
 </Tabs>
 
-The required `DUNE` modules (including `DuneCopasi`) can be obtained via internet
-by using [`git`](https://git-scm.com/). For smooth installation, is better place
-all the dune modules within the same directory.
+The required `DUNE` modules (including `dune-copasi`) can be obtained via
+internet by using [`git`](https://git-scm.com/). For smooth installation, is
+better place all the dune modules within the same directory.
 
 ```bash
 # prepare a folder to download and build dune modules
@@ -155,7 +320,7 @@ echo 'CMAKE_FLAGS+=" -DCMAKE_INSTALL_PREFIX=/opt/dune"' >> dune.opts
 # configure and build dune modules
 ./dune-common/bin/dunecontrol --opts=dune.opts all
 
-# install binaries and libraries into /opt/dune/
+# install binaries and libraries into /opt/dune/     (may require sudo)
 ./dune-common/bin/dunecontrol bexec make install
 
 # remove source and build files
@@ -165,40 +330,38 @@ cd ~ && rm -r ~/dune-modules
 echo export PATH="/opt/dune/bin:$PATH" >> $HOME/.bashrc
 ```
 
-For further info on dune module installation process, please check out
+For further information on dune module installation process, please check out
 the [dune-project web page](https://www.dune-project.org/doc/installation/).
 
-### Run the program
+#### Run the program
 
-Now, you should be able to call the program `dune-copasi-md` from your command
-line accompained with a configuration file:
+Once installed, the programs `dune-copasi-sd` and `dune-copasi-md` will be
+available on the command line:
 
 ```bash
 dune-copasi-md config.ini
 ```
 
-To find out the appropiated contents on the configuration file, check out
-the [Parameter Tree](param_tree.md) documentation.
-
 ## Importing CMake targets
 
-In order to use the C++ interface, you must have compiled and (optionally)
-installed all the dune packages from source. Then, you will be able to import
-and link the CMake targets for `dune-copasi` by simply calling the following
+In order to use the [API](#application-programming-interface), you must have
+`dune-copasi` in developer mode. At the moment, this is only available with
+[manual installation](#manual-installation). Then, you will be able to import
+and link the CMake targets for `dune-copasi` by calling the following two
 commands in CMake:
 
-```cmake
+```
 # ...
-find_package(dune-copasi IMPORTED)
-target_link_libraries(my_app PRIVATE dune::dune-copasi)
+find_package(dune-copasi IMPORTED REQUIRED)
+target_link_libraries(my_app PRIVATE dune-copasi::dune-copasi)
 # ...
 ```
 
-If the `CMAKE_INSTALL_PREFIX` options was used on CMake configuration
-dune-copasi, be sure to also include it as a CMake prefix
-`-CMAKE_PREFIX_PATH` on the app build settings. This way, CMake can find our
-targets:
+If `dune-copasi` was installed on a custom directory
+(e.g. using `CMAKE_INSTALL_PREFIX=/opt/dune`), it may be possible that you need to
+pass such directory to the `CMAKE_PREFIX_PATH` when building the app. This way,
+CMake can find our targets and configuration:
 
 ```bash
-cmake --DCMAKE_PREFIX_PATH=/opt/dune /path/to/app/source/
+cmake -DCMAKE_PREFIX_PATH:PATH=/opt/dune /path/to/app/source/
 ```

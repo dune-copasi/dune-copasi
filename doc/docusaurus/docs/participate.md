@@ -12,7 +12,7 @@ There are several ways you can participate.
   a short *Merge Request* or *Issue* to our
   [GitLab](https://gitlab.dune-project.org/copasi/dune-copasi).
 * **Report bugs**: You may be using the program and experience unexpected
-  behavior, this may either come from wrong input data or from a `DuneCopasi`
+  behavior, this may either come from wrong input data or from a `dune-copasi`
   component not working as intended. If you suspect is the latter one, first
   check the [bug tracker] to see if someone else is having the same problem,
   otherwise, [let us know]!

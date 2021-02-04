@@ -367,7 +367,7 @@ The following are the accepted Runge-Kutta methods in our time stepping schemes
 
 :::tip Example
 An example of an ini file with all the parameters required by
-`DuneCopasi` for the [Gray-Scott model](http://mrob.com/pub/comp/xmorphia/F420/F420-k610.html)
+`dune-copasi` for the [Gray-Scott model](http://mrob.com/pub/comp/xmorphia/F420/F420-k610.html)
 is
 
 ```ini
