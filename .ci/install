@@ -14,11 +14,11 @@ set -e
 
 # load useful functions
 CALL_DIR=$PWD
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-source $SCRIPT_DIR/util
+SCRIPT_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+source $SCRIPT_PATH/util
 
-SOURCEDIR=${SCRIPT_DIR}/..
-export BUILDDIR=${PWD}/build-cmake
+SOURCEDIR=${SCRIPT_PATH}/..
+export BUILD_PATH=${PWD}/build-cmake
 
 # options file may be passed as argument
 [ ! -z "$1" ] && DUNE_OPTIONS_FILE="$1"
@@ -29,7 +29,7 @@ print_opts_file() {
 
 cleanup() {
   echo "removig intermediate results"
-  rm -rf $BUILDDIR
+  rm -rf $BUILD_PATH
 }
 
 # set up verbose output in case of failure
@@ -41,8 +41,8 @@ trap onfailure EXIT
 
 CMAKE_FLAGS="$(. ${DUNE_OPTIONS_FILE}; eval echo \$CMAKE_FLAGS)"
 
-[[ -d ${BUILDDIR} ]] && ONFAILURE_MESSAGE+="run this script where no folder 'build-cmake' exists\n" && exit 1
-mkdir $BUILDDIR && cd $BUILDDIR
+[[ -d ${BUILD_PATH} ]] && ONFAILURE_MESSAGE+="run this script where no folder 'build-cmake' exists\n" && exit 1
+mkdir $BUILD_PATH && cd $BUILD_PATH
 
 echo "cmake $CMAKE_FLAGS $SOURCEDIR"
 eval cmake $CMAKE_FLAGS $SOURCEDIR

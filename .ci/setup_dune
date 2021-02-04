@@ -32,7 +32,7 @@ cleanup() {
 }
 
 # set up verbose output in case of failure
-ONFAILURE_PROG="git gcc g++ python pip python3 pip3 cmake wget $SUDOCMD"
+ONFAILURE_PROG="git gcc g++ python pip python3 pip3 cmake curl $SUDOCMD"
 ONFAILURE_VARS="PATH MSYSTEM SUDOCMD SETUP_DUNE_TESTTOOLS DUNE_OPTIONS_FILE CMAKE_FLAGS CMAKE_INSTALL_PREFIX REPO BRANCH PATCHES"
 ONFAILURE_CMD="ls cleanup print_opts_file"
 
@@ -66,13 +66,14 @@ cat ${SCRIPT_DIR}/dune-common.patch >> "${PWD}/dune-common.patch"
 SETUP_dune_common_PATCHES="${SCRIPT_DIR}/dune-common.patch"
 SETUP_dune_logging_PATCHES="${SCRIPT_DIR}/dune-logging.patch"
 
-# change line ending to DOS if OS is windows
-[[ $MSYSTEM ]] && unix2dos "${SCRIPT_DIR}/dune-common.patch"
-
-
-wget https://gist.githubusercontent.com/lkeegan/059984b71f8aeb0bbc062e85ad7ee377/raw/e9c7af42c47fe765547e60833a72b5ff1e78123c/cmake-patch.txt
+curl https://gist.githubusercontent.com/lkeegan/059984b71f8aeb0bbc062e85ad7ee377/raw/e9c7af42c47fe765547e60833a72b5ff1e78123c/cmake-patch.txt >> "cmake-patch.txt"
 echo '' >> "cmake-patch.txt"
 SETUP_dune_common_PATCHES+=" ${PWD}/cmake-patch.txt"
+
+# change line ending to DOS if OS is windows
+[[ $MSYSTEM ]] && unix2dos "${SCRIPT_DIR}/dune-common.patch"
+[[ $MSYSTEM ]] && unix2dos "${PWD}/cmake-patch.txt"
+[[ $MSYSTEM ]] && unix2dos "${SCRIPT_DIR}/dune-logging.patch"
 
 # hardcoded **ordered** dependencies
 MODULES="common logging uggrid geometry grid localfunctions istl typetree functions pdelab multidomaingrid"
@@ -177,10 +178,8 @@ for module in $MODULES; do
   # we want to know where the build dir is located
   # since it could be ant complex path, we write the path from dunecontrol
   $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module bexec "echo \$PWD >> $PWD/module_builddir"
-  # ...read it
-  BUILDDIR=$(cat $PWD/module_builddir)
-  # ...and remove the document (strange, but effective)
-  rm $PWD/module_builddir
+  # ...read it and remove the document (strange, but effective)
+  rm $(cat $PWD/module_builddir)
 
   # remove build and sources
   rm -rf $BUILDDIR
