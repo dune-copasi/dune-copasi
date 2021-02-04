@@ -2,6 +2,20 @@ name: CI Builds
 
 on: push
 
+env:
+  CMAKE_FLAGS: |
+    " -G '"'"'Unix Makefiles'"'"'                     \
+      -DCMAKE_CXX_STANDARD=17                         \
+      -DCMAKE_BUILD_TYPE=Release                      \
+      -DDUNE_PYTHON_VIRTUALENV_SETUP=0                \
+      -DDUNE_PYTHON_ALLOW_GET_PIP=0                   \
+      -DCMAKE_DISABLE_FIND_PACKAGE_QuadMath=TRUE      \
+      -DBUILD_TESTING=OFF                             \
+      -DDUNE_USE_ONLY_STATIC_LIBS=ON                  \
+      -DF77=true                                      \
+      -DDUNE_COPASI_SD_EXECUTABLE=ON                  \
+      -DDUNE_COPASI_MD_EXECUTABLE=ON                  "
+
 jobs:
   linux:
     name: Linux
@@ -10,7 +24,11 @@ jobs:
       INSTALL_PREFIX: '/opt/smelibs'
       SUDOCMD: 'sudo'
       OS_TARGET: 'linux'
-      # USE_FALLBACK_FILESYSTEM: 'OFF'
+      JOB_CMAKE_FLAGS: |
+        " -DCMAKE_INSTALL_PREFIX:PATH='${INSTALL_PREFIX}/dune'    \
+          -DCMAKE_PREFIX_PATH='${INSTALL_PREFIX}'                 \
+          -DGMPXX_INCLUDE_DIR:PATH='${INSTALL_PREFIX}/include'    \
+          -DUSE_FALLBACK_FILESYSTEM=OFF                           "
     defaults:
       run:
         shell: bash
@@ -22,79 +40,89 @@ jobs:
     - uses: actions/checkout@v2
     - name: Setup static dependencies
       run: ./.ci/setup_static_deps
+    - name: Setup dune dependencies
+      run: |
+        echo "CMAKE_FLAGS=$CMAKE_FLAGS $JOB_CMAKE_FLAGS" > dune.opts
+        ./.ci/setup_dune dune.opts
     # - name: Build script
     #   run: ./build.sh
     # - uses: actions/upload-artifact@v2
     #   with:
     #     path: ./artefacts/*
 
-  macos:
-    name: MacOS
-    runs-on: macos-10.15
-    env:
-      INSTALL_PREFIX: '/opt/smelibs'
-      SUDOCMD: 'sudo'
-      MACOSX_DEPLOYMENT_TARGET: '10.14'
-      OS_TARGET: 'osx'
-      # USE_FALLBACK_FILESYSTEM: 'ON'
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - uses: actions/checkout@v2
-      - name: Setup static dependencies
-        run: ./.ci/setup_static_deps
-      # - uses: actions/upload-artifact@v2
-      #   with:
-      #     path: ./artefacts/*
+  # macos:
+  #   name: MacOS
+  #   runs-on: macos-10.15
+  #   env:
+  #     INSTALL_PREFIX: '/opt/smelibs'
+  #     SUDOCMD: 'sudo'
+  #     MACOSX_DEPLOYMENT_TARGET: '10.14'
+  #     OS_TARGET: 'osx'
+  #     # USE_FALLBACK_FILESYSTEM: 'ON'
+  #   defaults:
+  #     run:
+  #       shell: bash
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - name: Setup static dependencies
+  #       run: ./.ci/setup_static_deps
+  #     - name: Setup dune dependencies
+  #       run: ./.ci/setup_dune
+  #     # - uses: actions/upload-artifact@v2
+  #     #   with:
+  #     #     path: ./artefacts/*
 
-  win64:
-    name: Windows 64-bit
-    runs-on: windows-2019
-    env:
-      INSTALL_PREFIX: '/c/smelibs'
-      SUDOCMD: ''
-      OS_TARGET: 'win64'
-      # USE_FALLBACK_FILESYSTEM: 'OFF'
-    defaults:
-      run:
-        shell: msys2 {0}
-    steps:
-      - uses: actions/checkout@v2
-      - uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          update: true
-          install: mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake make git
-      - name: Setup static dependencies
-        run: ./.ci/setup_static_deps
-      # - uses: actions/upload-artifact@v2
-      #   with:
-      #     path: ./artefacts/*
+  # win64:
+  #   name: Windows 64-bit
+  #   runs-on: windows-2019
+  #   env:
+  #     INSTALL_PREFIX: '/c/smelibs'
+  #     SUDOCMD: ''
+  #     OS_TARGET: 'win64'
+  #     # USE_FALLBACK_FILESYSTEM: 'OFF'
+  #   defaults:
+  #     run:
+  #       shell: msys2 {0}
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: msys2/setup-msys2@v2
+  #       with:
+  #         msystem: MINGW64
+  #         update: true
+  #         install: mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake make git
+  #     - name: Setup static dependencies
+  #       run: ./.ci/setup_static_deps
+  #     - name: Setup dune dependencies
+  #       run: ./.ci/setup_dune
+  #     # - uses: actions/upload-artifact@v2
+  #     #   with:
+  #     #     path: ./artefacts/*
 
-  win32:
-    name: Windows 32-bit
-    runs-on: windows-2019
-    env:
-      INSTALL_PREFIX: '/c/smelibs'
-      SUDOCMD: ''
-      OS_TARGET: 'win32'
-      USE_FALLBACK_FILESYSTEM: 'OFF'
-    defaults:
-      run:
-        shell: msys2 {0}
-    steps:
-      - uses: actions/checkout@v2
-      - uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW32
-          update: true
-          install: mingw-w64-i686-gcc mingw-w64-i686-cmake make git
-      - name: Setup static dependencies
-        run: ./.ci/setup_static_deps
-      # - uses: actions/upload-artifact@v2
-      #   with:
-      #     path: ./artefacts/*
+  # win32:
+  #   name: Windows 32-bit
+  #   runs-on: windows-2019
+  #   env:
+  #     INSTALL_PREFIX: '/c/smelibs'
+  #     SUDOCMD: ''
+  #     OS_TARGET: 'win32'
+  #     USE_FALLBACK_FILESYSTEM: 'OFF'
+  #   defaults:
+  #     run:
+  #       shell: msys2 {0}
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: msys2/setup-msys2@v2
+  #       with:
+  #         msystem: MINGW32
+  #         update: true
+  #         install: mingw-w64-i686-gcc mingw-w64-i686-cmake make git
+  #     - name: Setup static dependencies
+  #       run: ./.ci/setup_static_deps
+  #     - name: Setup dune dependencies
+  #       run: ./.ci/setup_dune
+  #     # - uses: actions/upload-artifact@v2
+  #     #   with:
+  #     #     path: ./artefacts/*
 
   # release:
   #   name: Upload Binaries to GitHub Release

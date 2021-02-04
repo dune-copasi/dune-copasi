@@ -1,0 +1,180 @@
+#!/usr/bin/env bash
+
+# input
+#   DUNE_OPTIONS_FILE
+#   (optional) SETUP_DUNE_TESTTOOLS
+#   (optional) SUDOCMD
+
+set -e
+
+# options file may be passed as argument
+[ ! -z "$1" ] DUNE_OPTIONS_FILE="$1"
+
+# load useful functions
+CALL_DIR=$PWD
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+source $SCRIPT_DIR/util
+
+print_opts_file() {
+  cat "${DUNE_OPTIONS_FILE}"
+}
+
+cleanup() {
+  echo "removig intermediate results"
+  rm -rf "$CALL_DIR/setup-dune"
+}
+
+# set up verbose output in case of failure
+ONFAILURE_PROG="git gcc g++ python pip python3 pip3 cmake curl $SUDOCMD"
+ONFAILURE_VARS="PATH MSYSTEM SUDOCMD SETUP_DUNE_TESTTOOLS DUNE_OPTIONS_FILE CMAKE_FLAGS CMAKE_INSTALL_PREFIX"
+ONFAILURE_CMD="ls cleanup print_opts_file"
+
+trap onfailure EXIT
+
+[[ "$(ls)" == *setup-dune* ]] && ONFAILURE_MESSAGE+="run this script where no folder 'setup-dune' exists\n" && exit 1
+mkdir setup-dune && cd setup-dune
+
+# make sure we get the right mingw64 version of g++ on appveyor
+# PATH=/mingw64/bin:$PATH
+
+# setup dune repositories, branches, and patches
+for module in common geometry grid istl localfunctions; do
+  eval SETUP_dune_${module}_BRANCH=\"releases/2.7\"
+  eval SETUP_dune_${module}_REPO=\"https://gitlab.dune-project.org/core/dune-${module}.git\"
+done
+
+for module in functions uggrid; do
+  eval SETUP_dune_${module}_BRANCH=\"releases/2.7\"
+  eval SETUP_dune_${module}_REPO=\"https://gitlab.dune-project.org/staging/dune-${module}.git\"
+done
+
+for module in logging typetree pdelab multidomaingrid
+do
+  eval SETUP_dune_${module}_BRANCH=\"support/dune-copasi-v0.3\"
+  eval SETUP_dune_${module}_REPO=\"https://gitlab.dune-project.org/copasi/dune-${module}.git\"
+done
+
+SETUP_dune_testtools_BRANCH="releases/2.7"
+SETUP_dune_testtools_REPO="https://gitlab.dune-project.org/quality/dune-testtools.git"
+
+
+curl https://gist.githubusercontent.com/lkeegan/059984b71f8aeb0bbc062e85ad7ee377/raw/e9c7af42c47fe765547e60833a72b5ff1e78123c/cmake-patch.txt > "${PWD}/cmake-patch.patch"
+printf "\n" >> "${PWD}/cmake-patch.patch"
+
+SETUP_dune_logging_PATCHES="${SCRIPT_DIR}/dune-logging.patch"
+SETUP_dune_common_PATCHES="${SCRIPT_DIR}/dune-common.patch ${PWD}/cmake-patch.patch"
+
+# hardcoded **ordered** dependencies
+MODULES="common logging uggrid geometry grid localfunctions istl typetree functions pdelab multidomaingrid"
+if [[ $SETUP_DUNE_TESTTOOLS ]]; then
+	MODULES+=" testtools"
+fi
+
+[ -z $DUNE_OPTIONS_FILE ] && ONFAILURE_MESSAGE+="Dune options file is not set!\n" && exit 1
+
+# get cmake flags
+unset CMAKE_FLAGS
+if test "x$DUNE_OPTIONS_FILE" != "x"; then
+  CMAKE_FLAGS="$(. $DUNE_OPTIONS_FILE; eval echo \$CMAKE_FLAGS)"
+fi
+
+# get install prefix
+for flag in $CMAKE_FLAGS; do
+  [[ ${flag#-D} == CMAKE_INSTALL_PREFIX* ]] && CMAKE_INSTALL_PREFIX=${flag#-DCMAKE_INSTALL_PREFIX}
+done
+
+# remove "=" or ":PATH=" prefix
+CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX#=}
+CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX#:PATH=}
+# remove quotations
+CMAKE_INSTALL_PREFIX=$(echo $CMAKE_INSTALL_PREFIX | tr -d "'")
+
+[ -z $CMAKE_INSTALL_PREFIX ] && ONFAILURE_MESSAGE+="Options file **shall** provide a CMAKE_INSTALL_PREFIX\n" && exit 1
+
+if command -v $CMAKE_INSTALL_PREFIX/bin/dunecontrol &> /dev/null; then
+  ONFAILURE_MESSAGE+="An installation of 'dunecontrol' was already found in '$CMAKE_INSTALL_PREFIX'\n"
+  ONFAILURE_MESSAGE+="A new setup **must** not override an old installation\n"
+  exit 1
+fi
+
+# install prefix **must** be included on the cmake prefix
+CMAKE_PREFIX_PATH=
+for flag in $CMAKE_FLAGS; do
+  [[ ${flag#-D} == CMAKE_PREFIX_PATH* ]] && CMAKE_PREFIX_PATH+=" $flag"
+done
+unset CMAKE_FLAGS
+
+# check if install prefix is included on cmake prefix path
+if [[ "$CMAKE_PREFIX_PATH" != *${CMAKE_INSTALL_PREFIX}* ]]; then
+  ONFAILURE_MESSAGE+="\n"
+  ONFAILURE_MESSAGE+="CMAKE_INSTALL_PREFIX must be contained in CMAKE_PREFIX_PATH\n"
+  ONFAILURE_MESSAGE+="otherwise cmake projects cannot find installed modules. e.g.\n"
+  ONFAILURE_MESSAGE+="\n"
+  ONFAILURE_MESSAGE+="  CMAKE_FLAGS+=\" -DCMAKE_PREFIX_PATH='${CMAKE_INSTALL_PREFIX}'\"\n"
+  ONFAILURE_MESSAGE+="\n"
+  exit 1
+fi
+
+# download dune dependencies
+for module in $MODULES; do
+
+  GREEN=$(tput setaf 2 :-"" 2>/dev/null)
+  RESET=$(tput sgr0 :-"" 2>/dev/null)
+  echo ""
+  echo $GREEN "============================ Setting up dune-$module ============================" $RESET
+  echo ""
+  REPO="$(eval echo \$SETUP_dune_${module}_REPO)"
+  BRANCH="$(eval echo \$SETUP_dune_${module}_BRANCH)"
+  PATCHES="$(eval echo \$SETUP_dune_${module}_PATCHES)"
+
+  git clone -b $BRANCH --depth 1 --recursive $REPO
+
+  # on windows, symlinks from git repos don't work
+  # msys git replaces symlinks with a text file containing the linked file location
+  # so here we identify all such files, and replace them with the linked file
+  # note msys defines MSYSTEM variable: use this to check if we are on msys/windows
+  if [[ $MSYSTEM ]]; then
+    cd $repo
+    for f in $(git ls-files -s | awk '/120000/{print $4}')
+    do
+      dname=$(dirname "$f")
+      fname=$(basename "$f")
+      relf=$(cat $f)
+      src="$pwd/$repo/$dname/$relf"
+      dst="$pwd/$repo/$dname/$fname"
+      echo "  - copying $src --> $dst"
+      cp $src $dst
+    done
+  fi
+
+  # apply patches
+  if [ ! -z $PATCHES ]; then
+    echo "Applying patches: $PATCHES"
+    git -C dune-$module apply $PATCHES
+  fi
+  echo ""
+
+  if [ "$module" = "common" ]; then
+    DUNECONTROL=./dune-common/bin/dunecontrol
+  else
+    DUNECONTROL=$CMAKE_INSTALL_PREFIX/bin/dunecontrol
+  fi
+
+  # configure, build, and install module
+  $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module all
+  $SUDOCMD $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module bexec cmake --build . --target install
+
+  # we want to know where the build dir is located
+  # since it could be ant complex path, we write the path from dunecontrol
+  $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module bexec "echo \$PWD >> $PWD/module_builddir"
+  # ...read it
+  BUILDDIR=$(cat $PWD/module_builddir)
+  # ...and remove the document (strange, but effective)
+  rm $PWD/module_builddir
+
+  # remove build and sources
+  rm -rf $BUILDDIR
+  rm -rf dune-$module
+done
+
+trap cleanup EXIT

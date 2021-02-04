@@ -9,6 +9,9 @@
 #
 #   trap - EXIT
 
+# lets assume no symlink is used
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
 # default executables to check binary folder and version on failure
 [ -z "$ONFAILURE_PROG" ] && ONFAILURE_PROG='bash'
 
@@ -21,10 +24,10 @@
 # default exit code on failure
 [ -z "$ONFAILURE_EXIT" ] && ONFAILURE_EXIT=1
 
-onfailure() {
+# default exit message on failure
+[ -z "$ONFAILURE_MESSAGE" ] && ONFAILURE_MESSAGE="A failure has been produced when executing '${SCRIPT_DIR}/${0}'\n\n"
 
-  # lets assume no symlink is used
-  DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+onfailure() {
 
   # do not exit this function even on case of failures
   set +e
@@ -34,13 +37,7 @@ onfailure() {
   YELLOW=$(tput setaf 3 :-"" 2>/dev/null)
   RESET=$(tput sgr0 :-"" 2>/dev/null)
 
-  echo "************************************************************************"
-  echo $RED ""
-  echo "A failure has been produced when calling '${DIR}/${0}'"
-  echo "The following output is a diagnosis for the current system."
-  echo "" $RESET
-
-  echo "*************************** $GREEN Executables Info $RESET **************************"
+  echo $YELLOW "*************************** On Failure: Executables Info **************************" $RESET
   for i in $(echo $ONFAILURE_PROG); do
     echo "[${YELLOW}${i}${RESET}]:"
     if command -v $i &> /dev/null; then
@@ -54,7 +51,7 @@ onfailure() {
     echo ""
   done
 
-  echo "*************************** $GREEN Variables $RESET *********************************"
+  echo $YELLOW "*************************** On Failure: Variables *********************************" $RESET
   for i in $(echo $ONFAILURE_VARS); do
     echo "[${YELLOW}${i}${RESET}]:"
     VAR=$(eval echo "\$$i")
@@ -66,7 +63,7 @@ onfailure() {
     echo ""
   done
 
-  echo "*************************** $GREEN Custom Commands $RESET ****************************"
+  echo $YELLOW "*************************** On Failure: Commands ****************************" $RESET
   for i in $(echo $ONFAILURE_CMD); do
     echo "[${YELLOW}${i}${RESET}]:"
     FUNC="$($i 2>&1)"
@@ -78,7 +75,11 @@ onfailure() {
     echo ""
   done
 
-  echo "************************************************************************"
+  echo $YELLOW "*************************** On Failure: Message **************************" $RESET
+
+  echo $RED ""
+  printf "$ONFAILURE_MESSAGE\n" | sed 's/^/  /'
+  echo "" $RESET
 
 	exit ${ONFAILURE_EXIT}
 }

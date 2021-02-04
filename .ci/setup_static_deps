@@ -10,22 +10,32 @@
 
 set -e
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-source $DIR/util
+# load useful functions
+CALL_DIR=$PWD
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+source $SCRIPT_DIR/util
 
 prefix_content() {
   ls "${INSTALL_PREFIX}"
 }
 
+cleanup() {
+  echo "removig intermediate results"
+  rm -rf "$CALL_DIR/setup-static-deps"
+}
+
 # set up verbose output in case of failure
-ONFAILURE_PROG+=" git gcc g++ python pip python3 pip3 cmake"
-ONFAILURE_VARS+=" SUDOCMD OS_TARGET INSTALL_PREFIX CMAKE_FLAGS CMAKE_PREFIX_PATH VERBOSE_TAR"
-ONFAILURE_CMD+=" ls prefix_content"
+ONFAILURE_PROG="git gcc g++ python pip python3 pip3 cmake wget $SUDOCMD"
+ONFAILURE_VARS="SUDOCMD OS_TARGET INSTALL_PREFIX CMAKE_FLAGS CMAKE_PREFIX_PATH VERBOSE_TAR"
+ONFAILURE_CMD="ls prefix_content cleanup"
 
 trap onfailure EXIT
 
+[[ "$(ls)" == *setup-static-deps* ]] && ONFAILURE_MESSAGE+="run this script where no folder 'setup-static-deps' exists\n" && exit 1
+mkdir setup-static-deps && cd setup-static-deps
+
 if [[ ! "$OS_TARGET" =~ ^(linux|osx|win32|win64)$ ]]; then
-    echo "$OS_TARGET is not a known OS target"
+    ONFAILURE_MESSAGE+="'$OS_TARGET' is not a known OS target\n"
     exit 1
 fi
 
@@ -34,7 +44,7 @@ echo ""
 wget -nv "https://github.com/spatial-model-editor/sme_deps_common/releases/latest/download/sme_deps_common_${OS_TARGET}.tgz"
 VERBOSE_TAR=$(tar xvf sme_deps_common_${OS_TARGET}.tgz)
 
-[ -z "$INSTALL_PREFIX" ] && echo "Install prefix is empty" && exit 1
+[ -z "$INSTALL_PREFIX" ] && ONFAILURE_MESSAGE+="Install prefix is empty\n" && exit 1
 
 echo "Moving libs to install prefix: ${INSTALL_PREFIX}"
 
@@ -56,4 +66,4 @@ CMAKE_FLAGS+=" -DCMAKE_DISABLE_FIND_PACKAGE_QuadMath=TRUE"
 CMAKE_FLAGS+=" -DDUNE_USE_ONLY_STATIC_LIBS=ON -DF77=true"
 CMAKE_PREFIX_PATH+="${INSTALL_PREFIX};"
 
-trap - EXIT
+trap cleanup EXIT
