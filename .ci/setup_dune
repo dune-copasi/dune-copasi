@@ -40,9 +40,6 @@ trap onfailure EXIT
 [[ -d ${PWD}/setup-dune ]] && ONFAILURE_MESSAGE+="run this script where no folder 'setup-dune' exists\n" && exit 1
 mkdir setup-dune && cd setup-dune
 
-# make sure we get the right mingw64 version of g++ on appveyor
-[[ $MSYSTEM ]] && PATH=/mingw64/bin:$PATH
-
 # setup dune repositories, branches, and patches
 for module in common geometry grid istl localfunctions; do
   eval SETUP_dune_${module}_BRANCH=\"releases/2.7\"
@@ -68,7 +65,6 @@ curl https://gist.githubusercontent.com/lkeegan/059984b71f8aeb0bbc062e85ad7ee377
 printf "\n" >> "${PWD}/dune-common.patch"
 
 
-SETUP_dune_logging_PATCHES="${SCRIPT_DIR}/dune-logging.patch"
 SETUP_dune_common_PATCHES="${PWD}/dune-common.patch"
 
 # hardcoded **ordered** dependencies
