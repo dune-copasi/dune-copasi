@@ -61,7 +61,7 @@ SETUP_dune_testtools_BRANCH="releases/2.7"
 SETUP_dune_testtools_REPO="https://gitlab.dune-project.org/quality/dune-testtools.git"
 
 cat ${SCRIPT_DIR}/dune-common.patch >> "${PWD}/dune-common.patch"
-curl https://gist.githubusercontent.com/lkeegan/059984b71f8aeb0bbc062e85ad7ee377/raw/e9c7af42c47fe765547e60833a72b5ff1e78123c/cmake-patch.txt > "${PWD}/dune-common.patch"
+curl https://gist.githubusercontent.com/lkeegan/059984b71f8aeb0bbc062e85ad7ee377/raw/e9c7af42c47fe765547e60833a72b5ff1e78123c/cmake-patch.txt >> "${PWD}/dune-common.patch"
 printf "\n" >> "${PWD}/dune-common.patch"
 
 
