@@ -163,7 +163,7 @@ for module in $MODULES; do
   fi
 
   # configure, build, and install module
-  $SUDOCMD $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module all
+  $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module all
   $SUDOCMD $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module bexec cmake --build . --target install
 
   # we want to know where the build dir is located
