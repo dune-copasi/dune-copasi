@@ -176,13 +176,11 @@ for module in $MODULES; do
   $SUDOCMD $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module bexec cmake --build . --target install
 
   # we want to know where the build dir is located
-  # since it could be ant complex path, we write the path from dunecontrol
+  # since it could be ant complex path, we write the path from dunecontrol into a file
   $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module bexec "echo \$PWD >> $PWD/module_builddir"
-  # ...read it and remove the document (strange, but effective)
-  rm $(cat $PWD/module_builddir)
 
   # remove build and sources
-  rm -rf $BUILDDIR
+  rm -rf $(cat $PWD/module_builddir)
   rm -rf dune-$module
 done
 
