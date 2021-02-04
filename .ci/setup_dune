@@ -26,7 +26,7 @@ cleanup() {
 
 # set up verbose output in case of failure
 ONFAILURE_PROG="git gcc g++ python pip python3 pip3 cmake curl $SUDOCMD"
-ONFAILURE_VARS="PATH MSYSTEM SUDOCMD SETUP_DUNE_TESTTOOLS DUNE_OPTIONS_FILE CMAKE_FLAGS CMAKE_INSTALL_PREFIX"
+ONFAILURE_VARS="PATH MSYSTEM SUDOCMD SETUP_DUNE_TESTTOOLS DUNE_OPTIONS_FILE CMAKE_FLAGS CMAKE_INSTALL_PREFIX REPO BRANCH PATCHES"
 ONFAILURE_CMD="ls cleanup print_opts_file"
 
 trap onfailure EXIT
@@ -73,7 +73,7 @@ fi
 [ -z $DUNE_OPTIONS_FILE ] && ONFAILURE_MESSAGE+="Dune options file is not set!\n" && exit 1
 
 # get cmake flags
-CMAKE_FLAGS=
+unset CMAKE_FLAGS
 if test "x$DUNE_OPTIONS_FILE" != "x"; then
   CMAKE_FLAGS="$(. $DUNE_OPTIONS_FILE; eval echo \$CMAKE_FLAGS)"
 fi
@@ -102,10 +102,7 @@ CMAKE_PREFIX_PATH=
 for flag in $CMAKE_FLAGS; do
   [[ ${flag#-D} == CMAKE_PREFIX_PATH* ]] && CMAKE_PREFIX_PATH+=" $flag"
 done
-CMAKE_FLAGS=
-
-echo $MODULES
-
+unset CMAKE_FLAGS
 
 # check if install prefix is included on cmake prefix path
 if [[ "$CMAKE_PREFIX_PATH" != *${CMAKE_INSTALL_PREFIX}* ]]; then
@@ -118,11 +115,10 @@ if [[ "$CMAKE_PREFIX_PATH" != *${CMAKE_INSTALL_PREFIX}* ]]; then
   exit 1
 fi
 
-echo $MODULES
-
 # download dune dependencies
 for module in $MODULES; do
 
+  echo "$module"
   GREEN=$(tput setaf 2 :-"" 2>/dev/null)
   RESET=$(tput sgr0 :-"" 2>/dev/null)
   echo ""
@@ -131,6 +127,8 @@ for module in $MODULES; do
   REPO="$(eval echo \$SETUP_dune_${module}_REPO)"
   BRANCH="$(eval echo \$SETUP_dune_${module}_BRANCH)"
   PATCHES="$(eval echo \$SETUP_dune_${module}_PATCHES)"
+
+  echo "REPO $REPO"
 
   git clone -b $BRANCH --depth 1 --recursive $REPO
 
