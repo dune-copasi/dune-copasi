@@ -4,8 +4,7 @@ on: push
 
 env:
   CMAKE_FLAGS: |
-    " -G '"'"'Unix Makefiles'"'"'                     \
-      -DCMAKE_CXX_STANDARD=17                         \
+    " -DCMAKE_CXX_STANDARD=17                         \
       -DCMAKE_BUILD_TYPE=Release                      \
       -DDUNE_PYTHON_VIRTUALENV_SETUP=0                \
       -DDUNE_PYTHON_ALLOW_GET_PIP=0                   \
@@ -42,7 +41,8 @@ jobs:
       run: ./.ci/setup_static_deps
     - name: Setup dune dependencies
       run: |
-        echo "CMAKE_FLAGS=$CMAKE_FLAGS $JOB_CMAKE_FLAGS" > dune.opts
+        echo "CMAKE_FLAGS=$CMAKE_FLAGS" >> dune.opts
+        echo "CMAKE_FLAGS+=$JOB_CMAKE_FLAGS" >> dune.opts
         ./.ci/setup_dune $PWD/dune.opts
     # - name: Build script
     #   run: ./build.sh
