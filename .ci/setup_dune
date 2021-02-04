@@ -144,8 +144,8 @@ for module in $MODULES; do
       dname=$(dirname "$f")
       fname=$(basename "$f")
       relf=$(cat $f)
-      src="$pwd/dune-$module/$dname/$relf"
-      dst="$pwd/dune-$module/$dname/$fname"
+      src="$PWD/dune-$module/$dname/$relf"
+      dst="$PWD/dune-$module/$dname/$fname"
       echo "  - copying $src --> $dst"
       cp $src $dst
     done
