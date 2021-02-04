@@ -68,7 +68,7 @@ curl https://gist.githubusercontent.com/lkeegan/059984b71f8aeb0bbc062e85ad7ee377
 printf "\n" >> "${PWD}/cmake-patch.patch"
 
 SETUP_dune_logging_PATCHES="${SCRIPT_DIR}/dune-logging.patch"
-SETUP_dune_common_PATCHES="${SCRIPT_DIR}/dune-common.patch ${PWD}/cmake-patch.patch"
+SETUP_dune_common_PATCHES="${PWD}/cmake-patch.patch ${SCRIPT_DIR}/dune-common.patch"
 
 # hardcoded **ordered** dependencies
 MODULES="common logging uggrid geometry grid localfunctions istl typetree functions pdelab multidomaingrid"
@@ -152,10 +152,10 @@ for module in $MODULES; do
   fi
 
   # apply patches
-  if [ ! -z $PATCHES ]; then
-    echo "Applying patches: $PATCHES"
-    git -C dune-$module apply $PATCHES
-  fi
+  for patch in $PATCHES; do
+    echo "Applying patche: $patch"
+    git -C dune-$module apply $patch
+  done
   echo ""
 
   if [ "$module" = "common" ]; then
