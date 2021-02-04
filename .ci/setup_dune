@@ -157,9 +157,7 @@ for module in $MODULES; do
   if [[ ! -z $PATCHES ]]; then
     echo "Applying patches: $PATCHES"
     # change line ending to DOS if OS is windows
-    for patch in $PATCHES; do
-      [[ $MSYSTEM ]] && dos2unix $patch $patch
-    done
+    [[ $MSYSTEM ]] && dos2unix $PATCHES
     git -C dune-$module apply -v $PATCHES
   fi
   echo ""
@@ -171,7 +169,7 @@ for module in $MODULES; do
   fi
 
   # configure, build, and install module
-  $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module all
+  $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module --debug all
   $SUDOCMD $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module bexec cmake --build . --target install
 
   # we want to know where the build dir is located
