@@ -41,8 +41,8 @@ jobs:
       run: ./.ci/setup_static_deps
     - name: Setup dune dependencies
       run: |
-        CMAKE_FLAGS=$(eval echo "$CMAKE_FLAGS $JOB_CMAKE_FLAGS")
-        echo "CMAKE_FLAGS=$CMAKE_FLAGS" >> dune.opts
+        echo 'CMAKE_FLAGS=$(eval echo "$CMAKE_FLAGS")' >> dune.opts
+        echo 'CMAKE_FLAGS+=$(eval echo "$JOB_CMAKE_FLAGS")' >> dune.opts
         ./.ci/setup_dune $PWD/dune.opts
     # - name: Build script
     #   run: ./build.sh
