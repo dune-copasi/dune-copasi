@@ -16,10 +16,11 @@ RUN    echo 'CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_SETUP=1"' >> /duneci/cmake-
     && echo 'CMAKE_FLAGS+=" -DCMAKE_PREFIX_PATH:PATH=/duneci/install"' >> /duneci/cmake-flags/dune-copasi \
     && echo 'CMAKE_FLAGS+=" -DCMAKE_INSTALL_PREFIX:PATH=/duneci/install"' >> /duneci/cmake-flags/dune-copasi \
     && echo 'CMAKE_FLAGS+=" -DCMAKE_GENERATOR='"'"'Ninja'"'"' "' >> /duneci/cmake-flags/dune-copasi
+
 WORKDIR /duneci/modules
 RUN mkdir -p /duneci/modules/dune-copasi/.ci
 COPY --chown=duneci ./.ci /duneci/modules/dune-copasi/.ci
-RUN bash dune-copasi/.ci/setup.sh
+RUN RECURSIVE=ON SETUP_DUNE_TESTTOOLS=ON ./dune-copasi/.ci/setup_dune /duneci/dune.opts
 
 # build and install dune-copasi from the setup-env
 FROM setup-env AS build-env
@@ -34,7 +35,7 @@ RUN    echo 'CMAKE_FLAGS+=" -DDUNE_COPASI_SD_EXECUTABLE=ON"' >> /duneci/cmake-fl
 
 WORKDIR /duneci/modules
 COPY --chown=duneci ./ /duneci/modules/dune-copasi
-RUN bash dune-copasi/.ci/build.sh
+RUN ./dune-copasi/.ci/install /duneci/dune.opts
 
 WORKDIR /duneci/modules/dune-copasi/build-cmake/
 RUN cpack -G DEB -B /duneci/packages CPackConfig.cmake

@@ -85,7 +85,7 @@ stages:
     - echo 'CMAKE_FLAGS+=" -DDUNE_COPASI_SD_EXECUTABLE=ON"' >> /duneci/cmake-flags/dune-copasi
     - echo 'CMAKE_FLAGS+=" -DDUNE_COPASI_MD_EXECUTABLE=ON"' >> /duneci/cmake-flags/dune-copasi
     - cd ..
-    - bash dune-copasi/.ci/build.sh
+    - ./dune-copasi/.ci/install /duneci/dune.opts
   artifacts:
     paths:
       - $CI_PROJECT_DIR/dune-copasi-install
@@ -99,7 +99,7 @@ stages:
     - echo 'CMAKE_FLAGS+=" -DCMAKE_BUILD_TYPE=Debug"' >> /duneci/cmake-flags/dune-copasi
     - echo 'CMAKE_FLAGS+=" -DCMAKE_PREFIX_PATH=$CI_PROJECT_DIR/dune-copasi-install"' >> /duneci/cmake-flags/dune-copasi
     - cd ..
-    - bash dune-copasi/.ci/unit_tests.sh
+    - ./dune-copasi/.ci/unit_tests /duneci/dune.opts
   artifacts:
     paths:
       - test/build-cmake
@@ -113,7 +113,7 @@ stages:
   script:
     - echo 'CMAKE_FLAGS+=" -DCMAKE_PREFIX_PATH=$CI_PROJECT_DIR/dune-copasi-install"' >> /duneci/cmake-flags/dune-copasi
     - cd ..
-    - bash dune-copasi/.ci/system_tests.sh
+    - ./dune-copasi/.ci/system_tests /duneci/dune.opts
   artifacts:
     paths:
       - cd ..
