@@ -48,8 +48,8 @@ jobs:
       run: |
         echo "CMAKE_FLAGS=\"$(eval echo $CMAKE_FLAGS)\"" >> dune.opts
         ./.ci/setup_dune $PWD/dune.opts
-    # - name: Build script
-    #   run: ./build.sh
+    - name: Build and Install
+      run: ./.ci/install $PWD/dune.opts
     # - uses: actions/upload-artifact@v2
     #   with:
     #     path: ./artefacts/*
@@ -75,6 +75,8 @@ jobs:
         run: |
           echo "CMAKE_FLAGS=\"$(eval echo $CMAKE_FLAGS)\"" >> dune.opts
           ./.ci/setup_dune $PWD/dune.opts
+      - name: Build and Install
+        run: ./.ci/install $PWD/dune.opts
       # - uses: actions/upload-artifact@v2
       #   with:
       #     path: ./artefacts/*
@@ -102,6 +104,8 @@ jobs:
         run: |
           echo "CMAKE_FLAGS=\"$(eval echo $CMAKE_FLAGS)\"" >> dune.opts
           ./.ci/setup_dune $PWD/dune.opts
+      - name: Build and Install
+        run: ./.ci/install $PWD/dune.opts
       # - uses: actions/upload-artifact@v2
       #   with:
       #     path: ./artefacts/*
@@ -113,7 +117,7 @@ jobs:
       INSTALL_PREFIX: '/c/smelibs'
       SUDOCMD: ''
       OS_TARGET: 'win32'
-      USE_FALLBACK_FILESYSTEM: 'OFF'
+      CXX_FLAGS: '-Wa,-mbig-obj -fvisibility=hidden -fpic -static -static-libgcc -static-libstdc++'
     defaults:
       run:
         shell: msys2 {0}
@@ -130,6 +134,8 @@ jobs:
         run: |
           echo "CMAKE_FLAGS=\"$(eval echo $CMAKE_FLAGS)\"" >> dune.opts
           ./.ci/setup_dune $PWD/dune.opts
+      - name: Build and Install
+        run: ./.ci/install $PWD/dune.opts
       # - uses: actions/upload-artifact@v2
       #   with:
       #     path: ./artefacts/*
