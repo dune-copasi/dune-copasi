@@ -27,6 +27,10 @@ print_opts_file() {
   cat "${DUNE_OPTIONS_FILE}"
 }
 
+print_cmake_error() {
+  cat "${BUILD_PATH}/CMakeFiles/CMakeError.log"
+}
+
 cleanup() {
   echo "removig intermediate results"
   rm -rf $BUILD_PATH
@@ -35,7 +39,7 @@ cleanup() {
 # set up verbose output in case of failure
 ONFAILURE_PROG="git gcc g++ python pip python3 pip3 cmake $SUDOCMD"
 ONFAILURE_VARS="PATH SUDOCMD DUNE_OPTIONS_FILE CMAKE_FLAGS"
-ONFAILURE_CMD="ls cleanup print_opts_file"
+ONFAILURE_CMD="ls cleanup print_opts_file print_cmake_error"
 
 trap onfailure EXIT
 
