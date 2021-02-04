@@ -8,7 +8,7 @@
 set -e
 
 # options file may be passed as argument
-[ ! -z "$1" ] DUNE_OPTIONS_FILE="$1"
+[ ! -z "$1" ] && DUNE_OPTIONS_FILE="$1"
 
 # load useful functions
 CALL_DIR=$PWD
