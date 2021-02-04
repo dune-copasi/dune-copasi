@@ -39,6 +39,7 @@ jobs:
       run: |
         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 100
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 100
+        sudo apt-get install libncurses5-dbg
     - uses: actions/checkout@v2
     - name: Setup static dependencies
       run: ./.ci/setup_static_deps

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 # input
+#   OS_TARGET=linux|osx|win32|win64
 #   DUNE_OPTIONS_FILE absolute path to options file
 #   (optional) SETUP_DUNE_TESTTOOLS
 #   (optional) SUDOCMD
@@ -137,7 +138,7 @@ for module in $MODULES; do
   # msys git replaces symlinks with a text file containing the linked file location
   # so here we identify all such files, and replace them with the linked file
   # note msys defines MSYSTEM variable: use this to check if we are on msys/windows
-  if [[ $MSYSTEM ]]; then
+  if [[ "$OS_TARGET" == *"win"* ]]; then
     cd $repo
     for f in $(git ls-files -s | awk '/120000/{print $4}')
     do
@@ -153,7 +154,7 @@ for module in $MODULES; do
 
   # apply patches
   for patch in $PATCHES; do
-    echo "Applying patche: $patch"
+    echo "Applying patch: $patch"
     git -C dune-$module apply $patch
   done
   echo ""
