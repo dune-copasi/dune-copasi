@@ -64,11 +64,12 @@ SETUP_dune_testtools_BRANCH="releases/2.7"
 SETUP_dune_testtools_REPO="https://gitlab.dune-project.org/quality/dune-testtools.git"
 
 
-curl https://gist.githubusercontent.com/lkeegan/059984b71f8aeb0bbc062e85ad7ee377/raw/e9c7af42c47fe765547e60833a72b5ff1e78123c/cmake-patch.txt > "${PWD}/cmake-patch.patch"
-printf "\n" >> "${PWD}/cmake-patch.patch"
+curl https://gist.githubusercontent.com/lkeegan/059984b71f8aeb0bbc062e85ad7ee377/raw/e9c7af42c47fe765547e60833a72b5ff1e78123c/cmake-patch.txt > "${PWD}/dune-common.patch"
+printf "\n" >> "${PWD}/dune-common.patch"
+cat ${SCRIPT_DIR}/dune-common.patch >> "${PWD}/dune-common.patch"
 
 SETUP_dune_logging_PATCHES="${SCRIPT_DIR}/dune-logging.patch"
-SETUP_dune_common_PATCHES="${PWD}/cmake-patch.patch ${SCRIPT_DIR}/dune-common.patch"
+SETUP_dune_common_PATCHES="${PWD}/dune-common.patch"
 
 # hardcoded **ordered** dependencies
 MODULES="common logging uggrid geometry grid localfunctions istl typetree functions pdelab multidomaingrid"
