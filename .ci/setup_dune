@@ -118,17 +118,16 @@ fi
 # download dune dependencies
 for module in $MODULES; do
 
-  echo "$module"
+  set +e
   GREEN=$(tput setaf 2 :-"" 2>/dev/null)
   RESET=$(tput sgr0 :-"" 2>/dev/null)
+  set -e
   echo ""
   echo $GREEN "============================ Setting up dune-$module ============================" $RESET
   echo ""
   REPO="$(eval echo \$SETUP_dune_${module}_REPO)"
   BRANCH="$(eval echo \$SETUP_dune_${module}_BRANCH)"
   PATCHES="$(eval echo \$SETUP_dune_${module}_PATCHES)"
-
-  echo "REPO $REPO"
 
   git clone -b $BRANCH --depth 1 --recursive $REPO
 
