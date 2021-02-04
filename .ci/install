@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+
+# build script for all CIs
+# requisites
+#   * DUNE_OPTIONS_FILE is defined
+
+set +e
+
+# set colors for better print
+GREEN=$(tput setaf 2 :-"" 2>/dev/null)
+RESET=$(tput sgr0 :-"" 2>/dev/null)
+
+set -e
+
+# load useful functions
+CALL_DIR=$PWD
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+source $SCRIPT_DIR/util
+
+# options file may be passed as argument
+[ ! -z "$1" ] && DUNE_OPTIONS_FILE="$1"
+
+print_opts_file() {
+  cat "${DUNE_OPTIONS_FILE}"
+}
+
+cleanup() {
+  echo "removig intermediate results"
+  rm -rf $BUILDDIR
+}
+
+# set up verbose output in case of failure
+ONFAILURE_PROG="git gcc g++ python pip python3 pip3 cmake $SUDOCMD"
+ONFAILURE_VARS="PATH SUDOCMD DUNE_OPTIONS_FILE CMAKE_FLAGS"
+ONFAILURE_CMD="ls cleanup print_opts_file"
+
+trap onfailure EXIT
+
+CMAKE_FLAGS="$(. ${DUNE_OPTIONS_FILE}; eval echo \$CMAKE_FLAGS)"
+
+SOURCEDIR=${SCRIPT_DIR}/..
+BUILDDIR=${SOURCEDIR}/build-cmake
+mkdir $BUILDDIR && cd $BUILDDIR
+
+echo "cmake $CMAKE_FLAGS $SOURCEDIR"
+eval cmake $CMAKE_FLAGS $SOURCEDIR
+
+cmake --build $BUILDDIR --target install
+rm -rf $BUILDDIR
+
+trap cleanup EXIT
