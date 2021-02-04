@@ -77,7 +77,8 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v2
-        submodules: 'recursive'
+        with:
+          submodules: 'recursive'
       - name: Setup static dependencies
         run: ./.ci/setup_static_deps
       - name: Setup dune dependencies
