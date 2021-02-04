@@ -4,6 +4,7 @@ on: push
 
 env:
   USE_FALLBACK_FILESYSTEM: 'OFF'
+  SETUP_DUNE_TESTTOOLS: 'OFF'
   CXX_FLAGS: '-fvisibility=hidden -fpic -static-libstdc++'
   CMAKE_FLAGS: >
     " -DCMAKE_CXX_STANDARD=17
@@ -20,6 +21,8 @@ env:
       -DCMAKE_PREFIX_PATH='${INSTALL_PREFIX}/dune;${INSTALL_PREFIX}'
       -DGMPXX_INCLUDE_DIR:PATH='${INSTALL_PREFIX}/include'
       -DUSE_FALLBACK_FILESYSTEM=${USE_FALLBACK_FILESYSTEM}
+      -DUNE_PYTHON_VIRTUALENV_SETUP=${SETUP_DUNE_TESTTOOLS}
+      -DDUNE_PYTHON_VIRTUALENV_PATH:PATH='${INSTALL_PREFIX}/dune/venv'
       -DCMAKE_CXX_FLAGS='${CXX_FLAGS}'
     "
 
@@ -29,6 +32,7 @@ jobs:
     runs-on: ubuntu-16.04
     env:
       INSTALL_PREFIX: '/opt/smelibs'
+      SETUP_DUNE_TESTTOOLS: "ON"
       SUDOCMD: 'sudo'
       OS_TARGET: 'linux'
       TERM: 'xterm-256color'
@@ -59,6 +63,7 @@ jobs:
     runs-on: macos-10.15
     env:
       INSTALL_PREFIX: '/opt/smelibs'
+      SETUP_DUNE_TESTTOOLS: "ON"
       SUDOCMD: 'sudo'
       MACOSX_DEPLOYMENT_TARGET: '10.14'
       OS_TARGET: 'osx'
