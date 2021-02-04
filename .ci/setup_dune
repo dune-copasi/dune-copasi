@@ -168,6 +168,8 @@ for module in $MODULES; do
     DUNECONTROL=$CMAKE_INSTALL_PREFIX/bin/dunecontrol
   fi
 
+  export DUNE_CONTROL_PATH=$PWD
+
   # configure, build, and install module
   $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module --debug all
   $SUDOCMD $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module bexec cmake --build . --target install
