@@ -154,8 +154,10 @@ for module in $MODULES; do
   fi
 
   # apply patches
-  echo "Applying patches: $PATCHES"
-  git -C dune-$module apply -v $PATCHES
+  if [[ ! -z $PATCHES ]]; then
+    echo "Applying patches: $PATCHES"
+    git -C dune-$module apply -v $PATCHES
+  fi
   echo ""
 
   if [ "$module" = "common" ]; then
