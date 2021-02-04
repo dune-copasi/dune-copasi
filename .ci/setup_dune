@@ -73,7 +73,7 @@ fi
 [ -z $DUNE_OPTIONS_FILE ] && ONFAILURE_MESSAGE+="Dune options file is not set!\n" && exit 1
 
 # get cmake flags
-unset CMAKE_FLAGS
+CMAKE_FLAGS=
 if test "x$DUNE_OPTIONS_FILE" != "x"; then
   CMAKE_FLAGS="$(. $DUNE_OPTIONS_FILE; eval echo \$CMAKE_FLAGS)"
 fi
@@ -102,7 +102,10 @@ CMAKE_PREFIX_PATH=
 for flag in $CMAKE_FLAGS; do
   [[ ${flag#-D} == CMAKE_PREFIX_PATH* ]] && CMAKE_PREFIX_PATH+=" $flag"
 done
-unset CMAKE_FLAGS
+CMAKE_FLAGS=
+
+echo $MODULES
+
 
 # check if install prefix is included on cmake prefix path
 if [[ "$CMAKE_PREFIX_PATH" != *${CMAKE_INSTALL_PREFIX}* ]]; then
@@ -114,6 +117,8 @@ if [[ "$CMAKE_PREFIX_PATH" != *${CMAKE_INSTALL_PREFIX}* ]]; then
   ONFAILURE_MESSAGE+="\n"
   exit 1
 fi
+
+echo $MODULES
 
 # download dune dependencies
 for module in $MODULES; do
