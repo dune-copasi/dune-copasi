@@ -89,15 +89,16 @@ for flag in $CMAKE_FLAGS; do
   [[ ${flag#-D} == CMAKE_INSTALL_PREFIX* ]] && CMAKE_INSTALL_PREFIX=${flag#-DCMAKE_INSTALL_PREFIX}
 done
 
+# TODO: This does not work well in Windows
 # remove "=" or ":PATH=" prefix
 CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX#=}
 CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX#:PATH=}
 # remove quotations
-CMAKE_INSTALL_PREFIX=$(echo $CMAKE_INSTALL_PREFIX | tr -d "'" | tr -d "\'")
+CMAKE_INSTALL_PREFIX=$(echo $CMAKE_INSTALL_PREFIX | tr -d "'")
 
 [ -z $CMAKE_INSTALL_PREFIX ] && ONFAILURE_MESSAGE+="Options file **shall** provide a CMAKE_INSTALL_PREFIX\n" && exit 1
 
-if command -v $CMAKE_INSTALL_PREFIX/bin/dunecontrol &> /dev/null; then
+if ! command -v $CMAKE_INSTALL_PREFIX/bin/dunecontrol &> /dev/null; then
   ONFAILURE_MESSAGE+="An installation of 'dunecontrol' was already found in '$CMAKE_INSTALL_PREFIX'\n"
   ONFAILURE_MESSAGE+="A new setup **must** not override an old installation\n"
   exit 1
@@ -164,8 +165,10 @@ for module in $MODULES; do
 
   if [ "$module" = "common" ]; then
     DUNECONTROL=./dune-common/bin/dunecontrol
-  else
+  else if ! command -v $CMAKE_INSTALL_PREFIX/bin/dunecontrol  &> /dev/null; then
     DUNECONTROL=$CMAKE_INSTALL_PREFIX/bin/dunecontrol
+  else
+    DUNECONTROL=dunecontrol
   fi
 
   # configure, build, and install module
