@@ -14,7 +14,7 @@ env:
       -DF77=true                                              \
       -DDUNE_COPASI_SD_EXECUTABLE=ON                          \
       -DDUNE_COPASI_MD_EXECUTABLE=ON                          \
-      -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}/dune    \
+      -DCMAKE_INSTALL_PREFIX:PATH='${INSTALL_PREFIX}/dune'    \
       -DCMAKE_PREFIX_PATH='${INSTALL_PREFIX}'                 \
       -DGMPXX_INCLUDE_DIR:PATH='${INSTALL_PREFIX}/include'    "
 
@@ -41,7 +41,7 @@ jobs:
       run: ./.ci/setup_static_deps
     - name: Setup dune dependencies
       run: |
-        CMAKE_FLAGS=$(echo "$CMAKE_FLAGS $JOB_CMAKE_FLAGS")
+        CMAKE_FLAGS=$(eval echo "$CMAKE_FLAGS $JOB_CMAKE_FLAGS")
         echo "CMAKE_FLAGS=$CMAKE_FLAGS" >> dune.opts
         ./.ci/setup_dune $PWD/dune.opts
     # - name: Build script
