@@ -53,9 +53,9 @@ onfailure() {
     echo "[${YELLOW}${i}${RESET}]:" >&2
     if command -v $i &> /dev/null; then
       echo "  which:" >&2
-      echo "$(eval which $i)" | sed 's/^/    /' >&2
+      echo "$(which $i)" | sed 's/^/    /' >&2
       echo "  version:"
-      echo "$(eval $i --version)" | sed 's/^/    /' >&2
+      echo "$($i --version)" | sed 's/^/    /' >&2
     else
       echo $RED "NOT FOUND" $RESET | sed 's/^/  /' >&2
     fi
