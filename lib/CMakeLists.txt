@@ -51,9 +51,12 @@ if(DUNE_COPASI_MD_LIBRARY)
 endif()
 
 # Set up filesystem
+add_library(filesystem INTERFACE)
+list(APPEND EXPORTED_DEVELOPMENT_TARGETS filesystem)
+
 if(Filesystem_FOUND)
   # file system is supported, link and we are done
-  target_link_libraries(dune-copasi PUBLIC std::filesystem)
+  target_link_libraries(filesystem INTERFACE std::filesystem)
 else()
   # ... else, we provide a fallback
   include(FetchContent)
@@ -66,13 +69,20 @@ else()
 
   if(NOT ghc_filesystem_POPULATED)
     message("-- Populating GHC Filesystem")
+    
     FetchContent_Populate(ghc_filesystem)
-    set(GHC_FILESYSTEM_WITH_INSTALL ON)
     add_subdirectory("${ghc_filesystem_SOURCE_DIR}" "${ghc_filesystem_BINARY_DIR}")
-    add_library(ghcFilesystem::ghc_filesystem ALIAS ghc_filesystem)
+   
+    install(DIRECTORY "${ghc_filesystem_SOURCE_DIR}/include"
+      COMPONENT Development
+      DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+    )
   endif()
-  target_compile_definitions(dune-copasi PUBLIC DUNE_COPASI_USE_FALLBACK_FILESYSTEM)
-  target_link_libraries(dune-copasi PUBLIC ghcFilesystem::ghc_filesystem)
+
+  target_include_directories(filesystem INTERFACE
+    $<BUILD_INTERFACE:${ghc_filesystem_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  )
 endif()
 
 # main library consumes filesystem definitions
