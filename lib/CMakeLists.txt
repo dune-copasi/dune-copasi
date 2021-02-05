@@ -84,7 +84,7 @@ else()
     $<INSTALL_INTERFACE:include>
   )
 
-  target_compile_definitions(filesystem PUBLIC DUNE_COPASI_USE_FALLBACK_FILESYSTEM)
+  target_compile_definitions(filesystem INTERFACE DUNE_COPASI_USE_FALLBACK_FILESYSTEM)
 endif()
 
 # main library consumes filesystem definitions
