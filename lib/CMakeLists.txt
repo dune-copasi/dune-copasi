@@ -81,7 +81,7 @@ else()
 
   target_include_directories(filesystem INTERFACE
     $<BUILD_INTERFACE:${ghc_filesystem_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
   )
 
   target_compile_definitions(filesystem INTERFACE DUNE_COPASI_USE_FALLBACK_FILESYSTEM)

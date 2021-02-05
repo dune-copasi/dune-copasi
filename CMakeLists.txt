@@ -8,6 +8,7 @@ if(NOT (dune-common_DIR OR dune-common_ROOT OR
 endif()
 
 cmake_policy(SET CMP0074 NEW)
+cmake_policy(SET CMP0087 OLD)
 
 #find dune-common and set the module path
 find_package(dune-common REQUIRED)
