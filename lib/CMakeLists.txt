@@ -71,9 +71,10 @@ else()
     FetchContent_Populate(ghc_filesystem)
     add_subdirectory("${ghc_filesystem_SOURCE_DIR}" "${ghc_filesystem_BINARY_DIR}")
    
-    install(DIRECTORY "${ghc_filesystem_SOURCE_DIR}/include"
+    install(DIRECTORY "${ghc_filesystem_SOURCE_DIR}/include/ghc"
+      FILES_MATCHING PATTERN "*.hpp"
       COMPONENT Development
-      DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+      DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/ghc"
     )
   endif()
 
