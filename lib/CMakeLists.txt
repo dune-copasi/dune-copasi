@@ -83,6 +83,8 @@ else()
     $<BUILD_INTERFACE:${ghc_filesystem_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
   )
+
+  target_compile_definitions(filesystem PUBLIC DUNE_COPASI_USE_FALLBACK_FILESYSTEM)
 endif()
 
 # main library consumes filesystem definitions

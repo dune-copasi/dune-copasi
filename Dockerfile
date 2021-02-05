@@ -11,7 +11,7 @@ ENV PATH=/duneci/install/bin:$PATH
 ENV TERM=xterm-256color
 ENV CMAKE_INSTALL_PREFIX=/duneci/install
 
-COPY --chown=duneci ./dune-copasi.opts /duneci/cmake-flags/dune-copasi.opts
+COPY --chown=duneci ./dune-copasi.opts /duneci/cmake-flags/
 RUN    ln -s /duneci/toolchains/${TOOLCHAIN} /duneci/toolchain \
     && export PATH=/duneci/install/bin:$PATH
 RUN    echo 'CMAKE_FLAGS+=" -DCMAKE_GENERATOR='"'"'Ninja'"'"' "' >> /duneci/cmake-flags/dune-copasi.opts \
