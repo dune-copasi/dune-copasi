@@ -14,6 +14,9 @@ RESET=$(tput sgr0 :-"" 2>/dev/null)
 
 set -e
 
+# options file may be passed as argument
+[ ! -z "$1" ] && DUNE_OPTIONS_FILE="$1"
+
 # load dune opts
 CMAKE_FLAGS="$(. ${DUNE_OPTIONS_FILE}; eval echo \$CMAKE_FLAGS)"
 SUDOCMD="$(. ${DUNE_OPTIONS_FILE}; eval echo \$SUDOCMD)"
@@ -25,9 +28,6 @@ source $SCRIPT_PATH/util
 
 SOURCEDIR=${SCRIPT_PATH}/..
 BUILD_PATH=/tmp/dune-copasi-build
-
-# options file may be passed as argument
-[ ! -z "$1" ] && DUNE_OPTIONS_FILE="$1"
 
 print_opts_file() {
   cat "${DUNE_OPTIONS_FILE}"
