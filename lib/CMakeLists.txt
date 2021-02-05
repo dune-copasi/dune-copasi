@@ -50,14 +50,10 @@ if(DUNE_COPASI_MD_LIBRARY)
   list(APPEND EXPORTED_DEVELOPMENT_TARGETS multidomain-lib)
 endif()
 
-
 # Set up filesystem
-add_library(filesystem INTERFACE)
-list(APPEND EXPORTED_DEVELOPMENT_TARGETS filesystem)
-
 if(Filesystem_FOUND)
   # file system is supported, link and we are done
-  target_link_libraries(filesystem INTERFACE std::filesystem)
+  target_link_libraries(dune-copasi PUBLIC std::filesystem)
 else()
   # ... else, we provide a fallback
   include(FetchContent)
@@ -71,11 +67,11 @@ else()
   if(NOT ghc_filesystem_POPULATED)
     message("-- Populating GHC Filesystem")
     FetchContent_Populate(ghc_filesystem)
+    set(GHC_FILESYSTEM_WITH_INSTALL ON)
     add_subdirectory("${ghc_filesystem_SOURCE_DIR}" "${ghc_filesystem_BINARY_DIR}")
   endif()
-
-  target_compile_definitions(filesystem INTERFACE DUNE_COPASI_USE_FALLBACK_FILESYSTEM)
-  target_link_libraries(filesystem INTERFACE ghc_filesystem)
+  target_compile_definitions(dune-copasi PUBLIC DUNE_COPASI_USE_FALLBACK_FILESYSTEM)
+  target_link_libraries(dune-copasi PUBLIC ghcFilesystem::ghc_filesystem)
 endif()
 
 # main library consumes filesystem definitions
