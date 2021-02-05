@@ -22,14 +22,22 @@ include(DuneMacros)
 # start a dune project with information from dune.module
 dune_project()
 
+# setup fallback filesystem
 set(USE_FALLBACK_FILESYSTEM no CACHE BOOL "Use bundled std::filesystem alternative (enable this for macOS older than 10.15)")
-if(USE_FALLBACK_FILESYSTEM)
-  add_subdirectory(ext/ghc)
-  install(FILES ext/ghc/include/ghc/filesystem.hpp
-          COMPONENT Development
-          DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/ghc")
-endif()
 
+include(FetchContent)
+message("-- Declaring GHC Filesystem")
+FetchContent_Declare(
+  ghc_filesystem
+  GIT_REPOSITORY https://github.com/gulrak/filesystem
+  GIT_TAG        v1.4.0
+)
+
+if(USE_FALLBACK_FILESYSTEM AND NOT ghc_filesystem_POPULATED)
+  message("-- Populating GHC Filesystem")
+  FetchContent_Populate(ghc_filesystem)
+  add_subdirectory("${ghc_filesystem_SOURCE_DIR}" "${ghc_filesystem_BINARY_DIR}")
+endif()
 
 # Single domain target
 set(DUNE_COPASI_SD_EXECUTABLE OFF

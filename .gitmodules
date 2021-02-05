@@ -1,3 +1,0 @@
-[submodule "dune/copasi/common/ghc"]
-	path = ext/ghc
-	url = https://github.com/gulrak/filesystem
