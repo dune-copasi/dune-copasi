@@ -2,7 +2,6 @@ name: CI Builds
 
 on: push
 
-env:
 jobs:
   linux:
     name: Linux
@@ -46,8 +45,6 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v2
-        with:
-          submodules: 'recursive'
       - name: Setup static dependencies
         run: ./.ci/setup_static_deps $PWD/dune-copasi.opts
       - name: Setup dune dependencies
