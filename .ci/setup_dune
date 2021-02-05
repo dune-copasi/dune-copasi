@@ -33,8 +33,8 @@ print_opts_file() {
 }
 
 print_cmake_error() {
-  $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module bexec "echo \$PWD > $PWD/module_builddir"
-  BUILD_PATH=$(cat $PWD/module_builddir)
+  $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module bexec "echo \$PWD > /tmp/setup-dune/module_builddir"
+  BUILD_PATH=$(cat /tmp/setup-dune/module_builddir)
   cat "${BUILD_PATH}/CMakeFiles/CMakeError.log"
 }
 
@@ -203,10 +203,10 @@ for module in $MODULES; do
   
   # we want to know where the build dir is located
   # since it could be ant complex path, we write the path from dunecontrol into a file
-  $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module bexec "echo \$PWD > $PWD/module_builddir"
+  $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module bexec "echo \$PWD > /tmp/setup-dune/module_builddir"
   
   # remove build and sources
-  BUILD_PATH=$(cat $PWD/module_builddir)
+  BUILD_PATH=$(cat /tmp/setup-dune/module_builddir)
   rm -rf $BUILD_PATH
   rm -rf dune-$module
 done
