@@ -10,8 +10,11 @@ ENV DUNE_OPTIONS_FILE=/duneci/dune.opts
 ENV PATH=/duneci/install/bin:$PATH
 ENV TERM=xterm-256color
 ENV CMAKE_INSTALL_PREFIX=/duneci/install
+ENV SETUP_DUNE_TESTTOOLS=ON
 
 COPY --chown=duneci ./dune-copasi.opts /duneci/cmake-flags/
+COPY --chown=duneci ./.ci /duneci/modules/dune-copasi/.ci
+
 RUN    ln -s /duneci/toolchains/${TOOLCHAIN} /duneci/toolchain \
     && export PATH=/duneci/install/bin:$PATH
 RUN    echo 'CMAKE_FLAGS+=" -DCMAKE_GENERATOR='"'"'Ninja'"'"' "' >> /duneci/cmake-flags/dune-copasi.opts \
@@ -19,8 +22,7 @@ RUN    echo 'CMAKE_FLAGS+=" -DCMAKE_GENERATOR='"'"'Ninja'"'"' "' >> /duneci/cmak
 
 WORKDIR /duneci/modules
 RUN mkdir -p /duneci/modules/dune-copasi/.ci
-COPY --chown=duneci ./.ci /duneci/modules/dune-copasi/.ci
-RUN RECURSIVE=ON SETUP_DUNE_TESTTOOLS=ON ./dune-copasi/.ci/setup_dune /duneci/dune.opts
+RUN ./dune-copasi/.ci/setup_dune /duneci/dune.opts
 
 # build and install dune-copasi from the setup-env
 FROM setup-env AS build-env
@@ -29,7 +31,6 @@ ENV DUNE_OPTIONS_FILE=/duneci/dune.opts
 ENV PATH=/duneci/install/bin:$PATH
 ENV TERM=xterm-256color
 ENV CMAKE_INSTALL_PREFIX=/duneci/install
-ENV BUILD_TESING=ON
 
 WORKDIR /duneci/modules
 COPY --chown=duneci ./ /duneci/modules/dune-copasi

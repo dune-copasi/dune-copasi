@@ -21,7 +21,7 @@ source $SCRIPT_DIR/util
 
 
 SOURCEDIR=${SCRIPT_DIR}/../test
-BUILDDIR=/tmp/build-system-tests
+BUILDDIR=/tmp/build-unit-tests
 
 print_opts_file() {
   cat "${DUNE_OPTIONS_FILE}"
@@ -39,7 +39,7 @@ ONFAILURE_CMD="ls cleanup print_opts_file"
 
 trap onfailure EXIT
 
-[[ -d ${BUILDDIR} ]] && ONFAILURE_MESSAGE+="run this script where no folder 'build-system-tests' exists\n" && exit 1
+[[ -d ${BUILDDIR} ]] && ONFAILURE_MESSAGE+="run this script where no folder 'build-unit-tests' exists\n" && exit 1
 mkdir $BUILDDIR && cd $BUILDDIR
 
 if test "x$DUNE_OPTIONS_FILE" != "x"; then
@@ -49,7 +49,7 @@ fi
 echo "cmake $CMAKE_FLAGS $SOURCEDIR"
 eval cmake $CMAKE_FLAGS $SOURCEDIR
 
-cmake --build . --target build_system_tests
+cmake --build . --target build_unit_tests
 ctest -j4 -L "unit" --output-on-failure
 
 trap cleanup EXIT

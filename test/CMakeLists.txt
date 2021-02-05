@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 3.13)
 project(dune-copasi-tests CXX)
 
+include(CMakeDependentOption)
+
+cmake_dependent_option(BUILD_TESTS
+    "Enable tests" OFF
+    "CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR" ON)
+
 if(NOT TARGET dune-copasi::dune-copasi)
   find_package(dune-copasi REQUIRED IMPORTED COMPONENTS Libraries Development Runtime)
 endif()
