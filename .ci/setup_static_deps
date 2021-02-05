@@ -9,6 +9,8 @@
 
 set -e
 
+host="$(uname -a)"
+
 # options file may be passed as argument
 [ ! -z "$1" ] && DUNE_OPTIONS_FILE="$1"
 

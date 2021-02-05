@@ -48,8 +48,8 @@ if [[ -z $OS_TARGET ]]; then
     [ ! -w "$CMAKE_INSTALL_PREFIX" ] && SUDOCMD="sudo"
   elif [[ "$OSTYPE" == "msys" ]]; then
     # Lightweight shell and GNU utilities compiled for Windows (part of MinGW)
-    [[ "$host" = 'x86_64'* ]] && OS_TARGET="win64"
-    [[ "$host" = 'i686'* ]] && OS_TARGET="win32"
+    [[ "$(uname -a)" = 'x86_64'* ]] && OS_TARGET="win64"
+    [[ "$(uname -a)" = 'i686'* ]] && OS_TARGET="win32"
     CXX_FLAGS+="-static -static-libgcc -Wa,-mbig-obj"
   fi
 fi
