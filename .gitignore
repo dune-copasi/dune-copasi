@@ -3,6 +3,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+build-cmake/
+
 python/dune/copasi/cli/cmake_variables.py
 
 #### Docusaurus ####
