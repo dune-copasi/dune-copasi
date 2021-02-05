@@ -18,8 +18,7 @@ COPY --chown=duneci ./.ci /duneci/modules/dune-copasi/.ci
 RUN    ln -s /duneci/toolchains/${TOOLCHAIN} /duneci/toolchain \
     && export PATH=/duneci/install/bin:$PATH
 RUN    echo 'CMAKE_FLAGS+=" -DCMAKE_GENERATOR='"'"'Ninja'"'"' "' >> /duneci/cmake-flags/dune-copasi.opts  \
-    && echo 'CMAKE_FLAGS+=" -DDUNE_COPASI_SD_EXECUTABLE=ON"' >> /duneci/cmake-flags/dune-copasi.opts      \
-    && echo 'CMAKE_FLAGS+=" -DCMAKE_DISABLE_FIND_PACKAGE_MPI=ON"' >> /duneci/cmake-flags/dune-copasi.opts
+    && echo 'CMAKE_FLAGS+=" -DDUNE_COPASI_SD_EXECUTABLE=ON"' >> /duneci/cmake-flags/dune-copasi.opts
 
 WORKDIR /duneci/modules
 RUN mkdir -p /duneci/modules/dune-copasi/.ci
