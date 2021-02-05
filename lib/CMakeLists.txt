@@ -72,7 +72,7 @@ else()
     add_subdirectory("${ghc_filesystem_SOURCE_DIR}" "${ghc_filesystem_BINARY_DIR}")
    
     file(GLOB GHC_HEADERS "${ghc_filesystem_SOURCE_DIR}/include/ghc/*.hpp")
-    install(FILES "${GHC_HEADERS}"
+    install(FILES ${GHC_HEADERS}
       COMPONENT Development
       DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/ghc"
     )
