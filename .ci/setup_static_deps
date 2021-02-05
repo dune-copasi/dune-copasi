@@ -15,6 +15,7 @@ set -e
 # load dune options
 CMAKE_FLAGS="$(. ${DUNE_OPTIONS_FILE}; eval echo \$CMAKE_FLAGS)"
 SUDOCMD="$(. ${DUNE_OPTIONS_FILE}; eval echo \$SUDOCMD)"
+OS_TARGET="$(. ${DUNE_OPTIONS_FILE}; eval echo \$OS_TARGET)"
 
 # load useful functions
 CALL_DIR=$PWD
