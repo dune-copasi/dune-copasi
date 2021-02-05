@@ -25,10 +25,28 @@
 #include <dune/common/parametertreeparser.hh>
 
 #include <ctime>
+#include <vector>
+
+static std::string string_help = 
+  "Usage: dune-copasi-sd CONFIG_FILE\n"
+  "\n"
+  "Execute numerical simulation of reaction-diffusion systems on single\n"
+  "compartments. The CONFIG_FILE is a DUNE INI file with the\n"
+  "parameters to perform the simulation.\n";
 
 int
 main(int argc, char** argv)
 {
+  std::vector<std::string> cmd_line_args(argv, argv+argc);
+
+  if (cmd_line_args.size() != 2) {
+    std::cerr << string_help;
+    return 1;
+  } else if (cmd_line_args[0] == "--help" or cmd_line_args[0] == "-h") {
+    std::cout << string_help;
+    return 0;
+  }
+
   auto stime_c = std::chrono::system_clock::now();
   int end_code = 0;
 
@@ -36,12 +54,7 @@ main(int argc, char** argv)
   auto& mpi_helper = Dune::MPIHelper::instance(argc, argv);
 
   // Read and parse ini file
-  if (argc != 2)
-    DUNE_THROW(Dune::IOError, "Wrong number of arguments");
-  const std::string config_filename = argv[1];
-
-  Dune::ParameterTree config;
-  Dune::ParameterTreeParser::readINITree(config_filename, config);
+  const std::string config_filename = cmd_line_args[0];
 
   // initialize loggers
   auto comm = mpi_helper.getCollectiveCommunication();

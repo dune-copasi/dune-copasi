@@ -25,20 +25,20 @@
 #include <dune/common/parametertreeparser.hh>
 
 #include <ctime>
+#include <vector>
 
-statuc std::string string_help = 
+static std::string string_help = 
   "Usage: dune-copasi-md CONFIG_FILE\n"
   "\n"
   "Execute numerical simulation of reaction-diffusion systems on multiple\n"
-  "compartments. The CONFIG_FILE follows is a DUNE INI file with the\n"
-  "parameters to perform the simulation.\n"
+  "compartments. The CONFIG_FILE is a DUNE INI file with the\n"
+  "parameters to perform the simulation.\n";
 
 int
 main(int argc, char** argv)
 {
   std::vector<std::string> cmd_line_args(argv, argv+argc);
 
-  // Read and parse ini file
   if (cmd_line_args.size() != 2) {
     std::cerr << string_help;
     return 1;
@@ -53,8 +53,8 @@ main(int argc, char** argv)
   // initialize mpi
   auto& mpi_helper = Dune::MPIHelper::instance(argc, argv);
 
+  // Read and parse ini file
   const std::string config_filename = cmd_line_args[0];
-
   Dune::ParameterTree config;
   Dune::ParameterTreeParser::readINITree(config_filename, config);
 
