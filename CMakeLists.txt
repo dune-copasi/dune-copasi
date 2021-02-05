@@ -19,6 +19,12 @@ list(APPEND CMAKE_MODULE_PATH
 #include the dune macros
 include(DuneMacros)
 
+# find dependencies
+find_package(muparser REQUIRED)
+find_package(TIFF REQUIRED)
+find_package(Filesystem)
+
+
 # start a dune project with information from dune.module
 dune_project()
 
