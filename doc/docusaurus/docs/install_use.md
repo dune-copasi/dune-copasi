@@ -17,7 +17,8 @@ systems:
 
 ### Graphical User Interface
 
-The [Spatial Model Editor](https://github.com/spatial-model-editor/spatial-model-editor) is a **user friendly** GUI editor to create and edit 2D
+The [Spatial Model Editor](https://github.com/spatial-model-editor/spatial-model-editor)
+is a **user friendly** GUI editor to create and edit 2D
 spatial *Systems Biology Markup Language* ([SBML](https://en.wikipedia.org/wiki/SBML))
 models of bio-chemical reactions and simulate them with `dune-copasi`. A big
 adventage of this package is that is tailored for biologists and is availalbe
@@ -29,7 +30,8 @@ with just a pair of clicks on the major plataforms. Find more information
 ### Configuration File
 
 In this form, `dune-copasi` provides one executable for single compartment
-systems (`dune-copasi-sd`) and another one for multiple compartment systems (`dune-copasi-md`). Both executables expect one `INI` configuration file which
+systems (`dune-copasi-sd`) and another one for multiple compartment systems (`dune-copasi-md`).
+Both executables expect one `INI` configuration file which
 shall contain all the information to perform the simulation.
 
 ```bash
@@ -126,7 +128,7 @@ The results of those computations will be written on current
 directory as mentioned above. For more information about running docker images,
 visit the `docker run` [documentation](https://docs.docker.com/engine/reference/run/).
 <!-- 
-### Debian/Ubuntu Package
+### Debian/Ubuntu and macOS Packages
 
 For Debian and Ubuntu users that want to make use of `dune-copasi`
 with [INI](#configuration-file) usage, installation is as simple as:
@@ -303,31 +305,34 @@ git clone -b releases/2.7 https://gitlab.dune-project.org/staging/dune-uggrid
 git clone -b releases/2.7 https://gitlab.dune-project.org/core/dune-istl
 git clone -b releases/2.7 https://gitlab.dune-project.org/core/dune-localfunctions
 git clone -b releases/2.7 https://gitlab.dune-project.org/staging/dune-functions
-git clone -b support/dune-copasi-latest --recursive https://gitlab.dune-project.org/copasi/dune-logging
-git clone -b support/dune-copasi-latest https://gitlab.dune-project.org/copasi/dune-typetree
-git clone -b support/dune-copasi-latest https://gitlab.dune-project.org/copasi/dune-pdelab
-git clone -b support/dune-copasi-latest https://gitlab.dune-project.org/copasi/dune-multidomaingrid
-git clone -b latest https://gitlab.dune-project.org/copasi/dune-copasi
+git clone -b support/dune-copasi-v0.3 --recursive https://gitlab.dune-project.org/copasi/dune-logging
+git clone -b support/dune-copasi-v0.3 https://gitlab.dune-project.org/copasi/dune-typetree
+git clone -b support/dune-copasi-v0.3 https://gitlab.dune-project.org/copasi/dune-pdelab
+git clone -b support/dune-copasi-v0.3 https://gitlab.dune-project.org/copasi/dune-multidomaingrid
+git clone -b v0.3 https://gitlab.dune-project.org/copasi/dune-copasi
+
+# apply patches
+git apply -C dune-common dune-copasi/.ci/dune-common.patch
+git apply -C dune-logging dune-copasi/.ci/dune-logging.patch
 ```
 
 Then build and install the `DUNE` modules with the `dunecontrol` script:
-```bash
 
-# add custom build options...
-# set install directory to /opt/dune/
-echo 'CMAKE_FLAGS+=" -DCMAKE_INSTALL_PREFIX=/opt/dune"' >> dune.opts
+```bash
+# set install directory to /opt/dune/                (this is read by the dune-copasi.opts)
+export CMAKE_INSTALL_PREFIX=/opt/dune
 
 # configure and build dune modules
-./dune-common/bin/dunecontrol --opts=dune.opts all
+./dune-common/bin/dunecontrol --opts=dune-copasi/dune-copasi.opts all
 
 # install binaries and libraries into /opt/dune/     (may require sudo)
-./dune-common/bin/dunecontrol bexec make install
+./dune-common/bin/dunecontrol --opts=dune-copasi/dune-copasi.opts bexec make install
 
 # remove source and build files
 cd ~ && rm -r ~/dune-modules
 
 # include dune binaries into your path
-echo export PATH="/opt/dune/bin:$PATH" >> $HOME/.bashrc
+echo export PATH="$CMAKE_INSTALL_PREFIX/bin:$PATH" >> $HOME/.bashrc
 ```
 
 For further information on dune module installation process, please check out
