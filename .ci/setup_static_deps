@@ -9,7 +9,7 @@
 
 set -e
 
-host="$(uname -r)"
+host="$(pacman -Q)"
 
 # options file may be passed as argument
 [ ! -z "$1" ] && DUNE_OPTIONS_FILE="$1"
