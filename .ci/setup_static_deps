@@ -7,7 +7,6 @@
 #   CMAKE_INSTALL_PREFIX
 #   (optional) SUDOCMD
 
-host="$(gcc -v)"
 set -e
 
 # options file may be passed as argument
@@ -33,7 +32,7 @@ cleanup() {
 
 # set up verbose output in case of failure
 ONFAILURE_PROG="git gcc g++ python pip python3 pip3 cmake wget curl $SUDOCMD"
-ONFAILURE_VARS="SUDOCMD OSTYPE OS_TARGET host CMAKE_INSTALL_PREFIX CMAKE_FLAGS CMAKE_PREFIX_PATH VERBOSE_TAR"
+ONFAILURE_VARS="SUDOCMD OSTYPE OS_TARGET CMAKE_INSTALL_PREFIX CMAKE_FLAGS CMAKE_PREFIX_PATH VERBOSE_TAR"
 ONFAILURE_CMD="ls prefix_content cleanup"
 
 trap onfailure EXIT
