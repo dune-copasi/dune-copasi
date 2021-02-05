@@ -22,23 +22,6 @@ include(DuneMacros)
 # start a dune project with information from dune.module
 dune_project()
 
-# setup fallback filesystem
-set(USE_FALLBACK_FILESYSTEM no CACHE BOOL "Use bundled std::filesystem alternative (enable this for macOS older than 10.15)")
-
-include(FetchContent)
-message("-- Declaring GHC Filesystem")
-FetchContent_Declare(
-  ghc_filesystem
-  GIT_REPOSITORY https://github.com/gulrak/filesystem
-  GIT_TAG        v1.4.0
-)
-
-if(USE_FALLBACK_FILESYSTEM AND NOT ghc_filesystem_POPULATED)
-  message("-- Populating GHC Filesystem")
-  FetchContent_Populate(ghc_filesystem)
-  add_subdirectory("${ghc_filesystem_SOURCE_DIR}" "${ghc_filesystem_BINARY_DIR}")
-endif()
-
 # Single domain target
 set(DUNE_COPASI_SD_EXECUTABLE OFF
     CACHE BOOL "Build SingleDomain executable by default"
@@ -63,21 +46,8 @@ set_target_properties(dune-copasi PROPERTIES ARCHIVE_OUTPUT_NAME dunecopasi)
 # add dune dependencies to this target
 dune_target_enable_all_packages(dune-copasi)
 
-# add directories for includes and libs
-target_link_directories(dune-copasi PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/lib>
-  $<INSTALL_INTERFACE:${CMAKE_INSTALL_LIBDIR}>
-)
-
 # add dependencies
 target_link_libraries(dune-copasi PUBLIC ${DUNE_LIBS} TIFF::TIFF muparser::muparser)
-
-if(USE_FALLBACK_FILESYSTEM)
-  target_compile_definitions(dune-copasi PUBLIC DUNE_COPASI_USE_FALLBACK_FILESYSTEM)
-  target_link_libraries(dune-copasi PUBLIC ghc_filesystem)
-elseif(Filesystem_FOUND)
-  target_link_libraries(dune-copasi PUBLIC std::filesystem)
-endif()
 
 option(DUNE_COPASI_COMPILE_3D "Compile 3D cases in libraries and executables" OFF)
 

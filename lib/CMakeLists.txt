@@ -4,6 +4,8 @@ target_include_directories(dune-copasi
   PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
+unset(EXPORTED_DEVELOPMENT_TARGETS)
+
 # SingleDomain library
 add_library(singledomain-lib
   EXCLUDE_FROM_ALL
@@ -23,15 +25,7 @@ if(DUNE_COPASI_SD_LIBRARY)
   set_target_properties(singledomain-lib PROPERTIES EXCLUDE_FROM_ALL OFF)
   target_link_libraries(dune-copasi INTERFACE singledomain-lib)
   target_compile_definitions(dune-copasi INTERFACE DUNE_COPASI_SD_LIBRARY)
-
-  install(TARGETS singledomain-lib
-    EXPORT dune-copasi-targets
-    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-      COMPONENT Libraries
-      NAMELINK_COMPONENT Development
-    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-      COMPONENT Development
-  )
+  list(APPEND EXPORTED_DEVELOPMENT_TARGETS singledomain-lib)
 endif()
 
 # MultiDomain library
@@ -53,13 +47,46 @@ if(DUNE_COPASI_MD_LIBRARY)
   set_target_properties(multidomain-lib PROPERTIES EXCLUDE_FROM_ALL OFF)
   target_link_libraries(dune-copasi INTERFACE multidomain-lib)
   target_compile_definitions(dune-copasi INTERFACE DUNE_COPASI_MD_LIBRARY)
-
-  install(TARGETS multidomain-lib
-    EXPORT dune-copasi-targets
-    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-      COMPONENT Libraries
-      NAMELINK_COMPONENT Development
-    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-      COMPONENT Development
-  )
+  list(APPEND EXPORTED_DEVELOPMENT_TARGETS multidomain-lib)
 endif()
+
+
+# Set up filesystem
+add_library(filesystem INTERFACE)
+list(APPEND EXPORTED_DEVELOPMENT_TARGETS filesystem)
+
+if(Filesystem_FOUND)
+  # file system is supported, link and we are done
+  target_link_libraries(filesystem INTERFACE std::filesystem)
+else()
+  # ... else, we provide a fallback
+  include(FetchContent)
+  message("-- Declaring GHC Filesystem")
+  FetchContent_Declare(
+    ghc_filesystem
+    GIT_REPOSITORY https://github.com/gulrak/filesystem
+    GIT_TAG        v1.4.0
+  )
+
+  if(NOT ghc_filesystem_POPULATED)
+    message("-- Populating GHC Filesystem")
+    FetchContent_Populate(ghc_filesystem)
+    add_subdirectory("${ghc_filesystem_SOURCE_DIR}" "${ghc_filesystem_BINARY_DIR}")
+  endif()
+
+  target_compile_definitions(filesystem INTERFACE DUNE_COPASI_USE_FALLBACK_FILESYSTEM)
+  target_link_libraries(filesystem INTERFACE ghc_filesystem)
+endif()
+
+# main library consumes filesystem definitions
+target_link_libraries(dune-copasi PUBLIC filesystem)
+
+# install development targets
+install(TARGETS ${EXPORTED_DEVELOPMENT_TARGETS}
+  EXPORT dune-copasi-targets
+  LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    COMPONENT Libraries
+    NAMELINK_COMPONENT Development
+  ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    COMPONENT Development
+)

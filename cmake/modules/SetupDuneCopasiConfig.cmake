@@ -31,6 +31,13 @@ dune_create_dependency_tree()
 dune_process_dependency_macros()
 unset(ProjectName)
 
+# get dune-copasi dependencies
+find_dependency(muparser)
+find_dependency(TIFF)
+if(${Filesystem_FOUND})
+  find_dependency(Filesystem)
+endif()
+
 #import the target
 get_filename_component(_dir \"\${CMAKE_CURRENT_LIST_FILE}\" PATH)
 include(\"\${_dir}/dune-copasi-targets.cmake\")
