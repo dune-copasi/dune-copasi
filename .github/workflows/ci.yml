@@ -70,6 +70,7 @@ jobs:
       CMAKE_INSTALL_PREFIX: '/c/smelibs'
       DUNE_COPASI_USE_STATIC_DEPS: 'ON'
       USE_FALLBACK_FILESYSTEM: 'OFF'
+      CMAKE_BUILD_TYPE: Release
     defaults:
       run:
         shell: msys2 {0}
@@ -101,6 +102,7 @@ jobs:
       CMAKE_INSTALL_PREFIX: '/c/smelibs'
       DUNE_COPASI_USE_STATIC_DEPS: 'ON'
       USE_FALLBACK_FILESYSTEM: 'OFF'
+      CMAKE_BUILD_TYPE: Release
     defaults:
       run:
         shell: msys2 {0}
