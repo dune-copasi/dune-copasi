@@ -7,9 +7,9 @@
 #   CMAKE_INSTALL_PREFIX
 #   (optional) SUDOCMD
 
-set -e
+host="$(pacman --version)"
 
-host="$(pacman -Q)"
+set -e
 
 # options file may be passed as argument
 [ ! -z "$1" ] && DUNE_OPTIONS_FILE="$1"
