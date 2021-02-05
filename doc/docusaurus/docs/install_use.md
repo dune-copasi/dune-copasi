@@ -257,6 +257,25 @@ are placed under the [COPASI namespace](https://gitlab.dune-project.org/copasi/)
 on the [DUNE GitLab](https://gitlab.dune-project.org/).
 :::
 
+#### Dune Options File
+
+An important part of the installation procedure is to tune the build system
+flags to accomodate the build to your system. This is done via the dune options
+file. In essence is just a bash script that sets different flags (mainly the flags
+for CMake). While the dune project usually leaves this open for the user, we
+provide a `dune-copasi.opts` file with sensible options for the main use cases.
+If this does not fit your needs, it is quite easy to set up a new one:
+
+```bash
+# dune.opts
+CMAKE_FLAGS="-DCMAKE_INSTALL_PREFIX=/dune/opt/ -DCMAKE_CXX_FLAGS='-g -Wall'"
+MAKE_FLAGS="-j2"
+```
+
+For more information about the options file, check out the dune
+[installation documentation](https://dune-project.org/doc/installation/)
+and the [build system docuentation](https://dune-project.org/sphinx/core-2.7/).
+
 #### Installation
 
 The first four dependencies can be obtained by your prefered package manager in
@@ -319,9 +338,6 @@ git apply -C dune-logging dune-copasi/.ci/dune-logging.patch
 Then build and install the `DUNE` modules with the `dunecontrol` script:
 
 ```bash
-# set install directory to /opt/dune/                (this is read by the dune-copasi.opts)
-export CMAKE_INSTALL_PREFIX=/opt/dune
-
 # configure and build dune modules
 ./dune-common/bin/dunecontrol --opts=dune-copasi/dune-copasi.opts all
 
