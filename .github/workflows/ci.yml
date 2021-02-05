@@ -30,7 +30,7 @@ jobs:
     - name: Unit tests
       run: ./.ci/unit_tests $PWD/dune-copasi.opts
     - name: System tests
-      run: ./.ci/system_tests $PWD/dune-copasi.opt
+      run: ./.ci/system_tests $PWD/dune-copasi.opts
     # - uses: actions/upload-artifact@v2
     #   with:
     #     path: ./artefacts/*
