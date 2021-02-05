@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+
+# This file sets sensible defaults options for building 
+# and installing dune-copasi and its dependencies
+
+# set default dune options
+if [[ -z $CMAKE_INSTALL_PREFIX ]]; then
+  CMAKE_INSTALL_PREFIX=/opt/dune
+fi
+
+if [[ -z $CMAKE_PREFIX_PATH ]]; then
+  CMAKE_PREFIX_PATH="$CMAKE_INSTALL_PREFIX"
+fi
+
+if [[ -z $CMAKE_BUILD_TYPE ]]; then
+  CMAKE_BUILD_TYPE="Release"
+fi
+
+if [[ -z $SETUP_DUNE_TESTTOOLS ]]; then
+  SETUP_DUNE_TESTTOOLS="OFF"
+fi
+
+if [[ -z $BUILD_TESING ]]; then
+  BUILD_TESING="OFF"
+  [[ "$SETUP_DUNE_TESTTOOLS" == "ON" ]] && BUILD_TESING="ON"
+fi
+
+if [[ -z $DUNE_VENDOR_FMT ]]; then
+  DUNE_VENDOR_FMT="ON"
+fi
+
+CXX_FLAGS+=" -fvisibility=hidden -fpic -static-libstdc++ "
+SUDOCMD=
+
+mkdir -p $CMAKE_INSTALL_PREFIX &> /dev/null
+
+if [[ -z $OS_TARGET ]]; then
+  if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    OS_TARGET="linux"
+    [ ! -w "$CMAKE_INSTALL_PREFIX" ] && SUDOCMD="sudo"
+  elif [[ "$OSTYPE" == "darwin"* ]]; then
+    OS_TARGET="osx"
+    [ ! -w "$CMAKE_INSTALL_PREFIX" ] && SUDOCMD="sudo"
+  elif [[ "$OSTYPE" == "msys" ]]; then
+    # Lightweight shell and GNU utilities compiled for Windows (part of MinGW)
+    [ $host = 'x86_64'* ] && OS_TARGET="win64"
+    [ $host = 'i686'* ] && OS_TARGET="win32"
+    CXX_FLAGS+="-static -static-libgcc -Wa,-mbig-obj"
+  fi
+fi
+
+[[ -z $OS_TARGET ]] && echo "Warning: Unknown OS_TARGET!"
+
+CMAKE_FLAGS+=" -G 'Unix Makefiles' "
+CMAKE_FLAGS+=" -DCMAKE_CXX_STANDARD=17 "
+CMAKE_FLAGS+=" -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} "
+CMAKE_FLAGS+=" -DCMAKE_DISABLE_FIND_PACKAGE_QuadMath=TRUE "
+CMAKE_FLAGS+=" -DBUILD_TESTING=${BUILD_TESING} "
+CMAKE_FLAGS+=" -DDUNE_USE_ONLY_STATIC_LIBS=ON "
+CMAKE_FLAGS+=" -DF77=true "
+CMAKE_FLAGS+=" -DDUNE_COPASI_MD_EXECUTABLE=ON "
+CMAKE_FLAGS+=" -DCMAKE_INSTALL_PREFIX:PATH='${CMAKE_INSTALL_PREFIX}' "
+CMAKE_FLAGS+=" -DCMAKE_PREFIX_PATH='${CMAKE_PREFIX_PATH}' "
+CMAKE_FLAGS+=" -DUSE_FALLBACK_FILESYSTEM=${USE_FALLBACK_FILESYSTEM} "
+CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_SETUP=${SETUP_DUNE_TESTTOOLS} "
+CMAKE_FLAGS+=" -DDUNE_PYTHON_ALLOW_GET_PIP=${SETUP_DUNE_TESTTOOLS} "
+CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_PATH:PATH='${CMAKE_INSTALL_PREFIX}/venv' "
+
+CMAKE_FLAGS+=" -DCMAKE_CXX_FLAGS='${CXX_FLAGS}' "
+CMAKE_FLAGS+=" -DCMAKE_CXX_FLAGS_RELEASE='-O3' "
+CMAKE_FLAGS+=" -DCMAKE_CXX_FLAGS_RELWITHDEBINFO='-O2 -g3 -DNDEBUG -fno-omit-frame-pointer'"
+CMAKE_FLAGS+=" -DCMAKE_CXX_FLAGS_DEBUG='-O0 -g -fsanitize=address -fsanitize-recover=address'"
+
+if [ -z $DUNE_COPASI_USE_STATIC_DEPS ];then
+  CMAKE_FLAGS+=" -DGMPXX_INCLUDE_DIR:PATH='"${CMAKE_INSTALL_PREFIX}"/include' "
+  CMAKE_FLAGS+=" -DGMPXX_LIB:FILEPATH='"${CMAKE_INSTALL_PREFIX}"/lib/libgmpxx.a' "
+  CMAKE_FLAGS+=" -DGMP_LIB:FILEPATH='"${CMAKE_INSTALL_PREFIX}"/lib/libgmp.a' "
+  CMAKE_FLAGS+=" -Dfmt_ROOT='"${CMAKE_INSTALL_PREFIX}"' "
+  CMAKE_FLAGS+=" -DCMAKE_DISABLE_FIND_PACKAGE_QuadMath=TRUE"
+  CMAKE_FLAGS+=" -DF77=true"
+else
+  if [[ -z $DUNE_VENDOR_FMT ]]; then
+    DUNE_VENDOR_FMT="ON"
+  fi
+fi

@@ -10,6 +10,10 @@ set -e
 # options file may be passed as argument
 [ ! -z "$1" ] && DUNE_OPTIONS_FILE="$1"
 
+if [[ -z $CMAKE_BUILD_TYPE ]]; then
+  CMAKE_BUILD_TYPE="Debug"
+fi
+
 # load useful functions
 CALL_DIR=$PWD
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -17,7 +21,7 @@ source $SCRIPT_DIR/util
 
 
 SOURCEDIR=${SCRIPT_DIR}/../test
-BUILDDIR=${PWD}/build-system-tests
+BUILDDIR=/tmp/build-system-tests
 
 print_opts_file() {
   cat "${DUNE_OPTIONS_FILE}"

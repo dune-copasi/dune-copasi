@@ -1,14 +1,20 @@
 #!/usr/bin/env bash
 
-# input
+# download and install other dependences (from sme by Liam)
+
+# variables from DUNE_OPTIONS_FILE
 #   OS_TARGET=linux|osx|win32|win64
-#   INSTALL_PREFIX
+#   CMAKE_INSTALL_PREFIX
 #   (optional) SUDOCMD
-# output
-#   CMAKE_FLAGS
-#   CMAKE_PREFIX_PATH
 
 set -e
+
+# options file may be passed as argument
+[ ! -z "$1" ] && DUNE_OPTIONS_FILE="$1"
+
+# load dune options
+CMAKE_FLAGS="$(. ${DUNE_OPTIONS_FILE}; eval echo \$CMAKE_FLAGS)"
+SUDOCMD="$(. ${DUNE_OPTIONS_FILE}; eval echo \$SUDOCMD)"
 
 # load useful functions
 CALL_DIR=$PWD
@@ -16,23 +22,22 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 source $SCRIPT_DIR/util
 
 prefix_content() {
-  ls "${INSTALL_PREFIX}"
+  ls "${CMAKE_INSTALL_PREFIX}"
 }
 
 cleanup() {
-  echo "removig intermediate results"
-  rm -rf "$CALL_DIR/setup-static-deps"
+  rm -rf /tmp/setup-static-deps
 }
 
 # set up verbose output in case of failure
-ONFAILURE_PROG="git gcc g++ python pip python3 pip3 cmake wget $SUDOCMD"
-ONFAILURE_VARS="SUDOCMD OS_TARGET INSTALL_PREFIX CMAKE_FLAGS CMAKE_PREFIX_PATH VERBOSE_TAR"
+ONFAILURE_PROG="git gcc g++ python pip python3 pip3 cmake wget curl $SUDOCMD"
+ONFAILURE_VARS="SUDOCMD OS_TARGET CMAKE_INSTALL_PREFIX CMAKE_FLAGS CMAKE_PREFIX_PATH VERBOSE_TAR"
 ONFAILURE_CMD="ls prefix_content cleanup"
 
 trap onfailure EXIT
 
-[[ -d ${PWD}/setup-static-deps ]] && ONFAILURE_MESSAGE+="run this script where no folder 'setup-static-deps' exists\n" && exit 1
-mkdir setup-static-deps && cd setup-static-deps
+[[ -d /tmp/setup-static-deps ]] && ONFAILURE_MESSAGE+="run this script where no folder '/tmp/setup-static-deps' exists\n" && exit 1
+mkdir /tmp/setup-static-deps && cd /tmp/setup-static-deps
 
 if [[ ! "$OS_TARGET" =~ ^(linux|osx|win32|win64)$ ]]; then
     ONFAILURE_MESSAGE+="'$OS_TARGET' is not a known OS target\n"
@@ -40,38 +45,43 @@ if [[ ! "$OS_TARGET" =~ ^(linux|osx|win32|win64)$ ]]; then
 fi
 
 echo "Downloading static libs for OS_TARGET: ${OS_TARGET}"
+DEPS_URL="https://github.com/spatial-model-editor/sme_deps_common/releases/latest/download/sme_deps_common_${OS_TARGET}.tgz"
+if command -v wget &> /dev/null; then
+  wget -nv $DEPS_URL | sed 's/^/  /'
+elif command -v curl &> /dev/null; then
+  curl -L $DEPS_URL >> sme_deps_common_${OS_TARGET}.tgz | sed 's/^/  /'
+else
+  ONFAILURE_MESSAGE+="'wget' not 'curl' was not found."
+  exit 1
+fi
+VERBOSE_TAR=$(tar xvf sme_deps_common_${OS_TARGET}.tgz 2>&1)
+
+[ -z "$CMAKE_INSTALL_PREFIX" ] && ONFAILURE_MESSAGE+="Install prefix is empty\n" && exit 1
+
 echo ""
-wget -nv "https://github.com/spatial-model-editor/sme_deps_common/releases/latest/download/sme_deps_common_${OS_TARGET}.tgz"
-VERBOSE_TAR=$(tar xvf sme_deps_common_${OS_TARGET}.tgz)
-
-[ -z "$INSTALL_PREFIX" ] && ONFAILURE_MESSAGE+="Install prefix is empty\n" && exit 1
-
-echo "Moving libs to install prefix: ${INSTALL_PREFIX}"
+echo "Moving libs to install prefix: ${CMAKE_INSTALL_PREFIX}"
 
 # copy libs to desired location
-$SUDOCMD mkdir -p "${INSTALL_PREFIX}"
+$SUDOCMD mkdir -p "${CMAKE_INSTALL_PREFIX}"
 if [[ "$OS_TARGET" == *"win"* ]]; then
-   $SUDOCMD mv smelibs/* "${INSTALL_PREFIX}"
+   $SUDOCMD mv smelibs/* "${CMAKE_INSTALL_PREFIX}"
 else
-   $SUDOCMD mv opt/smelibs/* "${INSTALL_PREFIX}"
+   $SUDOCMD mv opt/smelibs/* "${CMAKE_INSTALL_PREFIX}"
 fi
 
-echo "Setting cmake flags"
+# set the following flags in your dune opts file
+  # CMAKE_FLAGS+=" -DGMPXX_INCLUDE_DIR:PATH='"${CMAKE_INSTALL_PREFIX}"/include' "
+  # CMAKE_FLAGS+=" -DGMPXX_LIB:FILEPATH='"${CMAKE_INSTALL_PREFIX}"/lib/libgmpxx.a' "
+  # CMAKE_FLAGS+=" -DGMP_LIB:FILEPATH='"${CMAKE_INSTALL_PREFIX}"/lib/libgmp.a' "
+  # CMAKE_FLAGS+=" -Dfmt_ROOT='"${CMAKE_INSTALL_PREFIX}"' "
+  # CMAKE_FLAGS+=" -DCMAKE_DISABLE_FIND_PACKAGE_QuadMath=TRUE"
+  # CMAKE_FLAGS+=" -DF77=true"
 
-CMAKE_FLAGS+=" -DGMPXX_INCLUDE_DIR:PATH='"${INSTALL_PREFIX}"/include' "
-CMAKE_FLAGS+=" -DGMPXX_LIB:FILEPATH='"${INSTALL_PREFIX}"/lib/libgmpxx.a' "
-CMAKE_FLAGS+=" -DGMP_LIB:FILEPATH='"${INSTALL_PREFIX}"/lib/libgmp.a' "
-CMAKE_FLAGS+=" -Dfmt_ROOT='"${INSTALL_PREFIX}"' "
-CMAKE_FLAGS+=" -DCMAKE_DISABLE_FIND_PACKAGE_QuadMath=TRUE"
-CMAKE_FLAGS+=" -DDUNE_USE_ONLY_STATIC_LIBS=ON -DF77=true"
+  # be careful when adding several prefix paths, they have to be
+  # set in a semicolon separated list 
+  # CMAKE_FLAGS+=" -DCMAKE_PREFIX_PATH='${CMAKE_PREFIX_PATH}' "
 
-if [[ -z $CMAKE_PREFIX_PATH ]]; then
-  CMAKE_PREFIX_PATH=${INSTALL_PREFIX}
-else
-  CMAKE_PREFIX_PATH+=";${INSTALL_PREFIX}"
-fi
-
-export CMAKE_FLAGS
-export CMAKE_PREFIX_PATH
+# ...or if you are using the dune-copasi.opts
+  # export DUNE_COPASI_USE_STATIC_DEPS="ON"
 
 trap cleanup EXIT

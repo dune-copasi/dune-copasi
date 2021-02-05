@@ -15,9 +15,8 @@ CALL_DIR=$PWD
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 source $SCRIPT_DIR/util
 
-
 SOURCEDIR=${SCRIPT_DIR}/../test
-BUILDDIR=${PWD}/build-system-tests
+BUILDDIR=/temp/build-system-tests
 
 print_opts_file() {
   cat "${DUNE_OPTIONS_FILE}"

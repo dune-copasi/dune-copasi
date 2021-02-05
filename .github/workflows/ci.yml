@@ -3,41 +3,14 @@ name: CI Builds
 on: push
 
 env:
-  USE_FALLBACK_FILESYSTEM: 'OFF'
-  SETUP_DUNE_TESTTOOLS: 'OFF'
-  CXX_FLAGS: '-fvisibility=hidden -fpic -static-libstdc++'
-  CMAKE_FLAGS: >
-    " -G 'Unix Makefiles'
-      -DCMAKE_CXX_STANDARD=17
-      -DCMAKE_BUILD_TYPE=Release
-      -DCMAKE_DISABLE_FIND_PACKAGE_QuadMath=TRUE
-      -DBUILD_TESTING=OFF
-      -DDUNE_USE_ONLY_STATIC_LIBS=ON
-      -DF77=true
-      -DDUNE_COPASI_SD_EXECUTABLE=ON
-      -DDUNE_COPASI_MD_EXECUTABLE=ON
-      -DCMAKE_INSTALL_PREFIX:PATH='${INSTALL_PREFIX}/dune'
-      -DCMAKE_PREFIX_PATH='${INSTALL_PREFIX}/dune;${INSTALL_PREFIX}'
-      -DGMPXX_INCLUDE_DIR:PATH='${INSTALL_PREFIX}/include'
-      -DGMPXX_LIB:FILEPATH='${INSTALL_PREFIX}/lib/libgmpxx.a'
-      -DGMP_LIB:FILEPATH='${INSTALL_PREFIX}/lib/libgmp.a'
-      -Dfmt_ROOT:PATH='${INSTALL_PREFIX}'
-      -DUSE_FALLBACK_FILESYSTEM=${USE_FALLBACK_FILESYSTEM}
-      -DDUNE_PYTHON_VIRTUALENV_SETUP=${SETUP_DUNE_TESTTOOLS}
-      -DDUNE_PYTHON_ALLOW_GET_PIP=${SETUP_DUNE_TESTTOOLS}
-      -DDUNE_PYTHON_VIRTUALENV_PATH:PATH='${INSTALL_PREFIX}/dune/venv'
-      -DCMAKE_CXX_FLAGS='${CXX_FLAGS}'
-    "
-
 jobs:
   linux:
     name: Linux
     runs-on: ubuntu-16.04
     env:
-      INSTALL_PREFIX: '/opt/smelibs'
-      # SETUP_DUNE_TESTTOOLS: 'ON'
-      SUDOCMD: 'sudo'
-      OS_TARGET: 'linux'
+      CMAKE_INSTALL_PREFIX: '/opt/smelibs'
+      DUNE_COPASI_USE_STATIC_DEPS: 'ON'
+      USE_FALLBACK_FILESYSTEM: 'OFF'
       TERM: 'xterm-256color'
     defaults:
       run:
@@ -50,13 +23,11 @@ jobs:
         sudo apt-get install libncurses5-dbg
     - uses: actions/checkout@v2
     - name: Setup static dependencies
-      run: ./.ci/setup_static_deps
+      run: ./.ci/setup_static_deps $PWD/dune-copasi.opts
     - name: Setup dune dependencies
-      run: |
-        echo "CMAKE_FLAGS=\"$(eval echo $CMAKE_FLAGS)\"" >> dune.opts
-        ./.ci/setup_dune $PWD/dune.opts
+      run: ./.ci/setup_dune $PWD/dune-copasi.opts
     - name: Build and Install
-      run: ./.ci/install $PWD/dune.opts
+      run: ./.ci/install $PWD/dune-copasi.opts
     # - uses: actions/upload-artifact@v2
     #   with:
     #     path: ./artefacts/*
@@ -65,12 +36,10 @@ jobs:
     name: MacOS
     runs-on: macos-10.15
     env:
-      INSTALL_PREFIX: '/opt/smelibs'
-      # SETUP_DUNE_TESTTOOLS: 'ON'
-      SUDOCMD: 'sudo'
-      MACOSX_DEPLOYMENT_TARGET: '10.14'
-      OS_TARGET: 'osx'
+      CMAKE_INSTALL_PREFIX: '/opt/smelibs'
+      DUNE_COPASI_USE_STATIC_DEPS: 'ON'
       USE_FALLBACK_FILESYSTEM: 'ON'
+      MACOSX_DEPLOYMENT_TARGET: '10.14'
       TERM: 'xterm-256color'
     defaults:
       run:
@@ -80,13 +49,11 @@ jobs:
         with:
           submodules: 'recursive'
       - name: Setup static dependencies
-        run: ./.ci/setup_static_deps
+        run: ./.ci/setup_static_deps $PWD/dune-copasi.opts
       - name: Setup dune dependencies
-        run: |
-          echo "CMAKE_FLAGS=\"$(eval echo $CMAKE_FLAGS)\"" >> dune.opts
-          ./.ci/setup_dune $PWD/dune.opts
+        run: ./.ci/setup_dune $PWD/dune-copasi.opts
       - name: Build and Install
-        run: ./.ci/install $PWD/dune.opts
+        run: ./.ci/install $PWD/dune-copasi.opts
       # - uses: actions/upload-artifact@v2
       #   with:
       #     path: ./artefacts/*
@@ -95,9 +62,9 @@ jobs:
     name: Windows 64-bit
     runs-on: windows-2019
     env:
-      INSTALL_PREFIX: '/c/smelibs'
-      SUDOCMD: ''
-      OS_TARGET: 'win64'
+      CMAKE_INSTALL_PREFIX: '/c/smelibs'
+      DUNE_COPASI_USE_STATIC_DEPS: 'ON'
+      USE_FALLBACK_FILESYSTEM: 'OFF'
     defaults:
       run:
         shell: msys2 {0}
@@ -109,15 +76,11 @@ jobs:
           update: true
           install: mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake make git dos2unix
       - name: Setup static dependencies
-        run: |
-          export PATH=${INSTALL_PREFIX}:$PATH
-          ./.ci/setup_static_deps
+        run: ./.ci/setup_static_deps $PWD/dune-copasi.opts
       - name: Setup dune dependencies
-        run: |
-          echo "CMAKE_FLAGS=\"$(eval echo $CMAKE_FLAGS)\"" >> dune.opts
-          ./.ci/setup_dune $PWD/dune.opts
+        run: ./.ci/setup_dune $PWD/dune-copasi.opts
       - name: Build and Install
-        run: ./.ci/install $PWD/dune.opts
+        run: ./.ci/install $PWD/dune-copasi.opts
       # - uses: actions/upload-artifact@v2
       #   with:
       #     path: ./artefacts/*
@@ -126,10 +89,9 @@ jobs:
     name: Windows 32-bit
     runs-on: windows-2019
     env:
-      INSTALL_PREFIX: '/c/smelibs'
-      SUDOCMD: ''
-      OS_TARGET: 'win32'
-      CXX_FLAGS: '-Wa,-mbig-obj -fvisibility=hidden -fpic -static -static-libgcc -static-libstdc++'
+      CMAKE_INSTALL_PREFIX: '/c/smelibs'
+      DUNE_COPASI_USE_STATIC_DEPS: 'ON'
+      USE_FALLBACK_FILESYSTEM: 'OFF'
     defaults:
       run:
         shell: msys2 {0}
@@ -141,13 +103,11 @@ jobs:
           update: true
           install: mingw-w64-i686-gcc mingw-w64-i686-cmake make git dos2unix
       - name: Setup static dependencies
-        run: ./.ci/setup_static_deps
+        run: ./.ci/setup_static_deps $PWD/dune-copasi.opts
       - name: Setup dune dependencies
-        run: |
-          echo "CMAKE_FLAGS=\"$(eval echo $CMAKE_FLAGS)\"" >> dune.opts
-          ./.ci/setup_dune $PWD/dune.opts
+        run: ./.ci/setup_dune $PWD/dune-copasi.opts
       - name: Build and Install
-        run: ./.ci/install $PWD/dune.opts
+        run: ./.ci/install $PWD/dune-copasi.opts
       # - uses: actions/upload-artifact@v2
       #   with:
       #     path: ./artefacts/*

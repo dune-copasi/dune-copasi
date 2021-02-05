@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 
-# build script for all CIs
-# requisites
-#   * DUNE_OPTIONS_FILE is defined
+# build and install
+
+# variables from DUNE_OPTIONS_FILE
+#   (optional) CMAKE_FLAGS
+#   (optional) SUDOCMD
 
 set +e
 
@@ -12,13 +14,17 @@ RESET=$(tput sgr0 :-"" 2>/dev/null)
 
 set -e
 
+# load dune opts
+CMAKE_FLAGS="$(. ${DUNE_OPTIONS_FILE}; eval echo \$CMAKE_FLAGS)"
+SUDOCMD="$(. ${DUNE_OPTIONS_FILE}; eval echo \$SUDOCMD)"
+
 # load useful functions
 CALL_DIR=$PWD
 SCRIPT_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 source $SCRIPT_PATH/util
 
 SOURCEDIR=${SCRIPT_PATH}/..
-export BUILD_PATH=${PWD}/build-cmake
+BUILD_PATH=/tmp/dune-copasi-build
 
 # options file may be passed as argument
 [ ! -z "$1" ] && DUNE_OPTIONS_FILE="$1"
@@ -39,11 +45,9 @@ cleanup() {
 # set up verbose output in case of failure
 ONFAILURE_PROG="git gcc g++ python pip python3 pip3 cmake $SUDOCMD"
 ONFAILURE_VARS="PATH SUDOCMD DUNE_OPTIONS_FILE CMAKE_FLAGS"
-ONFAILURE_CMD="ls cleanup print_opts_file print_cmake_error"
+ONFAILURE_CMD="ls print_cmake_error cleanup print_opts_file"
 
 trap onfailure EXIT
-
-CMAKE_FLAGS="$(. ${DUNE_OPTIONS_FILE}; eval echo \$CMAKE_FLAGS)"
 
 [[ -d ${BUILD_PATH} ]] && ONFAILURE_MESSAGE+="run this script where no folder 'build-cmake' exists\n" && exit 1
 mkdir $BUILD_PATH && cd $BUILD_PATH
@@ -51,6 +55,6 @@ mkdir $BUILD_PATH && cd $BUILD_PATH
 echo "cmake $CMAKE_FLAGS $SOURCEDIR"
 eval cmake $CMAKE_FLAGS $SOURCEDIR
 
-cmake --build $BUILD_PATH --target install
+$SUDOCMD cmake --build $BUILD_PATH --target install
 
 trap cleanup EXIT

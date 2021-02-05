@@ -21,14 +21,13 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 # default commands to run on failure
 [ -z "$ONFAILURE_CMD" ] && ONFAILURE_CMD="pwd"
 
-# default exit code on failure
-[ -z "$ONFAILURE_EXIT" ] && ONFAILURE_EXIT=1
-
 # default exit message on failure
-[ -z "$ONFAILURE_MESSAGE" ] && ONFAILURE_MESSAGE="A failure has been produced when executing '${SCRIPT_DIR}/${0}'\n\n"
+[ -z "$ONFAILURE_MESSAGE" ] && ONFAILURE_MESSAGE="A failure has been produced when executing:\n\t'${0} ${@}'\n\n"
 
 onfailure() {
 
+  FAILURE_TYPE="$?"
+  
   # do not exit this function even on case of failures
   set +e
 
@@ -37,49 +36,50 @@ onfailure() {
   YELLOW=$(tput setaf 3 :-"" 2>/dev/null)
   RESET=$(tput sgr0 :-"" 2>/dev/null)
 
-  echo $YELLOW "*************************** On Failure: Executables Info **************************" $RESET
-  for i in $(echo $ONFAILURE_PROG); do
-    echo "[${YELLOW}${i}${RESET}]:"
-    if command -v $i &> /dev/null; then
-      echo "  which:"
-      echo "$(eval which $i)" | sed 's/^/    /'
-      echo "  version:"
-      echo "$(eval $i --version)" | sed 's/^/    /'
+  echo "${YELLOW}*************************** On Failure: Commands ****************************" $RESET >&2
+  for i in $(echo $ONFAILURE_CMD); do
+    echo "[${YELLOW}${i}${RESET}]:" >&2
+    FUNC="$($i 2>&1)" >&2
+    if [ -z "$FUNC" ]; then
+      echo $RED "NOT OUTPUT" $RESET | sed 's/^/  /' >&2
     else
-      echo $RED "NOT FOUND" $RESET | sed 's/^/  /'
+      echo "$FUNC" | sed 's/^/  /' >&2
     fi
-    echo ""
+    echo "" >&2
   done
 
-  echo $YELLOW "*************************** On Failure: Variables *********************************" $RESET
+  echo "${YELLOW}*************************** On Failure: Executables Info **************************" $RESET >&2
+  for i in $(echo $ONFAILURE_PROG); do
+    echo "[${YELLOW}${i}${RESET}]:" >&2
+    if command -v $i &> /dev/null; then
+      echo "  which:" >&2
+      echo "$(eval which $i)" | sed 's/^/    /' >&2
+      echo "  version:"
+      echo "$(eval $i --version)" | sed 's/^/    /' >&2
+    else
+      echo $RED "NOT FOUND" $RESET | sed 's/^/  /' >&2
+    fi
+    echo "" >&2
+  done
+
+  echo "${YELLOW}*************************** On Failure: Variables *********************************" $RESET >&2
   for i in $(echo $ONFAILURE_VARS); do
-    echo "[${YELLOW}${i}${RESET}]:"
+    echo "[${YELLOW}${i}${RESET}]:" >&2
     VAR=$(eval echo "\$$i")
     if [ -z "$VAR" ]; then
-      echo $RED "NOT FOUND" $RESET | sed 's/^/  /'
+      echo $RED "NOT FOUND" $RESET | sed 's/^/  /' >&2
     else
-      echo "$VAR" | sed 's/^/  /'
+      echo "$VAR" | sed 's/^/  /' >&2
     fi
-    echo ""
+    echo "" >&2
   done
 
-  echo $YELLOW "*************************** On Failure: Commands ****************************" $RESET
-  for i in $(echo $ONFAILURE_CMD); do
-    echo "[${YELLOW}${i}${RESET}]:"
-    FUNC="$($i 2>&1)"
-    if [ -z "$FUNC" ]; then
-      echo $RED "NOT OUTPUT" $RESET | sed 's/^/  /'
-    else
-      echo "$FUNC" | sed 's/^/  /'
-    fi
-    echo ""
-  done
+  echo "${YELLOW}*************************** On Failure: Message **************************" $RESET >&2
 
-  echo $YELLOW "*************************** On Failure: Message **************************" $RESET
+  echo $RED "" >&2
+  echo "EXIT CODE: $FAILURE_TYPE" $RESET | sed 's/^/  /' >&2
+  echo "" $YELLOW >&2
+  printf "$ONFAILURE_MESSAGE" $RESET | sed 's/^/  /' >&2
 
-  echo $RED ""
-  printf "$ONFAILURE_MESSAGE\n" | sed 's/^/  /'
-  echo "" $RESET
-
-	exit ${ONFAILURE_EXIT}
+	exit $FAILURE_TYPE
 }

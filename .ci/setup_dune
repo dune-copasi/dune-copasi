@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 
-# input
-#   DUNE_OPTIONS_FILE absolute path to options file
+# build and install dune dependences
+
+# variables from DUNE_OPTIONS_FILE
 #   (optional) SETUP_DUNE_TESTTOOLS
 #   (optional) SUDOCMD
-#   (optional) RECURSIVE
+#   (optional) DUNE_VENDOR_FMT
 
 set +e
 
@@ -17,6 +18,11 @@ set -e
 # options file may be passed as argument
 [ ! -z "$1" ] && DUNE_OPTIONS_FILE="$1"
 
+# load dune options
+SETUP_DUNE_TESTTOOLS="$(. ${DUNE_OPTIONS_FILE}; eval echo \$SETUP_DUNE_TESTTOOLS)"
+SUDOCMD="$(. ${DUNE_OPTIONS_FILE}; eval echo \$SUDOCMD)"
+DUNE_VENDOR_FMT="$(. ${DUNE_OPTIONS_FILE}; eval echo \$DUNE_VENDOR_FMT)"
+
 # load useful functions
 CALL_DIR=$PWD
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -26,20 +32,26 @@ print_opts_file() {
   cat "${DUNE_OPTIONS_FILE}"
 }
 
+print_cmake_error() {
+  $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module bexec "echo \$PWD > $PWD/module_builddir"
+  BUILD_PATH=$(cat $PWD/module_builddir)
+  cat "${BUILD_PATH}/CMakeFiles/CMakeError.log"
+}
+
 cleanup() {
-  echo "removig intermediate results"
-  rm -rf "$CALL_DIR/setup-dune"
+  rm -rf /tmp/setup-dune
 }
 
 # set up verbose output in case of failure
-ONFAILURE_PROG="git gcc g++ python pip python3 pip3 cmake curl $SUDOCMD"
-ONFAILURE_VARS="PATH MSYSTEM SUDOCMD SETUP_DUNE_TESTTOOLS DUNE_OPTIONS_FILE CMAKE_FLAGS CMAKE_INSTALL_PREFIX REPO BRANCH PATCHES"
-ONFAILURE_CMD="ls cleanup print_opts_file"
+ONFAILURE_PROG="git gcc g++ python pip python3 pip3 cmake wget $SUDOCMD"
+ONFAILURE_VARS="PATH MSYSTEM SUDOCMD SETUP_DUNE_TESTTOOLS DUNE_OPTIONS_FILE"
+ONFAILURE_VARS+=" CMAKE_FLAGS CMAKE_INSTALL_PREFIX DUNE_VENDOR_FMT REPO BRANCH PATCHES RECURSIVE BUILD_PATH"
+ONFAILURE_CMD="ls print_cmake_error cleanup print_opts_file"
 
 trap onfailure EXIT
 
-[[ -d ${PWD}/setup-dune ]] && ONFAILURE_MESSAGE+="run this script where no folder 'setup-dune' exists\n" && exit 1
-mkdir setup-dune && cd setup-dune
+[[ -d /tmp/setup-dune ]] && ONFAILURE_MESSAGE+="run this script where no folder '/tmp/setup-dune' exists\n" && exit 1
+mkdir /tmp/setup-dune && cd /tmp/setup-dune
 
 # setup dune repositories, branches, and patches
 for module in common geometry grid istl localfunctions; do
@@ -66,8 +78,21 @@ cat ${SCRIPT_DIR}/dune-common.patch >> "${PWD}/dune-common.patch"
 SETUP_dune_common_PATCHES="${SCRIPT_DIR}/dune-common.patch"
 SETUP_dune_logging_PATCHES="${SCRIPT_DIR}/dune-logging.patch"
 
-curl https://gist.githubusercontent.com/lkeegan/059984b71f8aeb0bbc062e85ad7ee377/raw/e9c7af42c47fe765547e60833a72b5ff1e78123c/cmake-patch.txt >> "cmake-patch.txt"
-echo '' >> "cmake-patch.txt"
+SETUP_dune_logging_RECURSIVE="$DUNE_VENDOR_FMT"
+
+echo "Downloading patches"
+
+PATCH_URL="https://gist.githubusercontent.com/lkeegan/059984b71f8aeb0bbc062e85ad7ee377/raw/e9c7af42c47fe765547e60833a72b5ff1e78123c/cmake-patch.txt"
+if command -v wget &> /dev/null; then
+  wget -O cmake-patch.txt $PATCH_URL
+elif command -v curl &> /dev/null; then
+  curl $PATCH_URL --output cmake-patch.txt
+else
+  ONFAILURE_MESSAGE+="'wget' not 'curl' was not found."
+  exit 1
+fi
+
+echo '' >> cmake-patch.txt
 SETUP_dune_common_PATCHES+=" ${PWD}/cmake-patch.txt"
 
 # hardcoded **ordered** dependencies
@@ -130,9 +155,10 @@ for module in $MODULES; do
   REPO="$(eval echo \$SETUP_dune_${module}_REPO)"
   BRANCH="$(eval echo \$SETUP_dune_${module}_BRANCH)"
   PATCHES="$(eval echo \$SETUP_dune_${module}_PATCHES)"
+  RECURSIVE="$(eval echo \$SETUP_dune_${module}_RECURSIVE)"
 
-  [[ ! -z "$RECURSIVE" ]] && RECURSIVE="--recursive"
-  git clone -b $BRANCH --depth 1 $RECURSIVE $REPO
+  [[ ! -z "$RECURSIVE_ARG" ]] && RECURSIVE="--recursive"
+  git clone -b $BRANCH --depth 1 $RECURSIVE_ARG $REPO
 
   # on windows, symlinks from git repos don't work
   # msys git replaces symlinks with a text file containing the linked file location
@@ -174,13 +200,14 @@ for module in $MODULES; do
   # configure, build, and install module
   $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module all
   $SUDOCMD $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module bexec cmake --build . --target install
-
+  
   # we want to know where the build dir is located
   # since it could be ant complex path, we write the path from dunecontrol into a file
-  $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module bexec "echo \$PWD >> $PWD/module_builddir"
-
+  $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module bexec "echo \$PWD > $PWD/module_builddir"
+  
   # remove build and sources
-  rm -rf $(cat $PWD/module_builddir)
+  BUILD_PATH=$(cat $PWD/module_builddir)
+  rm -rf $BUILD_PATH
   rm -rf dune-$module
 done
 
