@@ -41,8 +41,8 @@ if test "x$DUNE_OPTIONS_FILE" != "x"; then
   CMAKE_FLAGS="$(. $DUNE_OPTIONS_FILE; eval echo \$CMAKE_FLAGS)"
 fi
 
-echo "cmake $CMAKE_FLAGS $BUILDDIR"
-eval cmake $CMAKE_FLAGS $BUILDDIR
+echo "cmake $CMAKE_FLAGS $SOURCEDIR"
+eval cmake $CMAKE_FLAGS $SOURCEDIR
 
 cmake --build . --target build_system_tests
 ctest -j4 -L "DUNE_SYSTEMTEST" --output-on-failure
