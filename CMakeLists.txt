@@ -19,29 +19,44 @@ list(APPEND CMAKE_MODULE_PATH
 #include the dune macros
 include(DuneMacros)
 
+option(USE_FALLBACK_FILESYSTEM
+      "Use bundled std::filesystem alternative (enable this for macOS older than 10.15)"
+      OFF
+)
+
+option(DUNE_COPASI_SD_EXECUTABLE
+       "Build SingleDomain executable by default"
+       OFF
+)
+option(DUNE_COPASI_SD_LIBRARY 
+       "Include precompiled SingleDomain objects in dune-copasi library (optional)"
+       ${DUNE_COPASI_SD_EXECUTABLE}
+)
+
+option(DUNE_COPASI_MD_EXECUTABLE
+       "Build MultiDimain executable by default"
+       ON
+)
+option(DUNE_COPASI_MD_LIBRARY
+       "Include precompiled MultiDimain objects in dune-copasi library (optional)"
+       ${DUNE_COPASI_MD_EXECUTABLE}
+)
+
+option(DUNE_COPASI_COMPILE_3D 
+      "Compile 3D cases in libraries and executables"
+      OFF
+)
+
 # find dependencies
 find_package(muparser REQUIRED)
 find_package(TIFF REQUIRED)
 find_package(Filesystem)
+if(USE_FALLBACK_FILESYSTEM)
+  find_package(ghc_filesystem)
+endif()
 
 # start a dune project with information from dune.module
 dune_project()
-
-# Single domain target
-set(DUNE_COPASI_SD_EXECUTABLE OFF
-    CACHE BOOL "Build SingleDomain executable by default"
-)
-set(DUNE_COPASI_SD_LIBRARY ${DUNE_COPASI_SD_EXECUTABLE}
-    CACHE BOOL "Include precompiled SingleDomain objects in dune-copasi library (optional)"
-)
-
-# Multiple domain target
-set(DUNE_COPASI_MD_EXECUTABLE ON
-    CACHE BOOL "Build MultiDimain executable by default"
-)
-set(DUNE_COPASI_MD_LIBRARY ${DUNE_COPASI_MD_EXECUTABLE}
-    CACHE BOOL "Include precompiled MultiDimain objects in dune-copasi library (optional)"
-)
 
 # main target
 add_library(dune-copasi)
@@ -54,8 +69,6 @@ dune_target_enable_all_packages(dune-copasi)
 # add dependencies
 target_link_libraries(dune-copasi PUBLIC ${DUNE_LIBS} TIFF::TIFF muparser::muparser)
 
-option(DUNE_COPASI_COMPILE_3D "Compile 3D cases in libraries and executables" OFF)
-
 if (DUNE_COPASI_COMPILE_3D)
   target_compile_definitions(dune-copasi PUBLIC DUNE_COPASI_COMPILE_3D)
 endif()
@@ -65,11 +78,6 @@ add_subdirectory(lib)
 add_subdirectory(src)
 add_subdirectory(doc)
 add_subdirectory(cmake/modules)
-
-# if (DUNE_PYTHON_VIRTUALENV_SETUP)
-#   dune_python_install_package(PATH python)
-#   add_subdirectory(python)
-# endif()
 
 # finalize the dune project: Generate and install config.h, cmake target and version file
 include(SetupDuneCopasiConfig)

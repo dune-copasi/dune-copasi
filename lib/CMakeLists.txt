@@ -52,11 +52,12 @@ endif()
 add_library(filesystem INTERFACE)
 list(APPEND EXPORTED_DEVELOPMENT_TARGETS filesystem)
 
-if(Filesystem_FOUND)
-  # file system is supported, link and we are done
-  target_link_libraries(filesystem INTERFACE std::filesystem)
-else()
-  # ... else, we provide a fallback
+# where do we get it from?
+if(USE_FALLBACK_FILESYSTEM AND ghc_filesystem_FOUND)
+  # ... easy, link to the fallback directly
+  target_link_libraries(filesystem INTERFACE ghcFilesystem::ghc_filesystem)
+elseif(USE_FALLBACK_FILESYSTEM)
+  # ... library not installed, we provide a fallback
   include(FetchContent)
   message("-- Declaring GHC Filesystem")
   FetchContent_Declare(
@@ -84,6 +85,14 @@ else()
   )
 
   target_compile_definitions(filesystem INTERFACE DUNE_COPASI_USE_FALLBACK_FILESYSTEM)
+elseif(NOT Filesystem_FOUND)
+  # ... heuston we have a problem. It makes no sense to continue!
+  message(FATAL_ERROR
+    "Support for C++ 17 filesystem was not found. Try setting up a "
+    "fallback implementation by adding the flag USE_FALLBACK_FILESYSTEM=ON")
+else()
+  # ... else we don't need a back up. Link agaist standard library
+  target_link_libraries(filesystem INTERFACE std::filesystem)
 endif()
 
 # main library consumes filesystem definitions

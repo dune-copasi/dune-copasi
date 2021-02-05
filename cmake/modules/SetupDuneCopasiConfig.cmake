@@ -34,8 +34,9 @@ unset(ProjectName)
 # get dune-copasi dependencies
 find_dependency(muparser)
 find_dependency(TIFF)
-if(${Filesystem_FOUND})
-  find_dependency(Filesystem)
+find_dependency(Filesystem)
+if(${USE_FALLBACK_FILESYSTEM})
+  find_package(ghc_filesystem)
 endif()
 
 #import the target

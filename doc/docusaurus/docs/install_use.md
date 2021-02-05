@@ -25,7 +25,7 @@ adventage of this package is that is tailored for biologists and is availalbe
 with just a pair of clicks on the major plataforms. Find more information
 [here](https://spatial-model-editor.readthedocs.io/en/latest/quickstart/get-started.html)!
 
-![sme](/img/spatial-model-editor.png)
+[![sme](/img/spatial-model-editor.png)]((https://spatial-model-editor.readthedocs.io/en/latest/quickstart/get-started.html))
 
 ### Configuration File
 
@@ -107,7 +107,7 @@ file `config.ini` using one of the following commands on the terminal:
 
 ```bash
 docker run -v $PWD \
-  registry.dune-project.org/copasi/dune-copasi/dune-copasi:latest \
+  registry.dune-project.org/copasi/dune-copasi/dune-copasi:v0.3 \
   config.ini
 ```
 
@@ -117,7 +117,7 @@ docker run -v $PWD \
 ```bash
 docker run -v $PWD \
   --entrypoint=dune-copasi-sd \
-  registry.dune-project.org/copasi/dune-copasi/dune-copasi:latest \
+  registry.dune-project.org/copasi/dune-copasi/dune-copasi:v0.3 \
   config.ini
 ```
 
@@ -127,7 +127,7 @@ docker run -v $PWD \
 The results of those computations will be written on current
 directory as mentioned above. For more information about running docker images,
 visit the `docker run` [documentation](https://docs.docker.com/engine/reference/run/).
-<!-- 
+
 ### Debian/Ubuntu and macOS Packages
 
 For Debian and Ubuntu users that want to make use of `dune-copasi`
@@ -154,7 +154,7 @@ apt install ./dune-copasi-runtime.deb
 
 ```bash
 brew tap dune-copasi/tap
-brew install dune-copasi@0.3
+brew install dune-copasi@0.4
 ```
 
   </TabItem>
@@ -194,7 +194,7 @@ brew uninstall dune-copasi@0.3
 
   </TabItem>
 </Tabs>
- -->
+ 
 
 ### Docker Build
 

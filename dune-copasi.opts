@@ -25,6 +25,11 @@ if [[ -z $BUILD_TESING ]]; then
   [[ "$SETUP_DUNE_TESTTOOLS" == "ON" ]] && BUILD_TESING="ON"
 fi
 
+if [[ -z $USE_FALLBACK_FILESYSTEM ]]; then
+  USE_FALLBACK_FILESYSTEM="OFF"
+fi
+
+# only for unsing setup_dune script
 if [[ -z $DUNE_VENDOR_FMT ]]; then
   DUNE_VENDOR_FMT="ON"
 fi
