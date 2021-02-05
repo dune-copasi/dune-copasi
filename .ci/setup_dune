@@ -166,16 +166,17 @@ for module in $MODULES; do
   # note msys defines MSYSTEM variable: use this to check if we are on msys/windows
   if [[ $MSYSTEM ]]; then
     cd dune-$module
-    for f in $(git ls-files -s | awk '/120000/{print $4}')
-    do
+    set +e
+    for f in $(git ls-files -s | awk '/120000/{print $4}'); do
       dname=$(dirname "$f")
       fname=$(basename "$f")
       relf=$(cat $f)
       src="$PWD/$dname/$relf"
       dst="$PWD/$dname/$fname"
       echo "  - copying $src --> $dst"
-      cp -r $src $dst
+      cp $src $dst
     done
+    set -e
     cd ..
   fi
 
