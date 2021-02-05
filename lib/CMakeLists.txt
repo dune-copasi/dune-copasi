@@ -13,11 +13,10 @@ add_library(singledomain-lib
     dune_copasi_sd_cg.cc
     dune_copasi_sd_fv_cg.cc
 )
-target_link_directories(singledomain-lib PUBLIC
+target_link_directories(singledomain-lib PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
-  $<INSTALL_INTERFACE:${CMAKE_INSTALL_LIBDIR}>
 )
-target_link_libraries(singledomain-lib PRIVATE dune-copasi)
+target_link_libraries(singledomain-lib PUBLIC dune-copasi)
 set_target_properties(singledomain-lib PROPERTIES LIBRARY_OUTPUT_NAME dunecopasisd)
 set_target_properties(singledomain-lib PROPERTIES ARCHIVE_OUTPUT_NAME dunecopasisd)
 
@@ -35,11 +34,10 @@ add_library(multidomain-lib
     dune_copasi_md_cg.cc
     dune_copasi_md_fv_cg.cc
 )
-target_link_directories(multidomain-lib PUBLIC
+target_link_directories(multidomain-lib PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
-  $<INSTALL_INTERFACE:${CMAKE_INSTALL_LIBDIR}>
 )
-target_link_libraries(multidomain-lib PRIVATE dune-copasi)
+target_link_libraries(multidomain-lib PUBLIC dune-copasi)
 set_target_properties(multidomain-lib PROPERTIES LIBRARY_OUTPUT_NAME dunecopasimd)
 set_target_properties(multidomain-lib PROPERTIES ARCHIVE_OUTPUT_NAME dunecopasimd)
 
