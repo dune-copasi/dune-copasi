@@ -52,10 +52,12 @@ onfailure() {
   for i in $(echo $ONFAILURE_PROG); do
     echo "[${YELLOW}${i}${RESET}]:" >&2
     if command -v $i &> /dev/null; then
+      EXEC_PATH=$(which $i 2>&1)
+      VERSION="$($EXEC_PATH --version 2>&1)"
       echo "  which:" >&2
-      echo "$(which $i)" | sed 's/^/    /' >&2
+      echo "$EXEC_PATH" | sed 's/^/    /' >&2
       echo "  version:"
-      echo "$($i --version)" | sed 's/^/    /' >&2
+      echo "$VERSION" | sed 's/^/    /' >&2
     else
       echo $RED "NOT FOUND" $RESET | sed 's/^/  /' >&2
     fi
