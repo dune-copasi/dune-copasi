@@ -7,8 +7,7 @@
 #   CMAKE_INSTALL_PREFIX
 #   (optional) SUDOCMD
 
-host="$(pacman --version)"
-
+host="$(gcc -v)"
 set -e
 
 # options file may be passed as argument
