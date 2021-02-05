@@ -49,9 +49,8 @@ if [[ -z $OS_TARGET ]]; then
   elif [[ "$OSTYPE" == "msys" ]]; then
     # Lightweight shell and GNU utilities compiled for Windows (part of MinGW)
     MACHINE="$(eval gcc -dumpmachine 2>&1)"
-    echo $MACHINE
-    [[ "MACHINE" = *'x86_64'* ]] && OS_TARGET="win64"
-    [[ "MACHINE" = *'i686'* ]] && OS_TARGET="win32"
+    [[ "$MACHINE" = *'x86_64'* ]] && OS_TARGET="win64"
+    [[ "$MACHINE" = *'i686'* ]] && OS_TARGET="win32"
     CXX_FLAGS+="-static -static-libgcc -Wa,-mbig-obj"
   fi
 fi
