@@ -164,8 +164,6 @@ build:debian_gcc:
   dependencies:
     - setup:debian_gcc
 
-    - build:debian_gcc
-
 test:debian_gcc:
   variables:
     <<: *debian_gcc
@@ -195,8 +193,6 @@ deploy:debian_gcc:
 #   dependencies:
 #     - setup:ubuntu_gcc
 
-#     - build:ubuntu_gcc
-
 # test:ubuntu_gcc:
 #   variables:
 #     <<: *ubuntu_gcc
@@ -225,8 +221,6 @@ build:debian_clang:
   <<: *build
   dependencies:
     - setup:debian_clang
-
-    - build:debian_clang
 
 test:debian_clang:
   variables:
