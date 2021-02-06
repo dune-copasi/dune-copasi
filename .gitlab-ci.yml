@@ -3,8 +3,7 @@
 stages:
   - setup
   - build
-  - unit_tests
-  - system_tests
+  - test
   - deploy
 
 .default_tags: &default_tags
@@ -88,29 +87,11 @@ stages:
     expire_in: 30 mins
   <<: *default_tags
 
-.unit_tests: &unit_tests
+.test: &test
   image: ${DEPENDENCIES_IMAGE}
-  stage: unit_tests
+  stage: test
   script:
-    - ./.ci/unit_tests /duneci/dune.opts
-  artifacts:
-    paths:
-      - test/build-cmake
-    expire_in: 1 day
-    when: always
-  <<: *default_tags
-
-.system_tests: &system_tests
-  image: ${DEPENDENCIES_IMAGE}
-  stage: system_tests
-  script:
-    - ./.ci/system_tests /duneci/dune.opts
-  artifacts:
-    paths:
-      - cd ..
-      - test/build-cmake
-    expire_in: 1 day
-    when: always
+    - ./.ci/test /duneci/dune.opts
   <<: *default_tags
 
 .deploy: &deploy
@@ -183,17 +164,12 @@ build:debian_gcc:
   dependencies:
     - setup:debian_gcc
 
-unit_tests:debian_gcc:
-  variables:
-    <<: *debian_gcc
-  <<: *unit_tests
-  dependencies:
     - build:debian_gcc
 
-system_tests:debian_gcc:
+test:debian_gcc:
   variables:
     <<: *debian_gcc
-  <<: *system_tests
+  <<: *test
   dependencies:
     - build:debian_gcc
 
@@ -203,7 +179,7 @@ deploy:debian_gcc:
     <<: *debian_gcc
   <<: *deploy
   dependencies:
-    - system_tests:debian_gcc
+    - test:debian_gcc
 
 # # ubuntu gcc
 # setup:ubuntu_gcc:
@@ -219,17 +195,12 @@ deploy:debian_gcc:
 #   dependencies:
 #     - setup:ubuntu_gcc
 
-# unit_tests:ubuntu_gcc:
-#   variables:
-#     <<: *ubuntu_gcc
-#   <<: *unit_tests
-#   dependencies:
 #     - build:ubuntu_gcc
 
-# system_tests:ubuntu_gcc:
+# test:ubuntu_gcc:
 #   variables:
 #     <<: *ubuntu_gcc
-#   <<: *system_tests
+#   <<: *test
 #   dependencies:
 #     - build:ubuntu_gcc
 
@@ -239,7 +210,7 @@ deploy:debian_gcc:
 #     <<: *ubuntu_gcc
 #   <<: *deploy
 #   dependencies:
-#     - system_tests:ubuntu_gcc
+#     - test:ubuntu_gcc
 
 # debian clang
 setup:debian_clang:
@@ -255,17 +226,12 @@ build:debian_clang:
   dependencies:
     - setup:debian_clang
 
-unit_tests:debian_clang:
-  variables:
-    <<: *debian_clang
-  <<: *unit_tests
-  dependencies:
     - build:debian_clang
 
-system_tests:debian_clang:
+test:debian_clang:
   variables:
     <<: *debian_clang
-  <<: *system_tests
+  <<: *test
   dependencies:
     - build:debian_clang
 
@@ -275,7 +241,7 @@ deploy:debian_clang:
     <<: *debian_clang
   <<: *deploy
   dependencies:
-    - system_tests:debian_clang
+    - test:debian_clang
 
 # # ubuntu clang
 # setup:ubuntu_clang:
@@ -288,15 +254,10 @@ deploy:debian_clang:
 #   dependencies:
 #     - setup:ubuntu_clang
 
-# unit_tests:ubuntu_clang:
-#   <<: *ubuntu_clang
-#   <<: *unit_tests
-#   dependencies:
-#     - build:ubuntu_clang
 
-# system_tests:ubuntu_clang:
+# test:ubuntu_clang:
 #   <<: *ubuntu_clang
-#   <<: *system_tests
+#   <<: *test
 #   dependencies:
 #     - build:ubuntu_clang
 
@@ -304,4 +265,4 @@ deploy:debian_clang:
 #   <<: *ubuntu_clang
 #   <<: *deploy
 #   dependencies:
-#     - system_tests:ubuntu_clang
+#     - test:ubuntu_clang

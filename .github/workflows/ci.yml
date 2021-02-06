@@ -27,10 +27,8 @@ jobs:
       run: ./.ci/setup_dune $PWD/dune-copasi.opts
     - name: Build and Install
       run: ./.ci/install $PWD/dune-copasi.opts
-    - name: Unit tests
-      run: ./.ci/unit_tests $PWD/dune-copasi.opts
-    - name: System tests
-      run: ./.ci/system_tests $PWD/dune-copasi.opts
+    - name: Build and run tests
+      run: ./.ci/test $PWD/dune-copasi.opts
     # - uses: actions/upload-artifact@v2
     #   with:
     #     path: ./artefacts/*
@@ -55,10 +53,8 @@ jobs:
         run: ./.ci/setup_dune $PWD/dune-copasi.opts
       - name: Build and Install
         run: ./.ci/install $PWD/dune-copasi.opts
-      - name: Unit tests
-        run: ./.ci/unit_tests $PWD/dune-copasi.opts
-      - name: System tests
-        run: ./.ci/system_tests $PWD/dune-copasi.opts
+      - name: Build and run tests
+        run: ./.ci/test $PWD/dune-copasi.opts
       # - uses: actions/upload-artifact@v2
       #   with:
       #     path: ./artefacts/*
@@ -87,10 +83,8 @@ jobs:
         run: ./.ci/setup_dune $PWD/dune-copasi.opts
       - name: Build and Install
         run: ./.ci/install $PWD/dune-copasi.opts
-      - name: Unit tests
-        run: ./.ci/unit_tests $PWD/dune-copasi.opts
-      - name: System tests
-        run: ./.ci/system_tests $PWD/dune-copasi.opts
+      - name: Build and run tests
+        run: ./.ci/test $PWD/dune-copasi.opts
       # - uses: actions/upload-artifact@v2
       #   with:
       #     path: ./artefacts/*
@@ -119,10 +113,8 @@ jobs:
         run: ./.ci/setup_dune $PWD/dune-copasi.opts
       - name: Build and Install
         run: ./.ci/install $PWD/dune-copasi.opts
-      - name: Unit tests
-        run: ./.ci/unit_tests $PWD/dune-copasi.opts
-      - name: System tests
-        run: ./.ci/system_tests $PWD/dune-copasi.opts
+      - name: Build and run tests
+        run: ./.ci/test $PWD/dune-copasi.opts
       # - uses: actions/upload-artifact@v2
       #   with:
       #     path: ./artefacts/*

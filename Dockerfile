@@ -1,8 +1,11 @@
 ARG BASE_IMAGE=debian:10
-ARG DUNECI_PARALLEL=2
+
+ARG SETUP_BASE_IMAGE=registry.dune-project.org/docker/ci/${BASE_IMAGE}
+ARG BUILD_BASE_IMAGE=setup-env
+ARG PRODUCTION_BASE_IMAGE=${BASE_IMAGE}
 
 # setup of dune dependencies
-FROM registry.dune-project.org/docker/ci/${BASE_IMAGE} AS setup-env
+FROM ${SETUP_BASE_IMAGE} AS setup-env
 
 ARG TOOLCHAIN=clang-6-17
 
@@ -11,36 +14,38 @@ ENV PATH=/duneci/install/bin:$PATH
 ENV TERM=xterm-256color
 ENV CMAKE_INSTALL_PREFIX=/duneci/install
 ENV SETUP_DUNE_TESTTOOLS=ON
+ENV DUNE_VENDOR_FMT=ON
 
 COPY --chown=duneci ./dune-copasi.opts /duneci/cmake-flags/
 COPY --chown=duneci ./.ci /duneci/modules/dune-copasi/.ci
 
 RUN    ln -s /duneci/toolchains/${TOOLCHAIN} /duneci/toolchain \
     && export PATH=/duneci/install/bin:$PATH
-RUN    echo 'CMAKE_FLAGS+=" -DCMAKE_GENERATOR='"'"'Ninja'"'"' "' >> /duneci/cmake-flags/dune-copasi.opts  \
-    && echo 'CMAKE_FLAGS+=" -DDUNE_COPASI_SD_EXECUTABLE=ON"' >> /duneci/cmake-flags/dune-copasi.opts
-
+RUN    echo 'CMAKE_FLAGS+=" -DDUNE_COPASI_SD_EXECUTABLE=ON"' >> /duneci/cmake-flags/dune-copasi.opts
 WORKDIR /duneci/modules
 RUN mkdir -p /duneci/modules/dune-copasi/.ci
 RUN ./dune-copasi/.ci/setup_dune /duneci/dune.opts
 
 # build and install dune-copasi from the setup-env
-FROM setup-env AS build-env
+FROM ${BUILD_BASE_IMAGE} AS build-env
 
 ENV DUNE_OPTIONS_FILE=/duneci/dune.opts
 ENV PATH=/duneci/install/bin:$PATH
 ENV TERM=xterm-256color
 ENV CMAKE_INSTALL_PREFIX=/duneci/install
+ENV CPACK_GENERATORS=DEB
+ENV CPACK_PACKAGE_DIRECTORY=/duneci/packages
 
 WORKDIR /duneci/modules
+
+# move source files into the image
 COPY --chown=duneci ./ /duneci/modules/dune-copasi
+
+# run installer
 RUN ./dune-copasi/.ci/install /duneci/dune.opts
 
-WORKDIR /duneci/modules/build-cmake/
-RUN cpack -G DEB -B /duneci/packages CPackConfig.cmake
-
-# move results to a -lighter- production  image
-FROM ${BASE_IMAGE} AS production-env
+# move results to a -lighter- production image
+FROM ${PRODUCTION_BASE_IMAGE} AS production-env
 LABEL maintainer="santiago.ospina@iwr.uni-heidelberg.de"
 
 # get package from build-env and install it
@@ -59,12 +64,9 @@ RUN adduser --disabled-password --home /dunecopasi --uid 50000 dunecopasi
 USER dunecopasi
 WORKDIR /dunecopasi
 
-# bring a test from build env
-COPY --chown=dunecopasi --from=build-env /duneci/modules/dune-copasi/build-cmake/test/test_initial_triangles.ini /dunecopasi/
-COPY --chown=dunecopasi --from=build-env /duneci/modules/dune-copasi/build-cmake/test/grids/square_triangles.msh /dunecopasi/grids/
-# run and expect no signal if may runs
-RUN dune-copasi-md test_initial_triangles.ini
-RUN rm -rf *
+# run help and expect no error signal
+RUN dune-copasi-md --help
+RUN dune-copasi-sd --help
 
 # set default mout point to be /dunecopasi (same as workdir!)
 VOLUME ["/dunecopasi"]
