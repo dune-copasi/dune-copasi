@@ -27,7 +27,7 @@
 #include <ctime>
 #include <vector>
 
-static std::string string_help = 
+static std::string string_help =
   "Usage: dune-copasi-sd CONFIG_FILE\n"
   "\n"
   "Execute numerical simulation of reaction-diffusion systems on single\n"
@@ -42,7 +42,9 @@ main(int argc, char** argv)
   if (cmd_line_args.size() != 2) {
     std::cerr << string_help;
     return 1;
-  } else if (cmd_line_args[0] == "--help" or cmd_line_args[0] == "-h") {
+  }
+
+  if (cmd_line_args[1] == "--help" or cmd_line_args[1] == "-h") {
     std::cout << string_help;
     return 0;
   }
@@ -54,7 +56,9 @@ main(int argc, char** argv)
   auto& mpi_helper = Dune::MPIHelper::instance(argc, argv);
 
   // Read and parse ini file
-  const std::string config_filename = cmd_line_args[0];
+  const std::string config_filename = cmd_line_args[1];
+  Dune::ParameterTree config;
+  Dune::ParameterTreeParser::readINITree(config_filename, config);
 
   // initialize loggers
   auto comm = mpi_helper.getCollectiveCommunication();
