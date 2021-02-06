@@ -50,7 +50,7 @@ mkdir $BUILD_PATH && cd $BUILD_PATH
 echo $GREEN "============================ Unit Tests ============================" $RESET
 
 CMAKE_BUILD_TYPE="Debug"
-if [[ -z "$DUNE_OPTIONS_FILE" ]]; then
+if [[ -n "$DUNE_OPTIONS_FILE" ]]; then
   DEBUG_CMAKE_FLAGS="$(. $DUNE_OPTIONS_FILE; eval echo \$CMAKE_FLAGS)"
 fi
 
@@ -62,7 +62,7 @@ ctest -j4 -L "unit" --output-on-failure
 echo $GREEN "============================ System Tests ============================" $RESET
 
 CMAKE_BUILD_TYPE="Release"
-if [[ -z "$DUNE_OPTIONS_FILE" ]]; then
+if [[ -n "$DUNE_OPTIONS_FILE" ]]; then
   RELEASE_CMAKE_FLAGS="$(. $DUNE_OPTIONS_FILE; eval echo \$CMAKE_FLAGS)"
 fi
 
