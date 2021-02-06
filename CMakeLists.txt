@@ -1,12 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 project(dune-copasi CXX)
 
-if(NOT (dune-common_DIR OR dune-common_ROOT OR
-      "${CMAKE_PREFIX_PATH}" MATCHES ".*dune-common.*"))
-    string(REPLACE  ${CMAKE_PROJECT_NAME} dune-common dune-common_DIR
-      "${PROJECT_BINARY_DIR}")
-endif()
-
 cmake_policy(SET CMP0074 NEW)
 
 #find dune-common and set the module path
@@ -28,7 +22,7 @@ option(DUNE_COPASI_SD_EXECUTABLE
        "Build SingleDomain executable by default"
        OFF
 )
-option(DUNE_COPASI_SD_LIBRARY 
+option(DUNE_COPASI_SD_LIBRARY
        "Include precompiled SingleDomain objects in dune-copasi library (optional)"
        ${DUNE_COPASI_SD_EXECUTABLE}
 )
@@ -42,7 +36,7 @@ option(DUNE_COPASI_MD_LIBRARY
        ${DUNE_COPASI_MD_EXECUTABLE}
 )
 
-option(DUNE_COPASI_COMPILE_3D 
+option(DUNE_COPASI_COMPILE_3D
       "Compile 3D cases in libraries and executables"
       OFF
 )
@@ -80,7 +74,6 @@ add_subdirectory(doc)
 add_subdirectory(cmake/modules)
 
 # finalize the dune project: Generate and install config.h, cmake target and version file
-include(SetupDuneCopasiConfig)
 finalize_dune_project(GENERATE_CONFIG_H_CMAKE)
 
 target_compile_definitions(dune-copasi INTERFACE HAVE_DUNE_COPASI_CONFIG_H)
@@ -129,8 +122,11 @@ export(EXPORT dune-copasi-targets
        NAMESPACE dune-copasi::
 )
 
+# set a read only alias for our main target
+add_library(dune::copasi ALIAS dune-copasi)
+
 # include tests as a sub project
-add_library(dune-copasi::dune-copasi ALIAS dune-copasi)
 add_subdirectory(test)
 
+# add definitions for packaging
 include(SetupDuneCopasiCPack)
