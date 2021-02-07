@@ -1,90 +1,128 @@
 #!/usr/bin/env bash
 
-# This file sets sensible defaults options for building 
-# and installing dune-copasi and its dependencies
+# This file sets sensible defaults options for building and installing dune-copasi and its dependencies
+# - Find the operating system target
+# - Set default DUNE_ and CMAKE_ values, if they are not in environment
+# - Any env variable starting with CMAKE_ or DUNE_ will added to the cmake flags
+# - The resulting values will be prepended to the CMAKE_FLAGS env variable (if any)
+# - In *nix systems, it will try to find out if installation requires sudo
+#
+# If run in script mode (e.g. ./dune-copasi.opts), this script will print out
+# the installation prefix, OS target, and cmake flags.
 
-# set default dune options
-if [[ -z $CMAKE_INSTALL_PREFIX ]]; then
-  CMAKE_INSTALL_PREFIX=/opt/dune
+# flag to install dune-testtools in 'setup_dune' script
+export SETUP_DUNE_TESTTOOLS=${SETUP_DUNE_TESTTOOLS:-OFF}
+
+# get install prefix from CMAKE_FLAGS env
+for flag in $CMAKE_FLAGS; do
+  [[ ${flag#-D} == CMAKE_INSTALL_PREFIX* ]] && CMAKE_INSTALL_PREFIX=${flag#-DCMAKE_INSTALL_PREFIX}
+done
+# remove "=" or ":PATH=" prefix
+CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX#=}
+CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX#:PATH=}
+# remove quotations
+CMAKE_INSTALL_PREFIX=$(echo $CMAKE_INSTALL_PREFIX | tr -d "'")
+
+# if not found, set a default install path
+export CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX:-/opt/dune}
+
+# create directory if non existent (skip in script mode)
+if [[ ! $(basename $0) == dune-copasi.opts ]] ; then
+  mkdir -p $CMAKE_INSTALL_PREFIX &> /dev/null
 fi
 
-if [[ -z $CMAKE_PREFIX_PATH ]]; then
-  CMAKE_PREFIX_PATH="$CMAKE_INSTALL_PREFIX"
-fi
+SUDOCMD=""
 
-if [[ -z $CMAKE_BUILD_TYPE ]]; then
-  CMAKE_BUILD_TYPE="Release"
-fi
-
-if [[ -z $SETUP_DUNE_TESTTOOLS ]]; then
-  SETUP_DUNE_TESTTOOLS="OFF"
-fi
-
-if [[ -z $BUILD_TESING ]]; then
-  BUILD_TESING="OFF"
-  [[ "$SETUP_DUNE_TESTTOOLS" == "ON" ]] && BUILD_TESING="ON"
-fi
-
-if [[ -z $USE_FALLBACK_FILESYSTEM ]]; then
-  USE_FALLBACK_FILESYSTEM="OFF"
-fi
-
-# only for unsing setup_dune script
-if [[ -z $DUNE_VENDOR_FMT ]]; then
-  DUNE_VENDOR_FMT="ON"
-fi
-
-CXX_FLAGS+=" -fvisibility=hidden -fpic "
-SUDOCMD=
-
-mkdir -p $CMAKE_INSTALL_PREFIX &> /dev/null
-
+# if not set, find out OS target
 if [[ -z $OS_TARGET ]]; then
   if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     OS_TARGET="linux"
     [ ! -w "$CMAKE_INSTALL_PREFIX" ] && SUDOCMD="sudo"
   elif [[ "$OSTYPE" == "darwin"* ]]; then
     OS_TARGET="osx"
+    OS_VERSION=${OSTYPE#darwin}
+    # use fallback filesystem on darwin older than 10.15
+    if (( $(echo $OS_VERSION 10.15 | awk '{if ($1 < $2) print 1;}') )); then
+      export DUNE_USE_FALLBACK_FILESYSTEM=${DUNE_USE_FALLBACK_FILESYSTEM:-ON}
+    fi
     [ ! -w "$CMAKE_INSTALL_PREFIX" ] && SUDOCMD="sudo"
   elif [[ "$OSTYPE" == "msys" ]]; then
     # Lightweight shell and GNU utilities compiled for Windows (part of MinGW)
     MACHINE="$(eval gcc -dumpmachine 2>&1)"
     [[ "$MACHINE" = *'x86_64'* ]] && OS_TARGET="win64"
     [[ "$MACHINE" = *'i686'* ]] && OS_TARGET="win32"
-    CXX_FLAGS+="-static -Wa,-mbig-obj"
+    export CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS:-"'-static -Wa,-mbig-obj -fvisibility=hidden -fpic'"}
+  else
+    OS_TARGET="$OSTYPE"
+    echo "Warning: Unknown OS_TARGET='$OS_TARGET'!"
   fi
 fi
 
-[[ -z $OS_TARGET ]] && echo "Warning: Unknown OS_TARGET!"
+# default cmake flags
+export CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH:-"'${CMAKE_INSTALL_PREFIX}'"}
+export CMAKE_GENERATOR=${CMAKE_GENERATOR:-"'Unix Makefiles'"}
+export CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-Release}
+export CMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD:-17}
+export CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS:-"'-fvisibility=hidden -fpic'"}
+export CMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE:-"'-O3'"}
+export CMAKE_CXX_FLAGS_RELWITHDEBINFO=${CMAKE_CXX_FLAGS_RELWITHDEBINFO:-"'-O2 -g3 -DNDEBUG -fno-omit-frame-pointer'"}
+export CMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG:-"'-O0 -g'"}
+export CMAKE_DISABLE_FIND_PACKAGE_MPI=${CMAKE_DISABLE_FIND_PACKAGE_MPI:-ON}
 
-CMAKE_FLAGS+=" -G 'Unix Makefiles' "
-CMAKE_FLAGS+=" -DCMAKE_CXX_STANDARD=17 "
-CMAKE_FLAGS+=" -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} "
-CMAKE_FLAGS+=" -DCMAKE_DISABLE_FIND_PACKAGE_QuadMath=TRUE "
-CMAKE_FLAGS+=" -DUSE_FALLBACK_FILESYSTEM=${USE_FALLBACK_FILESYSTEM} "
-CMAKE_FLAGS+=" -DCMAKE_DISABLE_FIND_PACKAGE_MPI=ON"
-CMAKE_FLAGS+=" -DBUILD_TESTING=${BUILD_TESING} "
-CMAKE_FLAGS+=" -DDUNE_USE_ONLY_STATIC_LIBS=ON "
-CMAKE_FLAGS+=" -DDUNE_COPASI_MD_EXECUTABLE=ON "
-CMAKE_FLAGS+=" -DCMAKE_INSTALL_PREFIX:PATH='${CMAKE_INSTALL_PREFIX}' "
-CMAKE_FLAGS+=" -DCMAKE_PREFIX_PATH='${CMAKE_PREFIX_PATH}' "
-CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_SETUP=${SETUP_DUNE_TESTTOOLS} "
-CMAKE_FLAGS+=" -DDUNE_PYTHON_ALLOW_GET_PIP=${SETUP_DUNE_TESTTOOLS} "
-CMAKE_FLAGS+=" -DDUNE_PYTHON_VIRTUALENV_PATH:PATH='${CMAKE_INSTALL_PREFIX}/venv' "
-
-CMAKE_FLAGS+=" -DCMAKE_CXX_FLAGS='${CXX_FLAGS}' "
-CMAKE_FLAGS+=" -DCMAKE_CXX_FLAGS_RELEASE='-O3' "
-CMAKE_FLAGS+=" -DCMAKE_CXX_FLAGS_RELWITHDEBINFO='-O2 -g3 -DNDEBUG -fno-omit-frame-pointer'"
-CMAKE_FLAGS+=" -DCMAKE_CXX_FLAGS_DEBUG='-O0 -g'"
-
-if [ -z $DUNE_COPASI_USE_STATIC_DEPS ];then
-  CMAKE_FLAGS+=" -DGMPXX_INCLUDE_DIR:PATH='"${CMAKE_INSTALL_PREFIX}"/include' "
-  CMAKE_FLAGS+=" -DGMPXX_LIB:FILEPATH='"${CMAKE_INSTALL_PREFIX}"/lib/libgmpxx.a' "
-  CMAKE_FLAGS+=" -DGMP_LIB:FILEPATH='"${CMAKE_INSTALL_PREFIX}"/lib/libgmp.a' "
-  CMAKE_FLAGS+=" -Dfmt_ROOT='"${CMAKE_INSTALL_PREFIX}"' "
+if [[ ! "$DUNE_COPASI_USE_STATIC_DEPS" =~ ^(ON|on|ON|TRUE|true|1)$ ]];then
+  CMAKE_FLAGS+=" -DGMPXX_INCLUDE_DIR:PATH='"${CMAKE_INSTALL_PREFIX}"/include'"
+  CMAKE_FLAGS+=" -DGMPXX_LIB:FILEPATH='"${CMAKE_INSTALL_PREFIX}"/lib/libgmpxx.a'"
+  CMAKE_FLAGS+=" -DGMP_LIB:FILEPATH='"${CMAKE_INSTALL_PREFIX}"/lib/libgmp.a'"
+  CMAKE_FLAGS+=" -Dfmt_ROOT='"${CMAKE_INSTALL_PREFIX}"'"
   CMAKE_FLAGS+=" -DF77=true"
+fi
+
+# default dune flags
+export DUNE_USE_FALLBACK_FILESYSTEM=${DUNE_USE_FALLBACK_FILESYSTEM:-OFF}
+export DUNE_VENDOR_FMT=${DUNE_VENDOR_FMT:-ON}
+export DUNE_PYTHON_VIRTUALENV_SETUP=${DUNE_PYTHON_VIRTUALENV_SETUP:-$SETUP_DUNE_TESTTOOLS}
+export DUNE_PYTHON_ALLOW_GET_PIP=${DUNE_PYTHON_ALLOW_GET_PIP:-$SETUP_DUNE_TESTTOOLS}
+export DUNE_PYTHON_VIRTUALENV_PATH=${DUNE_PYTHON_VIRTUALENV_PATH:-${CMAKE_INSTALL_PREFIX}/venv}
+export DUNE_COPASI_MD_EXECUTABLE=${DUNE_COPASI_MD_EXECUTABLE:-ON}
+
+# default make flags
+if [[ "$CMAKE_BUILD_TYPE" == "Debug" ]]; then
+  MAKE_FLAGS=${MAKE_FLAGS:-"-j1 VERBOSE=1"}
 else
-  if [[ -z $DUNE_VENDOR_FMT ]]; then
-    DUNE_VENDOR_FMT="ON"
+  MAKE_FLAGS=${MAKE_FLAGS:-"-j1"}
+fi
+
+# get environment variables (excluding CMAKE_FLAGS and DUNE_CONTROL_PATH)
+ENV_VARS=$(compgen -e)
+ENV_VARS=${ENV_VARS//CMAKE_FLAGS/}
+ENV_VARS=${ENV_VARS//DUNE_CONTROL_PATH/}
+
+_CMAKE_FLAGS=""
+_DUNE_FLAGS=""
+# loop env variables and add values starting with CMAKE_ and DUNE_ into the cmake flags
+for var in $ENV_VARS; do
+  if [[ "${var}" == "CMAKE_"* ]]; then
+    _CMAKE_FLAGS+="-D${var}=${!var} "
+  elif [[ "${var}" == "DUNE_"* ]]; then
+    _DUNE_FLAGS+="-D${var}=${!var} "
   fi
+done
+
+# final flags
+CMAKE_FLAGS="$_CMAKE_FLAGS $_DUNE_FLAGS $CMAKE_FLAGS"
+
+# if called in script mode, print cmake flags and os target
+if [[ $(basename $0) == dune-copasi.opts ]] ; then
+  # set colors for better print
+  GREEN=$(tput setaf 2 :-"" 2>/dev/null)
+  RESET=$(tput sgr0 :-"" 2>/dev/null)
+
+  echo "${GREEN}Installation Prefix:${RESET}"
+  echo "$CMAKE_INSTALL_PREFIX" | sed 's/^/  /'
+  echo "${GREEN}OS Type:${RESET}"
+  echo "$OS_TARGET" | sed 's/^/  /'
+  echo "${GREEN}CMake flags:${RESET}"
+  echo "$CMAKE_FLAGS" | sed 's/^/  /'
+  echo "${GREEN}Make flags:${RESET}"
+  echo "$MAKE_FLAGS" | sed 's/^/  /'
 fi
