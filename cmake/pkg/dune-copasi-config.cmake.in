@@ -28,7 +28,8 @@ if(NOT dune-copasi_FOUND)
   # setup basic dune dependecy
   find_dependency(dune-common REQUIRED)
 
-  list(APPEND CMAKE_MODULE_PATH "@dune-common_MODULE_PATH@" "@dune-copasi_MODULE_PATH@")
+  # make sure to find cmake modules for dune-common
+  list(APPEND CMAKE_MODULE_PATH "${dune-common_MODULE_PATH}")
   include(DuneMacros)
 
   # setup other dune dependecies
@@ -37,7 +38,10 @@ if(NOT dune-copasi_FOUND)
   dune_process_dependency_macros()
   swap_args(ProjectName _ProjectName)
 
-  # setup other dependencies
+  # make sure to find cmake modules for dune-copasi
+  list(APPEND CMAKE_MODULE_PATH "${dune-copasi_MODULE_PATH}")
+
+  # setup dependencies
   find_dependency(muparser)
   find_dependency(TIFF)
   find_dependency(Filesystem)

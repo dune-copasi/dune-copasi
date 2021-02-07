@@ -3,14 +3,16 @@ project(dune-copasi CXX)
 
 cmake_policy(SET CMP0074 NEW)
 
-#find dune-common and set the module path
+# find dune-common
 find_package(dune-common REQUIRED)
+
+# make sure to find cmake modules
 list(APPEND CMAKE_MODULE_PATH
   "${PROJECT_SOURCE_DIR}/cmake/modules"
   "${dune-common_MODULE_PATH}"
 )
 
-#include the dune macros
+# include macros for dune projects
 include(DuneMacros)
 
 option(USE_FALLBACK_FILESYSTEM
