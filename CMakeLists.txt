@@ -127,7 +127,10 @@ export(EXPORT dune-copasi-targets
 add_library(dune::copasi ALIAS dune-copasi)
 
 # include tests as a sub project
-add_subdirectory(test)
+include(CTest)
+if(BUILD_TESTING)
+  add_subdirectory(test)
+endif()
 
 # add definitions for packaging
 include(SetupDuneCopasiCPack)
