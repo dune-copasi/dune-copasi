@@ -1,6 +1,6 @@
-# #!/usr/bin/env bash
+#!/usr/bin/env bash
 
-# # unit tests script for all CIs
+# unit tests script for all CIs
 
 # input
 #   DUNE_OPTIONS_FILE absolute path to options file
