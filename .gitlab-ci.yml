@@ -79,7 +79,7 @@ stages:
   image: ${DEPENDENCIES_IMAGE}
   stage: build
   script:
-    - export CMAKE_PREFIX_PATH="$CI_PROJECT_DIR/dune-copasi-install"
+    - export CMAKE_INSTALL_PREFIX="$CI_PROJECT_DIR/dune-copasi-install"
     - ./.ci/install /duneci/dune.opts
   artifacts:
     paths:
