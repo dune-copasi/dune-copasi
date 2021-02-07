@@ -23,8 +23,20 @@ if(NOT dune-copasi_FOUND)
 
   include(CMakeFindDependencyMacro)
 
-  # setup basic dune dependecy
-  find_dependency(dune-common REQUIRED)
+  cmake_policy(PUSH)
+  cmake_policy(SET CMP0074 NEW)
+
+  # setup dependencies
+  find_dependency(dune-common)
+  find_dependency(muparser)
+  find_dependency(TIFF)
+  if(@USE_FALLBACK_FILESYSTEM@)
+    find_dependency(ghc_filesystem REQUIRED)
+  else()
+    find_dependency(Filesystem REQUIRED)
+  endif()
+
+  cmake_policy(POP)
 
   # make sure to find cmake modules for dune-common
   list(APPEND CMAKE_MODULE_PATH "${dune-common_MODULE_PATH}")
@@ -51,14 +63,6 @@ if(NOT dune-copasi_FOUND)
 
   # make sure to find cmake modules for dune-copasi
   list(APPEND CMAKE_MODULE_PATH "${dune-copasi_MODULE_PATH}")
-
-  # setup dependencies
-  find_dependency(muparser)
-  find_dependency(TIFF)
-  find_dependency(Filesystem)
-  if(@USE_FALLBACK_FILESYSTEM@)
-    find_package(ghc_filesystem)
-  endif()
 
   # import targets
   get_filename_component(_dir "${CMAKE_CURRENT_LIST_FILE}" PATH)
