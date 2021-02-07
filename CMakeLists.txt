@@ -2,19 +2,11 @@ cmake_minimum_required(VERSION 3.13)
 project(dune-copasi CXX)
 
 cmake_policy(SET CMP0074 NEW)
+if(POLICY CMP0087)
+  cmake_policy(SET CMP0087 OLD)
+endif()
 
-# find dune-common
-find_package(dune-common REQUIRED)
-
-# make sure to find cmake modules
-list(APPEND CMAKE_MODULE_PATH
-  "${PROJECT_SOURCE_DIR}/cmake/modules"
-  "${dune-common_MODULE_PATH}"
-)
-
-# include macros for dune projects
-include(DuneMacros)
-
+# define cmake options
 option(DUNE_COPASI_SD_EXECUTABLE
        "Build SingleDomain executable by default"
        OFF
@@ -23,7 +15,6 @@ option(DUNE_COPASI_SD_LIBRARY
        "Include precompiled SingleDomain objects in dune-copasi library (optional)"
        ${DUNE_COPASI_SD_EXECUTABLE}
 )
-
 option(DUNE_COPASI_MD_EXECUTABLE
        "Build MultiDimain executable by default"
        ON
@@ -32,18 +23,21 @@ option(DUNE_COPASI_MD_LIBRARY
        "Include precompiled MultiDimain objects in dune-copasi library (optional)"
        ${DUNE_COPASI_MD_EXECUTABLE}
 )
-
 option(DUNE_COPASI_COMPILE_3D
       "Compile 3D cases in libraries and executables"
       OFF
 )
 
+# make sure to find our own cmake modules
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
+
 # find dependencies
+find_package(dune-common REQUIRED)
 find_package(muparser REQUIRED)
 find_package(TIFF REQUIRED)
 find_package(Filesystem)
 
-# if Filesystem is not found, using a fallback is mandatory
+# if Filesystem is not found, using a fallback is mandatory, otherwise, optional
 include(CMakeDependentOption)
 cmake_dependent_option(USE_FALLBACK_FILESYSTEM
     "Use bundled std::filesystem alternative (enable this for macOS older than 10.15)" OFF
@@ -72,33 +66,36 @@ if(USE_FALLBACK_FILESYSTEM)
   endif()
 endif()
 
-# start a dune project with information from dune.module
+# include macros for dune projects
+list(APPEND CMAKE_MODULE_PATH "${dune-common_MODULE_PATH}")
+include(DuneMacros)
+
+# start a dune project with information from dune.module, and find dune dependencies
 dune_project()
 
-# main target
+# create main target
 add_library(dune-copasi)
 set_target_properties(dune-copasi PROPERTIES LIBRARY_OUTPUT_NAME dunecopasi)
 set_target_properties(dune-copasi PROPERTIES ARCHIVE_OUTPUT_NAME dunecopasi)
 
-# add dune dependencies to this target
-dune_target_enable_all_packages(dune-copasi)
-
-# add dependencies
-target_link_libraries(dune-copasi PUBLIC ${DUNE_LIBS} TIFF::TIFF muparser::muparser)
-
-if (DUNE_COPASI_COMPILE_3D)
-  target_compile_definitions(dune-copasi PUBLIC DUNE_COPASI_COMPILE_3D)
-endif()
-
+# include header files
 add_subdirectory(dune)
+
+# include main library set up
 add_subdirectory(lib)
+
+# source files for final libraries and executables
 add_subdirectory(src)
+
+# documentation files
 add_subdirectory(doc)
 
 # finalize the dune project: Generate and install config.h, cmake target and version file
 finalize_dune_project(GENERATE_CONFIG_H_CMAKE)
-
 target_compile_definitions(dune-copasi INTERFACE HAVE_DUNE_COPASI_CONFIG_H)
+
+# main library is completely set up, define a read only 'dune::' alias for our main target
+add_library(dune::copasi ALIAS dune-copasi)
 
 # install generated config in build and install directories
 file(COPY "${CMAKE_CURRENT_BINARY_DIR}/config.h"
@@ -130,7 +127,7 @@ install(TARGETS dune-copasi
           COMPONENT Development
 )
 
-# export targets to be used with the installed package
+# export targets to be used with installed tree
 install(EXPORT dune-copasi-targets
         FILE dune-copasi-targets.cmake
         NAMESPACE dune-copasi::
@@ -138,14 +135,11 @@ install(EXPORT dune-copasi-targets
         DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/dune-copasi"
 )
 
-# export targets to be used with build directories
+# export targets to be used with build tree
 export(EXPORT dune-copasi-targets
        FILE "${CMAKE_CURRENT_BINARY_DIR}/dune-copasi-targets.cmake"
        NAMESPACE dune-copasi::
 )
-
-# library is set up, define a read only 'dune::' alias for our main target
-add_library(dune::copasi ALIAS dune-copasi)
 
 # include tests as a sub project
 include(CTest)

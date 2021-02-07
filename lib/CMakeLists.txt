@@ -1,10 +1,27 @@
 include(GNUInstallDirs)
 
-target_include_directories(dune-copasi
-  PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}"
-)
+# add dune dependencies to main target
+dune_target_enable_all_packages(dune-copasi)
 
-unset(EXPORTED_DEVELOPMENT_TARGETS)
+# add dependencies
+target_link_libraries(dune-copasi PUBLIC ${DUNE_LIBS} TIFF::TIFF muparser::muparser)
+
+if (DUNE_COPASI_COMPILE_3D)
+  target_compile_definitions(dune-copasi PUBLIC DUNE_COPASI_COMPILE_3D)
+endif()
+
+# Set up filesystem. Where do we get it from?
+if(USE_FALLBACK_FILESYSTEM)
+  # and add ghc_filesystem to our filesystem target
+  target_link_libraries(dune-copasi PUBLIC ghcFilesystem::ghc_filesystem)
+  target_compile_definitions(dune-copasi PUBLIC DUNE_COPASI_USE_FALLBACK_FILESYSTEM)
+else()
+  # ... else we don't need a back up. Link agaist standard library
+  target_link_libraries(dune-copasi PUBLIC std::filesystem)
+endif()
+
+# define, link and install auxiliary develpment targets for dune-copasi
+unset(AUX_DEVELOPMENT_TARGETS)
 
 # SingleDomain library
 add_library(singledomain-lib
@@ -24,7 +41,7 @@ if(DUNE_COPASI_SD_LIBRARY)
   set_target_properties(singledomain-lib PROPERTIES EXCLUDE_FROM_ALL OFF)
   target_link_libraries(dune-copasi INTERFACE singledomain-lib)
   target_compile_definitions(dune-copasi INTERFACE DUNE_COPASI_SD_LIBRARY)
-  list(APPEND EXPORTED_DEVELOPMENT_TARGETS singledomain-lib)
+  list(APPEND AUX_DEVELOPMENT_TARGETS singledomain-lib)
 endif()
 
 # MultiDomain library
@@ -45,21 +62,11 @@ if(DUNE_COPASI_MD_LIBRARY)
   set_target_properties(multidomain-lib PROPERTIES EXCLUDE_FROM_ALL OFF)
   target_link_libraries(dune-copasi INTERFACE multidomain-lib)
   target_compile_definitions(dune-copasi INTERFACE DUNE_COPASI_MD_LIBRARY)
-  list(APPEND EXPORTED_DEVELOPMENT_TARGETS multidomain-lib)
-endif()
-
-# Set up filesystem. Where do we get it from?
-if(USE_FALLBACK_FILESYSTEM)
-  # and add ghc_filesystem to our filesystem target
-  target_link_libraries(dune-copasi PUBLIC ghcFilesystem::ghc_filesystem)
-  target_compile_definitions(dune-copasi PUBLIC DUNE_COPASI_USE_FALLBACK_FILESYSTEM)
-else()
-  # ... else we don't need a back up. Link agaist standard library
-  target_link_libraries(dune-copasi PUBLIC std::filesystem)
+  list(APPEND AUX_DEVELOPMENT_TARGETS multidomain-lib)
 endif()
 
 # install development targets
-install(TARGETS ${EXPORTED_DEVELOPMENT_TARGETS}
+install(TARGETS ${AUX_DEVELOPMENT_TARGETS}
   EXPORT dune-copasi-targets
   LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     COMPONENT Libraries
