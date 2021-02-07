@@ -73,7 +73,6 @@ add_subdirectory(dune)
 add_subdirectory(lib)
 add_subdirectory(src)
 add_subdirectory(doc)
-add_subdirectory(cmake/modules)
 
 # finalize the dune project: Generate and install config.h, cmake target and version file
 finalize_dune_project(GENERATE_CONFIG_H_CMAKE)
