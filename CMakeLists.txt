@@ -31,8 +31,17 @@ option(DUNE_COPASI_COMPILE_3D
 # make sure to find our own cmake modules
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
 
-# find dependencies
+# find dune dependencies
 find_package(dune-common REQUIRED)
+
+# include macros for dune projects
+list(APPEND CMAKE_MODULE_PATH "${dune-common_MODULE_PATH}")
+include(DuneMacros)
+
+# start a dune project with information from dune.module, and find dune dependencies
+dune_project()
+
+# find specific dune-copasi dependencies
 find_package(muparser REQUIRED)
 find_package(TIFF REQUIRED)
 find_package(Filesystem)
@@ -65,13 +74,6 @@ if(USE_FALLBACK_FILESYSTEM)
     endif()
   endif()
 endif()
-
-# include macros for dune projects
-list(APPEND CMAKE_MODULE_PATH "${dune-common_MODULE_PATH}")
-include(DuneMacros)
-
-# start a dune project with information from dune.module, and find dune dependencies
-dune_project()
 
 # create main target
 add_library(dune-copasi)
