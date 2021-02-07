@@ -48,55 +48,15 @@ if(DUNE_COPASI_MD_LIBRARY)
   list(APPEND EXPORTED_DEVELOPMENT_TARGETS multidomain-lib)
 endif()
 
-# Set up filesystem
-add_library(filesystem INTERFACE)
-list(APPEND EXPORTED_DEVELOPMENT_TARGETS filesystem)
-
-# where do we get it from?
-if(USE_FALLBACK_FILESYSTEM AND ghc_filesystem_FOUND)
-  # ... easy, link to the fallback directly
-  target_link_libraries(filesystem INTERFACE ghcFilesystem::ghc_filesystem)
-elseif(USE_FALLBACK_FILESYSTEM)
-  # ... library not installed, we provide a fallback
-  include(FetchContent)
-  message("-- Declaring GHC Filesystem")
-  FetchContent_Declare(
-    ghc_filesystem
-    GIT_REPOSITORY https://github.com/gulrak/filesystem
-    GIT_TAG        v1.4.0
-  )
-
-  if(NOT ghc_filesystem_POPULATED)
-    message("-- Populating GHC Filesystem")
-    
-    FetchContent_Populate(ghc_filesystem)
-    add_subdirectory("${ghc_filesystem_SOURCE_DIR}" "${ghc_filesystem_BINARY_DIR}")
-   
-    file(GLOB GHC_HEADERS "${ghc_filesystem_SOURCE_DIR}/include/ghc/*.hpp")
-    install(FILES ${GHC_HEADERS}
-      COMPONENT Development
-      DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/ghc"
-    )
-  endif()
-
-  target_include_directories(filesystem INTERFACE
-    $<BUILD_INTERFACE:${ghc_filesystem_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-  )
-
-  target_compile_definitions(filesystem INTERFACE DUNE_COPASI_USE_FALLBACK_FILESYSTEM)
-elseif(NOT Filesystem_FOUND)
-  # ... heuston we have a problem. It makes no sense to continue!
-  message(FATAL_ERROR
-    "Support for C++ 17 filesystem was not found. Try setting up a "
-    "fallback implementation by adding the flag USE_FALLBACK_FILESYSTEM=ON")
+# Set up filesystem. Where do we get it from?
+if(USE_FALLBACK_FILESYSTEM)
+  # and add ghc_filesystem to our filesystem target
+  target_link_libraries(dune-copasi PUBLIC ghcFilesystem::ghc_filesystem)
+  target_compile_definitions(dune-copasi PUBLIC DUNE_COPASI_USE_FALLBACK_FILESYSTEM)
 else()
   # ... else we don't need a back up. Link agaist standard library
-  target_link_libraries(filesystem INTERFACE std::filesystem)
+  target_link_libraries(dune-copasi PUBLIC std::filesystem)
 endif()
-
-# main library consumes filesystem definitions
-target_link_libraries(dune-copasi PUBLIC filesystem)
 
 # install development targets
 install(TARGETS ${EXPORTED_DEVELOPMENT_TARGETS}

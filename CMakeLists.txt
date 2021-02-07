@@ -15,11 +15,6 @@ list(APPEND CMAKE_MODULE_PATH
 # include macros for dune projects
 include(DuneMacros)
 
-option(USE_FALLBACK_FILESYSTEM
-      "Use bundled std::filesystem alternative (enable this for macOS older than 10.15)"
-      OFF
-)
-
 option(DUNE_COPASI_SD_EXECUTABLE
        "Build SingleDomain executable by default"
        OFF
@@ -47,8 +42,34 @@ option(DUNE_COPASI_COMPILE_3D
 find_package(muparser REQUIRED)
 find_package(TIFF REQUIRED)
 find_package(Filesystem)
+
+# if Filesystem is not found, using a fallback is mandatory
+include(CMakeDependentOption)
+cmake_dependent_option(USE_FALLBACK_FILESYSTEM
+    "Use bundled std::filesystem alternative (enable this for macOS older than 10.15)" OFF
+    "Filesystem_FOUND" ON
+)
+
 if(USE_FALLBACK_FILESYSTEM)
+  # let's use ghc_filesystem
   find_package(ghc_filesystem)
+
+  # ... library not installed, we provide a fallback
+  if (NOT ghc_filesystem_FOUND)
+    include(FetchContent)
+    message("-- Declaring GHC Filesystem")
+    FetchContent_Declare(
+      ghc_filesystem
+      GIT_REPOSITORY https://github.com/gulrak/filesystem
+      GIT_TAG        v1.5.0
+    )
+
+    if(NOT ghc_filesystem_POPULATED)
+      message("-- Populating GHC Filesystem")
+      FetchContent_Populate(ghc_filesystem)
+      add_subdirectory("${ghc_filesystem_SOURCE_DIR}" "${ghc_filesystem_BINARY_DIR}")
+    endif()
+  endif()
 endif()
 
 # start a dune project with information from dune.module
@@ -123,7 +144,7 @@ export(EXPORT dune-copasi-targets
        NAMESPACE dune-copasi::
 )
 
-# set a read only alias for our main target
+# library is set up, define a read only 'dune::' alias for our main target
 add_library(dune::copasi ALIAS dune-copasi)
 
 # include tests as a sub project
