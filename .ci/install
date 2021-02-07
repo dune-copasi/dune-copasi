@@ -45,7 +45,7 @@ cleanup() {
 # set up verbose output in case of failure
 ONFAILURE_PROG="git gcc g++ python pip python3 pip3 cmake $SUDOCMD"
 ONFAILURE_VARS="PATH SUDOCMD DUNE_OPTIONS_FILE CMAKE_FLAGS"
-ONFAILURE_CMD="ls print_cmake_error cleanup print_opts_file"
+ONFAILURE_CMD="ls print_cmake_error cleanup"
 
 trap onfailure EXIT
 

@@ -46,7 +46,7 @@ cleanup() {
 ONFAILURE_PROG="git gcc g++ python pip python3 pip3 cmake wget $SUDOCMD"
 ONFAILURE_VARS="PATH MSYSTEM SUDOCMD SETUP_DUNE_TESTTOOLS DUNE_OPTIONS_FILE"
 ONFAILURE_VARS+=" CMAKE_FLAGS CMAKE_INSTALL_PREFIX DUNE_VENDOR_FMT REPO BRANCH PATCHES RECURSIVE BUILD_PATH"
-ONFAILURE_CMD="ls print_cmake_error cleanup print_opts_file"
+ONFAILURE_CMD="ls print_cmake_error cleanup"
 
 trap onfailure EXIT
 
