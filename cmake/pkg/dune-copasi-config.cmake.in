@@ -33,10 +33,11 @@ if(NOT dune-copasi_FOUND)
   include(DuneMacros)
 
   # setup other dune dependecies
-  swap_args(ProjectName _ProjectName)
+  set(TmpProjectName dune-copasi)
+  swap_args(ProjectName TmpProjectName)
   dune_create_dependency_tree()
   dune_process_dependency_macros()
-  swap_args(ProjectName _ProjectName)
+  swap_args(ProjectName TmpProjectName)
 
   # make sure to find cmake modules for dune-copasi
   list(APPEND CMAKE_MODULE_PATH "${dune-copasi_MODULE_PATH}")
