@@ -11,7 +11,6 @@ jobs:
       DUNE_COPASI_USE_STATIC_DEPS: 'ON'
       USE_FALLBACK_FILESYSTEM: 'OFF'
       BUILD_TESTING: 'ON'
-      DUNE_COPASI_USE_STATIC_DEPS: 'ON'
       TERM: 'xterm-256color'
     defaults:
       run:
@@ -43,7 +42,6 @@ jobs:
       DUNE_COPASI_USE_STATIC_DEPS: 'ON'
       USE_FALLBACK_FILESYSTEM: 'ON'
       BUILD_TESTING: 'ON'
-      DUNE_COPASI_USE_STATIC_DEPS: 'ON'
       MACOSX_DEPLOYMENT_TARGET: '10.14'
       TERM: 'xterm-256color'
     defaults:
@@ -71,7 +69,6 @@ jobs:
       DUNE_COPASI_USE_STATIC_DEPS: 'ON'
       USE_FALLBACK_FILESYSTEM: 'OFF'
       BUILD_TESTING: 'ON'
-      DUNE_COPASI_USE_STATIC_DEPS: 'ON'
       CMAKE_BUILD_TYPE: Release
     defaults:
       run:
@@ -103,7 +100,6 @@ jobs:
       DUNE_COPASI_USE_STATIC_DEPS: 'ON'
       USE_FALLBACK_FILESYSTEM: 'OFF'
       BUILD_TESTING: 'ON'
-      DUNE_COPASI_USE_STATIC_DEPS: 'ON'
       CMAKE_BUILD_TYPE: Release
     defaults:
       run:
