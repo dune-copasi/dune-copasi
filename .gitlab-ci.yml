@@ -3,7 +3,6 @@
 stages:
   - setup
   - build
-  - test
   - deploy
 
 .default_tags: &default_tags
@@ -79,18 +78,7 @@ stages:
   image: ${DEPENDENCIES_IMAGE}
   stage: build
   script:
-    - export CMAKE_INSTALL_PREFIX="$CI_PROJECT_DIR/dune-copasi-install"
     - ./.ci/install /duneci/dune.opts
-  artifacts:
-    paths:
-      - $CI_PROJECT_DIR/dune-copasi-install
-    expire_in: 30 mins
-  <<: *default_tags
-
-.test: &test
-  image: ${DEPENDENCIES_IMAGE}
-  stage: test
-  script:
     - ./.ci/test /duneci/dune.opts
   <<: *default_tags
 
@@ -164,20 +152,13 @@ build:debian_gcc:
   dependencies:
     - setup:debian_gcc
 
-test:debian_gcc:
-  variables:
-    <<: *debian_gcc
-  <<: *test
-  dependencies:
-    - build:debian_gcc
-
 deploy:debian_gcc:
   variables:
     <<: *docker_variables
     <<: *debian_gcc
   <<: *deploy
   dependencies:
-    - test:debian_gcc
+    - setup:debian_gcc
 
 # # ubuntu gcc
 # setup:ubuntu_gcc:
@@ -193,20 +174,13 @@ deploy:debian_gcc:
 #   dependencies:
 #     - setup:ubuntu_gcc
 
-# test:ubuntu_gcc:
-#   variables:
-#     <<: *ubuntu_gcc
-#   <<: *test
-#   dependencies:
-#     - build:ubuntu_gcc
-
 # deploy:ubuntu_gcc:
 #   variables:
 #     <<: *docker_variables
 #     <<: *ubuntu_gcc
 #   <<: *deploy
 #   dependencies:
-#     - test:ubuntu_gcc
+#     - setup:ubuntu_gcc
 
 # debian clang
 setup:debian_clang:
@@ -222,20 +196,13 @@ build:debian_clang:
   dependencies:
     - setup:debian_clang
 
-test:debian_clang:
-  variables:
-    <<: *debian_clang
-  <<: *test
-  dependencies:
-    - build:debian_clang
-
 deploy:debian_clang:
   variables:
     <<: *docker_variables
     <<: *debian_clang
   <<: *deploy
   dependencies:
-    - test:debian_clang
+    - setup:debian_clang
 
 # # ubuntu clang
 # setup:ubuntu_clang:
@@ -248,15 +215,8 @@ deploy:debian_clang:
 #   dependencies:
 #     - setup:ubuntu_clang
 
-
-# test:ubuntu_clang:
-#   <<: *ubuntu_clang
-#   <<: *test
-#   dependencies:
-#     - build:ubuntu_clang
-
 # deploy:ubuntu_clang:
 #   <<: *ubuntu_clang
 #   <<: *deploy
 #   dependencies:
-#     - test:ubuntu_clang
+#     - setup:ubuntu_clang
