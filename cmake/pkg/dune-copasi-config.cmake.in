@@ -1,10 +1,3 @@
-function(swap_args ARG1 ARG2)
-  set(_tmp ${ARG1})
-  set(ARG1 ${ARG2})
-  set(ARG2 ${_tmp})
-  unset(_tmp)
-endfunction()
-
 if(NOT dune-copasi_FOUND)
   # Whether this module is installed or not
   set(dune-copasi_INSTALLED @MODULE_INSTALLED@)
@@ -18,10 +11,15 @@ if(NOT dune-copasi_FOUND)
   #report other information
   set_and_check(dune-copasi_PREFIX "${PACKAGE_PREFIX_DIR}")
   set_and_check(dune-copasi_INCLUDE_DIRS "@PACKAGE_CMAKE_INSTALL_INCLUDEDIR@")
+  set(dune-copasi_CXX_FLAGS "@CMAKE_CXX_FLAGS@")
+  set(dune-copasi_CXX_FLAGS_DEBUG "@CMAKE_CXX_FLAGS_DEBUG@")
+  set(dune-copasi_CXX_FLAGS_MINSIZEREL "@CMAKE_CXX_FLAGS_MINSIZEREL@")
+  set(dune-copasi_CXX_FLAGS_RELEASE "@CMAKE_CXX_FLAGS_RELEASE@")
+  set(dune-copasi_CXX_FLAGS_RELWITHDEBINFO "@CMAKE_CXX_FLAGS_RELWITHDEBINFO@")
   set(dune-copasi_DEPENDS "@dune-copasi_DEPENDS@")
   set(dune-copasi_SUGGESTS "@dune-copasi_SUGGESTS@")
   set(dune-copasi_MODULE_PATH "@PACKAGE_DUNE_INSTALL_MODULEDIR@")
-  set(DUNE_PYTHON_VIRTUALENV_SETUP ${DUNE_PYTHON_VIRTUALENV_SETUP})
+  set(DUNE_PYTHON_VIRTUALENV_SETUP @DUNE_PYTHON_VIRTUALENV_SETUP@)
 
   include(CMakeFindDependencyMacro)
 
@@ -31,13 +29,25 @@ if(NOT dune-copasi_FOUND)
   # make sure to find cmake modules for dune-common
   list(APPEND CMAKE_MODULE_PATH "${dune-common_MODULE_PATH}")
   include(DuneMacros)
+  include(CheckCXXFeatures)
+  include(DuneCxaDemangle)
+  include(DuneMPI)
 
   # setup other dune dependecies
-  set(TmpProjectName dune-copasi)
-  swap_args(ProjectName TmpProjectName)
+  set(ProjectName dune-copasi)
+  find_file(dune-copasi_MODULE_DIR dune.module
+    HINTS
+      "${dune-copasi_PREFIX}"
+      "${dune-copasi_PREFIX}/lib/dunecontrol/dune-copasi"
+      "${dune-copasi_PREFIX}/lib64/dunecontrol/dune-copasi"
+    REQUIRED
+    NO_DEFAULT_PATH
+  )
+  string(REPLACE dune.module "" dune-copasi_MODULE_DIR ${dune-copasi_MODULE_DIR})
+
+  dune_module_information(${dune-copasi_MODULE_DIR})
   dune_create_dependency_tree()
   dune_process_dependency_macros()
-  swap_args(ProjectName TmpProjectName)
 
   # make sure to find cmake modules for dune-copasi
   list(APPEND CMAKE_MODULE_PATH "${dune-copasi_MODULE_PATH}")
@@ -54,5 +64,6 @@ if(NOT dune-copasi_FOUND)
   get_filename_component(_dir "${CMAKE_CURRENT_LIST_FILE}" PATH)
   include("${_dir}/dune-copasi-targets.cmake")
 
+  # export short alias
   add_library(dune::copasi ALIAS dune-copasi::dune-copasi)
 endif()

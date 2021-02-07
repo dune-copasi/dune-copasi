@@ -162,3 +162,7 @@ if (dune-testtools_FOUND)
   set_property(TEST "dune-copasi-md-jacobian_test_NFkappaB" PROPERTY LABELS unit)
 
 endif()
+
+if("${CMAKE_SOURCE_DIR}" STREQUAL "${PROJECT_SOURCE_DIR}")
+  set_target_properties(build_unit_tests build_system_tests PROPERTIES EXCLUDE_FROM_ALL OFF)
+endif()
