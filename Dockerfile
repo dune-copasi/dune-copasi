@@ -44,6 +44,9 @@ COPY --chown=duneci ./ /duneci/modules/dune-copasi
 # run installer
 RUN ./dune-copasi/.ci/install /duneci/dune.opts
 
+# tests installer
+RUN ./dune-copasi/.ci/test /duneci/dune.opts
+
 # move results to a -lighter- production image
 FROM ${PRODUCTION_BASE_IMAGE} AS production-env
 LABEL maintainer="santiago.ospina@iwr.uni-heidelberg.de"
