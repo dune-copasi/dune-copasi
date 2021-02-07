@@ -1,5 +1,3 @@
-include(GNUInstallDirs)
-
 # add dune dependencies to main target
 dune_target_enable_all_packages(dune-copasi)
 
@@ -14,7 +12,7 @@ endif()
 if(USE_FALLBACK_FILESYSTEM)
   # and add ghc_filesystem to our filesystem target
   target_link_libraries(dune-copasi PUBLIC ghcFilesystem::ghc_filesystem)
-  target_compile_definitions(dune-copasi PUBLIC DUNE_COPASI_USE_FALLBACK_FILESYSTEM)
+  target_compile_definitions(dune-copasi PUBLIC DUNE_USE_FALLBACK_FILESYSTEM)
 else()
   # ... else we don't need a back up. Link agaist standard library
   target_link_libraries(dune-copasi PUBLIC std::filesystem)

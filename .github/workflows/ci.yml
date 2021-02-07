@@ -7,10 +7,8 @@ jobs:
     name: Linux
     runs-on: ubuntu-16.04
     env:
-      CMAKE_INSTALL_PREFIX: '/opt/smelibs'
+      CMAKE_INSTALL_PREFIX: '/opt/dune'
       DUNE_COPASI_USE_STATIC_DEPS: 'ON'
-      USE_FALLBACK_FILESYSTEM: 'OFF'
-      BUILD_TESTING: 'ON'
       TERM: 'xterm-256color'
     defaults:
       run:
@@ -38,10 +36,8 @@ jobs:
     name: MacOS
     runs-on: macos-10.15
     env:
-      CMAKE_INSTALL_PREFIX: '/opt/smelibs'
+      CMAKE_INSTALL_PREFIX: '/opt/dune'
       DUNE_COPASI_USE_STATIC_DEPS: 'ON'
-      USE_FALLBACK_FILESYSTEM: 'ON'
-      BUILD_TESTING: 'ON'
       MACOSX_DEPLOYMENT_TARGET: '10.14'
       TERM: 'xterm-256color'
     defaults:
@@ -65,11 +61,8 @@ jobs:
     name: Windows 64-bit
     runs-on: windows-2019
     env:
-      CMAKE_INSTALL_PREFIX: '/c/smelibs'
+      CMAKE_INSTALL_PREFIX: '/c/dune'
       DUNE_COPASI_USE_STATIC_DEPS: 'ON'
-      USE_FALLBACK_FILESYSTEM: 'OFF'
-      BUILD_TESTING: 'ON'
-      CMAKE_BUILD_TYPE: Release
     defaults:
       run:
         shell: msys2 {0}
@@ -96,11 +89,8 @@ jobs:
     name: Windows 32-bit
     runs-on: windows-2019
     env:
-      CMAKE_INSTALL_PREFIX: '/c/smelibs'
+      CMAKE_INSTALL_PREFIX: '/c/dune'
       DUNE_COPASI_USE_STATIC_DEPS: 'ON'
-      USE_FALLBACK_FILESYSTEM: 'OFF'
-      BUILD_TESTING: 'ON'
-      CMAKE_BUILD_TYPE: Release
     defaults:
       run:
         shell: msys2 {0}

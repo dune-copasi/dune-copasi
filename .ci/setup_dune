@@ -97,7 +97,7 @@ SETUP_dune_common_PATCHES+=" ${PWD}/cmake-patch.txt"
 
 # hardcoded **ordered** dependencies
 MODULES="common logging uggrid geometry grid localfunctions istl typetree functions pdelab multidomaingrid"
-if [[ "$SETUP_DUNE_TESTTOOLS" =~ ^(ON|on|1|yes|true|TRUE)$ ]]; then
+if [[ "$SETUP_DUNE_TESTTOOLS" =~ ^(ON|on|1|yes|YES|true|TRUE)$ ]]; then
 	MODULES+=" testtools"
 fi
 
@@ -201,11 +201,11 @@ for module in $MODULES; do
   # configure, build, and install module
   $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module all
   $SUDOCMD $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module bexec cmake --build . --target install
-  
+
   # we want to know where the build dir is located
   # since it could be ant complex path, we write the path from dunecontrol into a file
   $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module bexec "echo \$PWD > /tmp/setup-dune/module_builddir"
-  
+
   # remove build and sources
   BUILD_PATH=$(cat /tmp/setup-dune/module_builddir)
   rm -rf $BUILD_PATH

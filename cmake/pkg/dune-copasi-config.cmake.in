@@ -68,7 +68,4 @@ if(NOT dune-copasi_FOUND)
   # import targets
   get_filename_component(_dir "${CMAKE_CURRENT_LIST_FILE}" PATH)
   include("${_dir}/dune-copasi-targets.cmake")
-
-  # export short alias
-  add_library(dune::copasi ALIAS dune-copasi::dune-copasi)
 endif()

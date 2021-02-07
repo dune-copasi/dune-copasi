@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.13)
 project(dune-copasi CXX)
 
+include(GNUInstallDirs)
+
 cmake_policy(SET CMP0074 NEW)
 if(POLICY CMP0087)
   cmake_policy(SET CMP0087 OLD)
@@ -28,9 +30,6 @@ option(DUNE_COPASI_COMPILE_3D
       OFF
 )
 
-# make sure to find our own cmake modules
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
-
 # find dune dependencies
 find_package(dune-common REQUIRED)
 
@@ -41,23 +40,26 @@ include(DuneMacros)
 # start a dune project with information from dune.module, and find dune dependencies
 dune_project()
 
+# make sure to find and install our own cmake modules
+add_subdirectory(cmake/modules)
+
 # find specific dune-copasi dependencies
 find_package(muparser REQUIRED)
 find_package(TIFF REQUIRED)
 find_package(Filesystem)
 
-# if Filesystem is not found, using a fallback is mandatory, otherwise, optional
+# if standard C++ filesystem is not found, using a fallback is mandatory
 include(CMakeDependentOption)
-cmake_dependent_option(USE_FALLBACK_FILESYSTEM
+cmake_dependent_option(DUNE_USE_FALLBACK_FILESYSTEM
     "Use bundled std::filesystem alternative (enable this for macOS older than 10.15)" OFF
     "Filesystem_FOUND" ON
 )
 
-if(USE_FALLBACK_FILESYSTEM)
+if(DUNE_USE_FALLBACK_FILESYSTEM)
   # let's use ghc_filesystem
   find_package(ghc_filesystem)
 
-  # ... library not installed, we provide a fallback
+  # ... library not installed, we provide it from git
   if (NOT ghc_filesystem_FOUND)
     include(FetchContent)
     message("-- Declaring GHC Filesystem")
@@ -96,8 +98,8 @@ add_subdirectory(doc)
 finalize_dune_project(GENERATE_CONFIG_H_CMAKE)
 target_compile_definitions(dune-copasi INTERFACE HAVE_DUNE_COPASI_CONFIG_H)
 
-# main library is completely set up, define a read only 'dune::' alias for our main target
-add_library(dune::copasi ALIAS dune-copasi)
+# main library is completely set up, define a read only alias for our main target
+add_library(dune-copasi::dune-copasi ALIAS dune-copasi)
 
 # install generated config in build and install directories
 file(COPY "${CMAKE_CURRENT_BINARY_DIR}/config.h"

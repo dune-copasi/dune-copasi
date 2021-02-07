@@ -1,5 +1,3 @@
-include(GNUInstallDirs)
-
 # add source files to main library
 target_sources(dune-copasi
   PRIVATE
