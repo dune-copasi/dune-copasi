@@ -57,7 +57,7 @@ if(NOT dune-copasi_FOUND)
 
   find_dependency(muparser)
   find_dependency(TIFF)
-  if(@USE_FALLBACK_FILESYSTEM@)
+  if(@DUNE_USE_FALLBACK_FILESYSTEM@)
     find_dependency(ghc_filesystem REQUIRED)
   else()
     find_dependency(Filesystem REQUIRED)
