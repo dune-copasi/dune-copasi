@@ -21,7 +21,7 @@ for tag in $(git tag); do
 done
 
 echo "----------Get back to branch $BRANCH-----------"
-git checkout $BRANCH
+git checkout $BRANCH -- docs
 
 echo "----------Build yarn-----------"
 yarn build
