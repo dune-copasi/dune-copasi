@@ -42,20 +42,6 @@ stages:
   DEPENDENCIES_IMAGE: ${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${TOOLCHAIN}-${BASE_IMAGE_VERSION}
   MASTER_IMAGE: "true"
 
-.ubuntu_gcc: &ubuntu_gcc
-  <<: *global_variables
-  TOOLCHAIN: gcc-7-17
-  DUNECI_OS: ubuntu
-  BASE_IMAGE: ubuntu:18.04
-  DEPENDENCIES_IMAGE: ${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${TOOLCHAIN}-${BASE_IMAGE_VERSION}
-
-.ubuntu_clang: &ubuntu_clang
-  <<: *global_variables
-  TOOLCHAIN: clang-6-17
-  DUNECI_OS: ubuntu
-  BASE_IMAGE: ubuntu:18.04
-  DEPENDENCIES_IMAGE: ${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${TOOLCHAIN}-${BASE_IMAGE_VERSION}
-
 .setup: &setup
   image: ${DOCKER_IMAGE}
   stage: setup
@@ -146,28 +132,6 @@ deploy:debian_gcc:
   dependencies:
     - build:debian_gcc
 
-# # ubuntu gcc
-# setup:ubuntu_gcc:
-#   variables:
-#     <<: *docker_variables
-#     <<: *ubuntu_gcc
-#   <<: *setup
-
-# build:ubuntu_gcc:
-#   variables:
-#     <<: *ubuntu_gcc
-#   <<: *build
-#   dependencies:
-#     - setup:ubuntu_gcc
-
-# deploy:ubuntu_gcc:
-#   variables:
-#     <<: *docker_variables
-#     <<: *ubuntu_gcc
-#   <<: *deploy
-#   dependencies:
-#     - build:ubuntu_gcc
-
 # debian clang
 setup:debian_clang:
   variables:
@@ -189,20 +153,3 @@ deploy:debian_clang:
   <<: *deploy
   dependencies:
     - build:debian_clang
-
-# # ubuntu clang
-# setup:ubuntu_clang:
-#   <<: *ubuntu_clang
-#   <<: *setup
-
-# build:ubuntu_clang:
-#   <<: *ubuntu_clang
-#   <<: *build
-#   dependencies:
-#     - setup:ubuntu_clang
-
-# deploy:ubuntu_clang:
-#   <<: *ubuntu_clang
-#   <<: *deploy
-#   dependencies:
-#     - build:ubuntu_clang
