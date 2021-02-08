@@ -4,18 +4,18 @@ title: Mathematical Model
 sidebar_label: Math Model
 ---
 
-In the following, we decribe (in rather mathemathical terms) the actual
-model problem that we want to solve.
+In the following, we decribe in mathemathical terms the actual model problem
+that we want to solve.
 
 ## Continuous Problem
 
-In principle, we want to describe processes that are *continuously* observable in
+In principle, we want to describe processes which are *continuously* observable in
 time and space (e.g.
 [continuum mechanics](https://en.wikipedia.org/wiki/Continuum_mechanics#Concept_of_a_continuum)).
-Additionally, we are interested in systems of reaction-diffusion equations that
-compartmentalized. That is, where different compartments have different
-reaction-diffusion processes and the interaction between compartments happens
-*through* their compartment intesection (e.g. a
+Additionally, we are interested in systems of reaction-diffusion equations that are
+compartmentalized. That is, where each compartment has a different
+reaction-diffusion process and the interaction between them happens
+*through* the intersection between the two compartments (e.g. a
 [living cell](https://en.wikipedia.org/wiki/Cell_(biology))).
 
 ### Compartments
@@ -59,7 +59,7 @@ Lipschitz function and be mass conservative.
 
 ### Membrane
 
-We call the boundaries of the compartments as *membranes*. In particular, we
+We call *membranes* all the boundaries of the compartments. In particular, we
 designate its geometry to be a $(d-1)$-manifold defined with respect to the
 boundary of the compartments, i.e.,
 $$
@@ -76,13 +76,14 @@ where $\partial\Omega$ represents the boundaries of the domain $\Omega$.
 
 ### Transmission Conditions
 
-The flux rate at which compartment species are transformed and moved across the
-membrane depends on its concentration and the diffusion coefficients at
+The transmission conditions refer to the flux rate at which compartment
+species are transformed and moved across the membrane. It depends on the
+concentration of species and the diffusion coefficients at
 which species can move on the surroundings of the membrane. In our model, we say
-that such a transport is equal to the outer flux $\mathcal{D}_i^k$ of the
-species $i$ leaving the compartment $k$ and is defined by a general
+that this equals to the outer flux $\mathcal{D}_i^k$ of the
+species $i$ leaving the compartment $k$. It is defined by a general
 **transmission condition**, $\mathcal{T}^{kl}_i$, that may take the form of
-typical Robin boundary condition as well as complex chemical reaction networks
+typical Robin boundary conditions as well as complex chemical reaction networks
 for the different species touching the membrane, i.e.,
 $$
 \mathcal{D}_i^{k}\left(\bm{u}^k\right)\cdot\mathbf{n}^k = \mathcal{T}_i^{kl}\left(\bm{u}^k,\bm{u}^l\right)\qquad \text{on }\Gamma^{kl},
