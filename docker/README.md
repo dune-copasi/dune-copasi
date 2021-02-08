@@ -30,7 +30,7 @@ docker run -v $PWD dune-copasi config.ini
 
 ## Production containers
 
-The file (`deploy.dockerfile`)[deploy.dockerfile] basically defines the last stage
+The file [`deploy.dockerfile`](deploy.dockerfile) basically defines the last stage
 of the development container. The CI passes its packaged results and this container
 installs and tests the the packages. Finally, it is deployied to our registry. Its
 main purpose is to create docker containers with executables usable by end-users.

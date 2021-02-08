@@ -1,7 +1,7 @@
 [![Build Status](https://gitlab.dune-project.org/copasi/dune-copasi/badges/master/pipeline.svg)](https://gitlab.dune-project.org/copasi/dune-copasi/pipelines)
 [![Build Status](https://github.com/dune-copasi/dune-copasi/workflows/CI%20Builds/badge.svg?branch=master)](https://github.com/dune-copasi/dune-copasi/actions?query=branch%3Amaster+)
 
-## How does this CI works?
+## How does the CI works?
 
 We have 2 Continous Integration services:
   - [GitLab](https://docs.gitlab.com/ee/ci/)
@@ -15,6 +15,11 @@ For this, we have set up a main repository and a mirror:
 The main idea here is that they, the different CI, follow almost the same
 instructions in the different stages. In all the cases, the scripts expect
 configuration options defined in the main directory `dune-copasi.opts`.
+
+Their files are defined in the default places:
+
+  - [../.gitlab-ci.yml](../.gitlab-ci.yml)
+  - [../.github/workflow/ci.yml](../.github/workflow/ci.yml)
 
 ### Stage: Setup Precopiled Dependecies
 
