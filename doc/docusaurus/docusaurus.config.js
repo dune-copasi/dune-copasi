@@ -30,11 +30,6 @@ module.exports = {
     prism: {
       additionalLanguages: ['ini','cmake'],
     },
-    announcementBar: {
-      id: 'supportus',
-      content:
-        '⭐️ If you like DuneCopasi, give it a star on <a target="_blank" rel="noopener noreferrer" href="https://gitlab.dune-project.org/copasi/dune-copasi">GitLab</a> or <a target="_blank" rel="noopener noreferrer" href="https://github.com/dune-copasi/dune-copasi">GitHub</a>! ⭐️',
-    },
     navbar: {
       title: 'DuneCopasi',
       logo: {
