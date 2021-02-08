@@ -4,9 +4,9 @@ project(dune-copasi CXX)
 include(GNUInstallDirs)
 
 cmake_policy(SET CMP0074 NEW)
-# if(POLICY CMP0087)
-#   cmake_policy(SET CMP0087 OLD)
-# endif()
+if(POLICY CMP0087)
+  cmake_policy(SET CMP0087 OLD)
+endif()
 
 # define cmake options
 option(DUNE_COPASI_SD_EXECUTABLE

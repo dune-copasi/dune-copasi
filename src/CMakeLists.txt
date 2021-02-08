@@ -5,7 +5,7 @@ target_sources(dune-copasi
 )
 
 # set up single-domain executable
-add_executable(singledomain-exec EXCLUDE_FROM_ALL dune_copasi_sd.cc)
+add_executable(singledomain-exec EXCLUDE_FROM_ALL "${CMAKE_CURRENT_SOURCE_DIR}/dune_copasi_sd.cc")
 target_link_libraries(singledomain-exec PRIVATE dune-copasi)
 if(DUNE_COPASI_SD_EXECUTABLE)
   set_target_properties(singledomain-exec PROPERTIES EXCLUDE_FROM_ALL OFF)
@@ -18,7 +18,7 @@ endif()
 set_property(TARGET singledomain-exec PROPERTY RUNTIME_OUTPUT_NAME dune-copasi-sd)
 
 # set up multi-domain executable
-add_executable(multidomain-exec EXCLUDE_FROM_ALL dune_copasi_md.cc)
+add_executable(multidomain-exec EXCLUDE_FROM_ALL "${CMAKE_CURRENT_SOURCE_DIR}/dune_copasi_md.cc")
 target_link_libraries(multidomain-exec PRIVATE dune-copasi)
 if(DUNE_COPASI_MD_EXECUTABLE)
   set_target_properties(multidomain-exec PROPERTIES EXCLUDE_FROM_ALL OFF)
