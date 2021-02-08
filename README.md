@@ -6,13 +6,11 @@
 
 Solver for reaction-diffusion systems in multiple compartments
 
- * Solve a reaction-diffusion system for each comartment
- * Each compartment may have different system with different number of variables
- * Neumann flux at the interface of compartments for variables with
-   the same name on the two compartments
+ * Solve a different reaction-diffusion system for each comartment
+ * Custom fluxes between compartments
  * Easy to modify configuration file
- * Initial conditions can be a TIFF file or/and a math expression
- * Using the finite element
+ * Initial conditions can be a TIFF file and/or math expressions
+ * Using the finite element/finite volume method
  * Output in the VTK format
 
-Get started [here](https://dune-copasi.netlify.app/docs/).
+Get started [here](https://dune-copasi.netlify.app/docs//install_use).
