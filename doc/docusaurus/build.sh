@@ -18,6 +18,6 @@ for tag in $(git tag); do
 done
 
 git checkout $BRANCH
-git stash pop
+git stash pop &> /dev/null
 
 yarn build
