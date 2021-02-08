@@ -25,6 +25,3 @@ git checkout $BRANCH
 
 echo "----------Build yarn-----------"
 yarn build
-
-echo "----------Pop stash-----------"
-git stash pop &> /dev/null
