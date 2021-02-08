@@ -10,9 +10,10 @@ BRANCH=$(cat ../../.git/HEAD | awk -F '/' '{print $NF}')
 git stash
 
 for tag in $(git tag); do
-  git checkout $tag -- docs
-  if [[ $(git ls-files | grep docs) ]]; then
-    yarn run docusaurus docs:version $tag
+  if git checkout $tag -- docs; then
+    if [[ $(git ls-files | grep docs) ]]; then
+      yarn run docusaurus docs:version $tag
+    fi
   fi
 done
 

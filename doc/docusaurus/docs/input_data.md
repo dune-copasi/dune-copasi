@@ -10,8 +10,8 @@ Each `key=value` pair on the `[model.data]` section defines a
 [Context-Dependet-Function](math_expr.md) with 2 arguments named as the `key`
 indentifier. The corresponding `value` should contain the directory path for a
 16-bit grayscale TIFF file. These function are permitted to be used on the
-initialization of spatial variables for the compartments
-(i.e. `[model.<compartment>.initial]`). For example, on the initialization of
+initialization of spacial variables for the compartments
+(i.e. `[mode.<compartment>.initial]`). For example, on the initialization of
 variables for the `nucleus` compartment, the following math expressions for `u`
 and `v` are valid.
 
@@ -25,8 +25,5 @@ u = fnc_1(x, y) + fnc_2( -x, -y)
 v = 30 * fnc_1(x, t)
 ```
 
-:::caution Out of domain behavior
 If the resulting function is evaluated outside the domain of the TIFF image, the
-arguments will be [clamped](https://en.wikipedia.org/wiki/Clamping_(graphics)) to
-the nearest valid point in the domain.
-:::
+function will evaluate to `0`.
