@@ -5,6 +5,8 @@
 # variables from DUNE_OPTIONS_FILE
 #   (optional) CMAKE_FLAGS
 #   (optional) SUDOCMD
+#   (optional) CPACK_GENERATORS
+#   (optional) CPACK_PACKAGE_DIRECTORY
 
 set +e
 
