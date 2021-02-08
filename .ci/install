@@ -37,10 +37,6 @@ print_cmake_error() {
   cat "${BUILD_PATH}/src/CMakeFiles/multidomain-exec.dir/build.make"
 }
 
-print_make_error() {
-  cat "${BUILD_PATH}/src/CMakeFiles/multidomain-exec.dir/build.make"
-}
-
 cleanup() {
   echo "removig intermediate results"
   rm -rf $BUILD_PATH
@@ -49,7 +45,7 @@ cleanup() {
 # set up verbose output in case of failure
 ONFAILURE_PROG="git gcc g++ python pip python3 pip3 cmake $SUDOCMD"
 ONFAILURE_VARS="PATH SUDOCMD DUNE_OPTIONS_FILE CMAKE_FLAGS"
-ONFAILURE_CMD="ls print_make_error cleanup"
+ONFAILURE_CMD="ls cleanup"
 
 trap onfailure EXIT
 

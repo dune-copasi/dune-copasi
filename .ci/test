@@ -41,7 +41,7 @@ cleanup() {
 ONFAILURE_PROG="git gcc g++ python pip python3 pip3 cmake"
 ONFAILURE_VARS="PATH DUNE_OPTIONS_FILE "
 ONFAILURE_VARS+="DEBUG_CMAKE_FLAGS RELEASE_CMAKE_FLAGS"
-ONFAILURE_CMD="ls print_cmake_error cleanup"
+ONFAILURE_CMD="ls cleanup"
 
 trap onfailure EXIT
 
