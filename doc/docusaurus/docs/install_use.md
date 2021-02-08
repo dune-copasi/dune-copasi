@@ -369,10 +369,13 @@ git apply -C dune-logging dune-copasi/.ci/dune-logging.patch
 Then build and install the `DUNE` modules with the `dunecontrol` script:
 
 ```bash
-# configure and build dune modules
+# choose an installation path        (this is read by the 'dune-copasi.opts' file)
+export CMAKE_INSTALL_PREFIX=/opt/dune/
+
+# configure and build dune modules                              (go grab a coffee)
 ./dune-common/bin/dunecontrol --opts=dune-copasi/dune-copasi.opts all
 
-# install binaries and libraries into /opt/dune/     (may require sudo)
+# install binaries and libraries                                (may require sudo)
 ./dune-common/bin/dunecontrol --opts=dune-copasi/dune-copasi.opts bexec make install
 
 # remove source and build files
