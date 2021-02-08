@@ -157,7 +157,7 @@ for module in $MODULES; do
   PATCHES="$(eval echo \$SETUP_dune_${module}_PATCHES)"
   RECURSIVE="$(eval echo \$SETUP_dune_${module}_RECURSIVE)"
 
-  [[ ! -z "$RECURSIVE" ]] && RECURSIVE_ARG="--recursive"
+  [[ "$RECURSIVE" =~ ^(ON|on|1|yes|YES|true|TRUE)$ ]] && RECURSIVE_ARG="--recursive"
   git clone -b $BRANCH --depth 1 $RECURSIVE_ARG $REPO
 
   # on windows, symlinks from git repos don't work
