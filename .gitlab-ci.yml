@@ -68,7 +68,7 @@ stages:
   script:
     - ./.ci/install /duneci/dune.opts
     - ./.ci/test /duneci/dune.opts
-    - mkdir tmp
+    - mkdir -p packages
     - mv tmp/dune-copasi-*-Runtime.deb packages/dune-copasi-runtime.deb
   <<: *default_tags
   artifacts:
