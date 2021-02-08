@@ -33,7 +33,6 @@ stages:
   DUNECI_OS: debian
   BASE_IMAGE: debian:10
   DEPENDENCIES_IMAGE: ${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${TOOLCHAIN}-${BASE_IMAGE_VERSION}
-  MASTER_IMAGE: "true"
 
 .debian_clang: &debian_clang
   <<: *global_variables
@@ -41,6 +40,7 @@ stages:
   DUNECI_OS: debian
   BASE_IMAGE: debian:10
   DEPENDENCIES_IMAGE: ${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${TOOLCHAIN}-${BASE_IMAGE_VERSION}
+  MASTER_IMAGE: "true"
 
 .ubuntu_gcc: &ubuntu_gcc
   <<: *global_variables
