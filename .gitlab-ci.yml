@@ -68,6 +68,7 @@ stages:
   script:
     - ./.ci/install /duneci/dune.opts
     - ./.ci/test /duneci/dune.opts
+    - cd packages && rm -rf _CPack_Packages *-Development.deb *-Unspecified.deb
   <<: *default_tags
   artifacts:
     paths:
