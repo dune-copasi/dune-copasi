@@ -57,7 +57,7 @@ cmake_dependent_option(DUNE_USE_FALLBACK_FILESYSTEM
 
 if(DUNE_USE_FALLBACK_FILESYSTEM)
   # let's use ghc_filesystem
-  find_package(ghc_filesystem)
+  find_package(ghc_filesystem QUIET)
 
   # ... library not installed, we provide it from git
   if (NOT ghc_filesystem_FOUND)
@@ -65,15 +65,14 @@ if(DUNE_USE_FALLBACK_FILESYSTEM)
     message("-- Declaring GHC Filesystem")
     FetchContent_Declare(
       ghc_filesystem
-      GIT_REPOSITORY https://github.com/gulrak/filesystem
-      GIT_TAG        v1.5.0
+      GIT_REPOSITORY https://github.com/SoilRos/filesystem.git
+      GIT_TAG        fix-config-installation
     )
 
     if(NOT ghc_filesystem_POPULATED)
       message("-- Populating GHC Filesystem")
       FetchContent_Populate(ghc_filesystem)
       add_subdirectory("${ghc_filesystem_SOURCE_DIR}" "${ghc_filesystem_BINARY_DIR}")
-      export(EXPORT ghcFilesystemConfig FILE "${CMAKE_CURRENT_BINARY_DIR}/ghc_filesystem-targets.cmake")
     endif()
   endif()
 endif()

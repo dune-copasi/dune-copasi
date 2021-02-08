@@ -64,9 +64,9 @@ export CMAKE_GENERATOR=${CMAKE_GENERATOR:-"'Unix Makefiles'"}
 export CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-Release}
 export CMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD:-17}
 export CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS:-"'-fvisibility=hidden -fpic'"}
-export CMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE:-"'-fvisibility=hidden -fpic -O3'"}
-export CMAKE_CXX_FLAGS_RELWITHDEBINFO=${CMAKE_CXX_FLAGS_RELWITHDEBINFO:-"'-fvisibility=hidden -fpic -O2 -g3 -DNDEBUG -fno-omit-frame-pointer'"}
-export CMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG:-"'-fvisibility=hidden -fpic -O0 -g'"}
+export CMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE:-"'-O3'"}
+export CMAKE_CXX_FLAGS_RELWITHDEBINFO=${CMAKE_CXX_FLAGS_RELWITHDEBINFO:-"'-O2 -g3 -DNDEBUG -fno-omit-frame-pointer'"}
+export CMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG:-"'-O0 -g'"}
 export CMAKE_DISABLE_FIND_PACKAGE_MPI=${CMAKE_DISABLE_FIND_PACKAGE_MPI:-ON}
 
 if [[ ! "$DUNE_COPASI_USE_STATIC_DEPS" =~ ^(ON|on|ON|TRUE|true|1)$ ]];then
