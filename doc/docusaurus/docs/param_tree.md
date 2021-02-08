@@ -370,7 +370,7 @@ An example of an ini file with all the parameters required by
 `dune-copasi` for the [Gray-Scott model](http://mrob.com/pub/comp/xmorphia/F420/F420-k610.html)
 is
 
-```ini
+```ini title="config.ini"
 [grid]
 dimension = 2
 file = path/to/grid.msh

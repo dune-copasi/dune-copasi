@@ -25,7 +25,7 @@ adventage of this package is that is tailored for biologists and is availalbe
 with just a pair of clicks on the major plataforms. Find more information
 [here](https://spatial-model-editor.readthedocs.io/en/latest/quickstart/get-started.html)!
 
-[![sme](/img/spatial-model-editor.png)]((https://spatial-model-editor.readthedocs.io/en/latest/quickstart/get-started.html))
+[![sme](./img/spatial-model-editor.png)](https://spatial-model-editor.readthedocs.io/en/latest/quickstart/get-started.html)
 
 ### Configuration File
 
@@ -48,7 +48,7 @@ to generate custom simulation rules, to couple intermediate steps with other
 tools, or to implement another GUI, etc. In such a case, `dune-copasi` must be
 available in development mode and the downstream library is expected to
 [consume the library](#importing-cmake-targets) by using the
-[CMake build system](cmake.org) and use the [C++ objects](api.md) in code.
+[CMake build system](https://cmake.org) and use the [C++ objects](api.md) in code.
 
 ## Installation
 
@@ -91,7 +91,8 @@ nano config.ini
 #### Run the program
 
 Here, you may pull and run the latest stable container from our
-[GitLab registry](https://gitlab.dune-project.org/copasi/dune-copasi/container_registry). To do so, call the docker container with a configuration
+[GitLab registry](https://gitlab.dune-project.org/copasi/dune-copasi/container_registry).
+To do so, call the docker container with a configuration
 file `config.ini` using one of the following commands on the terminal:
 
 <Tabs
@@ -262,9 +263,39 @@ on the [DUNE GitLab](https://gitlab.dune-project.org/).
 An important part of the installation procedure is to tune the build system
 flags to accomodate the build to your system. This is done via the dune options
 file. In essence is just a bash script that sets different flags (mainly the flags
-for CMake). While the dune project usually leaves this open for the user, we
-provide a `dune-copasi.opts` file with sensible options for the main use cases.
-If this does not fit your needs, it is quite easy to set up a new one:
+for CMake `CMAKE_FLAGS`). While the dune project usually leaves this open for the user, we
+provide a `dune-copasi.opts` file with sensible default options for the main
+operating systems.
+
+This file can be called to show the current configuration:
+
+```bash
+./dune-copasi.opts
+```
+
+There are two form to add flags to the `dune-copasi.opts` file:
+
+1. Setting enviromental variables starging with `CMAKE_` and `DUNE_`.
+   These variables will be automatically added to the list of cmake flags.
+
+```bash
+export CMAKE_INSTALL_PREFIX="/path/to/install/prefix/"
+export CMAKE_GENERATOR="'Ninja'"
+./dune-copasi.opts
+# or
+CMAKE_INSTALL_PREFIX="/path/to/install/prefix/" CMAKE_GENERATOR="'Ninja'" ./dune-copasi.opts
+```
+
+2. Appending new flags into the `CMAKE_FLAGS` variable in the `dune-copasi.opts` file
+  (care must be taken to scape quotes):
+
+```bash
+echo 'CMAKE_FLAGS+=" -DCMAKE_INSTALL_PREFIX=/path/to/install/prefix/"' >> dune-copasi.opts
+echo "CMAKE_FLAGS+=\" -DCMAKE_GENERATOR='Ninja'\"" >> dune-copasi.opts
+./dune-copasi.opts
+```
+
+If this still does not fit your needs, it is quite easy to set up a new options file:
 
 ```bash
 # dune.opts
