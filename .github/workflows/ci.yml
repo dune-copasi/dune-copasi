@@ -11,7 +11,7 @@ jobs:
     name: Linux
     runs-on: ubuntu-16.04
     env:
-      CMAKE_INSTALL_PREFIX: '/opt/dune'
+      CMAKE_INSTALL_PREFIX: '/opt/smelibs'
       TERM: 'xterm-256color'
     defaults:
       run:
@@ -39,7 +39,7 @@ jobs:
     name: MacOS
     runs-on: macos-10.15
     env:
-      CMAKE_INSTALL_PREFIX: '/opt/dune'
+      CMAKE_INSTALL_PREFIX: '/opt/smelibs'
       MACOSX_DEPLOYMENT_TARGET: '10.14'
       DUNE_USE_FALLBACK_FILESYSTEM: 'ON'
       TERM: 'xterm-256color'
@@ -64,7 +64,7 @@ jobs:
     name: Windows 64-bit
     runs-on: windows-2019
     env:
-      CMAKE_INSTALL_PREFIX: '/c/dune'
+      CMAKE_INSTALL_PREFIX: '/c/smelibs'
     defaults:
       run:
         shell: msys2 {0}
@@ -91,7 +91,7 @@ jobs:
     name: Windows 32-bit
     runs-on: windows-2019
     env:
-      CMAKE_INSTALL_PREFIX: '/c/dune'
+      CMAKE_INSTALL_PREFIX: '/c/smelibs'
     defaults:
       run:
         shell: msys2 {0}
