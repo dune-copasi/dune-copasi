@@ -51,7 +51,6 @@ BUILD_PATH=/tmp/build-unit-tests
 [[ -d ${BUILD_PATH} ]] && ONFAILURE_MESSAGE+="the folder '${BUILD_PATH}' should not exist prior running this script\n" && exit 1
 mkdir $BUILD_PATH && cd $BUILD_PATH
 
-CMAKE_BUILD_TYPE="Debug"
 if [[ -n "$DUNE_OPTIONS_FILE" ]]; then
   DEBUG_CMAKE_FLAGS="$(. $DUNE_OPTIONS_FILE; eval echo \$CMAKE_FLAGS)"
 fi
@@ -67,7 +66,6 @@ BUILD_PATH=/tmp/build-system-tests
 [[ -d ${BUILD_PATH} ]] && ONFAILURE_MESSAGE+="the folder '${BUILD_PATH}' should not exist prior running this script\n" && exit 1
 mkdir $BUILD_PATH && cd $BUILD_PATH
 
-CMAKE_BUILD_TYPE="Release"
 if [[ -n "$DUNE_OPTIONS_FILE" ]]; then
   RELEASE_CMAKE_FLAGS="$(. $DUNE_OPTIONS_FILE; eval echo \$CMAKE_FLAGS)"
 fi
