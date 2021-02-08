@@ -2,13 +2,16 @@ name: CI Builds
 
 on: push
 
+env:
+  DUNE_COPASI_USE_STATIC_DEPS: 'ON'
+  DUNE_COPASI_SD_EXECUTABLE: 'ON'
+
 jobs:
   linux:
     name: Linux
     runs-on: ubuntu-16.04
     env:
       CMAKE_INSTALL_PREFIX: '/opt/dune'
-      DUNE_COPASI_USE_STATIC_DEPS: 'ON'
       TERM: 'xterm-256color'
     defaults:
       run:
@@ -37,7 +40,6 @@ jobs:
     runs-on: macos-10.15
     env:
       CMAKE_INSTALL_PREFIX: '/opt/dune'
-      DUNE_COPASI_USE_STATIC_DEPS: 'ON'
       MACOSX_DEPLOYMENT_TARGET: '10.14'
       TERM: 'xterm-256color'
     defaults:
@@ -62,7 +64,6 @@ jobs:
     runs-on: windows-2019
     env:
       CMAKE_INSTALL_PREFIX: '/c/dune'
-      DUNE_COPASI_USE_STATIC_DEPS: 'ON'
     defaults:
       run:
         shell: msys2 {0}
@@ -90,7 +91,6 @@ jobs:
     runs-on: windows-2019
     env:
       CMAKE_INSTALL_PREFIX: '/c/dune'
-      DUNE_COPASI_USE_STATIC_DEPS: 'ON'
     defaults:
       run:
         shell: msys2 {0}

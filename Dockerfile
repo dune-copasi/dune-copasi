@@ -27,9 +27,7 @@ RUN ./dune-copasi/.ci/setup_dune /duneci/dune.opts
 # build and install dune-copasi from the setup-env
 FROM ${BUILD_BASE_IMAGE} AS build-env
 
-ENV PATH=/duneci/install/bin:$PATH
-ENV TERM=xterm-256color
-ENV CMAKE_INSTALL_PREFIX=/duneci/install
+ENV DUNE_COPASI_SD_EXECUTABLE='ON'
 ENV CPACK_GENERATORS=DEB
 ENV CPACK_PACKAGE_DIRECTORY=/duneci/packages
 
