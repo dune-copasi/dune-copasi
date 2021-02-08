@@ -20,7 +20,11 @@ for tag in $(git tag); do
   fi
 done
 
+echo "----------Get back to branch $BRANCH-----------"
 git checkout $BRANCH
-git stash pop &> /dev/null
 
+echo "----------Build yarn-----------"
 yarn build
+
+echo "----------Pop stash-----------"
+git stash pop &> /dev/null
