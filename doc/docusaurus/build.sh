@@ -7,7 +7,9 @@ set +e
 BRANCH=$(cat ../../.git/HEAD | awk -F '/' '{print $NF}')
 
 for tag in $(git tag)
-  do yarn run docusaurus docs:version $tag
+  if [[ -d docs ]]; then
+    yarn run docusaurus docs:version $tag
+  fi
 done
 
 git checkout $BRANCH
