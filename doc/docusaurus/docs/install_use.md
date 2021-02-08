@@ -195,7 +195,6 @@ brew uninstall dune-copasi@0.3
 
   </TabItem>
 </Tabs>
- 
 
 ### Docker Build
 
