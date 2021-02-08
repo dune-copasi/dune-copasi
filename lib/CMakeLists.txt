@@ -11,7 +11,11 @@ endif()
 # Set up filesystem. Where do we get it from?
 if(DUNE_USE_FALLBACK_FILESYSTEM)
   # and add ghc_filesystem to our filesystem target
-  target_link_libraries(dune-copasi PUBLIC ghcFilesystem::ghc_filesystem)
+  if(ghc_filesystem_FOUND)
+    target_link_libraries(dune-copasi PUBLIC ghcFilesystem::ghc_filesystem)
+  else()
+    target_link_libraries(dune-copasi PUBLIC ghc_filesystem)
+  endif()
   target_compile_definitions(dune-copasi PUBLIC DUNE_USE_FALLBACK_FILESYSTEM)
 else()
   # ... else we don't need a back up. Link agaist standard library
