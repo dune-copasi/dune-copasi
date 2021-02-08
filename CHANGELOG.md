@@ -32,8 +32,23 @@ Types of changes
 - Skip intersection methods in local operators !36
 - Parameters to control Newton's method !30
 - Stepper interface to snap solution to a specific time !45
+- Provide help message when executables are not used correctly !49
+- Produce Debian Packages on the CI !49
+- Installation is now divided on three components: `Runtime|Library|Development` !49
+- Define a recommended dune options file (`dune-copasi.opts`)[dune-copasi.opts] !49
+- Versioned documentation !49
 ### Changed
 - TIFF images are clamped instead of zeroed when evaluated outside its domain !47
+- Produce versioned documentation !49
+- Travis and Appveyor are replaced for GitHub Actions on `Linux|MacOS|Windows` !49
+- Increment CMake required version to 3.13 !49
+- Installed CMake project is now consumable by other CMake projects !49
+- Vendor GHC with CMake instead of git submodules !49
+- Increase vendored GHC version to 10.5 !49
+- Force GHC usage whenever c++ filesystem cannot be found, else, optional !49
+- CI scripts are improved to simplfy usage !49
+- Simplify build and usage on docker containers !49
+- Drastically reduce size of final docker container !49
 ### Removed
 - Automatic flux between compartment components with same name !30
 - Jacobian operator is managed by the stepper instead of the model !39
@@ -44,6 +59,7 @@ Types of changes
 - Improper vector allocation in multidomain intersections !39
 - Final timestep reduction to reach `end_time` failed in adaptive stepper !43
 - Infinite loop when final adaptive step failed !45
+- Binary executables are now installed !49
 
 ## [0.3.0] ([git-diff][0.3.0-diff]) - 2020-10-07
 ### Added
