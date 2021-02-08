@@ -8,6 +8,9 @@ if(POLICY CMP0087)
   cmake_policy(SET CMP0087 OLD)
 endif()
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
+find_package(muparser REQUIRED)
+
 # define cmake options
 option(DUNE_COPASI_SD_EXECUTABLE
        "Build SingleDomain executable by default"
@@ -44,7 +47,6 @@ dune_project()
 add_subdirectory(cmake/modules)
 
 # find specific dune-copasi dependencies
-find_package(muparser REQUIRED)
 find_package(TIFF REQUIRED)
 find_package(Filesystem)
 
