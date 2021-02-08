@@ -146,7 +146,7 @@ with [INI](#configuration-file) usage, installation is as simple as:
   <TabItem value="apt">
 
 ```bash
-curl -fsSL TODO -o dune-copasi-runtime.deb
+curl -fsSL https://gitlab.dune-project.org/copasi/dune-copasi/-/jobs/artifacts/v0.3.0/raw/packages/dune-copasi-runtime.deb?job=build:debian_clang -o dune-copasi-runtime.deb
 apt install ./dune-copasi-runtime.deb
 ```
 

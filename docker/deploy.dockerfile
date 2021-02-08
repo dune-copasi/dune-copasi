@@ -11,7 +11,7 @@ RUN rm -f /etc/apt/apt.conf.d/docker-gzip-indexes \
   && rm -rf /var/lib/apt/lists/*
 RUN export DEBIAN_FRONTEND=noninteractive; \
   apt-get update && apt-get dist-upgrade --no-install-recommends --yes \
-  && apt-get install --no-install-recommends --yes ./dune-copasi-*-Runtime.deb \
+  && apt-get install --no-install-recommends --yes ./dune-copasi-runtime.deb \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 RUN rm -rf /packages
 

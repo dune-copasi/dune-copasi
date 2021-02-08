@@ -18,7 +18,7 @@ stages:
   BASE_IMAGE_VERSION: v0.4.0-git
   DUNE_COPASI_SD_EXECUTABLE: 'ON'
   CPACK_GENERATORS: 'DEB'
-  CPACK_PACKAGE_DIRECTORY: $CI_PROJECT_DIR/packages
+  CPACK_PACKAGE_DIRECTORY: $CI_PROJECT_DIR/tmp
 
 .docker_variables: &docker_variables
   DOCKER_BUILDKIT: 1
@@ -68,7 +68,8 @@ stages:
   script:
     - ./.ci/install /duneci/dune.opts
     - ./.ci/test /duneci/dune.opts
-    - cd packages && rm -rf _CPack_Packages *-Development.deb *-Unspecified.deb
+    - mkdir tmp
+    - mv tmp/dune-copasi-*-Runtime.deb packages/dune-copasi-runtime.deb
   <<: *default_tags
   artifacts:
     paths:
