@@ -40,7 +40,7 @@ if [[ -z $OS_TARGET ]]; then
     [ ! -w "$CMAKE_INSTALL_PREFIX" ] && SUDOCMD="sudo"
   elif [[ "$OSTYPE" == "darwin"* ]]; then
     OS_TARGET="osx"
-    OS_VERSION=${OSTYPE#darwin}
+    OS_VERSION=${MACOSX_DEPLOYMENT_TARGET:-${OSTYPE#darwin}}
     # use fallback filesystem on darwin older than 10.15
     if (( $(echo $OS_VERSION 10.15 | awk '{if ($1 < $2) print 1;}') )); then
       export DUNE_USE_FALLBACK_FILESYSTEM=${DUNE_USE_FALLBACK_FILESYSTEM:-ON}
@@ -75,6 +75,7 @@ if [[ ! "$DUNE_COPASI_USE_STATIC_DEPS" =~ ^(ON|on|ON|TRUE|true|1)$ ]];then
   CMAKE_FLAGS+=" -DGMP_LIB:FILEPATH='"${CMAKE_INSTALL_PREFIX}"/lib/libgmp.a'"
   CMAKE_FLAGS+=" -Dfmt_ROOT='"${CMAKE_INSTALL_PREFIX}"'"
   CMAKE_FLAGS+=" -DF77=true"
+  DUNE_VENDOR_FMT='OFF'
 fi
 
 # default dune flags

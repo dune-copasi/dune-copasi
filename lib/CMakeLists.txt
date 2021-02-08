@@ -9,7 +9,7 @@ if (DUNE_COPASI_COMPILE_3D)
 endif()
 
 # Set up filesystem. Where do we get it from?
-if(USE_FALLBACK_FILESYSTEM)
+if(DUNE_USE_FALLBACK_FILESYSTEM)
   # and add ghc_filesystem to our filesystem target
   target_link_libraries(dune-copasi PUBLIC ghcFilesystem::ghc_filesystem)
   target_compile_definitions(dune-copasi PUBLIC DUNE_USE_FALLBACK_FILESYSTEM)

@@ -41,6 +41,7 @@ jobs:
     env:
       CMAKE_INSTALL_PREFIX: '/opt/dune'
       MACOSX_DEPLOYMENT_TARGET: '10.14'
+      DUNE_USE_FALLBACK_FILESYSTEM: 'ON'
       TERM: 'xterm-256color'
     defaults:
       run:
