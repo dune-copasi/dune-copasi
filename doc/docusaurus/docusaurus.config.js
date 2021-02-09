@@ -2,6 +2,12 @@
 const math = require('remark-math')
 const katex = require('rehype-katex')
 
+const copyright = `Copyright © ${new Date().getFullYear()} Ruprecht-Karls-Universität Heidelberg`
+const impressum = `<a href="https://www.uni-heidelberg.de/impressum.html" rel="noreferrer">Impressum</a>`
+const datenschutz = `<a href="https://www.uni-heidelberg.de/datenschutzerklaerung_web.html" rel="noreferrer">Datenschutzerklärung</a>`
+const disclaimer = `<a href="https://www.uni-heidelberg.de/haftungsausschluss_web.html" rel="noreferrer">Haftungsausschluss</a>`
+
+
 module.exports = {
   title: 'Dune Copasi',
   tagline: 'Solver for reaction-diffusion systems in multiple compartments',
@@ -88,6 +94,7 @@ module.exports = {
     footer: {
       style: 'dark',
       links: [],
+      copyright: `${copyright} | ${impressum} | ${datenschutz} | ${disclaimer}`,
     },
   },
   presets: [

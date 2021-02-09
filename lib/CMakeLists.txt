@@ -74,5 +74,3 @@ install(TARGETS ${AUX_DEVELOPMENT_TARGETS}
   ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     COMPONENT Development
 )
-
-include(SetupDuneCopasiCPack)
