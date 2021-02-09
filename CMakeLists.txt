@@ -65,8 +65,8 @@ if(DUNE_USE_FALLBACK_FILESYSTEM)
     message("-- Declaring GHC Filesystem")
     FetchContent_Declare(
       ghc_filesystem
-      GIT_REPOSITORY https://github.com/SoilRos/filesystem.git
-      GIT_TAG        fix-config-installation
+      GIT_REPOSITORY https://github.com/gulrak/filesystem.git
+      GIT_TAG        0f6f0af4b42480ad5e0e4c033e5c37659842c252
     )
 
     if(NOT ghc_filesystem_POPULATED)

@@ -44,7 +44,7 @@ Types of changes
 - Increment CMake required version to 3.13 !49
 - Installed CMake project is now consumable by other CMake projects !49
 - Vendor GHC with CMake instead of git submodules !49
-- Increase vendored GHC version to 10.5 !49
+- Increase vendored GHC version to 10.5 !49 & !51
 - Force GHC usage whenever c++ filesystem cannot be found, else, optional !49
 - CI scripts are improved to simplfy usage !49
 - Simplify build and usage on docker containers !49
