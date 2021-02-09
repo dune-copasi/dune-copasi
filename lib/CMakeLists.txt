@@ -2,9 +2,11 @@
 dune_target_enable_all_packages(dune-copasi)
 
 # add dependencies
-target_link_libraries(dune-copasi PUBLIC ${DUNE_LIBS} TIFF::TIFF muparser::muparser)
-
-if (DUNE_COPASI_COMPILE_3D)
+target_link_libraries(dune-copasi PUBLIC ${DUNE_LIBS} TIFF::TIFF PkgConfig::muparser)
+if(NOT ${BUILD_SHARED_LIBS})
+  target_compile_definitions(dune-copasi PUBLIC MUPARSER_STATIC)
+endif()
+if(DUNE_COPASI_COMPILE_3D)
   target_compile_definitions(dune-copasi PUBLIC DUNE_COPASI_COMPILE_3D)
 endif()
 

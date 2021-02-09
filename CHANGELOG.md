@@ -37,6 +37,7 @@ Types of changes
 - Installation is now divided on three components: `Runtime|Library|Development` !49
 - Define a recommended dune options file (`dune-copasi.opts`)[dune-copasi.opts] !49
 - Versioned documentation !49
+- Dependency on `pkg-config` !52
 ### Changed
 - TIFF images are clamped instead of zeroed when evaluated outside its domain !47
 - Produce versioned documentation !49
@@ -54,6 +55,7 @@ Types of changes
 - Automatic flux between compartment components with same name !30
 - Jacobian operator is managed by the stepper instead of the model !39
 - Jacobian tests are improved and extended to cover more cases !39
+- CMake module to find muparser, use `pkg-config` instead !52
 ### Fixed
 - Finished and documented Installation procedure !49
 - Wrong rounding on y pixels on TIFF file reads !47

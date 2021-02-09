@@ -252,6 +252,7 @@ The following list of software is required to install and use `dune-copasi`:
 | Software | Version/Branch |
 | ---------| -------------- |
 | [CMake](https://cmake.org/)                                                                 | >= 3.1 |
+| [pkg-config](https://freedesktop.org/wiki/Software/pkg-config/)                             | -        |
 | C++ compiler  | >= [C++17](https://en.wikipedia.org/wiki/List_of_compilers#C++_compilers) |
 | [libTIFF](http://www.libtiff.org/)                                                          | >= 3.6.1 |
 | [muParser](https://beltoforion.de/article.php?a=muparser)                                   | >= 2.2.5 |
@@ -331,7 +332,7 @@ unix-like operating systems. e.g.
 
 ```bash
 apt update
-apt install cmake gcc g++ libtiff-dev libmuparser-dev git
+apt install cmake pkg-config gcc g++ libtiff-dev libmuparser-dev git
 ```
 
   </TabItem>
@@ -339,7 +340,7 @@ apt install cmake gcc g++ libtiff-dev libmuparser-dev git
 
 ```bash
 brew update
-brew install cmake gcc libtiff muparser git
+brew install cmake pkg-config gcc libtiff muparser git
 ```
 
   </TabItem>

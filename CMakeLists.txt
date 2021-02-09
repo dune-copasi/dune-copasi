@@ -44,7 +44,8 @@ dune_project()
 add_subdirectory(cmake/modules)
 
 # find specific dune-copasi dependencies
-find_package(muparser REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_search_module(muparser REQUIRED IMPORTED_TARGET muparser)
 find_package(TIFF REQUIRED)
 find_package(Filesystem)
 
