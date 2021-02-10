@@ -50,7 +50,8 @@ Types of changes
 - CI scripts are improved to simplfy usage !49
 - Simplify build and usage on docker containers !49
 - Drastically reduce size of final docker container !49
-- Improve performance on cases with no interaction between all species !53
+- Improve performance on cases with no interaction between all species !43
+- `dune-logging` and `dune-multidomaingrid` no longer require a COPASI namespace fork !53
 ### Removed
 - Automatic flux between compartment components with same name !30
 - Jacobian operator is managed by the stepper instead of the model !39

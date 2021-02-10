@@ -59,12 +59,12 @@ for module in common geometry grid istl localfunctions; do
   eval SETUP_dune_${module}_REPO=\"https://gitlab.dune-project.org/core/dune-${module}.git\"
 done
 
-for module in functions uggrid; do
+for module in logging functions uggrid; do
   eval SETUP_dune_${module}_BRANCH=\"releases/2.7\"
   eval SETUP_dune_${module}_REPO=\"https://gitlab.dune-project.org/staging/dune-${module}.git\"
 done
 
-for module in logging typetree pdelab multidomaingrid
+for module in typetree pdelab
 do
   eval SETUP_dune_${module}_BRANCH=\"support/dune-copasi-v0.3\"
   eval SETUP_dune_${module}_REPO=\"https://gitlab.dune-project.org/copasi/dune-${module}.git\"
@@ -73,10 +73,12 @@ done
 SETUP_dune_testtools_BRANCH="releases/2.7"
 SETUP_dune_testtools_REPO="https://gitlab.dune-project.org/quality/dune-testtools.git"
 
+SETUP_dune_multidomaingrid_BRANCH="releases/2.7"
+SETUP_dune_multidomaingrid_REPO="https://gitlab.dune-project.org/extensions/dune-multidomaingrid.git"
+
 cat ${SCRIPT_DIR}/dune-common.patch >> "${PWD}/dune-common.patch"
 
 SETUP_dune_common_PATCHES="${SCRIPT_DIR}/dune-common.patch"
-SETUP_dune_logging_PATCHES="${SCRIPT_DIR}/dune-logging.patch"
 
 SETUP_dune_logging_RECURSIVE="$DUNE_VENDOR_FMT"
 

@@ -252,7 +252,6 @@ The following list of software is required to install and use `dune-copasi`:
 | Software | Version/Branch |
 | ---------| -------------- |
 | [CMake](https://cmake.org/)                                                                 | >= 3.1 |
-| [pkg-config](https://freedesktop.org/wiki/Software/pkg-config/)                             | -        |
 | C++ compiler  | >= [C++17](https://en.wikipedia.org/wiki/List_of_compilers#C++_compilers) |
 | [libTIFF](http://www.libtiff.org/)                                                          | >= 3.6.1 |
 | [muParser](https://beltoforion.de/article.php?a=muparser)                                   | >= 2.2.5 |
@@ -263,10 +262,10 @@ The following list of software is required to install and use `dune-copasi`:
 | [dune-istl](https://gitlab.dune-project.org/core/dune-istl)                                 | == 2.7 |
 | [dune-localfunctions](https://gitlab.dune-project.org/core/dune-localfunctions)             | == 2.7 |
 | [dune-functions](https://gitlab.dune-project.org/staging/dune-functions)                    | == 2.7 |
-| [COPASI/dune-logging](https://gitlab.dune-project.org/copasi/dune-logging)                  | `support/dune-copasi-latest` |
+| [dune-logging](https://gitlab.dune-project.org/staging/dune-logging)                        | == 2.7 |
+| [dune-multidomaingrid](https://gitlab.dune-project.org/extensions/dune-multidomaingrid)     | == 2.7 |
 | [COPASI/dune-typetree](https://gitlab.dune-project.org/copasi/dune-typetree)                | `support/dune-copasi-latest` |
 | [COPASI/dune-pdelab](https://gitlab.dune-project.org/copasi/dune-pdelab)                    | `support/dune-copasi-latest` |
-| [COPASI/dune-multidomaingrid](https://gitlab.dune-project.org/copasi/dune-multidomaingrid)  | `support/dune-copasi-latest` |
 
 :::info
 Notice that some required dune modules are forks of original reopsitories and
@@ -332,7 +331,7 @@ unix-like operating systems. e.g.
 
 ```bash
 apt update
-apt install cmake pkg-config gcc g++ libtiff-dev libmuparser-dev git
+apt install cmake gcc g++ libtiff-dev libmuparser-dev git
 ```
 
   </TabItem>
@@ -340,7 +339,7 @@ apt install cmake pkg-config gcc g++ libtiff-dev libmuparser-dev git
 
 ```bash
 brew update
-brew install cmake pkg-config gcc libtiff muparser git
+brew install cmake gcc libtiff muparser git
 ```
 
   </TabItem>
@@ -368,15 +367,14 @@ git clone -b releases/2.7 https://gitlab.dune-project.org/staging/dune-uggrid
 git clone -b releases/2.7 https://gitlab.dune-project.org/core/dune-istl
 git clone -b releases/2.7 https://gitlab.dune-project.org/core/dune-localfunctions
 git clone -b releases/2.7 https://gitlab.dune-project.org/staging/dune-functions
-git clone -b support/dune-copasi-latest --recursive https://gitlab.dune-project.org/copasi/dune-logging
+git clone -b releases/2.7 https://gitlab.dune-project.org/extensions/dune-multidomaingrid
+git clone -b releases/2.7 --recursive https://gitlab.dune-project.org/staging/dune-logging
 git clone -b support/dune-copasi-latest https://gitlab.dune-project.org/copasi/dune-typetree
 git clone -b support/dune-copasi-latest https://gitlab.dune-project.org/copasi/dune-pdelab
-git clone -b support/dune-copasi-latest https://gitlab.dune-project.org/copasi/dune-multidomaingrid
 git clone -b latest https://gitlab.dune-project.org/copasi/dune-copasi
 
 # apply patches
 git apply -C dune-common dune-copasi/.ci/dune-common.patch
-git apply -C dune-logging dune-copasi/.ci/dune-logging.patch
 ```
 
 Then, build and install the `DUNE` modules with the `dunecontrol` script:
