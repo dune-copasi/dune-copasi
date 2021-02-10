@@ -30,6 +30,8 @@ option(DUNE_COPASI_COMPILE_3D
       OFF
 )
 
+########## Setup dependencies ##########
+
 # find dune dependencies
 find_package(dune-common REQUIRED)
 
@@ -78,10 +80,37 @@ if(DUNE_USE_FALLBACK_FILESYSTEM)
   endif()
 endif()
 
-# create main target
+########## Setup dependency target ##########
+
+# create a target to gather all dependencies
+add_library(dune-copasi-deps INTERFACE)
+target_link_libraries(dune-copasi-deps INTERFACE ${DUNE_LIBS} TIFF::TIFF PkgConfig::muparser)
+
+# add missing definition from muparser pkg-config file
+if(NOT ${BUILD_SHARED_LIBS})
+  target_compile_definitions(dune-copasi-deps INTERFACE MUPARSER_STATIC)
+endif()
+
+# Set up filesystem. Where do we get it from?
+if(DUNE_USE_FALLBACK_FILESYSTEM)
+  # and add ghc_filesystem to our filesystem target
+  target_link_libraries(dune-copasi-deps INTERFACE ghcFilesystem::ghc_filesystem)
+  target_compile_definitions(dune-copasi-deps INTERFACE DUNE_USE_FALLBACK_FILESYSTEM)
+else()
+  # ... else we don't need a back up. Link agaist standard library
+  target_link_libraries(dune-copasi-deps INTERFACE std::filesystem)
+endif()
+
+########## Create main liabrary ##########
+
+# create main library
 add_library(dune-copasi)
 set_target_properties(dune-copasi PROPERTIES LIBRARY_OUTPUT_NAME dunecopasi)
 set_target_properties(dune-copasi PROPERTIES ARCHIVE_OUTPUT_NAME dunecopasi)
+target_link_libraries(dune-copasi PUBLIC dune-copasi-deps)
+dune_target_enable_all_packages(dune-copasi)
+
+########## Include other scripts  ##########
 
 # include header files
 add_subdirectory(dune)
@@ -123,7 +152,7 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/dune/copasi/FC.h"
 )
 
 # taget configuration for downstream projects
-install(TARGETS dune-copasi
+install(TARGETS dune-copasi-deps dune-copasi
         EXPORT dune-copasi-targets
         LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
           COMPONENT Libraries

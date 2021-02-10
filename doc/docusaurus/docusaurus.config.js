@@ -94,7 +94,7 @@ module.exports = {
     footer: {
       style: 'dark',
       links: [],
-      copyright: `${copyright} | ${impressum} | ${datenschutz} | ${disclaimer}`,
+      //copyright: `${copyright} | ${impressum} | ${datenschutz} | ${disclaimer}`,
     },
   },
   presets: [

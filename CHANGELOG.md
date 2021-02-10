@@ -64,6 +64,7 @@ Types of changes
 - Final timestep reduction to reach `end_time` failed in adaptive stepper !43
 - Infinite loop when final adaptive step failed !45
 - Binary executables are now installed !49
+- Support for shared libraries !54
 
 ## [0.3.0] ([git-diff][0.3.0-diff]) - 2020-10-07
 ### Added
