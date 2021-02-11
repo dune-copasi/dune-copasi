@@ -126,6 +126,7 @@ Types of changes
 
 [Unreleased]: https://gitlab.dune-project.org/copasi/dune-copasi/-/tree/master
 
+[1.0.0]: https://gitlab.dune-project.org/copasi/dune-copasi/-/releases/v1.0.0
 [0.3.0]: https://gitlab.dune-project.org/copasi/dune-copasi/-/releases/v0.3.0
 [0.2.0]: https://gitlab.dune-project.org/copasi/dune-copasi/-/releases/v0.2.0
 [0.1.0]: https://gitlab.dune-project.org/copasi/dune-copasi/-/releases/v0.1.0
