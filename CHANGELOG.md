@@ -27,6 +27,8 @@ Types of changes
  -->
 
 ## [Unreleased] ([git-diff][Unreleased-diff])
+
+## [1.0.0] ([git-diff][1.0.0-diff]) - 2021-02-11
 ### Added
 - Custom membrane flux !30
 - Skip intersection methods in local operators !36
@@ -117,7 +119,8 @@ Types of changes
 - [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Solver for reaction-diffusion systems in multiple compartments.
 
-[Unreleased-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v0.3.0...master
+[Unreleased-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v1.0.0...master
+[1.0.0-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v0.4.0-git...v1.0.0
 [0.3.0-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v0.2.0...v0.3.0
 [0.2.0-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v0.1.0...v0.2.0
 
