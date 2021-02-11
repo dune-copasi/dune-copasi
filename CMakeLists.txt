@@ -85,6 +85,7 @@ endif()
 # create a target to gather all dependencies
 add_library(dune-copasi-deps INTERFACE)
 target_link_libraries(dune-copasi-deps INTERFACE ${DUNE_LIBS} TIFF::TIFF PkgConfig::muparser)
+target_compile_definitions(dune-copasi-deps INTERFACE ENABLE_UG=1 UG_USE_NEW_DIMENSION_DEFINES)
 
 # add missing definition from muparser pkg-config file
 if(NOT ${BUILD_SHARED_LIBS})
