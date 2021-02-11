@@ -1,4 +1,4 @@
-#!/bin/python3
+#!/usr/bin/env python3
 
 # This script updates version of the code in all places where it has to be hard coded
 # and it updates the changelog
@@ -43,9 +43,9 @@ def main(argv):
   old_version = get_version(version_path)
   print("Old version is:", old_version)
 
-  if len(argv) is 0:
+  if len(argv) == 0:
     new_version = input("New version: ")
-  elif len(argv) is 1:
+  elif len(argv) == 1:
     new_version = argv[0]
   else:
     raise IOError("Too many arguments!")
