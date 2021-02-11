@@ -27,6 +27,8 @@ Types of changes
  -->
 
 ## [Unreleased] ([git-diff][Unreleased-diff])
+
+## [1.0.0] ([git-diff][1.0.0-diff]) - 2021-02-11
 ### Added
 - Custom membrane flux !30
 - Skip intersection methods in local operators !36
@@ -35,7 +37,7 @@ Types of changes
 - Provide help message when executables are not used correctly !49
 - Produce Debian Packages on the CI !49
 - Installation is now divided on three components: `Runtime|Library|Development` !49
-- Define a recommended dune options file (`dune-copasi.opts`)[dune-copasi.opts] !49
+- Define a recommended dune options file [`dune-copasi.opts`](dune-copasi.opts) !49
 - Versioned documentation !49
 - Dependency on `pkg-config` !52
 ### Changed
@@ -117,12 +119,14 @@ Types of changes
 - [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Solver for reaction-diffusion systems in multiple compartments.
 
-[Unreleased-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v0.3.0...master
+[Unreleased-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v1.0.0...master
+[1.0.0-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v0.3.0...v1.0.0
 [0.3.0-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v0.2.0...v0.3.0
 [0.2.0-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v0.1.0...v0.2.0
 
 [Unreleased]: https://gitlab.dune-project.org/copasi/dune-copasi/-/tree/master
 
+[1.0.0]: https://gitlab.dune-project.org/copasi/dune-copasi/-/releases/v1.0.0
 [0.3.0]: https://gitlab.dune-project.org/copasi/dune-copasi/-/releases/v0.3.0
 [0.2.0]: https://gitlab.dune-project.org/copasi/dune-copasi/-/releases/v0.2.0
 [0.1.0]: https://gitlab.dune-project.org/copasi/dune-copasi/-/releases/v0.1.0
