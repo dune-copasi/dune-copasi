@@ -55,8 +55,7 @@ if(NOT dune-copasi_FOUND)
   # make sure to find cmake modules for dune-copasi
   list(APPEND CMAKE_MODULE_PATH "${dune-copasi_MODULE_PATH}")
 
-  find_dependency(PkgConfig REQUIRED)
-  pkg_search_module(muparser REQUIRED IMPORTED_TARGET muparser)
+  find_dependency(muparser)
   find_dependency(TIFF)
   if(@DUNE_USE_FALLBACK_FILESYSTEM@)
     find_dependency(ghc_filesystem REQUIRED)

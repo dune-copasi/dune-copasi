@@ -46,8 +46,7 @@ dune_project()
 add_subdirectory(cmake/modules)
 
 # find specific dune-copasi dependencies
-find_package(PkgConfig REQUIRED)
-pkg_search_module(muparser REQUIRED IMPORTED_TARGET muparser)
+find_package(muparser REQUIRED)
 find_package(TIFF REQUIRED)
 find_package(Filesystem)
 
@@ -84,7 +83,7 @@ endif()
 
 # create a target to gather all dependencies
 add_library(dune-copasi-deps INTERFACE)
-target_link_libraries(dune-copasi-deps INTERFACE ${DUNE_LIBS} TIFF::TIFF PkgConfig::muparser)
+target_link_libraries(dune-copasi-deps INTERFACE ${DUNE_LIBS} TIFF::TIFF muparser::muparser)
 target_compile_definitions(dune-copasi-deps INTERFACE ENABLE_UG=1 UG_USE_NEW_DIMENSION_DEFINES)
 
 # add missing definition from muparser pkg-config file
