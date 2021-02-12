@@ -1,3 +1,19 @@
+# From https://ts-gitlab.iup.uni-heidelberg.de/dorie/dorie/blob/master/cmake/modules/Findmuparser.cmake
+#
+# Find the muparser library
+#
+# Usage:
+#   find_package(muparser [REQUIRED] [QUIET] )
+#
+# It sets the following variables:
+#   muparser_FOUND               ... true if muparser is found on the system
+#   muparser_LIBRARIES           ... full path to muparser library
+#   muparser_INCLUDES            ... muparser include directory
+#
+# It defines the following targets:
+#   muparser::muparser           ... muparser library to link against
+#
+
 find_path(muparser_INCLUDE_DIR muParserDef.h)
 find_library(muparser_LIBRARY muparser)
 mark_as_advanced(muparser_INCLUDE_DIR muparser_LIBRARY)
