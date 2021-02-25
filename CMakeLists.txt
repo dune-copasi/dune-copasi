@@ -86,11 +86,6 @@ add_library(dune-copasi-deps INTERFACE)
 target_link_libraries(dune-copasi-deps INTERFACE ${DUNE_LIBS} TIFF::TIFF muparser::muparser)
 target_compile_definitions(dune-copasi-deps INTERFACE ENABLE_UG=1 UG_USE_NEW_DIMENSION_DEFINES)
 
-# add missing definition from muparser pkg-config file
-if(NOT ${BUILD_SHARED_LIBS})
-  target_compile_definitions(dune-copasi-deps INTERFACE MUPARSER_STATIC)
-endif()
-
 # Set up filesystem. Where do we get it from?
 if(DUNE_USE_FALLBACK_FILESYSTEM)
   # and add ghc_filesystem to our filesystem target

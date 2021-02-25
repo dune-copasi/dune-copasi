@@ -1,5 +1,3 @@
-# From https://ts-gitlab.iup.uni-heidelberg.de/dorie/dorie/blob/master/cmake/modules/Findmuparser.cmake
-#
 # Find the muparser library
 #
 # Usage:
@@ -49,4 +47,35 @@ if(muparser_FOUND
     muparser::muparser
     PROPERTIES IMPORTED_LOCATION ${muparser_LIBRARY}
                INTERFACE_INCLUDE_DIRECTORIES ${muparser_INCLUDE_DIR})
+
+  set(muparser_test_path "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/CMakeTmp/muparser_test.cc")
+  set(muparser_test_source
+    "#include<muParser.h>
+    int main() {
+      mu::Parser p;
+      p.DefineConst(\"pi\", 3.14);
+      p.SetExpr(\"pi\");
+      p.Eval();
+    }")
+
+  file(WRITE "${muparser_test_path}" "${muparser_test_source}")
+  try_compile(COMPILE_RESULT_DYNAMIC "${CMAKE_CURRENT_BINARY_DIR}"
+               SOURCES "${muparser_test_path}"
+               LINK_LIBRARIES muparser::muparser)
+
+  if(NOT COMPILE_RESULT_DYNAMIC)
+    file(WRITE "${muparser_test_path}" "${muparser_test_source}")
+    try_compile(COMPILE_RESULT_STATIC "${CMAKE_CURRENT_BINARY_DIR}"
+                SOURCES "${muparser_test_path}"
+                COMPILE_DEFINITIONS -DMUPARSER_STATIC
+                LINK_LIBRARIES muparser::muparser)
+
+    if(NOT COMPILE_RESULT_STATIC)
+      message(FATAL_ERROR "A simple muparser test program could not be successfuly compiled")
+    endif()
+
+    set_target_properties(
+      muparser::muparser
+      PROPERTIES INTERFACE_COMPILE_DEFINITIONS MUPARSER_STATIC)
+  endif()
 endif()
