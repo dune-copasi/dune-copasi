@@ -83,8 +83,19 @@ endif()
 
 # create a target to gather all dependencies
 add_library(dune-copasi-deps INTERFACE)
-target_link_libraries(dune-copasi-deps INTERFACE ${DUNE_LIBS} TIFF::TIFF muparser::muparser)
-target_compile_definitions(dune-copasi-deps INTERFACE ENABLE_UG=1 UG_USE_NEW_DIMENSION_DEFINES)
+target_link_libraries(dune-copasi-deps INTERFACE TIFF::TIFF muparser::muparser ${DUNE_LIBS})
+
+# get properties defined by dune macros
+get_property(all_incs GLOBAL PROPERTY ALL_PKG_INCS)
+get_property(all_defs GLOBAL PROPERTY ALL_PKG_DEFS)
+get_property(all_opts GLOBAL PROPERTY ALL_PKG_OPTS)
+get_property(all_libs GLOBAL PROPERTY ALL_PKG_LIBS)
+
+# ...apply them to the dependency target
+target_include_directories(dune-copasi-deps INTERFACE ${all_incs})
+target_compile_definitions(dune-copasi-deps INTERFACE ${all_defs})
+target_compile_options(dune-copasi-deps INTERFACE ${all_opts})
+target_link_libraries(dune-copasi-deps INTERFACE TIFF::TIFF ${all_libs})
 
 # Set up filesystem. Where do we get it from?
 if(DUNE_USE_FALLBACK_FILESYSTEM)
@@ -103,7 +114,6 @@ add_library(dune-copasi)
 set_target_properties(dune-copasi PROPERTIES LIBRARY_OUTPUT_NAME dunecopasi)
 set_target_properties(dune-copasi PROPERTIES ARCHIVE_OUTPUT_NAME dunecopasi)
 target_link_libraries(dune-copasi PUBLIC dune-copasi-deps)
-dune_target_enable_all_packages(dune-copasi)
 
 ########## Include other scripts  ##########
 

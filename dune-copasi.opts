@@ -4,7 +4,7 @@
 # - Find the operating system target
 # - Set default DUNE_ and CMAKE_ values, if they are not in environment
 # - Any env variable starting with CMAKE_ or DUNE_ will added to the cmake flags
-# - The resulting values will be prepended to the CMAKE_FLAGS env variable (if any)
+# - The resulting CMAKE_FLAGS and MAKE_FLAGS values will be prepended to the CMAKE_OPTIONS and MAKE_OPTIONS env variable (if any)
 # - In *nix systems, it will try to find out if installation requires sudo
 #
 # If run in script mode (e.g. ./dune-copasi.opts), this script will print out
@@ -14,7 +14,7 @@
 export SETUP_DUNE_TESTTOOLS=${SETUP_DUNE_TESTTOOLS:-OFF}
 
 # get install prefix from CMAKE_FLAGS env
-for flag in $CMAKE_FLAGS; do
+for flag in $CMAKE_OPTIONS; do
   [[ ${flag#-D} == CMAKE_INSTALL_PREFIX* ]] && CMAKE_INSTALL_PREFIX=${flag#-DCMAKE_INSTALL_PREFIX}
 done
 # remove "=" or ":PATH=" prefix
@@ -67,7 +67,7 @@ export CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS:-"'-fvisibility=hidden -fpic'"}
 export CMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE:-"'-O3'"}
 export CMAKE_CXX_FLAGS_RELWITHDEBINFO=${CMAKE_CXX_FLAGS_RELWITHDEBINFO:-"'-O2 -g3 -DNDEBUG -fno-omit-frame-pointer'"}
 export CMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG:-"'-O0 -g'"}
-export CMAKE_DISABLE_FIND_PACKAGE_MPI=${CMAKE_DISABLE_FIND_PACKAGE_MPI:-ON}
+export CMAKE_DISABLE_FIND_PACKAGE_MPI=${CMAKE_DISABLE_FIND_PACKAGE_MPI:-OFF}
 
 if [[ "$DUNE_COPASI_USE_STATIC_DEPS" =~ ^(ON|on|ON|TRUE|true|1)$ ]];then
   CMAKE_FLAGS+=" -DGMPXX_INCLUDE_DIR:PATH='"${CMAKE_INSTALL_PREFIX}"/include'"
@@ -91,14 +91,13 @@ export DUNE_COPASI_MD_EXECUTABLE=${DUNE_COPASI_MD_EXECUTABLE:-ON}
 
 # default make flags
 if [[ "$CMAKE_BUILD_TYPE" == "Debug" ]]; then
-  MAKE_FLAGS=${MAKE_FLAGS:-"-j1 VERBOSE=1"}
-else
-  MAKE_FLAGS=${MAKE_FLAGS:-"-j1"}
+  MAKE_FLAGS="VERBOSE=1"
 fi
 
-# get environment variables (excluding CMAKE_FLAGS and DUNE_CONTROL_PATH)
+# get environment variables (excluding CMAKE_FLAGS, CMAKE_OPTIONS, and DUNE_CONTROL_PATH)
 ENV_VARS=$(compgen -e)
 ENV_VARS=${ENV_VARS//CMAKE_FLAGS/}
+ENV_VARS=${ENV_VARS//CMAKE_OPTIONS/}
 ENV_VARS=${ENV_VARS//DUNE_CONTROL_PATH/}
 
 _CMAKE_FLAGS=""
@@ -113,7 +112,8 @@ for var in $ENV_VARS; do
 done
 
 # final flags
-CMAKE_FLAGS="$_CMAKE_FLAGS $_DUNE_FLAGS $CMAKE_FLAGS"
+CMAKE_FLAGS="$_CMAKE_FLAGS $_DUNE_FLAGS $CMAKE_OPTIONS"
+MAKE_FLAGS="$MAKE_OPTIONS $MAKE_FLAGS"
 
 # if called in script mode, print cmake flags and os target
 if [[ $(basename $0) == dune-copasi.opts ]] ; then

@@ -393,7 +393,7 @@ export CMAKE_INSTALL_PREFIX=/opt/dune/
 cd ~ && rm -r ~/dune-modules
 
 # include dune binaries into your path
-echo export PATH="$CMAKE_INSTALL_PREFIX/bin:$PATH" >> $HOME/.bashrc
+echo "export PATH=${CMAKE_INSTALL_PREFIX}/bin:\$PATH" >> $HOME/.bashrc
 ```
 
 For further information on dune module installation process, please check out
