@@ -56,6 +56,7 @@ if(NOT dune-copasi_FOUND)
   list(APPEND CMAKE_MODULE_PATH "${dune-copasi_MODULE_PATH}")
 
   find_dependency(muparser)
+  find_dependency(TIFF)
   if(@DUNE_USE_FALLBACK_FILESYSTEM@)
     find_dependency(ghc_filesystem REQUIRED)
   else()
