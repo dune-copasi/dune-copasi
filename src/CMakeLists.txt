@@ -1,5 +1,8 @@
 # add source files to main library
-target_sources(dune-copasi PRIVATE dune/copasi/model/base.cc)
+target_sources(dune-copasi PRIVATE
+  dune/copasi/model/base.cc
+  dune/copasi/common/tiff_file.cc
+)
 
 # set up single-domain executable
 if(DUNE_COPASI_SD_EXECUTABLE)

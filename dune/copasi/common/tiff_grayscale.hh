@@ -1,10 +1,10 @@
 #ifndef DUNE_COPASI_TIFF_GRAYSCALE_HH
 #define DUNE_COPASI_TIFF_GRAYSCALE_HH
 
+#include <dune/copasi/common/tiff_file.hh>
+
 #include <dune/common/exceptions.hh>
 #include <dune/common/float_cmp.hh>
-
-#include <tiffio.h>
 
 #include <algorithm>
 #include <memory>
@@ -41,18 +41,15 @@ class TIFFGrayscale
      * @param[in]  col_size   The column size
      * @param[in]  zero       Zero based grayscale?
      */
-    TIFFGrayscaleRow(TIFF* const tiff_file,
-                     const T& row,
-                     const short& col_size,
-                     const bool& zero)
-      : _row(row)
-      , _col_size(col_size)
-      , _zero(zero)
+    TIFFGrayscaleRow(const TIFFFile& tiff,
+                     const T& row)
+      : _tiff(tiff)
+      , _row(row)
     {
-      T* raw_buffer = (T*)_TIFFmalloc(TIFFScanlineSize(tiff_file));
-      auto deleter = [](auto& ptr) { _TIFFfree(ptr); };
+      T* raw_buffer = (T*)_tiff.malloc_scanline();
+      auto deleter = [&](auto& ptr) { _tiff.free(ptr); };
       _tiff_buffer = std::shared_ptr<T>(raw_buffer, deleter);
-      TIFFReadScanline(tiff_file, _tiff_buffer.get(), _row);
+      _tiff.read_scanline(_tiff_buffer.get(), _row);
     }
 
     /**
@@ -67,10 +64,10 @@ class TIFFGrayscale
      */
     double operator[](const T& col) const
     {
-      assert((short)col < _col_size);
+      assert((short)col < _tiff._col_size);
       const T max = std::numeric_limits<T>::max();
       T val = *(_tiff_buffer.get() + col);
-      val = _zero ? val : max - val;
+      val = _tiff._zero ? val : max - val;
       return (double)val / max;
     }
 
@@ -79,7 +76,7 @@ class TIFFGrayscale
      *
      * @return     Number of columns in this row
      */
-    std::size_t size() const { return static_cast<std::size_t>(_col_size); }
+    std::size_t size() const { return static_cast<std::size_t>(_tiff._col_size); }
 
     /**
      * @brief      The current row
@@ -89,10 +86,9 @@ class TIFFGrayscale
     std::size_t row() const { return static_cast<std::size_t>(_row); }
 
   private:
+    const TIFFFile& _tiff;
     std::shared_ptr<T> _tiff_buffer;
     const T _row;
-    const short _col_size;
-    const bool _zero;
   };
 
 public:
@@ -103,45 +99,16 @@ public:
    * @param[in]  max_cache  The maximum row cache.
    */
   TIFFGrayscale(const std::string& filename, std::size_t max_cache = 8)
-    : _tiff_file(TIFFOpen(filename.c_str(), "r"))
+    : _tiff{filename}
     , _max_cache(max_cache)
   {
-    if (not _tiff_file)
-      DUNE_THROW(IOError, "Error opening TIFF file '" << filename << "'.");
-
-    short photometric;
-    TIFFGetField(_tiff_file, TIFFTAG_PHOTOMETRIC, &photometric);
-    if ((photometric != PHOTOMETRIC_MINISWHITE) and
-        (photometric != PHOTOMETRIC_MINISBLACK))
-      DUNE_THROW(IOError,
-                 "TIFF file '" << filename << "' must be in grayscale.");
-    _zero = (bool)photometric;
-
-    short bits_per_sample;
-    TIFFGetField(_tiff_file, TIFFTAG_BITSPERSAMPLE, &bits_per_sample);
-
-    if (bits_per_sample != 8 * sizeof(T)) {
-      TIFFClose(_tiff_file);
+    if (_tiff._bits_per_sample != 8 * sizeof(T)) {
+      _tiff.close();
       DUNE_THROW(IOError,
                  "TIFF file '" << filename
                                << "' contains a non-readable grayscale field.");
     }
-
-    TIFFGetField(_tiff_file, TIFFTAG_IMAGELENGTH, &_row_size);
-    TIFFGetField(_tiff_file, TIFFTAG_IMAGEWIDTH, &_col_size);
-    TIFFGetField(_tiff_file, TIFFTAG_XRESOLUTION, &_x_res);
-    TIFFGetField(_tiff_file, TIFFTAG_YRESOLUTION, &_y_res);
-    assert(FloatCmp::gt(_x_res, 0.f));
-    assert(FloatCmp::gt(_y_res, 0.f));
-    _x_off = _y_off = 0.;
-    TIFFGetField(_tiff_file, TIFFTAG_XPOSITION, &_x_off);
-    TIFFGetField(_tiff_file, TIFFTAG_YPOSITION, &_y_off);
   }
-
-  /**
-   * @brief      Destroys the object.
-   */
-  ~TIFFGrayscale() { TIFFClose(_tiff_file); }
 
   /**
    * @brief      Array indexer row operator.
@@ -153,7 +120,7 @@ public:
    */
   const TIFFGrayscaleRow& operator[](T row) const
   {
-    assert((short)row < _row_size);
+    assert((short)row < _tiff._row_size);
     return cache(row);
   }
 
@@ -174,11 +141,11 @@ public:
   template<class DF>
   double operator()(const DF& x, const DF& y)
   {
-    int i = static_cast<int>(_x_res * (x - _x_off));
-    int j = _row_size - static_cast<int>(_y_res * (y - _y_off)) - 1;
+    int i = static_cast<int>(_tiff._x_res * (x - _tiff._x_off));
+    int j = _tiff._row_size - static_cast<int>(_tiff._y_res * (y - _tiff._y_off)) - 1;
     // clamp invalid pixel indices to nearest valid pixel
-    i = std::clamp(i, 0, _col_size - 1);
-    j = std::clamp(j, 0, _row_size - 1);
+    i = std::clamp(i, 0, _tiff._col_size - 1);
+    j = std::clamp(j, 0, _tiff._row_size - 1);
     return (*this)[j][i];
   }
 
@@ -194,14 +161,14 @@ public:
    *
    * @return     Number of rows in this file
    */
-  std::size_t rows() const { return static_cast<std::size_t>(_row_size); }
+  std::size_t rows() const { return static_cast<std::size_t>(_tiff._row_size); }
 
   /**
    * @brief      The size of cols for this file
    *
    * @return     Number of cols in this file
    */
-  std::size_t cols() const { return static_cast<std::size_t>(_col_size); }
+  std::size_t cols() const { return static_cast<std::size_t>(_tiff._col_size); }
 
 private:
   /**
@@ -220,7 +187,7 @@ private:
     if (it != _row_cache.rend())
       return *it;
     else
-      _row_cache.emplace_back(_tiff_file, row, _col_size, _zero);
+      _row_cache.emplace_back(_tiff, row);
 
     if (_row_cache.size() >= 8)
       _row_cache.pop_front();
@@ -229,13 +196,8 @@ private:
   }
 
 private:
-  TIFF* _tiff_file;
+  TIFFFile _tiff;
   mutable std::deque<TIFFGrayscaleRow> _row_cache;
-  short _row_size;
-  short _col_size;
-  float _x_res, _x_off;
-  float _y_res, _y_off;
-  bool _zero;
   const std::size_t _max_cache;
 };
 
