@@ -45,6 +45,7 @@ void
 TIFFFile::close()
 {
   TIFFClose((TIFF*)_tiff_file);
+  _tiff_file = nullptr;
 }
 
 void*

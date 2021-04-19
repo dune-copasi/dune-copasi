@@ -4,12 +4,10 @@
 
 #include <dune/copasi/common/tiff_grayscale.hh>
 
-#include <dune/grid/yaspgrid.hh>
-
 #include <dune/common/exceptions.hh>
-#include <dune/common/parallel/mpihelper.hh>
 
 #include <cassert>
+#include <iostream>
 
 int
 main(int argc, char** argv)
@@ -59,10 +57,10 @@ main(int argc, char** argv)
     for (size_t i = 0; i < tiff_08.rows(); i++) {
       for (size_t j = 0; j < tiff_08.cols(); j++) {
         double threshold = 1. / (std::numeric_limits<unsigned char>::max());
-        failed |= abs(tiff_08[i][j] - tiff_16[i][j]) > threshold;
+        failed |= std::abs(tiff_08[i][j] - tiff_16[i][j]) > threshold;
         double x = (double)j / res_unit;
         double y = (double)i / res_unit;
-        failed |= abs(tiff_08(x, y) - tiff_16(x, y)) > threshold;
+        failed |= std::abs(tiff_08(x, y) - tiff_16(x, y)) > threshold;
       }
     }
 
