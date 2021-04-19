@@ -29,6 +29,7 @@ Types of changes
 ## [Unreleased] ([git-diff][Unreleased-diff])
 ### Added
  - Dune options file receives `CMAKE_OPTIONS` and `MAKE_OPTIONS` !60
+ - Event timestepper !64
 ### Changed
  - TIFF helper is compiled in the dunecopasi library !62
 ### Fixed

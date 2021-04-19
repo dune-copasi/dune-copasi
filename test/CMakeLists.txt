@@ -59,6 +59,11 @@ dune_add_test(NAME            test_tiff_grayscale
               LINK_LIBRARIES  dune-copasi::dune-copasi
               LABELS          unit)
 
+dune_add_test(NAME            test_event_stepper
+              SOURCES         test_event_stepper.cc
+              LINK_LIBRARIES  dune-copasi::dune-copasi
+              LABELS          unit)
+
 # # SingleDomain tests
 add_executable(dune-copasi-sd-compare EXCLUDE_FROM_ALL dune_copasi_sd_compare.cc)
 

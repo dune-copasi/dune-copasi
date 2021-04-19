@@ -505,7 +505,7 @@ private:
  * until step is successful or minimum time step is reached. When step is
  * successful, delta time is increased up to a maximum value
  *
- * @tparam SimpleStepper  Stepper that does not addapt its delta time on failure
+ * @tparam SimpleStepper  Stepper that does not adapt its delta time on failure
  */
 template<class SimpleStepper>
 class SimpleAdaptiveStepper
@@ -610,6 +610,91 @@ private:
   const double _decrease_factor, _increase_factor;
 };
 
+/**
+ * @brief Adapt an stepper into an event time stepper
+ *
+ * @details   For a given predicate, this stepper finds the moment (or event)
+ *            in time when the predicate changes its result. If the predicate
+ *            does not change, it simply applyies the do_step of the underlying
+ *            stepper.
+ *
+ * @tparam Stepper  Underlying stepper that will advance the system on time
+ * @tparam Predicate Functor that accepts system states and signals event
+ * changes
+ */
+template<class Stepper, class Predicate>
+class EventStepper : public BaseStepper<EventStepper<Stepper, Predicate>>
+{
+  using Base = BaseStepper<EventStepper<Stepper, Predicate>>;
+
+public:
+  using Time = typename Stepper::Time;
+
+  EventStepper(Stepper&& stepper,
+               Predicate&& predicate,
+               double threshold = 1e-4,
+               std::size_t max_it = 20)
+    : _stepper(std::move(stepper))
+    , _predicate(std::move(predicate))
+    , _threshold(threshold)
+    , _max_it(max_it)
+  {}
+
+  /**
+   * @copydoc BaseStepper::do_step()
+   *
+   * @param out       Output state where result will be placed. If step is not
+   * possible, out is guaranteed to be false when casted to bool. If the
+   * predicate signals an event change, out will hold the change before the
+   * event
+   */
+  template<class System, class State>
+  void do_step(const System& system,
+               const State& in,
+               State& out,
+               Time& dt) const
+  {
+    std::size_t it = _max_it;
+    _stepper.do_step(system, in, out, dt);
+    if (not out)
+      return;
+    // let's make an binary search of the approiated time step
+    Time start = 0.;
+    Time end = dt;
+    const bool pre_in = _predicate(in);
+    bool pre_out = _predicate(std::as_const(out));
+    State test_out = out;
+    while ((pre_in != pre_out) and (0 != it--) and
+           ((end - start) / dt > _threshold)) {
+      Time test = start + (end - start) / 2.;
+      _stepper.do_step(system, in, test_out, test);
+      bool pre_out = _predicate(std::as_const(test_out));
+      if (pre_in == pre_out) {
+        out = test_out;
+        start = test;
+      } else {
+        end = test;
+      }
+    }
+  }
+
+  //! Return stepper logger
+  const Logging::Logger& logger() const { return _stepper.logger(); }
+
+private:
+  const Stepper _stepper;
+  Predicate _predicate;
+  const double _threshold;
+  const std::size_t _max_it;
+};
+
+/**
+ * @brief Make a default adaptive simple stepper
+ *
+ * @tparam Time type of time
+ * @param config  Configuration file for the time stepping scheme
+ * @return auto  An stepper
+ */
 template<class Time = double>
 auto
 make_default_stepper(const ParameterTree& config)
