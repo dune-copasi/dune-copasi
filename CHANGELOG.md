@@ -29,6 +29,8 @@ Types of changes
 ## [Unreleased] ([git-diff][Unreleased-diff])
 ### Added
  - Dune options file receives `CMAKE_OPTIONS` and `MAKE_OPTIONS` !60
+### Changed
+ - TIFF helper is compiled in the dunecopasi library !62
 ### Fixed
  - Executables can be compiled without the library !60
  - All dune cmake flags are now transitively passed to dune-copasi targets !60
