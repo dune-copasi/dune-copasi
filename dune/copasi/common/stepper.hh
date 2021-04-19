@@ -5,7 +5,7 @@
 #include <dune/pdelab/backend/istl.hh>
 
 #include <dune/pdelab/instationary/onestep.hh>
-#include <dune/pdelab/newton/newton.hh>
+#include <dune/pdelab/solver/newton.hh>
 
 #include <dune/logging.hh>
 
@@ -401,7 +401,7 @@ private:
     using InstationaryGridOperator = typename System::InstationaryGridOperator;
     using LinearSolver = Dune::PDELab::ISTLBackend_NOVLP_BCGS_SSORk<InstationaryGridOperator>;
     using NonLinearOperator =
-      PDELab::Newton<InstationaryGridOperator, LinearSolver, Coefficients>;
+      PDELab::NewtonMethod<InstationaryGridOperator, LinearSolver>;
     using OneStepOperator = PDELab::
       OneStepMethod<Time, InstationaryGridOperator, NonLinearOperator, Coefficients>;
 
@@ -429,52 +429,7 @@ private:
       std::make_unique<NonLinearOperator>(grid_operator, *linear_solver);
 
     // Add settings to the newton solver
-    auto reduction = _solver_parameters.template get<double>("reduction");
-    non_linear_operator->setReduction(reduction);
-
-    auto min_reduction =
-      _solver_parameters.template get<double>("min_linear_reduction");
-    non_linear_operator->setMinLinearReduction(min_reduction);
-
-    auto fixed_reduction =
-      _solver_parameters.template get<bool>("fixed_linear_reduction");
-    non_linear_operator->setFixedLinearReduction(fixed_reduction);
-
-    auto max_it = _solver_parameters.template get<unsigned int>("max_iterations");
-    non_linear_operator->setMaxIterations(max_it);
-
-    auto abs_limit = _solver_parameters.template get<double>("absolute_limit");
-    non_linear_operator->setAbsoluteLimit(abs_limit);
-
-    auto reassemble =
-      _solver_parameters.template get<double>("reassemble_threshold");
-    non_linear_operator->setReassembleThreshold(reassemble);
-
-    auto keep_matrix = _solver_parameters.template get<bool>("keep_matrix");
-    non_linear_operator->setKeepMatrix(keep_matrix);
-
-    auto force_iteration =
-      _solver_parameters.template get<bool>("force_iteration");
-    non_linear_operator->setForceIteration(force_iteration);
-
-    const auto& ls = _solver_parameters.sub("linear_search", true);
-
-    auto ls_strategy = ls.template get<std::string>("strategy");
-    try {
-      non_linear_operator->setLineSearchStrategy(ls_strategy);
-    } catch (const Dune::Exception& e) {
-      _logger.error("Not valid linear search strategy: {}"_fmt, ls_strategy);
-      DUNE_THROW(IOError, "Not valid linear search strategy: " << ls_strategy);
-    }
-
-    if (ls_strategy != "noLineSearch")
-    {
-      auto ls_max_it = ls.template get<unsigned int>("max_iterations");
-      non_linear_operator->setLineSearchMaxIterations(ls_max_it);
-
-      auto ls_damping = ls.template get<double>("damping_factor");
-      non_linear_operator->setLineSearchDampingFactor(ls_damping);
-    }
+    non_linear_operator->setParameters(_solver_parameters);
 
     _logger.trace("Get one step operator"_fmt);
     auto one_step_operator = std::make_unique<OneStepOperator>(
@@ -710,10 +665,26 @@ make_default_stepper(const ParameterTree& config)
   log.trace("Decrease factor: {}"_fmt,decrease_factor);
   log.trace("Runge-Kutta method: {}"_fmt,rk_type);
 
+  const auto& np = config.sub("newton", true);
 
-  const auto& newton_parameters = config.sub("newton", true);
+  // make parameters compatible with dune-copasi 1.0
+  ParameterTree param;
+  param["Reduction"] = np["reduction"];
+  param["UseMaxNorm"] = np.get("use_max_norm", "false");
+  param["MinLinearReduction"] = np["min_linear_reduction"];
+  param["FixedLinearReduction"] = np["fixed_linear_reduction"];
+  param["AbsoluteLimit"] = np["absolute_limit"];
+  param["ReassembleThreshold"] = np["reassemble_threshold"];
+  param["KeepMatrix"] = np["keep_matrix"];
+  param["Terminate.MaxIterations"] = np["max_iterations"];
+  param["Terminate.ForceIteration"] = np["force_iteration"];
+  param["LineSearchStrategy"] = np["linear_search.strategy"];
+  param["LineSearch.MaxIterations"] = np["linear_search.max_iterations"];
+  param["LineSearch.DampingFactor"] = np["linear_search.damping_factor"];
+  param["LineSearch.AcceptBest"] = np.get("linear_search.accept_best", "false");
+
   using RKStepper = Dune::Copasi::RKStepper<double>;
-  auto rk_stepper = RKStepper{ rk_type, newton_parameters };
+  auto rk_stepper = RKStepper{ rk_type, param };
   using Stepper = Dune::Copasi::SimpleAdaptiveStepper<RKStepper>;
   return Stepper{
     std::move(rk_stepper), min_step, max_step, decrease_factor, increase_factor

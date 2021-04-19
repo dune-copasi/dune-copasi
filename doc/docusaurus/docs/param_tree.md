@@ -93,6 +93,7 @@ The possible `rk_id`s can be found at the end of this document.
 | Key | Type | Description |
 | -----------|-----| -------------- |
 | `reduction` | `float` | Threshold for termination, relative to first linear defect
+| `use_max_norm` | `bool` | Use the maximum norm as a stopping criterion. This helps loosen the tolerance when solving for stationary solutions of nonlinear time-dependent problems.
 | `absolute_limit` | `float` | Threshold for termination, absolute to linear defect
 | `min_linear_reduction` | `float` | The linear reduction will be determined as mininum of this and the one needed to achieve second order newton convergence
 | `fixed_linear_reduction`   | `bool` | Whenever `true`, the linear reduction rate will always be fixed to `min_linear_reduction`
@@ -107,8 +108,9 @@ The possible `rk_id`s can be found at the end of this document.
 | Key | Type | Description |
 | -----------|-----| -------------- |
 | `strategy` | `string` | `noLineSearch` or `hackbuschReusken` or `hackbuschReuskenAcceptBest`
-| `max_iterations` | `integer` | Maximum iterations on Hackbusch-Reusken linear search
-| `damping_factor`   | `float` | Damping factor for Hackbusch-Reusken linear search
+| `max_iterations` | `integer` | Maximum number of line search iterations
+| `damping_factor`   | `float` | Multiplier to line search parameter after each iteration
+| `accept_best`   | `bool` | Accept the best line search parameter if there was any improvement, even if the convergence criterion was not
 
 #### `[model.compartment]`
 
