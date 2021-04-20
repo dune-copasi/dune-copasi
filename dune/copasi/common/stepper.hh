@@ -111,10 +111,12 @@ public:
     bool snap_to_end_time = true) const
   {
     const auto& logger = asImpl().logger();
-    logger.notice("Evolving system: {:.2f}s -> {:.2f}s"_fmt, in.time, end_time);
+    logger.notice("Evolving system: {:.2e}s -> {:.2e}s"_fmt, in.time, end_time);
     out = in;
     auto prev_out = in;
-    while (FloatCmp::le<double>(out.time+dt, end_time)) {
+    // if snap to end time, stop loop 2 dt before final time, otherwise 1 dt
+    double stop_dt = snap_to_end_time ? 2. : 1.;
+    while (FloatCmp::le<Time>(out.time+stop_dt*dt, end_time)) {
       std::swap(prev_out, out);
       asImpl().do_step(system, prev_out, out, dt);
       if (not out) {
@@ -167,19 +169,19 @@ public:
 
   /**
    * @brief Snap the output to a specific time
-   * @details This method is used to advance very small timesteps with a very
-   * basic adaptivity algorithm. It differs from evolve in that the steps
-   * might be done with a more suitable stepper for wide range of timesteps.
+   * @details This method is used to advance towards a snap_time
+   * avoiding very small timesteps. It work best if the snap time is a couple
+   * of timesteps ahead of the suggested dt. It differs from evolve in that the
+   * steps might be done with a suitable stepper for wider range of timesteps.
    *
    * @tparam System   System that contain suitable operators to advance in time
    * @tparam Time     Valid time type to operate with
    * @param system    System that contain suitable operators to advance in time.
-   * If the step is not possible, the system stays with its initial state
-   * @param dt        Delta time to perform first step. If the step is not
-   * possible, stepper may modify it to a suitable value
+   * @param dt        Suggested delta time to to reach snap time. It will be
+   *                  modified to reach snap time exactly.
    * @param snap_time  Final time that `out` state must reach
    * @param callable  A function called with an state at the end of each
-   * succesful step
+   *                  succesful step
    */
   template<class System, class State, class Time, class Callable>
   void snap_to_time(System& system,
@@ -212,24 +214,23 @@ protected:
   {
     auto& logger = stepper.logger();
 
-    logger.info(2, "Snapping current time to {:.2f}"_fmt, snap_time);
+    logger.info(2, "Snapping current time to {:.5e}"_fmt, snap_time);
 
-    // enough iterations to explore 4 orders of magnitude
-    std::size_t max_it = 15, it = 0;
+    // let's avoid getting into an infinite loop
+    // If max_it is reached something is wrong
+    std::size_t max_it = 100, it = 0;
 
     // reduce last timestep adaptively until time is exactly reached
     out = in;
     auto prev_out = in;
-    while (FloatCmp::lt<double>(out.time, snap_time)) {
-
-      if (max_it == it++) {
-        DUNE_THROW(RangeError,
-                   "Snapping time exceeded maximum interation count");
-        return;
-      }
-
-      auto new_dt = std::min(dt, snap_time - out.time);
-      logger.detail(2, "Snapping step size {:.2f}s -> {:.2f}s"_fmt, dt, new_dt);
+    while (FloatCmp::lt<Time>(out.time, snap_time)) {
+      // find number of time steps to fit in the (out.time,snap_time) range
+      int timesteps_until_end = std::ceil((snap_time - out.time) / dt);
+      if (timesteps_until_end <= 0)
+        DUNE_THROW(MathError,
+                   "Timestep doesn't make advances towards snap step");
+      Time new_dt = (snap_time - out.time) / timesteps_until_end;
+      logger.detail(2, "Snapping step size {:.5e}s -> {:.5e}s"_fmt, dt, new_dt);
       dt = new_dt;
 
       std::swap(prev_out, out);
@@ -237,13 +238,15 @@ protected:
 
       if (out) {
         callable(out);
-        logger.detail(
-          2, "Increasing step size: {:.2f}s -> {:.2f}s"_fmt, dt, dt * 1.5);
-        dt *= 1.5;
       } else {
         out = prev_out;
+        if (max_it == it++) {
+          DUNE_THROW(RangeError,
+                    "Snapping time exceeded maximum interation count");
+          return;
+        }
         logger.detail(
-          2, "Reducing step size: {:.2f}s -> {:.2f}s"_fmt, dt, dt * 0.5);
+          2, "Reducing step size: {:.5e}s -> {:.5e}s"_fmt, dt, dt * 0.5);
         dt *= 0.5;
       }
     }
@@ -352,7 +355,7 @@ public:
       Dune::Logging::Logging::redirectCout(_logger.name(),
                                            Dune::Logging::LogLevel::detail);
 
-    _logger.detail("Trying step: {:.2f}s + {:.2f}s -> {:.2f}s"_fmt,
+    _logger.detail("Trying step: {:.2e}s + {:.2e}s -> {:.2e}s"_fmt,
                    in.time,
                    dt,
                    in.time + dt);
@@ -369,7 +372,7 @@ public:
       solver.apply(in.time, dt, *x_in, *x_out);
       solver.result(); // triggers an exception if solver failed
 
-      _logger.notice("Time Step: {:.2f}s + {:.2f}s -> {:.2f}s"_fmt,
+      _logger.notice("Time Step: {:.2e}s + {:.2e}s -> {:.2e}s"_fmt,
                      in.time,
                      dt,
                      in.time + dt);
@@ -531,7 +534,7 @@ public:
     _stepper.do_step(system, in, out, dt);
     while (not out) {
       logger().detail(2,
-        "Reducing step size: {:.2f}s -> {:.2f}s"_fmt, dt, dt * _decrease_factor);
+        "Reducing step size: {:.2e}s -> {:.2e}s"_fmt, dt, dt * _decrease_factor);
       dt = dt * _decrease_factor;
       if (FloatCmp::lt<Time>(dt, _min_step))
         DUNE_THROW(MathError,
@@ -543,9 +546,10 @@ public:
 
     auto new_step = std::min<Time>(_max_step, dt * _increase_factor);
     logger().detail(2,
-      "Increasing step size: {:.2f}s -> {:.2f}s"_fmt, dt, new_step);
+      "Increasing step size: {:.2e}s -> {:.2e}s"_fmt, dt, new_step);
     dt = new_step;
   }
+
 
   /**
    * @copydoc BaseStepper::snap_to_time()
@@ -561,7 +565,8 @@ public:
                     const Time& time,
                     Callable&& callable) const
   {
-    Base::snap_to_time(_stepper, system, in, out, dt, time, callable);
+    // use snap_to_time on the wrapped stepper
+    _stepper.snap_to_time(system, in, out, dt, time, callable);
   }
 
   //! Return stepper logger

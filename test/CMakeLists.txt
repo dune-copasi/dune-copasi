@@ -100,6 +100,10 @@ if (dune-testtools_FOUND)
 
     add_system_test_per_target(
       TARGET          dune-copasi::singledomain-exec
+      INIFILE         test_time_snap.mini)
+
+    add_system_test_per_target(
+      TARGET          dune-copasi::singledomain-exec
       INIFILE         test_no_writer.mini)
   endif()
 endif()

@@ -39,6 +39,7 @@ Types of changes
  - Executables can be compiled without the library !60
  - All dune cmake flags are now transitively passed to dune-copasi targets !60
  - System tests on main executables were ignored !66
+ - Snap to final time now avoids very small timesteps !61
 
 ## [1.0.0] ([git-diff][1.0.0-diff]) - 2021-02-11
 ### Added
