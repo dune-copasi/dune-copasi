@@ -8,11 +8,12 @@
 #include <dune/copasi/common/stepper.hh>
 #include <dune/copasi/grid/mark_stripes.hh>
 #include <dune/copasi/grid/multidomain_gmsh_reader.hh>
+
 #include <dune/copasi/model/diffusion_reaction.hh>
+#include <dune/copasi/model/diffusion_reaction.cc>
+
 #include <dune/copasi/model/multidomain_diffusion_reaction.hh>
-#ifndef DUNE_COPASI_MD_LIBRARY
 #include <dune/copasi/model/multidomain_diffusion_reaction.cc>
-#endif
 
 #include <dune/grid/multidomaingrid.hh>
 

@@ -107,13 +107,21 @@ else()
   target_link_libraries(dune-copasi-deps INTERFACE std::filesystem)
 endif()
 
-########## Create main liabrary ##########
+########## Create main targets ##########
 
-# create main library
+# create main library target
 add_library(dune-copasi)
 set_target_properties(dune-copasi PROPERTIES LIBRARY_OUTPUT_NAME dunecopasi)
 set_target_properties(dune-copasi PROPERTIES ARCHIVE_OUTPUT_NAME dunecopasi)
 target_link_libraries(dune-copasi PUBLIC dune-copasi-deps PRIVATE TIFF::TIFF)
+
+# create executable targets
+if(DUNE_COPASI_SD_EXECUTABLE)
+  add_executable(singledomain-exec)
+endif()
+if(DUNE_COPASI_MD_EXECUTABLE)
+  add_executable(multidomain-exec)
+endif()
 
 ########## Include other scripts  ##########
 
@@ -132,9 +140,6 @@ add_subdirectory(doc)
 # finalize the dune project: Generate and install config.h, cmake target and version file
 finalize_dune_project(GENERATE_CONFIG_H_CMAKE)
 target_compile_definitions(dune-copasi INTERFACE HAVE_DUNE_COPASI_CONFIG_H)
-
-# main library is completely set up, define a read only alias for our main target
-add_library(dune-copasi::dune-copasi ALIAS dune-copasi)
 
 # install generated config in build and install directories
 file(COPY "${CMAKE_CURRENT_BINARY_DIR}/config.h"
@@ -179,6 +184,15 @@ export(EXPORT dune-copasi-targets
        FILE "${CMAKE_CURRENT_BINARY_DIR}/dune-copasi-targets.cmake"
        NAMESPACE dune-copasi::
 )
+
+# create read-only targets
+add_library(dune-copasi::dune-copasi ALIAS dune-copasi)
+if(TARGET singledomain-exec)
+  add_executable(dune-copasi::singledomain-exec ALIAS singledomain-exec)
+endif()
+if(TARGET multidomain-exec)
+  add_executable(dune-copasi::multidomain-exec ALIAS multidomain-exec)
+endif()
 
 # include tests as a sub project
 include(CTest)

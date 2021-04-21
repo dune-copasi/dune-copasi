@@ -5,8 +5,8 @@ target_sources(dune-copasi PRIVATE
 )
 
 # set up single-domain executable
-if(DUNE_COPASI_SD_EXECUTABLE)
-  add_executable(singledomain-exec dune_copasi_sd.cc)
+if(TARGET singledomain-exec)
+  target_sources(singledomain-exec PRIVATE dune_copasi_sd.cc)
   target_link_libraries(singledomain-exec PRIVATE dune-copasi)
   set_property(TARGET singledomain-exec PROPERTY RUNTIME_OUTPUT_NAME dune-copasi-sd)
   if(DUNE_COPASI_COMPILE_3D)
@@ -20,8 +20,8 @@ if(DUNE_COPASI_SD_EXECUTABLE)
 endif()
 
 # set up multi-domain executable
-if(DUNE_COPASI_MD_EXECUTABLE)
-  add_executable(multidomain-exec dune_copasi_md.cc)
+if(TARGET multidomain-exec)
+  target_sources(multidomain-exec PRIVATE dune_copasi_md.cc)
   target_link_libraries(multidomain-exec PRIVATE dune-copasi)
   set_property(TARGET multidomain-exec PROPERTY RUNTIME_OUTPUT_NAME dune-copasi-md)
   if(DUNE_COPASI_COMPILE_3D)

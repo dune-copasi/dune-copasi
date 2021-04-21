@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.13)
 project(dune-copasi-tests CXX)
 
-if(NOT TARGET dune-copasi::dune-copasi)
+# check if this project is called as its own cmake project (i.e. not as subdirectory)
+if("${CMAKE_SOURCE_DIR}" STREQUAL "${PROJECT_SOURCE_DIR}")
+  # ...if so, find dune-copasi as if this were downstream project
   find_package(dune-copasi REQUIRED IMPORTED COMPONENTS Libraries Development Runtime)
 endif()
 
@@ -86,14 +88,19 @@ if (dune-testtools_FOUND)
     TARGET          dune-copasi-sd-compare
     INIFILE         test_gauss.mini)
 
-  if(dune-copasi::singledomain-exec)
+  if(TARGET dune-copasi::singledomain-exec)
+    # TODO: use upstream alias when dune-testtools !140 is fixed
+    add_executable(test-singledomain-exec ../src/dune_copasi_sd.cc)
+    target_link_libraries(test-singledomain-exec PRIVATE dune-copasi::dune-copasi)
+    add_dependencies(build_system_tests test-singledomain-exec)
+
     add_system_test_per_target(
-      TARGET          dune-copasi::singledomain-exec
+      TARGET          test-singledomain-exec
       SCRIPT          dune_vtkcompare.py
       INIFILE         test_tiff.mini)
 
     add_system_test_per_target(
-      TARGET          dune-copasi::singledomain-exec
+      TARGET          test-singledomain-exec
       INIFILE         test_brusselator.mini)
 
     add_system_test_per_target(
@@ -136,19 +143,24 @@ if (dune-testtools_FOUND)
     TARGET          dune-copasi-md-compare
     INIFILE         test_gauss_mixed_geometry.mini)
 
-  if(dune-copasi::multidomain-exec)
+  if(TARGET dune-copasi::multidomain-exec)
+    # TODO: use upstream alias when dune-testtools !140 is fixed
+    add_executable(test-multidomain-exec ../src/dune_copasi_md.cc)
+    target_link_libraries(test-multidomain-exec PRIVATE dune-copasi::dune-copasi)
+    add_dependencies(build_system_tests test-multidomain-exec)
+
     add_system_test_per_target(
-      TARGET          dune-copasi::multidomain-exec
+      TARGET          test-multidomain-exec
       SCRIPT          dune_vtkcompare.py
       INIFILE         test_tiff.mini)
 
     add_system_test_per_target(
-      TARGET          dune-copasi::multidomain-exec
+      TARGET          test-multidomain-exec
       SCRIPT          dune_vtkcompare.py
       INIFILE         test_cell.mini)
 
     add_system_test_per_target(
-      TARGET          dune-copasi::multidomain-exec
+      TARGET          test-multidomain-exec
       INIFILE         test_no_writer.mini)
   endif()
 
