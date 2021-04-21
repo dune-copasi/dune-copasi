@@ -89,18 +89,13 @@ if (dune-testtools_FOUND)
     INIFILE         test_gauss.mini)
 
   if(TARGET dune-copasi::singledomain-exec)
-    # TODO: use upstream alias when dune-testtools !140 is fixed
-    add_executable(test-singledomain-exec ../src/dune_copasi_sd.cc)
-    target_link_libraries(test-singledomain-exec PRIVATE dune-copasi::dune-copasi)
-    add_dependencies(build_system_tests test-singledomain-exec)
-
     add_system_test_per_target(
-      TARGET          test-singledomain-exec
+      TARGET          dune-copasi::singledomain-exec
       SCRIPT          dune_vtkcompare.py
       INIFILE         test_tiff.mini)
 
     add_system_test_per_target(
-      TARGET          test-singledomain-exec
+      TARGET          dune-copasi::singledomain-exec
       INIFILE         test_brusselator.mini)
 
     add_system_test_per_target(
@@ -144,23 +139,18 @@ if (dune-testtools_FOUND)
     INIFILE         test_gauss_mixed_geometry.mini)
 
   if(TARGET dune-copasi::multidomain-exec)
-    # TODO: use upstream alias when dune-testtools !140 is fixed
-    add_executable(test-multidomain-exec ../src/dune_copasi_md.cc)
-    target_link_libraries(test-multidomain-exec PRIVATE dune-copasi::dune-copasi)
-    add_dependencies(build_system_tests test-multidomain-exec)
-
     add_system_test_per_target(
-      TARGET          test-multidomain-exec
+      TARGET          dune-copasi::multidomain-exec
       SCRIPT          dune_vtkcompare.py
       INIFILE         test_tiff.mini)
 
     add_system_test_per_target(
-      TARGET          test-multidomain-exec
+      TARGET          dune-copasi::multidomain-exec
       SCRIPT          dune_vtkcompare.py
       INIFILE         test_cell.mini)
 
     add_system_test_per_target(
-      TARGET          test-multidomain-exec
+      TARGET          dune-copasi::multidomain-exec
       INIFILE         test_no_writer.mini)
   endif()
 
