@@ -28,17 +28,18 @@
 
 /* end private */
 
+
 /* Define to the version of dune-copasi */
-#define Udune_copasi_VERSION "@Udune_copasi_VERSION@"
+#define DUNE_COPASI_VERSION "@DUNE_COPASI_VERSION@"
 
 /* Define to the major version of dune-copasi */
-#define Udune_copasi_VERSION_MAJOR @Udune_copasi_VERSION_MAJOR@
+#define DUNE_COPASI_VERSION_MAJOR @DUNE_COPASI_VERSION_MAJOR@
 
 /* Define to the minor version of dune-copasi */
-#define Udune_copasi_VERSION_MINOR @Udune_copasi_VERSION_MINOR@
+#define DUNE_COPASI_VERSION_MINOR @DUNE_COPASI_VERSION_MINOR@
 
 /* Define to the revision of dune-copasi */
-#define Udune_copasi_VERSION_REVISION @Udune_copasi_VERSION_REVISION@
+#define DUNE_COPASI_VERSION_REVISION @DUNE_COPASI_VERSION_REVISION@
 
 /* end dune-copasi
    Everything below here will be overwritten
