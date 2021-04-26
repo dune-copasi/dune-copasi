@@ -65,17 +65,19 @@ def main(argv):
 
   project_url = "https://gitlab.dune-project.org/copasi/dune-copasi"
 
+  cl_new_version = new_version.replace('-git', '')
+  cl_old_version = old_version.replace('-git', '')
   with open(changelog_path, "r") as changelog_file:
     new_changelog = ''
     for line in changelog_file.readlines():
       if "## [Unreleased]" in line:
         new_changelog += line +"\n"
-        new_changelog += "## [" + new_version+ "] ([git-diff][" + new_version + "-diff]) - " + datetime.date.today().isoformat() + "\n"
+        new_changelog += "## [" + cl_new_version+ "] ([git-diff][" + cl_new_version + "-diff]) - " + datetime.date.today().isoformat() + "\n"
       elif "[Unreleased-diff]: " + project_url in line:
-        new_changelog += "[Unreleased-diff]: " + project_url+"/compare/v"+new_version+"...master\n"
-        new_changelog += "["+new_version+"-diff]: "+project_url+"/compare/v"+old_version+"...v"+new_version+"\n"
-      elif "["+old_version+"]: "+project_url in line:
-        new_changelog += "["+new_version+"]: "+project_url+"/-/releases/v"+new_version+"\n"
+        new_changelog += "[Unreleased-diff]: " + project_url+"/compare/v"+cl_new_version+"...master\n"
+        new_changelog += "["+cl_new_version+"-diff]: "+project_url+"/compare/v"+cl_old_version+"...v"+cl_new_version+"\n"
+      elif "["+cl_old_version+"]: "+project_url in line:
+        new_changelog += "["+cl_new_version+"]: "+project_url+"/-/releases/v"+cl_new_version+"\n"
         new_changelog += line
       else:
         new_changelog += line

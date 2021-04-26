@@ -27,6 +27,8 @@ Types of changes
  -->
 
 ## [Unreleased] ([git-diff][Unreleased-diff])
+
+## [1.0.0] ([git-diff][1.0.0-diff]) - 2021-04-26
 ### Added
  - Dune options file receives `CMAKE_OPTIONS` and `MAKE_OPTIONS` !60
  - Parameter to use max norm on newton steps !65
@@ -133,6 +135,7 @@ Types of changes
 - Solver for reaction-diffusion systems in multiple compartments.
 
 [Unreleased-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v1.0.0...master
+[1.0.0-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v0.4.0...v1.0.0
 [1.0.0-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v0.3.0...v1.0.0
 [0.3.0-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v0.2.0...v0.3.0
 [0.2.0-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v0.1.0...v0.2.0
