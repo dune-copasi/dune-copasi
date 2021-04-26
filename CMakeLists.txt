@@ -164,19 +164,21 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/dune/copasi/FC.h"
 # taget configuration for downstream projects
 install(TARGETS dune-copasi-deps dune-copasi
         EXPORT dune-copasi-targets
-        LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        LIBRARY DESTINATION "${DUNE_INSTALL_LIBDIR}/cmake/dune-copasi"
           COMPONENT Libraries
           NAMELINK_COMPONENT Development
-        ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        ARCHIVE DESTINATION "${DUNE_INSTALL_LIBDIR}/cmake/dune-copasi"
           COMPONENT Development
 )
+
+
 
 # export targets to be used with installed tree
 install(EXPORT dune-copasi-targets
         FILE dune-copasi-targets.cmake
         NAMESPACE dune-copasi::
         COMPONENT Development
-        DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/dune-copasi"
+        DESTINATION "${DUNE_INSTALL_LIBDIR}/cmake/dune-copasi"
 )
 
 # export targets to be used with build tree
