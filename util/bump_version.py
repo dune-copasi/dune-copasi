@@ -12,18 +12,22 @@ import re
 import datetime
 
 # Regex to match and check version (taken from https://semver.org/spec/v2.0.0.html)
-default_regex = r'^(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)(?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$'
+pattern = re.compile(r'^(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)(?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$')
 
 def check_version_format(version):
-  if not re.match(default_regex,version):
+  if not pattern.match(version):
     raise ValueError("\"" + version + "\" is not a valid version")
 
 def get_version(path):
   with open(path, "r") as version_file:
-    version = version_file.readline().rstrip("\n")
-    version_file.close()
-    check_version_format(version)
-  return version
+    for line in version_file:
+      print(line.lstrip('Version: ').strip('\n'))
+      if line.startswith("Version:"):
+        version = pattern.search(line.lstrip('Version: ').strip('\n'))
+        assert version != None
+        check_version_format(version.group())
+        return version.group()
+  raise ValueError("No version in file " + path)
 
 def update_version(path, old_version, new_version):
   with open(path, "r") as version_file:
@@ -35,12 +39,11 @@ def update_version(path, old_version, new_version):
 def main(argv):
 
   base_path = os.path.dirname(os.path.realpath(__file__))
-  version_path = os.path.join(base_path,'../VERSION')
   python_version_path = os.path.join(base_path,'../python/setup.py')
   dune_version_path = os.path.join(base_path,'../dune.module')
   changelog_path = os.path.join(base_path,'../CHANGELOG.md')
 
-  old_version = get_version(version_path)
+  old_version = get_version(dune_version_path)
   print("Old version is:", old_version)
 
   if len(argv) == 0:
@@ -51,9 +54,6 @@ def main(argv):
     raise IOError("Too many arguments!")
 
   check_version_format(new_version)
-
-  # update basic version file
-  update_version(version_path,old_version,new_version)
 
   # update python version file
   prefix = 'version=\''
