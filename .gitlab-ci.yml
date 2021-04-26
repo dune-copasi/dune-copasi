@@ -15,7 +15,7 @@ stages:
 
 .global_variables: &global_variables
   DUNECONTROL: dunecontrol
-  BASE_IMAGE_VERSION: v1.0.0
+  BASE_IMAGE_VERSION: v1.1.0
   DUNE_COPASI_SD_EXECUTABLE: 'ON'
   CPACK_GENERATORS: 'DEB'
   CPACK_PACKAGE_DIRECTORY: $CI_PROJECT_DIR/tmp
