@@ -63,4 +63,8 @@ for generator in $CPACK_GENERATORS; do
   cpack -G $generator -B $CPACK_PACKAGE_DIRECTORY CPackConfig.cmake
 done
 
-trap cleanup EXIT
+if [[ "$SKIP_CLEANUP" =~ ^(ON|on|1|yes|YES|true|TRUE)$ ]]; then
+	trap - EXIT
+else
+  trap cleanup EXIT
+fi

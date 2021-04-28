@@ -46,7 +46,7 @@ cleanup() {
 ONFAILURE_PROG="git gcc g++ python pip python3 pip3 cmake wget $SUDOCMD"
 ONFAILURE_VARS="PATH MSYSTEM SUDOCMD SETUP_DUNE_TESTTOOLS DUNE_OPTIONS_FILE"
 ONFAILURE_VARS+=" CMAKE_FLAGS CMAKE_INSTALL_PREFIX DUNE_VENDOR_FMT REPO BRANCH PATCHES RECURSIVE BUILD_PATH"
-ONFAILURE_CMD="ls cleanup"
+ONFAILURE_CMD="print_opts_file ls cleanup"
 
 trap onfailure EXIT
 
@@ -79,6 +79,7 @@ SETUP_dune_multidomaingrid_REPO="https://gitlab.dune-project.org/extensions/dune
 cat ${SCRIPT_DIR}/dune-common.patch >> "${PWD}/dune-common.patch"
 
 SETUP_dune_common_PATCHES="${SCRIPT_DIR}/dune-common.patch"
+SETUP_dune_geometry_PATCHES="${SCRIPT_DIR}/dune-geometry.patch"
 
 SETUP_dune_logging_RECURSIVE="$DUNE_VENDOR_FMT"
 
@@ -214,4 +215,8 @@ for module in $MODULES; do
   rm -rf dune-$module
 done
 
-trap cleanup EXIT
+if [[ "$SKIP_CLEANUP" =~ ^(ON|on|1|yes|YES|true|TRUE)$ ]]; then
+	trap - EXIT
+else
+  trap cleanup EXIT
+fi
