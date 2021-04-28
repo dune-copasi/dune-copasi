@@ -48,6 +48,8 @@ onfailure() {
     echo "" >&2
   done
 
+  cd $HOME
+
   echo "${YELLOW}*************************** On Failure: Executables Info **************************" $RESET >&2
   for i in $(echo $ONFAILURE_PROG); do
     echo "[${YELLOW}${i}${RESET}]:" >&2

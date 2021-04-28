@@ -1,0 +1,32 @@
+diff --git a/dune/geometry/quadraturerules.hh b/dune/geometry/quadraturerules.hh
+index a860a84..5591220 100644
+--- a/dune/geometry/quadraturerules.hh
++++ b/dune/geometry/quadraturerules.hh
+@@ -218,18 +218,21 @@ namespace Dune {
+         > > quadratureCache(QuadratureType::size);
+ 
+       auto & quadratureTypeLevel = quadratureCache[qt];
+-      std::call_once(quadratureTypeLevel.first, initGeometryTypeVector,
+-                     &quadratureTypeLevel.second);
++      initGeometryTypeVector(&quadratureTypeLevel.second);
++      // std::call_once(quadratureTypeLevel.first, initGeometryTypeVector,
++      //                &quadratureTypeLevel.second);
+ 
+       auto & geometryTypeLevel =
+         quadratureTypeLevel.second[LocalGeometryTypeIndex::index(t)];
+-      std::call_once(geometryTypeLevel.first, initQuadratureOrderVector,
+-                     &geometryTypeLevel.second, qt, t);
++      initQuadratureOrderVector(&geometryTypeLevel.second, qt, t);
++      // std::call_once(geometryTypeLevel.first, initQuadratureOrderVector,
++      //                &geometryTypeLevel.second, qt, t);
+ 
+       // we only have one quadrature rule for points
+       auto & quadratureOrderLevel = geometryTypeLevel.second[dim == 0 ? 0 : p];
+-      std::call_once(quadratureOrderLevel.first, initQuadratureRule,
+-                     &quadratureOrderLevel.second, qt, t, p);
++      initQuadratureRule(&quadratureOrderLevel.second, qt, t, p);
++      // std::call_once(quadratureOrderLevel.first, initQuadratureRule,
++      //                &quadratureOrderLevel.second, qt, t, p);
+ 
+       return quadratureOrderLevel.second;
+     }

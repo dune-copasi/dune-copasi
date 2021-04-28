@@ -75,4 +75,9 @@ eval cmake $RELEASE_CMAKE_FLAGS $SOURCEDIR
 cmake --build . --target build_system_tests
 ctest -j4 -L "DUNE_SYSTEMTEST" --output-on-failure
 
-trap cleanup EXIT
+
+if [[ "$SKIP_CLEANUP" =~ ^(ON|on|1|yes|YES|true|TRUE)$ ]]; then
+	trap - EXIT
+else
+  trap cleanup EXIT
+fi

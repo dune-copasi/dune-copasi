@@ -28,6 +28,7 @@ Types of changes
 
 ## [Unreleased] ([git-diff][Unreleased-diff])
 ### Added
+ - Dockerfile for jupyter notebooks with `dune-copasi` environment !70
  - Doxygen documentation is now deployed to Netlify !73
 ### Changed
  - Docusaurus is updated to version [`2.0.0-alpha.75`](https://github.com/facebook/docusaurus/blob/master/CHANGELOG.md#200-alpha75-2021-04-30) !72

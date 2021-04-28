@@ -32,8 +32,14 @@ Patch `dune-common`:
   * File: [dune-common.patch](/.ci/dune-common.patch)
   * License: [`GPL-2.0-only WITH DUNE-exception`](https://spdx.org/licenses/GPL-2.0-only.html)
 
+Patch `dune-geometry`:
+  * File: [dune-geometry.patch](/.ci/dune-geometry.patch)
+  * License: [`BSD-3-Clause`](https://spdx.org/licenses/BSD-3-Clause.html)
+  * Copyright (c):
+      - 2021 Dominic Kempf
+
 Patch `dune-logging`:
-  * File: [dune-logging.patch](/.ci/dune-common.patch)
+  * File: [dune-logging.patch](/.ci/dune-logging.patch)
   * License: [`BSD-2-Clause`](https://spdx.org/licenses/BSD-2-Clause.html)
   * Copyright (c):
       - 2019 Steffen Müthing
