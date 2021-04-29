@@ -32,7 +32,7 @@ struct ContainerDataHandle
     // auto mapper = MultipleCodimMultipleGeomTypeMapper{grid_view};
     auto& id_set = _grid.localIdSet();
     typename Mapper::Index index;
-    for (auto&& e : elements(_mapper.gridView()))
+    for (const auto& e : elements(_mapper.gridView()))
       if (_mapper.contains(e,index))
         _id_map[id_set.id(e)] = _container[index];
   }
@@ -78,7 +78,7 @@ struct ContainerDataHandle
     auto& id_set = _grid.localIdSet();
     typename Mapper::Index index;
     _container.resize(_mapper.size());
-    for (auto&& e : elements(_mapper.gridView()))
+    for (const auto& e : elements(_mapper.gridView()))
       if (_mapper.contains(e,index))
       {
         auto it = _id_map.find(id_set.id(e));
@@ -163,14 +163,15 @@ public:
 
     std::shared_ptr<HostGrid> host_grid = factory.createGrid();
 
-    if (host_grid->comm().size() > 1)
+    auto mapper = LeafMultipleCodimMultipleGeomTypeMapper{*host_grid,mcmgElementLayout()};
+    if (host_grid->comm().size() > 0)
     {
-      auto mapper = LeafMultipleCodimMultipleGeomTypeMapper<HostGrid>{*host_grid,mcmgElementLayout()};
       auto data_handle = ContainerDataHandle{index_map,mapper};
-      _logger.debug("Load balance grid"_fmt);
+      logger.debug("Load balance grid"_fmt);
       host_grid->loadBalance(data_handle);
       data_handle.update();
     }
+
     // auto writer = VTKWriter{host_grid->leafGridView()};
     // writer.addCellData(index_map,"subdomain");
     // writer.write("test_multidomain_gmsh_reader");
@@ -191,29 +192,32 @@ public:
 
     logger.trace("Creating multidomain sub-domains"_fmt);
     grid->startSubDomainMarking();
-    auto grid_view = grid->leafGridView();
-    for (auto&& cell : elements(grid_view,Partitions::interior)) {
-      // gmsh index starts at 1!
-      auto& is = grid->leafGridView().indexSet();
-      auto subdomain = index_map[i] - 1;
-      logger.trace(
-        1, "Cell {} added to subdomain {}"_fmt, is.index(cell), subdomain);
-      grid->addToSubDomain(subdomain, cell), i++;
+
+    for (const auto& cell : elements(mapper.gridView(),Partitions::interior)) {
+      typename std::decay_t<decltype(mapper)>::Index index;
+      if (mapper.contains(cell,index)) {
+        // gmsh index starts at 1!
+        auto subdomain = index_map[ index ] - 1;
+        logger.trace( 1, "Cell {} added to subdomain {}"_fmt, cell.type(), subdomain);
+        grid->addToSubDomain(subdomain, grid->wrapHostEntity(cell));
+      }
     }
 
     grid->preUpdateSubDomains();
     grid->updateSubDomains();
     grid->postUpdateSubDomains();
 
-    // logger.detail("Load balance grid"_fmt);
-    // grid->loadBalance();
-
     if (logger.level() >= Logging::LogLevel::detail) {
       logger.detail("Grid info"_fmt);
       gridinfo(*grid,"  ");
-      for (int i = 0; i < max_subdomains; ++i) {
+      for (int i = 0; i < max_subdomain; ++i) {
         logger.detail("Subdomain {} info"_fmt, i);
         gridinfo(grid->subDomain(i), "  ");
+
+        // auto writer = VTKWriter{grid->subDomain(i).leafGridView()};
+        // std::vector<int> values(grid->subDomain(i).leafGridView().size(0),0);
+        // writer.addCellData(values,"subdomain");
+        // writer.write("test_multidomain_gmsh_reader_" + std::to_string(i));
       }
     }
 
