@@ -14,7 +14,7 @@ option(DUNE_COPASI_SD_EXECUTABLE
        OFF
 )
 option(DUNE_COPASI_SD_LIBRARY
-       "Include precompiled SingleDomain objects in dune-copasi library (optional)"
+       "Include precompiled SingleDomain objects in dune-copasi library"
        ${DUNE_COPASI_SD_EXECUTABLE}
 )
 option(DUNE_COPASI_MD_EXECUTABLE
@@ -22,7 +22,7 @@ option(DUNE_COPASI_MD_EXECUTABLE
        ON
 )
 option(DUNE_COPASI_MD_LIBRARY
-       "Include precompiled MultiDimain objects in dune-copasi library (optional)"
+       "Include precompiled MultiDimain objects in dune-copasi library"
        ${DUNE_COPASI_MD_EXECUTABLE}
 )
 option(DUNE_COPASI_COMPILE_3D
@@ -30,7 +30,7 @@ option(DUNE_COPASI_COMPILE_3D
       OFF
 )
 option(DUNE_COPASI_INSTALL_XEUS_CLING
-      "Setup just in time compilation to enable jupiter notebooks"
+      "Setup just in time compilation to enable jupyter notebooks (only with build tree)"
       OFF
 )
 
@@ -115,6 +115,7 @@ endif()
 
 # create main library target
 add_library(dune-copasi)
+add_library(dune-copasi::dune-copasi ALIAS dune-copasi)
 set_target_properties(dune-copasi PROPERTIES LIBRARY_OUTPUT_NAME dunecopasi)
 set_target_properties(dune-copasi PROPERTIES ARCHIVE_OUTPUT_NAME dunecopasi)
 target_link_libraries(dune-copasi PUBLIC dune-copasi-deps PRIVATE TIFF::TIFF)
@@ -122,9 +123,11 @@ target_link_libraries(dune-copasi PUBLIC dune-copasi-deps PRIVATE TIFF::TIFF)
 # create executable targets
 if(DUNE_COPASI_SD_EXECUTABLE)
   add_executable(singledomain-exec)
+  add_executable(dune-copasi::singledomain-exec ALIAS singledomain-exec)
 endif()
 if(DUNE_COPASI_MD_EXECUTABLE)
   add_executable(multidomain-exec)
+  add_executable(dune-copasi::multidomain-exec ALIAS multidomain-exec)
 endif()
 
 ########## Include other scripts  ##########
@@ -137,6 +140,9 @@ add_subdirectory(lib)
 
 # source files for final libraries and executables
 add_subdirectory(src)
+
+# jupyter notebooks
+add_subdirectory(notebooks)
 
 # documentation files
 add_subdirectory(doc)
@@ -190,49 +196,6 @@ export(EXPORT dune-copasi-targets
        FILE "${CMAKE_CURRENT_BINARY_DIR}/dune-copasi-targets.cmake"
        NAMESPACE dune-copasi::
 )
-
-if(DUNE_COPASI_INSTALL_XEUS_CLING)
-  include(FetchContent)
-  message("-- Declaring Xeus Cling Setup")
-  FetchContent_Declare(
-    xeus_cling_setup
-    GIT_REPOSITORY https://github.com/dokempf/xeus-cling-cmake-setup.git
-    GIT_TAG        6356d6ce997f29726463d1422ed477c0b4539396
-  )
-
-  if(NOT xeus_cling_setup_POPULATED)
-    message("-- Populating Xeus Cling Setup")
-    FetchContent_Populate(xeus_cling_setup)
-    add_subdirectory("${xeus_cling_setup_SOURCE_DIR}" "${xeus_cling_setup_BINARY_DIR}")
-  endif()
-
-  if(TARGET dune-logging-fmt)
-    get_target_property(xeus_cling_include dune-logging-fmt INTERFACE_INCLUDE_DIRECTORIES)
-  endif()
-
-  xeus_cling_setup(
-    TARGETS dune-copasi
-    INCLUDE_DIRECTORIES "${xeus_cling_include}"
-    COMPILE_FLAGS
-      -DENABLE_UG=1
-      -DUG_USE_NEW_DIMENSION_DEFINES
-    SETUP_HEADERS
-      ${CMAKE_BINARY_DIR}/dune/copasi/config.h
-    KERNEL_NAME "C++17 (DUNE-COPASI)"
-    REQUIRED
-  )
-
-  add_dependencies(dune-copasi install_kernelspec)
-endif()
-
-# create read-only targets
-add_library(dune-copasi::dune-copasi ALIAS dune-copasi)
-if(TARGET singledomain-exec)
-  add_executable(dune-copasi::singledomain-exec ALIAS singledomain-exec)
-endif()
-if(TARGET multidomain-exec)
-  add_executable(dune-copasi::multidomain-exec ALIAS multidomain-exec)
-endif()
 
 # include tests as a sub project
 include(CTest)
