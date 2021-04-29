@@ -108,37 +108,59 @@ ModelDiffusionReaction<Traits>::setup_component_grid_function_space(
     return entity.geometry().type().isCube() ? 0 : 1;
   };
 
-  // get common geometry type on gridview
-  if (not has_single_geometry_type(_grid_view))
-    DUNE_THROW(InvalidStateException,
-               "Grid view has to have only one geometry type");
-  GeometryType&& gt = _grid_view.template begin<0>()->geometry().type();
+  auto create_fem = [&](GeometryType gt){
+    // create data context with entity mapper, geometry type and grid view
+    auto&& ctx = Context::data_context(em, gt, _grid_view);
 
-  // create data context with entity mapper, geometry type and grid view
-  auto&& ctx = Context::data_context(em, gt, _grid_view);
+    // create fem from factory
+    return Factory<FEM>::create(ctx);
+  };
 
-  // create fem from factory
-  std::shared_ptr<FEM> finite_element_map(Factory<FEM>::create(ctx));
+  // if the grid view has no entities, we cannot know which geometry type the
+  // local finite element is execpting in the constructor. So we just try with
+  // simplicies and cubes and expect that it accepts one. Since the grid view
+  // has no entities, it doesn't really matter what kind of mapping we create...
+  std::shared_ptr<FEM> finite_element_map;
 
-  std::size_t order{ ~0ul };
-  if constexpr (Concept::isMultiDomainGrid<typename Traits::Grid>()) {
-    order = finite_element_map
-              ->find(_grid->multiDomainEntity(*_grid_view.template begin<0>()))
-              .localBasis()
-              .order();
+  constexpr auto partition = PartitionIteratorType::Interior_Partition;
+  auto begin = _grid_view.template begin<0,partition>();
+  auto end = _grid_view.template end<0,partition>();
+
+  if (begin == end) {
+    try {
+      finite_element_map = create_fem(GeometryTypes::simplex(Grid::dimension));
+    } catch (...) {
+      finite_element_map = create_fem(GeometryTypes::cube(Grid::dimension));
+    }
   } else {
-    order = finite_element_map->find(*_grid_view.template begin<0>())
-              .localBasis()
-              .order();
+    // get common geometry type on gridview
+    if (not has_single_geometry_type(_grid_view))
+      DUNE_THROW(InvalidStateException,
+                "Grid view has to have only one geometry type");
+
+    // in this case we know the geometry type for the finite element
+    GeometryType gt = begin->geometry().type();
+    finite_element_map = create_fem(gt);
   }
 
   _logger.trace("Setup grid function space for component {}"_fmt, name);
   const ES entity_set(_grid->leafGridView());
   auto comp_gfs = std::make_shared<LGFS>(entity_set, finite_element_map);
   comp_gfs->name(name);
-  comp_gfs->setDataSetType(
-    order == 0 ? PDELab::GridFunctionOutputParameters::Output::cellData
-               : PDELab::GridFunctionOutputParameters::Output::vertexData);
+
+  if (begin != end) {
+    auto entity_converter = [&](const auto& e){
+      if constexpr (Concept::isMultiDomainGrid<typename Traits::Grid>())
+        return _grid->multiDomainEntity(e);
+      else
+        return e;
+    };
+    std::size_t order = finite_element_map->find(entity_converter(*begin)).localBasis().order();
+
+    comp_gfs->setDataSetType(
+      order == 0 ? PDELab::GridFunctionOutputParameters::Output::cellData
+                : PDELab::GridFunctionOutputParameters::Output::vertexData);
+  }
   return comp_gfs;
 }
 

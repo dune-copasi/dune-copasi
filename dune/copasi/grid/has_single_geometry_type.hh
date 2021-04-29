@@ -4,6 +4,7 @@
 #include <dune/common/exceptions.hh>
 
 #include <dune/grid/common/capabilities.hh>
+#include <dune/grid/common/partitionset.hh>
 
 namespace Dune::Copasi {
 
@@ -19,7 +20,7 @@ namespace Dune::Copasi {
  *
  * @return     True if single geometry type, False otherwise.
  */
-template<class GridView>
+template<class GridView, PartitionIteratorType partition = PartitionIteratorType::Interior_Partition>
 std::enable_if_t<Capabilities::hasSingleGeometryType<typename GridView::Grid>::v,bool>
 has_single_geometry_type(const GridView&)
 {
@@ -39,13 +40,17 @@ has_single_geometry_type(const GridView&)
  *
  * @return     True if single geometry type, False otherwise.
  */
-template<class GridView>
+template<class GridView, PartitionIteratorType partition = PartitionIteratorType::Interior_Partition>
 std::enable_if_t<not Capabilities::hasSingleGeometryType<typename GridView::Grid>::v,bool>
 has_single_geometry_type(const GridView& grid_view)
 {
-  GeometryType gt = grid_view.template begin<0>()->geometry().type();
-  for (auto&& element : elements(grid_view))
-    if (gt != element.geometry().type())
+  auto it = grid_view.template begin<0,partition>();
+  auto end = grid_view.template end<0,partition>();
+  GeometryType gt;
+  if (it != end)
+    gt = it->geometry().type();
+  for (; it != end; ++it)
+    if (gt != it->geometry().type())
       return false;
   return true;
 }
