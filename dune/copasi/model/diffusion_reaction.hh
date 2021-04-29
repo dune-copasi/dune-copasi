@@ -229,7 +229,7 @@ public:
   using CON = PDELab::P0ParallelConstraints;
 
   //! Entity set
-  using ES = Dune::PDELab::OverlappingEntitySet<HGV>;
+  using ES = Dune::PDELab::NonOverlappingEntitySet<HGV>;
 
   //! Leaf vector backend
   using LVBE = PDELab::ISTL::VectorBackend<>;
