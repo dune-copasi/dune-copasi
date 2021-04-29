@@ -23,9 +23,9 @@ spatial *Systems Biology Markup Language* ([SBML](https://en.wikipedia.org/wiki/
 models of bio-chemical reactions. Additionally, it can simulate them with `dune-copasi`. A big
 adventage of this package is that is tailored for biologists and is availalbe
 with just a pair of clicks on the major plataforms. Find more information
-[here](https://spatial-model-editor.readthedocs.io/en/latest/quickstart/get-started.html)!
+[here](https://spatial-model-editor.readthedocs.io/en/stable/quickstart/get-started.html)!
 
-[![sme](./img/spatial-model-editor.png)](https://spatial-model-editor.readthedocs.io/en/latest/quickstart/get-started.html)
+[![sme](./img/spatial-model-editor.png)](https://spatial-model-editor.readthedocs.io/en/stable/quickstart/get-started.html)
 
 ### Configuration File
 
@@ -99,7 +99,7 @@ nano config.ini
 
 #### Run the program
 
-Here, you may pull and run the latest stable container from our
+Here, you may pull and run the container from our
 [GitLab registry](https://gitlab.dune-project.org/copasi/dune-copasi/container_registry).
 To do so, call the docker container with a configuration
 file `config.ini` using one of the following commands on the terminal:
@@ -117,7 +117,7 @@ file `config.ini` using one of the following commands on the terminal:
 
 ```bash
 docker run -v $PWD \
-  registry.dune-project.org/copasi/dune-copasi/dune-copasi:latest\
+  registry.dune-project.org/copasi/dune-copasi/dune-copasi:v1.1.0\
   config.ini
 ```
 
@@ -127,7 +127,7 @@ docker run -v $PWD \
 ```bash
 docker run -v $PWD \
   --entrypoint=dune-copasi-sd \
-  registry.dune-project.org/copasi/dune-copasi/dune-copasi:latest\
+  registry.dune-project.org/copasi/dune-copasi/dune-copasi:v1.1.0\
   config.ini
 ```
 
@@ -155,7 +155,7 @@ with [INI](#configuration-file) usage, installation is as simple as:
   <TabItem value="apt">
 
 ```bash
-curl -fsSL https://gitlab.dune-project.org/copasi/dune-copasi/-/jobs/artifacts/latest/raw/packages/dune-copasi-runtime.deb?job=build:debian_clang -o dune-copasi-runtime.deb
+curl -fsSL https://gitlab.dune-project.org/copasi/dune-copasi/-/jobs/artifacts/v1.1.0/raw/packages/dune-copasi-runtime.deb?job=build:debian_clang -o dune-copasi-runtime.deb
 apt install ./dune-copasi-runtime.deb
 ```
 
@@ -264,8 +264,8 @@ The following list of software is required to install and use `dune-copasi`:
 | [dune-functions](https://gitlab.dune-project.org/staging/dune-functions)                    | == 2.7 |
 | [dune-logging](https://gitlab.dune-project.org/staging/dune-logging)                        | == 2.7 |
 | [dune-multidomaingrid](https://gitlab.dune-project.org/extensions/dune-multidomaingrid)     | == 2.7 |
-| [COPASI/dune-typetree](https://gitlab.dune-project.org/copasi/dune-typetree)                | `support/dune-copasi-latest` |
-| [COPASI/dune-pdelab](https://gitlab.dune-project.org/copasi/dune-pdelab)                    | `support/dune-copasi-latest` |
+| [COPASI/dune-typetree](https://gitlab.dune-project.org/copasi/dune-typetree)                | `support/dune-copasi-v1.1.0` |
+| [COPASI/dune-pdelab](https://gitlab.dune-project.org/copasi/dune-pdelab)                    | `support/dune-copasi-v1.1.0` |
 
 :::info
 Notice that some required dune modules are forks of original reopsitories and
@@ -369,9 +369,9 @@ git clone -b releases/2.7 https://gitlab.dune-project.org/core/dune-localfunctio
 git clone -b releases/2.7 https://gitlab.dune-project.org/staging/dune-functions
 git clone -b releases/2.7 https://gitlab.dune-project.org/extensions/dune-multidomaingrid
 git clone -b releases/2.7 --recursive https://gitlab.dune-project.org/staging/dune-logging
-git clone -b support/dune-copasi-latest https://gitlab.dune-project.org/copasi/dune-typetree
-git clone -b support/dune-copasi-latest https://gitlab.dune-project.org/copasi/dune-pdelab
-git clone -b latest https://gitlab.dune-project.org/copasi/dune-copasi
+git clone -b support/dune-copasi-v1.1.0 https://gitlab.dune-project.org/copasi/dune-typetree
+git clone -b support/dune-copasi-v1.1.0 https://gitlab.dune-project.org/copasi/dune-pdelab
+git clone -b v1.1.0 https://gitlab.dune-project.org/copasi/dune-copasi
 
 # apply patches
 git apply -C dune-common dune-copasi/.ci/dune-common.patch
