@@ -164,10 +164,10 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/dune/copasi/FC.h"
 # taget configuration for downstream projects
 install(TARGETS dune-copasi-deps dune-copasi
         EXPORT dune-copasi-targets
-        LIBRARY DESTINATION "${DUNE_INSTALL_LIBDIR}/cmake/dune-copasi"
+        LIBRARY DESTINATION "${DUNE_INSTALL_LIBDIR}"
           COMPONENT Libraries
           NAMELINK_COMPONENT Development
-        ARCHIVE DESTINATION "${DUNE_INSTALL_LIBDIR}/cmake/dune-copasi"
+        ARCHIVE DESTINATION "${DUNE_INSTALL_LIBDIR}"
           COMPONENT Development
 )
 
