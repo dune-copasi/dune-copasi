@@ -35,7 +35,7 @@ of the development container. The CI passes its packaged results and this contai
 installs and tests the the packages. Finally, it is deployied to our registry. Its
 main purpose is to create docker containers with executables usable by end-users.
 
-## Jupiter Notebooks
+## Jupyter Notebooks
 
 The file [`jupyter.dockerfile`](jupyter.dockerfile) sets up an environment where
 jupyter notebooks with C++ kernels and `dune-copasi` are available. This is
@@ -50,8 +50,8 @@ git clone ssh://git@gitlab.dune-project.org:22022/copasi/dune-copasi.git
 cd dune-copasi
 
 # build a local container for jupyter notebooks
-docker build -t dune-copasi-jupiter -f docker/jupyter.dockerfile .
+docker build -t dune-copasi-jupyter -f docker/jupyter.dockerfile .
 
 # run container, publish its contents to 8888 port, and follow instructions in the terminal to open the notebooks
-docker run -ti -p 8888:8888 dune-copasi-jupiter
+docker run -ti -p 8888:8888 dune-copasi-jupyter
 ```
