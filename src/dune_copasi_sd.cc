@@ -26,6 +26,8 @@
 
 #include <ctime>
 #include <vector>
+#include <thread>
+#include <chrono>
 
 static std::string string_help =
   "Usage: dune-copasi-sd CONFIG_FILE\n"
@@ -65,6 +67,17 @@ main(int argc, char** argv)
   Dune::Logging::Logging::init(comm, config.sub("logging"));
   auto log = Dune::Logging::Logging::logger(config);
   using namespace Dune::Literals;
+
+  bool debug_hook = config.get("debug_hook", false);
+  if (debug_hook) {
+    // sleep until debug hook is set to false
+    log.warn("Process halted due to debug mode"_fmt);
+    log.warn("Attach a debugger and set variable 'debug_hook = false'"_fmt);
+
+    using namespace std::chrono_literals;
+    while (debug_hook)
+      std::this_thread::sleep_for(50ms);
+  }
 
   try {
     std::time_t stime_t = std::chrono::system_clock::to_time_t(stime_c);
