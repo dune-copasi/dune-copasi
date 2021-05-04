@@ -27,6 +27,8 @@ Types of changes
  -->
 
 ## [Unreleased] ([git-diff][Unreleased-diff])
+### Changed
+ - Docusaurus is updated to version [`2.0.0-alpha.75`](https://github.com/facebook/docusaurus/blob/master/CHANGELOG.md#200-alpha75-2021-04-30) !72
 
 ## [1.1.0] ([git-diff][1.1.0-diff]) - 2021-04-29
 ### Added
