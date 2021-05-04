@@ -193,7 +193,7 @@ template<class Traits>
 void
 ModelDiffusionReaction<Traits>::setup_coefficient_vector()
 {
-  _logger.debug("etup coefficient vector"_fmt);
+  _logger.debug("Setup coefficient vector"_fmt);
   const auto& gfs = _state.grid_function_space;
   if (not gfs)
     DUNE_THROW(InvalidStateException,"Grid function space is not setup");
@@ -332,16 +332,13 @@ ModelDiffusionReaction<Traits>::setup_vtk_writer()
     using VTKGridView = typename GFS::Traits::GridView;
     auto writer =
       std::make_shared<VTKWriter<VTKGridView>>(gfs->gridView(), Dune::VTK::conforming);
-    auto sequential_writer =
-      VTKSequenceWriter<VTKGridView>{ writer, name, path.string(), path.string() };
+    auto sequential_writer = VTKSequenceWriter{ writer, name, path.string(), "" };
     sequential_writer.setTimeSteps(timesteps);
 
     using Predicate = PDELab::vtk::DefaultPredicate;
     using Data = PDELab::vtk::DGFTreeCommonData<GFS, X, Predicate, VTKGridView>;
-    std::shared_ptr<Data> data =
-      std::make_shared<Data>(*gfs, *x, gfs->gridView());
-    PDELab::vtk::OutputCollector<VTKSequenceWriter<VTKGridView>, Data> collector(
-      sequential_writer, data);
+    auto data = std::make_shared<Data>(*gfs, *x, gfs->gridView());
+    auto collector = PDELab::vtk::OutputCollector{sequential_writer, data};
     for (std::size_t k = 0; k < data->_lfs.degree(); k++)
       collector.addSolution(data->_lfs.child(k),
                             PDELab::vtk::defaultNameScheme());
