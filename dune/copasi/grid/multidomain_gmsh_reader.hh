@@ -2,10 +2,11 @@
 #define DUNE_COPASI_GMSH_READER_HH
 
 #include <dune/copasi/concepts/grid.hh>
+#include <dune/copasi/grid/map_data_handle.hh>
 
 #include <dune/grid/common/gridinfo.hh>
+#include <dune/grid/common/partitionset.hh>
 #include <dune/grid/io/file/gmshreader.hh>
-#include <dune/grid/io/file/vtk.hh>
 #include <dune/grid/multidomaingrid.hh>
 
 #include <dune/logging/logging.hh>
@@ -16,88 +17,6 @@
 #include <type_traits>
 
 namespace Dune::Copasi {
-
-
-template<class Container, class Mapper>
-struct ContainerDataHandle
-  : public Dune::CommDataHandleIF<ContainerDataHandle<Container,Mapper>,
-                                  typename Container::value_type
-                                  >
-{
-  ContainerDataHandle(Container& container, const Mapper& mapper)
-    : _grid(mapper.gridView().grid())
-    , _container(container)
-    , _mapper(mapper)
-  {
-    // auto mapper = MultipleCodimMultipleGeomTypeMapper{grid_view};
-    auto& id_set = _grid.localIdSet();
-    typename Mapper::Index index;
-    for (const auto& e : elements(_mapper.gridView()))
-      if (_mapper.contains(e,index))
-        _id_map[id_set.id(e)] = _container[index];
-  }
-
-  bool contains (int dim, int codim) const
-  {
-    assert(dim == Grid::dimension);
-    return _grid.comm().max(_mapper.types(codim).size());
-  }
-
-  bool fixedsize(int dim, int codim) const
-  {
-    // TODO: fix this
-    return true;
-  }
-
-  template<typename Entity>
-  std::size_t size(const Entity& e) const
-  {
-    return _mapper.size(e.type());
-  }
-
-  template<typename MessageBufferImp, typename Entity>
-  void gather(MessageBufferImp& buf, const Entity& e) const
-  {
-    auto it = _id_map.find(_grid.localIdSet().id(e));
-    assert(it != _id_map.end());
-    buf.write(it->second);
-  }
-
-  template<typename MessageBufferImp, typename Entity>
-  void scatter(MessageBufferImp& buf, const Entity& e, std::size_t n)
-  {
-    auto id = _grid.localIdSet().id(e);
-    ValueType tmp;
-    buf.read(tmp);
-    _id_map.insert({id,tmp});
-  }
-
-  void update()
-  {
-    _mapper.update();
-    auto& id_set = _grid.localIdSet();
-    typename Mapper::Index index;
-    _container.resize(_mapper.size());
-    for (const auto& e : elements(_mapper.gridView()))
-      if (_mapper.contains(e,index))
-      {
-        auto it = _id_map.find(id_set.id(e));
-        assert(it != _id_map.end());
-        _container[index] = it->second;
-      }
-  }
-
-  using Grid = typename Mapper::GridView::Grid;
-  using IdType = typename Grid::LocalIdSet::IdType;
-  using ValueType = typename Container::value_type;
-
-  const Grid& _grid;
-  Container& _container;
-  Mapper _mapper;
-  std::map<IdType,ValueType> _id_map;
-  std::map<std::array<std::size_t,2>,std::size_t> _sizes;
-};
-
 
 /**
  * @brief      This class describes a multi domain gmsh reader.
@@ -159,48 +78,43 @@ public:
     logger.info("Reading grid file: '{}'"_fmt,fileName);
     parser.read(fileName);
 
-    auto index_map = parser.elementIndexMap();
-
     std::shared_ptr<HostGrid> host_grid = factory.createGrid();
 
-    auto mapper = LeafMultipleCodimMultipleGeomTypeMapper{*host_grid,mcmgElementLayout()};
-    if (host_grid->comm().size() > 0)
-    {
-      auto data_handle = ContainerDataHandle{index_map,mapper};
-      logger.debug("Load balance grid"_fmt);
-      host_grid->loadBalance(data_handle);
-      data_handle.update();
+    auto index_map = parser.elementIndexMap();
+    int max_subdomains = *std::max_element(index_map.begin(), index_map.end());
+    max_subdomains = host_grid->comm().max(max_subdomains);
+
+    auto& host_id_set = host_grid->localIdSet();
+    using IdType = typename HostGrid::GlobalIdSet::IdType;
+    std::map<IdType,std::size_t> subdomain_map;
+
+    unsigned int i = 0;
+    for (const auto& cell : elements(host_grid->leafGridView())) {
+      // gmsh index starts at 1!
+      subdomain_map[host_id_set.id(cell)] = index_map[i] - 1;
+      i++;
     }
 
-    // auto writer = VTKWriter{host_grid->leafGridView()};
-    // writer.addCellData(index_map,"subdomain");
-    // writer.write("test_multidomain_gmsh_reader");
+    auto map_handle = MapDataHandle{host_id_set,subdomain_map};
+    host_grid->loadBalance(map_handle);
 
-    auto [min_subdomain_it,max_subdomain_it] = std::minmax_element(index_map.begin(), index_map.end());
-    auto [min_subdomain,max_subdomain] = std::tie(*min_subdomain_it,*max_subdomain_it);
-    // Subdoman GMSH indices should start at one
-    assert(max_subdomain > 0);
-    MDGTraits* traits;
+    std::unique_ptr<MDGTraits> traits;
     if constexpr (std::is_default_constructible_v<MDGTraits>)
-      traits = new MDGTraits;
+      traits = std::make_unique<MDGTraits>();
     else
-      traits = new MDGTraits(max_subdomain);
+      traits = std::make_unique<MDGTraits>(max_subdomains);
 
     logger.detail("Creating multidomain grid from host grid"_fmt);
     std::shared_ptr<Grid> grid = std::make_shared<Grid>(*host_grid, *traits);
-    delete traits;
 
     logger.trace("Creating multidomain sub-domains"_fmt);
     grid->startSubDomainMarking();
-
-    for (const auto& cell : elements(mapper.gridView(),Partitions::interior)) {
-      typename std::decay_t<decltype(mapper)>::Index index;
-      if (mapper.contains(cell,index)) {
-        // gmsh index starts at 1!
-        auto subdomain = index_map[ index ] - 1;
-        logger.trace( 1, "Cell {} added to subdomain {}"_fmt, cell.type(), subdomain);
-        grid->addToSubDomain(subdomain, grid->wrapHostEntity(cell));
-      }
+    const auto& id_set = grid->globalIdSet();
+    for (const auto& cell : elements(grid->leafGridView(),Dune::Partitions::interior)) {
+      auto subdomain = subdomain_map[id_set.id(cell)];
+      logger.trace(
+        1, "Cell {} added to subdomain {}"_fmt, id_set.id(cell), subdomain);
+      grid->addToSubDomain(subdomain, cell), i++;
     }
 
     grid->preUpdateSubDomains();
@@ -210,14 +124,9 @@ public:
     if (logger.level() >= Logging::LogLevel::detail) {
       logger.detail("Grid info"_fmt);
       gridinfo(*grid,"  ");
-      for (int i = 0; i < max_subdomain; ++i) {
+      for (int i = 0; i < max_subdomains; ++i) {
         logger.detail("Subdomain {} info"_fmt, i);
         gridinfo(grid->subDomain(i), "  ");
-
-        // auto writer = VTKWriter{grid->subDomain(i).leafGridView()};
-        // std::vector<int> values(grid->subDomain(i).leafGridView().size(0),0);
-        // writer.addCellData(values,"subdomain");
-        // writer.write("test_multidomain_gmsh_reader_" + std::to_string(i));
       }
     }
 
