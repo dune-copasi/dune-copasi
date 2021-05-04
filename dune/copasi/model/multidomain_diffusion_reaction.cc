@@ -299,7 +299,7 @@ ModelMultiDomainDiffusionReaction<Traits>::setup_vtk_writer()
       auto writer = std::make_shared<VTKWriter<SubDomainGridView>>(
         sub_grid_view, Dune::VTK::conforming);
 
-      auto sequential_writer = VTKSequenceWriter{ writer, name, path.string(), path.string()};
+      auto sequential_writer = VTKSequenceWriter{ writer, name, path.string(), ""};
       sequential_writer.setTimeSteps(timesteps);
 
       auto collector =
