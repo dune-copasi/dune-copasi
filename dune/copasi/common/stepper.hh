@@ -6,6 +6,7 @@
 
 #include <dune/pdelab/instationary/onestep.hh>
 #include <dune/pdelab/solver/newton.hh>
+#include <dune/pdelab/function/callableadapter.hh>
 
 #include <dune/logging.hh>
 
@@ -360,6 +361,16 @@ public:
                    dt,
                    in.time + dt);
 
+  auto& gfs = *in.grid_function_space;
+  auto b0lambda = [&](const auto& i, const auto& x) { return false; };
+  auto b0 = PDELab::makeBoundaryConditionFromCallable(gfs.gridView(), b0lambda);
+
+  _logger.trace("Assemble constraints"_fmt);
+  auto& cc = *system.get_constraints();
+  Dune::PDELab::constraints(b0, gfs, cc);
+
+  _logger.detail("Constrained dofs: {} of {}"_fmt, cc.size(), gfs.globalSize());
+
     auto& solver = get_solver(system);
 
     const auto& x_in = in.coefficients;
@@ -390,10 +401,12 @@ public:
       out.coefficients.reset(); // set output to an invalid state
       _logger.warn(2, "Step failed (NewtonError::LineSearchError)"_fmt);
       _logger.trace("{}"_fmt, e.what());
-    } catch (const Dune::MathError& e) {
+    } catch (const std::exception& e) {
+      // other types are just logged an thrown
       out.coefficients.reset(); // set output to an invalid state
       _logger.warn(2, "Step failed (MathError)"_fmt);
       _logger.trace("{}"_fmt, e.what());
+      throw;
     }
 
     if (not cout_redirected)
@@ -422,9 +435,7 @@ private:
                                      std::shared_ptr<NonLinearOperator>,
                                      std::shared_ptr<OneStepOperator>>;
 
-    InstationaryGridOperator& grid_operator = *system.get_instationary_grid_operator();
-
-    auto linear_solver = std::make_unique<LinearSolver>(grid_operator);
+    auto& grid_operator = *system.get_instationary_grid_operator();
 
     // If internal data correspond to input, return cached one-step-operator.
     if (_internal_state.has_value() and
@@ -434,6 +445,8 @@ private:
           std::get<1>(internal_state) == &grid_operator)
         return *std::get<4>(internal_state);
     }
+
+    auto linear_solver = std::make_unique<LinearSolver>(grid_operator);
 
     _logger.trace("Get non-linear operator"_fmt);
     auto non_linear_operator =

@@ -226,7 +226,7 @@ public:
     Traits::RangeFieldType;
 
   //! Constraints builder
-  using CON = PDELab::P0ParallelConstraints;
+  using CON = PDELab::ConformingDirichletConstraints;
 
   //! Entity set
   using ES = Dune::PDELab::NonOverlappingEntitySet<HGV>;
@@ -494,7 +494,10 @@ public:
     return _grid_operator;
   }
 
-protected:
+  std::shared_ptr<CC> get_constraints() const
+  {
+    return _constraints;
+  }
 
 protected:
   /**
@@ -527,7 +530,7 @@ private:
   State _state;
   std::shared_ptr<Grid> _grid;
 
-  std::unique_ptr<CC> _constraints;
+  mutable std::shared_ptr<CC> _constraints;
   std::shared_ptr<LOP> _local_operator;
   std::shared_ptr<TLOP> _temporal_local_operator;
   std::shared_ptr<GOS> _spatial_grid_operator;

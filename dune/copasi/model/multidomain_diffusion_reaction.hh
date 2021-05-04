@@ -96,7 +96,6 @@ class ModelMultiDomainDiffusionReaction : public ModelBase
 public:
   using Traits = Traits_;
 
-private:
   using Grid = typename Traits::Grid;
 
   using OT = typename Traits::OrderingTag;
@@ -114,9 +113,6 @@ private:
 
   //! Range field
   using RF = double;
-
-  //! Constraints builder
-  using CON = PDELab::ConformingDirichletConstraints;
 
   //! Leaf vector backend
   using LVBE = PDELab::ISTL::VectorBackend<>;
@@ -361,6 +357,11 @@ public:
     return _grid_operator;
   }
 
+  std::shared_ptr<CC> get_constraints() const
+  {
+    return _constraints;
+  }
+
 protected:
   /**
    * @brief      Setup model internals
@@ -392,7 +393,7 @@ private:
   State _state;
   std::shared_ptr<Grid> _grid;
 
-  std::unique_ptr<CC> _constraints;
+  std::shared_ptr<CC> _constraints;
   std::shared_ptr<LOP> _local_operator;
   std::shared_ptr<TLOP> _temporal_local_operator;
   std::shared_ptr<GOS> _spatial_grid_operator;
