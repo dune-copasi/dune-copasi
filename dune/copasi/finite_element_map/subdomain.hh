@@ -117,6 +117,9 @@ public:
       in_grid_view = md_grid.leafIndexSet()
                        .subDomains(md_grid.multiDomainEntity(e))
                        .contains(sub_domain);
+    } else {
+      static_assert(Dune::AlwaysFalse<EntityType>::value,
+                    "Onle mult/sub-domain entities are allowed");
     }
 
     return in_grid_view ? Base::find(e) : _fe_null;
