@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.9)
 project(dune-copasi-doxygen)
 
 # check if this is run as stand-alone cmake project
@@ -21,6 +21,5 @@ if(Doxygen_FOUND)
   set(DOXYGEN_PROJECT_NAME "Dune::Copasi")
   set(DOXYGEN_EXCLUDE_PATTERNS "*/test/*;*/doc/*;*/src/*;*/util/*;*/python/*;*/docker/*")
   set(DOXYGEN_EXCLUDE_SYMBOLS "Impl")
-  set(DOXYGEN_GENERATE_XML "Yes")
   doxygen_add_docs(dune-copasi-doc WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../../" ${DOXYGEN_ALL})
 endif()
