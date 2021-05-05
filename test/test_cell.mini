@@ -4,7 +4,12 @@
 import default_logging.ini
 import default_time_stepping.ini
 
-__name = test_cell
+_proc = 1, 2, 4 | expand processes
+
+__name = test_cell_{_proc}
+
+[wrapper.execute_parallel]
+numprocesses = {_proc}
 
 [grid]
 dimension = 2

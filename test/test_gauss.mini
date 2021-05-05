@@ -8,8 +8,15 @@ _diffusion = 0.005
 _t0 = 1.
 _gauss_eq = exp(-((x-0.5)^2+(y-0.5)^2)/(4*t*{_diffusion})) / (4*pi*t*{_diffusion})
 _geometry_type = cubes, triangles | expand geometry_type
+_proc = 1, 2, 4 | expand processes
 
-__name = test_gauss_{_geometry_type}
+# Only test trianges in parallel
+{_geometry_type} == cubes and {_proc} > 1 | exclude
+
+__name = test_gauss_{_geometry_type}_{_proc}
+
+[wrapper.execute_parallel]
+numprocesses = {_proc}
 
 [grid]
 dimension = 2

@@ -78,10 +78,12 @@ if (dune-testtools_FOUND)
 
   add_system_test_per_target(
     TARGET          dune-copasi-sd-compare
+    SCRIPT          dune_execute_parallel.py
     INIFILE         test_exp.mini)
 
   add_system_test_per_target(
     TARGET          dune-copasi-sd-compare
+    SCRIPT          dune_execute_parallel.py
     INIFILE         test_initial.mini)
 
   add_system_test_per_target(
@@ -162,8 +164,8 @@ if (dune-testtools_FOUND)
     TARGET          dune-copasi-md-jacobian
     INIFILE         test_cell.mini)
 
-  set_property(TEST "dune-copasi-md-jacobian_test_cell" PROPERTY LABELS unit)
-  set_property(TEST "dune-copasi-md-jacobian_test_cell" PROPERTY LABELS unit)
+  # set_property(TEST "dune-copasi-md-jacobian_test_cell" PROPERTY LABELS unit)
+  # set_property(TEST "dune-copasi-md-jacobian_test_cell" PROPERTY LABELS unit)
 
   add_system_test_per_target(
     TARGET          dune-copasi-md-jacobian

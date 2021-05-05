@@ -156,7 +156,7 @@ main(int argc, char** argv)
     auto base_writer = std::make_shared<Dune::VTKWriter<GridView>>(
         gv, Dune::VTK::conforming);
     writer = std::make_shared<Dune::VTKSequenceWriter<GridView>>(
-        base_writer, name, file, file);
+        base_writer, name, file, "");
 
     auto compare_m = [=](const auto& model, const auto& state) {
       // 2. get resulting grid functions

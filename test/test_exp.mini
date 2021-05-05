@@ -6,7 +6,15 @@ import default_time_stepping.ini
 _grow_rate = 0.2
 _initial = 1
 _geometry_type = cubes, triangles | expand geometry_type
-__name = test_exp_{_geometry_type}
+_proc = 1, 2, 4 | expand processes
+
+# Only test trianges in parallel
+{_geometry_type} == cubes and {_proc} > 1 | exclude
+
+__name = test_exp_{_geometry_type}_{_proc}
+
+[wrapper.execute_parallel]
+numprocesses = {_proc}
 
 [grid]
 dimension = 2

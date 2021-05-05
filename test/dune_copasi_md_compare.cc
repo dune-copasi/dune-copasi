@@ -160,7 +160,7 @@ main(int argc, char** argv)
       auto base_writer = std::make_shared<Dune::VTKWriter<SubDomainGridView>>(
         gv, Dune::VTK::conforming);
       writer[i] = std::make_shared<Dune::VTKSequenceWriter<SubDomainGridView>>(
-        base_writer, name, file, file);
+        base_writer, name, file, "");
     }
 
     auto compare_m = [=](const auto& model, const auto& state) {
