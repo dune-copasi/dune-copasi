@@ -164,14 +164,14 @@ if (dune-testtools_FOUND)
     TARGET          dune-copasi-md-jacobian
     INIFILE         test_cell.mini)
 
-  # set_property(TEST "dune-copasi-md-jacobian_test_cell" PROPERTY LABELS unit)
-  # set_property(TEST "dune-copasi-md-jacobian_test_cell" PROPERTY LABELS unit)
+  foreach(_proc 1 2 4)
+    set_property(TEST "dune-copasi-md-jacobian_test_cell_${_proc}" PROPERTY LABELS unit)
+  endforeach()
 
   add_system_test_per_target(
     TARGET          dune-copasi-md-jacobian
     INIFILE         test_NFkappaB.mini)
 
-  set_property(TEST "dune-copasi-md-jacobian_test_NFkappaB" PROPERTY LABELS unit)
   set_property(TEST "dune-copasi-md-jacobian_test_NFkappaB" PROPERTY LABELS unit)
 
 endif()
