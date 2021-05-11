@@ -6,7 +6,7 @@ if(DUNE_COPASI_INSTALL_XEUS_CLING)
   FetchContent_Declare(
     xeus_cling_setup
     GIT_REPOSITORY https://github.com/dokempf/xeus-cling-cmake-setup.git
-    GIT_TAG        6356d6ce997f29726463d1422ed477c0b4539396
+    GIT_TAG        3f94836ea521b76dd89f24752ad12e320806f4b2
   )
 
   if(NOT xeus_cling_setup_POPULATED)
@@ -15,19 +15,14 @@ if(DUNE_COPASI_INSTALL_XEUS_CLING)
     add_subdirectory("${xeus_cling_setup_SOURCE_DIR}" "${xeus_cling_setup_BINARY_DIR}")
   endif()
 
-  if(TARGET dune-logging-fmt)
-    get_target_property(xeus_cling_include dune-logging-fmt INTERFACE_INCLUDE_DIRECTORIES)
-  endif()
-
   xeus_cling_setup(
     TARGETS dune-copasi::dune-copasi
-    INCLUDE_DIRECTORIES "${xeus_cling_include}"
-    COMPILE_FLAGS
-      -DENABLE_UG=1
-      -DUG_USE_NEW_DIMENSION_DEFINES
+    COMPILE_DEFINITIONS
+      UG_USE_NEW_DIMENSION_DEFINES # TODO: remove on dune 2.8
     SETUP_HEADERS
       ${CMAKE_BINARY_DIR}/dune/copasi/config.h
     KERNEL_NAME "C++17 (DUNE-COPASI)"
+    KERNEL_LOGO_FILES "${CMAKE_CURRENT_SOURCE_DIR}/../doc/docusaurus/static/img/logo-64x64.png"
     REQUIRED
   )
 

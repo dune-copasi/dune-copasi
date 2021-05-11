@@ -48,15 +48,17 @@ RUN ./dune-copasi/.ci/setup_dune ${HOME}/dune-modules/dune-copasi/dune-copasi.op
 COPY --chown=${NB_UID} ./ ${HOME}/dune-modules/dune-copasi
 
 # set up variables for dune-copasi configuration
-ENV CMAKE_OPTIONS+="-DTIFF_INCLUDE_DIR=/opt/conda/include"
-ENV CMAKE_OPTIONS+="-DTIFF_LIBRARY_RELEASE=/opt/conda/lib/libtiff.so"
 ENV DUNE_COPASI_INSTALL_XEUS_CLING='ON'
 ENV DUNE_COPASI_SD_EXECUTABLE='OFF'
 ENV DUNE_COPASI_MD_EXECUTABLE='OFF'
 ENV SKIP_CLEANUP='ON'
+ENV VERBOSE=1
 
 # configure and build dune-copasi
 RUN ./dune-copasi/.ci/install ${HOME}/dune-modules/dune-copasi/dune-copasi.opts
 
 # make ntebooks the entry point
 WORKDIR ${HOME}/dune-modules/dune-copasi
+
+# We enable JupyerLab!
+ENV JUPYTER_ENABLE_LAB=yes
