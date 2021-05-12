@@ -12,8 +12,7 @@ documentation, build `dune-copasi` [manually](install_use.md) and use the
 `make dune-copasi-doc` target in the build directory. For this, you need to
 have `doxygen` on your system.
 
-#### [Online Doxygen Documentation](pathname://./doxygen/html/index.html)
-<a href={'pathname://./doxygen/html/index.html'} > Online Doxygen Documentation </a>
+* [Online Doxygen Documentation](pathname://./doxygen/index.html)
 
 ### Preprocessor Definitions
 
