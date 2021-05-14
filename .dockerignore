@@ -1,10 +1,10 @@
 # inception
 .dockerignore
 Dockerfile
-doc/Dockerfile
 
 # build folders
 build-cmake/
+build/
 
 #### Docusaurus ####
 
