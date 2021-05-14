@@ -10,7 +10,6 @@ RUN apt update && \
     rm -rf /var/lib/apt/lists/*
 USER ${NB_USER}
 
-
 # install conda and its dependencies
 RUN conda install -c conda-forge \
         cmake \
@@ -33,9 +32,9 @@ WORKDIR ${HOME}/dune-modules
 # set variables for the options file
 ENV CMAKE_C_COMPILER="'/opt/conda/bin/x86_64-conda-linux-gnu-gcc'"
 ENV CMAKE_CXX_COMPILER="'/opt/conda/bin/x86_64-conda-linux-gnu-g++'"
-ENV CMAKE_CXX_FLAGS="'-fpic'"
+ENV CMAKE_CXX_FLAGS="''"
 ENV CMAKE_OPTIONS='-DBUILD_SHARED_LIBS=ON'
-ENV CMAKE_INSTALL_PREFIX="$HOME/dune"
+ENV CMAKE_INSTALL_PREFIX="/opt/conda"
 
 # copy options file
 COPY --chown=${NB_UID} ./dune-copasi.opts ${HOME}/dune-modules/dune-copasi/dune-copasi.opts
@@ -48,17 +47,27 @@ RUN ./dune-copasi/.ci/setup_dune ${HOME}/dune-modules/dune-copasi/dune-copasi.op
 COPY --chown=${NB_UID} ./ ${HOME}/dune-modules/dune-copasi
 
 # set up variables for dune-copasi configuration
-ENV DUNE_COPASI_INSTALL_XEUS_CLING='ON'
 ENV DUNE_COPASI_SD_EXECUTABLE='OFF'
 ENV DUNE_COPASI_MD_EXECUTABLE='OFF'
-ENV SKIP_CLEANUP='ON'
 ENV VERBOSE=1
 
 # configure and build dune-copasi
+RUN ./dune-copasi/dune-copasi.opts
 RUN ./dune-copasi/.ci/install ${HOME}/dune-modules/dune-copasi/dune-copasi.opts
 
-# make ntebooks the entry point
-WORKDIR ${HOME}/dune-modules/dune-copasi
+# configure jupyter notebooks
+RUN mkdir dune-copasi/notebooks-build \
+    && cd dune-copasi/notebooks-build \
+    && cmake -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} \
+             -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} \
+             -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} \
+             -DCMAKE_PREFIX_PATH=${CMAKE_INSTALL_PREFIX} \
+             ../notebooks \
+    && make \
+    && make install
+
+# make notebooks the entry point
+WORKDIR ${HOME}/dune-modules/dune-copasi/notebooks
 
 # We enable JupyerLab!
 ENV JUPYTER_ENABLE_LAB=yes
