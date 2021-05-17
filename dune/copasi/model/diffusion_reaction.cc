@@ -155,7 +155,12 @@ ModelDiffusionReaction<Traits>::setup_component_grid_function_space(
       else
         return e;
     };
-    std::size_t order = finite_element_map->find(entity_converter(*begin)).localBasis().order();
+    std::size_t order =
+      finite_element_map->find(entity_converter(*begin)).localBasis().order();
+
+    if (order == 0 and _grid->comm().size() > 1)
+      DUNE_THROW(NotImplemented,
+                 "Parallel programs on finite volume spaces are not supported");
 
     comp_gfs->setDataSetType(
       order == 0 ? PDELab::GridFunctionOutputParameters::Output::cellData
