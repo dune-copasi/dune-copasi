@@ -3,7 +3,7 @@
 # download and install other dependences (from sme by Liam)
 
 # variables from DUNE_OPTIONS_FILE
-#   OS_TARGET=linux|osx|win32|win64
+#   OS_TARGET=linux|osx|win32-mingw|win64-mingw
 #   CMAKE_INSTALL_PREFIX
 #   (optional) SUDOCMD
 
@@ -40,7 +40,7 @@ trap onfailure EXIT
 [[ -d /tmp/setup-static-deps ]] && ONFAILURE_MESSAGE+="run this script where no folder '/tmp/setup-static-deps' exists\n" && exit 1
 mkdir /tmp/setup-static-deps && cd /tmp/setup-static-deps
 
-if [[ ! "$OS_TARGET" =~ ^(linux|osx|win32|win64)$ ]]; then
+if [[ ! "$OS_TARGET" =~ ^(linux|osx|win32-mingw|win64-mingw)$ ]]; then
     ONFAILURE_MESSAGE+="'$OS_TARGET' is not a known OS target\n"
     exit 1
 fi
