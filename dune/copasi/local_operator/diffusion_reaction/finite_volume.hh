@@ -2,7 +2,6 @@
 #define DUNE_COPASI_LOCAL_OPERATOR_DIFFUSION_REACTION_FV_HH
 
 #include <dune/copasi/common/enum.hh>
-#include <dune/copasi/common/pdelab_expression_adapter.hh>
 #include <dune/copasi/local_operator/diffusion_reaction/base.hh>
 
 #include <dune/pdelab/localoperator/numericaljacobian.hh>
@@ -39,6 +38,7 @@ class LocalOperatorDiffusionReactionFV
   using LOPBase::_component_pattern;
   using LOPBase::_components;
   using LOPBase::dim;
+  using LOPBase::_u;
   using LOPBase::_diffusion_gf;
   using LOPBase::_reaction_gf;
   using LOPBase::_jacobian_gf;
@@ -238,10 +238,9 @@ public:
     // get geometry
     const auto geo = eg.geometry();
 
-    DynamicVector<RF> u(_components);
     DynamicVector<RF> reaction(_components);
 
-    std::fill(u.begin(), u.end(), 0.);
+    std::fill(_u.begin(), _u.end(), 0.);
     std::fill(reaction.begin(), reaction.end(), 0.);
 
     // get center in local coordinates
@@ -250,11 +249,10 @@ public:
 
     // evaluate concentrations at quadrature point
     for (std::size_t comp = 0; comp < _components; comp++)
-      u[comp] += x_coeff_local(comp, 0);
+      _u[comp] += x_coeff_local(comp, 0);
 
     // get reaction term
     for (std::size_t k = 0; k < _components; k++) {
-      _reaction_gf[k]->update(u);
       _reaction_gf[k]->evaluate(entity, position, reaction[k]);
     }
 
@@ -312,25 +310,23 @@ public:
     // get geometry
     const auto geo = eg.geometry();
 
-    DynamicVector<RF> u(_components);
     DynamicVector<RF> jacobian(_components * _components);
 
     // get center in local coordinates
     const auto ref_el = referenceElement(geo);
     const auto position = ref_el.position(0, 0);
 
-    std::fill(u.begin(), u.end(), 0.);
+    std::fill(_u.begin(), _u.end(), 0.);
     std::fill(jacobian.begin(), jacobian.end(), 0.);
 
     // evaluate concentrations at quadrature point
     for (std::size_t comp = 0; comp < _components; comp++)
-      u[comp] += x_coeff_local(comp, 0);
+      _u[comp] += x_coeff_local(comp, 0);
 
     // evaluate reaction term
     for (std::size_t k = 0; k < _components; k++) {
       for (std::size_t l = 0; l < _components; l++) {
         const auto j = _components * k + l;
-        _jacobian_gf[j]->update(u);
         _jacobian_gf[j]->evaluate(entity, position, jacobian[j]);
       }
     }

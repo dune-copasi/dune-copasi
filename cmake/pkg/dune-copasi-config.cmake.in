@@ -33,8 +33,8 @@ if(NOT dune-copasi_FOUND)
   list(APPEND CMAKE_MODULE_PATH "${dune-common_MODULE_PATH}")
   include(DuneMacros)
   include(CheckCXXFeatures)
-  include(DuneCxaDemangle)
-  include(DuneMPI)
+  include(AddMPIFlags)
+
 
   # setup other dune dependecies
   set(ProjectName dune-copasi)
@@ -55,12 +55,21 @@ if(NOT dune-copasi_FOUND)
   # make sure to find cmake modules for dune-copasi
   list(APPEND CMAKE_MODULE_PATH "${dune-copasi_MODULE_PATH}")
 
-  find_dependency(muparser)
   find_dependency(TIFF)
   if(@DUNE_USE_FALLBACK_FILESYSTEM@)
     find_dependency(ghc_filesystem REQUIRED)
   else()
     find_dependency(Filesystem REQUIRED)
+  endif()
+
+  if(@SymEngine_FOUND@)
+    find_dependency(SymEngine)
+  endif()
+  if(@ExprTk_FOUND@)
+    find_dependency(ExprTk)
+  endif()
+  if(@muparser_FOUND@)
+    find_dependency(muparser)
   endif()
 
   cmake_policy(POP)

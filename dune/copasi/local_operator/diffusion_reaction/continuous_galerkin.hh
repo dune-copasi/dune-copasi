@@ -1,7 +1,7 @@
 #ifndef DUNE_COPASI_LOCAL_OPERATOR_DIFFUSION_REACTION_CG_HH
 #define DUNE_COPASI_LOCAL_OPERATOR_DIFFUSION_REACTION_CG_HH
 
-#include <dune/copasi/finite_element/local_basis_cache.hh>
+#include <dune/copasi/common/local_basis_cache.hh>
 #include <dune/copasi/common/enum.hh>
 #include <dune/copasi/local_operator/diffusion_reaction/base.hh>
 
@@ -53,6 +53,7 @@ class LocalOperatorDiffusionReactionCG
   using LOPBase::_component_pattern;
   using LOPBase::_components;
   using LOPBase::dim;
+  using LOPBase::_u;
   using LOPBase::_diffusion_gf;
   using LOPBase::_reaction_gf;
   using LOPBase::_jacobian_gf;
@@ -253,7 +254,7 @@ public:
     _trial_cache.bind(trial_finite_element);
     _test_cache.bind(test_finite_element);
 
-    DynamicVector<RF> u(_components);
+    // DynamicVector<RF> u(_components);
     DynamicVector<RF> diffusion(_components);
     DynamicVector<RF> reaction(_components);
     DynamicVector<FieldVector<RF, dim>> gradphi(trial_basis.size());
@@ -263,7 +264,7 @@ public:
     for (const auto& point : rule) {
       const auto& position = point.position();
 
-      std::fill(u.begin(), u.end(), 0.);
+      std::fill(_u.begin(), _u.end(), 0.);
       std::fill(diffusion.begin(), diffusion.end(), 0.);
       std::fill(reaction.begin(), reaction.end(), 0.);
       std::fill(gradphi.begin(), gradphi.end(), 0.);
@@ -290,14 +291,13 @@ public:
       // evaluate concentrations at quadrature point
       for (std::size_t comp = 0; comp < _components; comp++)
         for (std::size_t dof = 0; dof < phi.size(); dof++)
-          u[comp] += x_coeff_local(comp, dof) * phi[dof];
+          _u[comp] += x_coeff_local(comp, dof) * phi[dof];
 
       RF factor = point.weight() * geo.integrationElement(position);
 
       // contribution for each component
       for (std::size_t k = 0; k < _components; k++) {
         // get reaction term
-        _reaction_gf[k]->update(u);
         _reaction_gf[k]->evaluate(entity, position, reaction[k]);
         // compute gradient u_h
         FieldVector<RF, dim> graduh(.0);
@@ -384,7 +384,7 @@ public:
       trial_basis.evaluateFunction(position, phi);
       trial_basis.evaluateJacobian(position, jac);
 
-      std::fill(u.begin(), u.end(), 0.);
+      std::fill(_u.begin(), _u.end(), 0.);
       std::fill(diffusion.begin(), diffusion.end(), 0.);
       std::fill(jacobian.begin(), jacobian.end(), 0.);
       std::fill(grad.begin(), grad.end(), FieldVector<RF, dim>(0.));
@@ -396,7 +396,7 @@ public:
       // evaluate concentrations at quadrature point
       for (std::size_t comp = 0; comp < _components; comp++)
         for (std::size_t dof = 0; dof < basis_size; dof++) //  ansatz func. loop
-          u[comp] += x_coeff_local(comp, dof) * phi[dof];
+          _u[comp] += x_coeff_local(comp, dof) * phi[dof];
 
       // get jacobian and determinant
       FieldMatrix<DF, dim, dim> S = geo.jacobianInverseTransposed(position);
@@ -421,7 +421,6 @@ public:
             continue;
           const auto j = _components * k + l;
           // evaluate reaction term
-          _jacobian_gf[j]->update(u);
           _jacobian_gf[j]->evaluate(entity, position, jacobian[j]);
           for (std::size_t m = 0; m < basis_size; m++) {
             for (std::size_t n = 0; n < basis_size; n++) {

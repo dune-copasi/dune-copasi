@@ -28,10 +28,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ## Exceptions
 
-Patch `dune-common`:
-  * File: [dune-common.patch](/.ci/dune-common.patch)
-  * License: [`GPL-2.0-only WITH DUNE-exception`](https://spdx.org/licenses/GPL-2.0-only.html)
-
 Patch `dune-geometry`:
   * File: [dune-geometry.patch](/.ci/dune-geometry.patch)
   * License: [`BSD-3-Clause`](https://spdx.org/licenses/BSD-3-Clause.html)
@@ -44,6 +40,15 @@ Patch `dune-logging`:
   * Copyright (c):
       - 2019 Steffen Müthing
       - 2021 Santiago Ospina De Los Ríos
+
+CMake Find Module `FindExprTk`:
+  * File: [FindExprTk.cmake](/cmake/modules/FindExprTk.cmake)
+  * Source: [`VTK`](https://gitlab.kitware.com/vtk/vtk/-/blob/6bf27d1d9a4ac5a6cccdf6b092963c879b3dd8c9/CMake/FindExprTk.cmake)
+  * License: [`BSD-3-Clause`](https://spdx.org/licenses/BSD-3-Clause.html)
+  * Copyright (c):
+      - 1993-2015 Ken Martin
+      - 1993-2015 Will Schroeder
+      - 1993-2015 Bill Lorensen
 
 Icon Images:
   * Files: [logo.svg](/doc/docusaurus/static/img/logo.svg) and [favicon.ico](/doc/docusaurus/static/img/favicon.ico)

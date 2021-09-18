@@ -10,23 +10,15 @@ endif()
 
 # define cmake options
 option(DUNE_COPASI_SD_EXECUTABLE
-       "Build SingleDomain executable by default"
+       "Build and install SingleDomain executable"
        OFF
 )
-option(DUNE_COPASI_SD_LIBRARY
-       "Include precompiled SingleDomain objects in dune-copasi library"
-       ${DUNE_COPASI_SD_EXECUTABLE}
-)
 option(DUNE_COPASI_MD_EXECUTABLE
-       "Build MultiDimain executable by default"
+       "Build and install MultiDimain executable"
        ON
 )
-option(DUNE_COPASI_MD_LIBRARY
-       "Include precompiled MultiDimain objects in dune-copasi library"
-       ${DUNE_COPASI_MD_EXECUTABLE}
-)
 option(DUNE_COPASI_COMPILE_3D
-      "Compile 3D cases in libraries and executables"
+      "Compile 3D cases in executables"
       OFF
 )
 option(DUNE_COPASI_INSTALL_XEUS_CLING
@@ -50,9 +42,15 @@ dune_project()
 add_subdirectory(cmake/modules)
 
 # find specific dune-copasi dependencies
-find_package(muparser REQUIRED)
 find_package(TIFF REQUIRED)
 find_package(Filesystem)
+
+find_package(SymEngine 0.8.0)
+find_package(ExprTk)
+if(NOT (SymEngine_FOUND OR ExprTk_FOUND))
+  set(MUPARSER_RQUIREMENT "REQUIRED") # we need at least one parser!
+endif()
+find_package(muparser ${MUPARSER_RQUIREMENT})
 
 # if standard C++ filesystem is not found, using a fallback is mandatory
 include(CMakeDependentOption)
@@ -83,60 +81,61 @@ if(DUNE_USE_FALLBACK_FILESYSTEM)
   endif()
 endif()
 
-########## Setup dependency target ##########
-
-# create a target to gather all dependencies
-add_library(dune-copasi-deps INTERFACE)
-target_link_libraries(dune-copasi-deps INTERFACE muparser::muparser ${DUNE_LIBS})
-
-# get properties defined by dune macros
-get_property(all_incs GLOBAL PROPERTY ALL_PKG_INCS)
-get_property(all_defs GLOBAL PROPERTY ALL_PKG_DEFS)
-get_property(all_opts GLOBAL PROPERTY ALL_PKG_OPTS)
-get_property(all_libs GLOBAL PROPERTY ALL_PKG_LIBS)
-
-# ...apply them to the dependency target
-target_include_directories(dune-copasi-deps INTERFACE ${all_incs})
-target_compile_definitions(dune-copasi-deps INTERFACE ${all_defs})
-target_compile_options(dune-copasi-deps INTERFACE ${all_opts})
-target_link_libraries(dune-copasi-deps INTERFACE ${all_libs})
-
-# Set up filesystem. Where do we get it from?
-if(DUNE_USE_FALLBACK_FILESYSTEM)
-  # and add ghc_filesystem to our filesystem target
-  target_link_libraries(dune-copasi-deps INTERFACE ghcFilesystem::ghc_filesystem)
-  target_compile_definitions(dune-copasi-deps INTERFACE DUNE_USE_FALLBACK_FILESYSTEM)
-else()
-  # ... else we don't need a back up. Link agaist standard library
-  target_link_libraries(dune-copasi-deps INTERFACE std::filesystem)
-endif()
-
 ########## Create main targets ##########
 
 # create main library target
 add_library(dune-copasi)
-add_library(dune-copasi::dune-copasi ALIAS dune-copasi)
+set_property(TARGET dune-copasi PROPERTY EXPORT_NAME Copasi)
+add_library(Dune::Copasi ALIAS dune-copasi)
 set_target_properties(dune-copasi PROPERTIES LIBRARY_OUTPUT_NAME dunecopasi)
 set_target_properties(dune-copasi PROPERTIES ARCHIVE_OUTPUT_NAME dunecopasi)
-target_link_libraries(dune-copasi PUBLIC dune-copasi-deps PRIVATE TIFF::TIFF)
+
+# get properties defined by dune macros
+get_property(dune_all_libs GLOBAL PROPERTY ALL_PKG_LIBS)
+get_property(dune_all_incs GLOBAL PROPERTY ALL_PKG_INCS)
+get_property(dune_all_defs GLOBAL PROPERTY ALL_PKG_DEFS)
+get_property(dune_all_opts GLOBAL PROPERTY ALL_PKG_OPTS)
+
+target_link_libraries(dune-copasi
+  PUBLIC
+    ${DUNE_LIBS}
+  INTERFACE
+    ${dune_all_libs}
+    $<$<BOOL:${muparser_FOUND}>:muparser::muparser>
+    $<$<BOOL:${SymEngine_FOUND}>:${SYMENGINE_LIBRARIES}>
+    $<$<BOOL:${ExprTk_FOUND}>:ExprTk::ExprTk>
+    $<IF:$<BOOL:${DUNE_USE_FALLBACK_FILESYSTEM}>,ghcFilesystem::ghc_filesystem,std::filesystem>
+  PRIVATE
+    TIFF::TIFF)
+
+target_include_directories(dune-copasi
+  INTERFACE
+    ${dune_all_incs}
+    $<$<BOOL:${SymEngine_FOUND}>:${SYMENGINE_INCLUDE_DIRS}>)
+
+target_compile_definitions(dune-copasi
+  INTERFACE
+    ${dune_all_defs}
+    HAVE_MUPARSER=$<BOOL:${muparser_FOUND}>
+    HAVE_SYMENGINE=$<BOOL:${SymEngine_FOUND}>
+    HAVE_EXPRTK=$<BOOL:${ExprTk_FOUND}>
+    HAVE_GHC_FILESYSTEM=$<BOOL:${DUNE_USE_FALLBACK_FILESYSTEM}>)
+
+target_compile_options(dune-copasi
+  INTERFACE
+    ${dune_all_opts})
 
 # create executable targets
-if(DUNE_COPASI_SD_EXECUTABLE)
-  add_executable(singledomain-exec)
-  add_executable(dune-copasi::singledomain-exec ALIAS singledomain-exec)
-endif()
-if(DUNE_COPASI_MD_EXECUTABLE)
-  add_executable(multidomain-exec)
-  add_executable(dune-copasi::multidomain-exec ALIAS multidomain-exec)
-endif()
+add_executable(singledomain-exec)
+add_executable(Dune::Copasi::SingleDomainExec ALIAS singledomain-exec)
+
+add_executable(multidomain-exec)
+add_executable(Dune::Copasi::MultiDomainExec ALIAS multidomain-exec)
 
 ########## Include other scripts  ##########
 
 # include header files
 add_subdirectory(dune)
-
-# include main library set up
-add_subdirectory(lib)
 
 # source files for final libraries and executables
 add_subdirectory(src)
@@ -146,6 +145,8 @@ add_subdirectory(notebooks)
 
 # documentation files
 add_subdirectory(doc)
+
+########## Setup config file ##########
 
 # finalize the dune project: Generate and install config.h, cmake target and version file
 finalize_dune_project(GENERATE_CONFIG_H_CMAKE)
@@ -160,19 +161,8 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/dune/copasi/config.h"
         DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/dune/copasi"
 )
 
-# If the FC.h file is generated (dune-common<=2.7), install into build and install directories
-file(TOUCH "${CMAKE_CURRENT_BINARY_DIR}/FC.h")
-file(COPY "${CMAKE_CURRENT_BINARY_DIR}/FC.h"
-     DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/dune/copasi"
-)
-
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/dune/copasi/FC.h"
-        COMPONENT Development
-        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/dune/copasi"
-)
-
 # taget configuration for downstream projects
-install(TARGETS dune-copasi-deps dune-copasi
+install(TARGETS dune-copasi
         EXPORT dune-copasi-targets
         LIBRARY DESTINATION "${DUNE_INSTALL_LIBDIR}"
           COMPONENT Libraries
@@ -181,12 +171,10 @@ install(TARGETS dune-copasi-deps dune-copasi
           COMPONENT Development
 )
 
-
-
 # export targets to be used with installed tree
 install(EXPORT dune-copasi-targets
         FILE dune-copasi-targets.cmake
-        NAMESPACE dune-copasi::
+        NAMESPACE Dune::
         COMPONENT Development
         DESTINATION "${DUNE_INSTALL_LIBDIR}/cmake/dune-copasi"
 )
@@ -194,7 +182,7 @@ install(EXPORT dune-copasi-targets
 # export targets to be used with build tree
 export(EXPORT dune-copasi-targets
        FILE "${CMAKE_CURRENT_BINARY_DIR}/dune-copasi-targets.cmake"
-       NAMESPACE dune-copasi::
+       NAMESPACE Dune::
 )
 
 # include tests as a sub project

@@ -15,7 +15,7 @@ if(DUNE_COPASI_INSTALL_XEUS_CLING)
   FetchContent_Declare(
     xeus_cling_setup
     GIT_REPOSITORY https://github.com/dokempf/xeus-cling-cmake-setup.git
-    GIT_TAG        3f94836ea521b76dd89f24752ad12e320806f4b2
+    GIT_TAG        a8f955cc3284fbf9f66cca5e4f3cdac54d51ffa8
   )
 
   if(NOT xeus_cling_setup_POPULATED)
@@ -25,17 +25,17 @@ if(DUNE_COPASI_INSTALL_XEUS_CLING)
   endif()
 
   xeus_cling_setup(
-    TARGETS dune-copasi::dune-copasi
-    COMPILE_DEFINITIONS
-      UG_USE_NEW_DIMENSION_DEFINES # TODO: remove on dune 2.8
+    TARGETS Dune::Copasi
     SETUP_HEADERS
       dune/copasi/config.h
+    LINK_LIBRARIES
+      /opt/conda/lib/libmuparser.so # Help! need this because transitive dependencies do not work somehow
     KERNEL_NAME "C++17 (DUNE-COPASI)"
     KERNEL_LOGO_FILES "${CMAKE_CURRENT_SOURCE_DIR}/../doc/docusaurus/static/img/logo-64x64.png"
     REQUIRED
   )
 
   # install kernel by default
-  add_dependencies(install_kernelspec dune-copasi::dune-copasi)
+  add_dependencies(install_kernelspec Dune::Copasi)
   set_target_properties(install_kernelspec PROPERTIES EXCLUDE_FROM_ALL OFF)
 endif()

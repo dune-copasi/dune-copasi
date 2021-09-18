@@ -2,7 +2,7 @@
 #define DUNE_COPASI_LOCAL_OPERATOR_MULTIDOMAIN_DIFFUSION_REACTION_HH
 
 #include <dune/copasi/common/enum.hh>
-#include <dune/copasi/common/pdelab_expression_adapter.hh>
+#include <dune/copasi/common/parser_to_grid_function.hh>
 #include <dune/copasi/concepts/grid.hh>
 
 #include <dune/pdelab/localoperator/flags.hh>
@@ -80,9 +80,9 @@ class LocalOperatorMultiDomainDiffusionReaction
   std::map<std::array<std::size_t, 3>, std::pair<std::set<std::size_t>,std::set<std::size_t>>> _jac_map;
 
   /// map: (domain_i,domain_o) -> vector of outflow_i persers
-  std::map<std::array<std::size_t,2>,std::vector<mu::Parser>> _outflow_parser;
-  std::map<std::array<std::size_t,2>,std::vector<mu::Parser>> _outflow_jac_parser;
-  std::map<std::array<std::size_t,2>,std::vector<mu::Parser>> _outflow_cross_jac_parser;
+  std::map<std::array<std::size_t,2>,std::vector<std::shared_ptr<Parser>>> _outflow_parser;
+  std::map<std::array<std::size_t,2>,std::vector<std::shared_ptr<Parser>>> _outflow_jac_parser;
+  std::map<std::array<std::size_t,2>,std::vector<std::shared_ptr<Parser>>> _outflow_cross_jac_parser;
 
   // value of trial spaces (for parser evaluation)
   mutable std::vector<std::vector<double>> _components;
@@ -113,10 +113,10 @@ public:
    * @param[in]  finite_element  The local finite element
    */
   LocalOperatorMultiDomainDiffusionReaction(
-    std::shared_ptr<const Grid> grid,
+    const Grid& grid,
     const ParameterTree& config)
     : _logger(Logging::Logging::componentLogger({}, "model"))
-    , _index_set(grid->leafGridView().indexSet())
+    , _index_set(grid.leafGridView().indexSet())
   {
     auto& compartment_name = config.sub("compartments", true).getValueKeys();
     _lops.resize(compartment_name.size());
@@ -126,7 +126,7 @@ public:
     for (std::size_t i = 0; i < _lops.size(); ++i) {
       int sub_domain_id =
         config.sub("compartments", true).template get<int>(compartment_name[i]);
-      GridView sub_grid_view = grid->subDomain(sub_domain_id).leafGridView();
+      GridView sub_grid_view = grid.subDomain(sub_domain_id).leafGridView();
 
       const auto& sub_config =
         config.sub(compartment_name[sub_domain_id], true);
@@ -169,7 +169,7 @@ public:
       [&](auto& parser, const auto& expr, const auto& name, auto& var) {
         if (expr.find(name) != std::string::npos) {
           _logger.trace(4, "Adding variable: {}"_fmt, name);
-          parser.DefineVar(name, &var);
+          parser.define_variable(name, &var);
         }
       };
 
@@ -211,12 +211,13 @@ public:
           std::set<std::size_t> self_map, cross_map;
 
           auto& parser_o = parser.at(outflow_i);
+          parser_o = make_parser(expr);
           for (std::size_t comp_i = 0; comp_i < comp_size_i; ++comp_i) {
-            add_var(parser_o,
+            add_var(*parser_o,
                     expr,
                     component_name[domain_i][comp_i] + "_i",
                     _components[domain_i][comp_i]);
-            add_var(parser_o,
+            add_var(*parser_o,
                     expr,
                     "d" + component_name[domain_i][comp_i] + "_i__dn",
                     _components_dn[domain_i][comp_i]);
@@ -225,11 +226,11 @@ public:
               self_map.insert(comp_i);
           }
           for (std::size_t comp_o = 0; comp_o < comp_size_o; ++comp_o) {
-            add_var(parser_o,
+            add_var(*parser_o,
                     expr,
                     component_name[domain_o][comp_o] + "_o",
                     _components[domain_o][comp_o]);
-            add_var(parser_o,
+            add_var(*parser_o,
                     expr,
                     "d" + component_name[domain_o][comp_o] + "_o__dn",
                     _components_dn[domain_o][comp_o]);
@@ -237,14 +238,7 @@ public:
                 std::string::npos)
               cross_map.insert(comp_o);
           }
-
-          try {
-            parser_o.SetExpr(expr);
-            // try to compile expression
-            parser_o.Eval();
-          } catch (mu::Parser::exception_type& e) {
-            Impl::handle_parser_error(e);
-          }
+          parser_o->compile();
 
           _jac_map[std::array{ domain_i, domain_o, outflow_i }] =
             std::make_pair(std::move(self_map), std::move(cross_map));
@@ -267,35 +261,29 @@ public:
 
             std::size_t jac_index = outflow_i * comp_size_i + outflow_ii;
             auto& parser_sj = parser_jac.at(jac_index);
+            parser_sj = make_parser(expr);
             for (std::size_t comp_i = 0; comp_i < comp_size_i; ++comp_i) {
-              add_var(parser_sj,
+              add_var(*parser_sj,
                       expr,
                       component_name[domain_i][comp_i] + "_i",
                       _components[domain_i][comp_i]);
-              add_var(parser_sj,
+              add_var(*parser_sj,
                       expr,
                       "d" + component_name[domain_i][comp_i] + "_i__dn",
                       _components_dn[domain_i][comp_i]);
             }
             for (std::size_t comp_o = 0; comp_o < _components[domain_o].size();
                  ++comp_o) {
-              add_var(parser_sj,
+              add_var(*parser_sj,
                       expr,
                       component_name[domain_o][comp_o] + "_o",
                       _components[domain_o][comp_o]);
-              add_var(parser_sj,
+              add_var(*parser_sj,
                       expr,
                       "d" + component_name[domain_o][comp_o] + "_o__dn",
                       _components_dn[domain_o][comp_o]);
             }
-
-            try {
-              parser_sj.SetExpr(expr);
-              // try to compile expression
-              parser_sj.Eval();
-            } catch (mu::Parser::exception_type& e) {
-              Impl::handle_parser_error(e);
-            }
+            parser_sj->compile();
           }
 
           // Do cross jacobian
@@ -314,33 +302,27 @@ public:
             std::size_t jac_index = outflow_i * comp_size_o + outflow_io;
             auto& parser_cj = parser_cross_jac.at(jac_index);
             for (std::size_t comp_i = 0; comp_i < comp_size_i; ++comp_i) {
-              add_var(parser_cj,
+              add_var(*parser_cj,
                       expr,
                       component_name[domain_i][comp_i] + "_i",
                       _components[domain_i][comp_i]);
-              add_var(parser_cj,
+              add_var(*parser_cj,
                       expr,
                       "d" + component_name[domain_i][comp_i] + "_i__dn",
                       _components_dn[domain_i][comp_i]);
             }
             for (std::size_t comp_o = 0; comp_o < comp_size_o; ++comp_o) {
-              add_var(parser_cj,
+              add_var(*parser_cj,
                       expr,
                       component_name[domain_o][comp_o] + "_o",
                       _components[domain_o][comp_o]);
-              add_var(parser_cj,
+              add_var(*parser_cj,
                       expr,
                       "d" + component_name[domain_o][comp_o] + "_o__dn",
                       _components_dn[domain_o][comp_o]);
             }
 
-            try {
-              parser_cj.SetExpr(expr);
-              // try to compile expression
-              parser_cj.Eval();
-            } catch (mu::Parser::exception_type& e) {
-              Impl::handle_parser_error(e);
-            }
+            parser_cj->compile();
           }
         }
       }
@@ -873,7 +855,7 @@ public:
         DUNE_THROW(IOError,"Outflux section is missing");
       const auto& parser_io = outflow_parser_io_it->second;
       for (std::size_t comp_i = 0; comp_i < components_i; comp_i++) {
-        double value = parser_io[comp_i].Eval();
+        double value = parser_io[comp_i]->eval();
         for (std::size_t dof = 0; dof < lfsu_di.child(comp_i).size(); dof++)
           accumulate_i(comp_i, dof, factor * value * phiu_i[dof]);
       }
@@ -883,7 +865,7 @@ public:
         DUNE_THROW(IOError,"Outflux section is missing");
       const auto& parser_oi = outflow_parser_oi_it->second;
       for (std::size_t comp_o = 0; comp_o < components_o; comp_o++) {
-       double value = parser_oi[comp_o].Eval();
+       double value = parser_oi[comp_o]->eval();
         for (std::size_t dof = 0; dof < lfsu_do.child(comp_o).size(); dof++)
           accumulate_o(comp_o, dof, factor * value * phiu_o[dof]);
       }
@@ -1191,12 +1173,12 @@ public:
         for (std::size_t comp_ii = 0; comp_ii < components_i; comp_ii++)
           for (std::size_t i = 0; i < lfsu_di.child(comp_i).size(); i++)
             for (std::size_t j = 0; j < lfsu_di.child(comp_ii).size(); j++)
-              accumulate_ii(comp_i, i, comp_ii, j, factor * parser_jac_ii[comp_i*components_i+comp_ii].Eval() * phiu_i[j]);
+              accumulate_ii(comp_i, i, comp_ii, j, factor * parser_jac_ii[comp_i*components_i+comp_ii]->eval() * phiu_i[j]);
 
         for (std::size_t comp_io = 0; comp_io < components_o; comp_io++)
           for (std::size_t i = 0; i < lfsu_di.child(comp_i).size(); i++)
             for (std::size_t j = 0; j < lfsu_do.child(comp_io).size(); j++)
-              accumulate_io(comp_i, i, comp_io, j, factor * parser_jac_io[comp_i*components_o+comp_io].Eval() * phiu_o[j]);
+              accumulate_io(comp_i, i, comp_io, j, factor * parser_jac_io[comp_i*components_o+comp_io]->eval() * phiu_o[j]);
       }
 
       const auto& parser_jac_oo = _outflow_jac_parser.find({domain_o,domain_i})->second;
@@ -1206,12 +1188,12 @@ public:
         for (std::size_t comp_oo = 0; comp_oo < components_o; comp_oo++)
           for (std::size_t i = 0; i < lfsu_do.child(comp_o).size(); i++)
             for (std::size_t j = 0; j < lfsu_do.child(comp_oo).size(); j++)
-              accumulate_oo(comp_o, i, comp_oo, j, factor * parser_jac_oo[comp_o*components_o+comp_oo].Eval() * phiu_o[j]);
+              accumulate_oo(comp_o, i, comp_oo, j, factor * parser_jac_oo[comp_o*components_o+comp_oo]->eval() * phiu_o[j]);
 
         for (std::size_t comp_oi = 0; comp_oi < components_i; comp_oi++)
           for (std::size_t i = 0; i < lfsu_do.child(comp_o).size(); i++)
             for (std::size_t j = 0; j < lfsu_di.child(comp_oi).size(); j++)
-              accumulate_oi(comp_o, i, comp_oi, j, factor * parser_jac_oi[comp_o*components_i+comp_oi].Eval() * phiu_i[j]);
+              accumulate_oi(comp_o, i, comp_oi, j, factor * parser_jac_oi[comp_o*components_i+comp_oi]->eval() * phiu_i[j]);
       }
     }
   }
@@ -1262,7 +1244,7 @@ public:
    * @param[in]  finite_element  The local finite element
    */
   TemporalLocalOperatorMultiDomainDiffusionReaction(
-    std::shared_ptr<const Grid> grid,
+    const Grid& grid,
     const ParameterTree& config)
   {
     const auto& compartments = config.sub("compartments",true).getValueKeys();
@@ -1273,7 +1255,7 @@ public:
 
       int sub_domain_id =
         config.sub("compartments",true).template get<int>(compartement);
-      GridView sub_grid_view = grid->subDomain(sub_domain_id).leafGridView();
+      GridView sub_grid_view = grid.subDomain(sub_domain_id).leafGridView();
 
       const auto& sub_config = config.sub(compartments[i]);
       _lops[i] = std::make_shared<SubLOP>(sub_grid_view, sub_config);

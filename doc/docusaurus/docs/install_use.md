@@ -255,17 +255,17 @@ The following list of software is required to install and use `dune-copasi`:
 | C++ compiler  | >= [C++17](https://en.wikipedia.org/wiki/List_of_compilers#C++_compilers) |
 | [libTIFF](http://www.libtiff.org/)                                                          | >= 3.6.1 |
 | [muParser](https://beltoforion.de/article.php?a=muparser)                                   | >= 2.2.5 |
-| [dune-common](https://gitlab.dune-project.org/copasi/dune-common)                           | == 2.7 |
-| [dune-geometry](https://gitlab.dune-project.org/core/dune-geometry)                         | == 2.7 |
-| [dune-grid](https://gitlab.dune-project.org/core/dune-grid)                                 | == 2.7 |
-| [dune-uggrid](https://gitlab.dune-project.org/staging/dune-uggrid)                          | == 2.7 |
-| [dune-istl](https://gitlab.dune-project.org/core/dune-istl)                                 | == 2.7 |
-| [dune-localfunctions](https://gitlab.dune-project.org/core/dune-localfunctions)             | == 2.7 |
-| [dune-functions](https://gitlab.dune-project.org/staging/dune-functions)                    | == 2.7 |
-| [dune-logging](https://gitlab.dune-project.org/staging/dune-logging)                        | == 2.7 |
-| [dune-multidomaingrid](https://gitlab.dune-project.org/extensions/dune-multidomaingrid)     | == 2.7 |
-| [COPASI/dune-typetree](https://gitlab.dune-project.org/copasi/dune-typetree)                | `support/dune-copasi-latest` |
-| [COPASI/dune-pdelab](https://gitlab.dune-project.org/copasi/dune-pdelab)                    | `support/dune-copasi-latest` |
+| [dune-common](https://gitlab.dune-project.org/copasi/dune-common)                           | == 2.8 |
+| [dune-geometry](https://gitlab.dune-project.org/core/dune-geometry)                         | == 2.8 |
+| [dune-grid](https://gitlab.dune-project.org/core/dune-grid)                                 | == 2.8 |
+| [dune-uggrid](https://gitlab.dune-project.org/staging/dune-uggrid)                          | == 2.8 |
+| [dune-istl](https://gitlab.dune-project.org/core/dune-istl)                                 | == 2.8 |
+| [dune-localfunctions](https://gitlab.dune-project.org/core/dune-localfunctions)             | == 2.8 |
+| [dune-functions](https://gitlab.dune-project.org/staging/dune-functions)                    | == 2.8 |
+| [dune-logging](https://gitlab.dune-project.org/staging/dune-logging)                        | == 2.8 |
+| [dune-multidomaingrid](https://gitlab.dune-project.org/extensions/dune-multidomaingrid)     | == 2.8 |
+| [COPASI/dune-typetree](https://gitlab.dune-project.org/copasi/dune-typetree)                | `support/dune-copasi-v2.0.0` |
+| [COPASI/dune-pdelab](https://gitlab.dune-project.org/copasi/dune-pdelab)                    | `support/dune-copasi-v2.0.0` |
 
 :::info
 Notice that some required dune modules are forks of original reopsitories and
@@ -372,9 +372,6 @@ git clone -b releases/2.7 --recursive https://gitlab.dune-project.org/staging/du
 git clone -b support/dune-copasi-latest https://gitlab.dune-project.org/copasi/dune-typetree
 git clone -b support/dune-copasi-latest https://gitlab.dune-project.org/copasi/dune-pdelab
 git clone -b latest https://gitlab.dune-project.org/copasi/dune-copasi
-
-# apply patches
-git apply -C dune-common dune-copasi/.ci/dune-common.patch
 ```
 
 Then, build and install the `DUNE` modules with the `dunecontrol` script:
@@ -416,7 +413,7 @@ in your project as follows:
 ```
 # ...
 find_package(dune-copasi IMPORTED REQUIRED)
-target_link_libraries(my_app PRIVATE dune-copasi::dune-copasi)
+target_link_libraries(my_app PRIVATE Dune::Copasi)
 # ...
 ```
 

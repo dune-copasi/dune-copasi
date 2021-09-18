@@ -1,10 +1,8 @@
 install(FILES bit_flags.hh
-              data_context.hh
               enum.hh
-              factory.hh
               filesystem.hh
-              muparser_data_handler.hh
-              pdelab_expression_adapter.hh
+              local_basis_cache.hh
+              parser_to_grid_function.hh
               stepper.hh
               tiff_file.hh
               tiff_grayscale.hh

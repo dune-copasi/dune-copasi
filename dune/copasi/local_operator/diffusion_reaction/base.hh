@@ -1,7 +1,7 @@
 #ifndef DUNE_COPASI_LOCAL_OPERATOR_DIFFUSION_REACTION_BASE_HH
 #define DUNE_COPASI_LOCAL_OPERATOR_DIFFUSION_REACTION_BASE_HH
 
-#include <dune/copasi/common/pdelab_expression_adapter.hh>
+#include <dune/copasi/common/parser_to_grid_function.hh>
 
 #include <dune/pdelab/common/quadraturerules.hh>
 
@@ -39,7 +39,7 @@ struct LocalOperatorDiffusionReactionBase
   using Jacobian = typename LocalBasisTraits::JacobianType;
 
   //! Adapter for dynamic expressions
-  using ExpressionAdapter = ExpressionToGridFunctionAdapter<GridView, RF>;
+  using ExpressionAdapter = ParserToGridFunctionAdapter<GridView, RF>;
 
   //! world dimension
   static constexpr int dim = LocalBasisTraits::dimDomain;
@@ -56,6 +56,7 @@ struct LocalOperatorDiffusionReactionBase
   std::vector<std::shared_ptr<ExpressionAdapter>> _diffusion_gf;
   mutable std::vector<std::shared_ptr<ExpressionAdapter>> _reaction_gf;
   mutable std::vector<std::shared_ptr<ExpressionAdapter>> _jacobian_gf;
+  mutable std::vector<RF> _u;
 
   Logging::Logger _logger;
 
@@ -105,6 +106,7 @@ struct LocalOperatorDiffusionReactionBase
   {
     _logger.trace("creating pattern and grid function expressions"_fmt);
 
+    _u.resize(_components);
     _diffusion_gf.resize(_components);
     _reaction_gf.resize(_components);
     _jacobian_gf.resize(_components * _components);
@@ -121,6 +123,11 @@ struct LocalOperatorDiffusionReactionBase
     std::sort(reaction_keys.begin(), reaction_keys.end());
     std::sort(jacobian_keys.begin(), jacobian_keys.end());
 
+    auto add_u = [&](auto& parser){
+      for (std::size_t i = 0; i < _components; ++i)
+        parser.define_variable(reaction_keys[i], &_u[i]);
+    };
+
     assert(diffusion_keys.size() == reaction_keys.size());
     for (size_t i = 0; i < diffusion_keys.size(); i++)
       assert(diffusion_keys[i] == reaction_keys[i]);
@@ -131,18 +138,24 @@ struct LocalOperatorDiffusionReactionBase
       std::string d_eq = diffusion_config.template get<std::string>(var);
       std::string r_eq = reaction_config.template get<std::string>(var);
 
-      _diffusion_gf[k] =
-        std::make_shared<ExpressionAdapter>(grid_view, d_eq);
-      _reaction_gf[k] =
-        std::make_shared<ExpressionAdapter>(grid_view, r_eq, true, reaction_keys);
+      std::shared_ptr diff_parser = make_parser(d_eq);
+      _diffusion_gf[k] = std::make_shared<ExpressionAdapter>(grid_view, diff_parser);
+      diff_parser->compile();
+
+      std::shared_ptr react_parser = make_parser(d_eq);
+      _reaction_gf[k] = std::make_shared<ExpressionAdapter>(grid_view, react_parser);
+      add_u(*react_parser);
+      react_parser->compile();
 
       for (std::size_t l = 0; l < _components; l++) {
         const auto j = _components * k + l;
         std::string j_eq =
           jacobian_config.template get<std::string>(jacobian_keys[j]);
 
-        _jacobian_gf[j] =
-          std::make_shared<ExpressionAdapter>(grid_view, j_eq, true, reaction_keys);
+        std::shared_ptr jac_parser = make_parser(j_eq);
+        _jacobian_gf[j] = std::make_shared<ExpressionAdapter>(grid_view, jac_parser);
+        add_u(*jac_parser);
+        jac_parser->compile();
         if (k == l) {
           _component_pattern.insert(std::make_pair(k, l));
           continue;
@@ -175,13 +188,13 @@ struct LocalOperatorDiffusionReactionBase
   {
     for (auto& gf : _jacobian_gf)
       if (gf)
-        gf->set_time(t);
+        gf->setTime(t);
     for (auto& gf : _reaction_gf)
       if (gf)
-        gf->set_time(t);
+        gf->setTime(t);
     for (auto& gf : _diffusion_gf)
       if (gf)
-        gf->set_time(t);
+        gf->setTime(t);
   }
 };
 

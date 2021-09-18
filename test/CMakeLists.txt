@@ -36,40 +36,45 @@ dune_symlink_to_source_files(FILES "grids" DESTINATION "." )
 dune_symlink_to_source_files(FILES "reference" DESTINATION "." )
 dune_symlink_to_source_files(FILES "data" DESTINATION "." )
 
+dune_add_test(NAME            test_parser
+              SOURCES         test_parser.cc
+              LINK_LIBRARIES  Dune::Copasi
+              LABELS          unit)
+
 dune_add_test(NAME            test_dynamic_power_local_finite_element
               SOURCES         test_dynamic_power_local_finite_element.cc
-              LINK_LIBRARIES  dune-copasi::dune-copasi
+              LINK_LIBRARIES  Dune::Copasi
               LABELS          unit)
 
 dune_add_test(NAME            test_concepts_pdelab
               SOURCES         test_concepts_pdelab.cc
-              LINK_LIBRARIES  dune-copasi::dune-copasi
+              LINK_LIBRARIES  Dune::Copasi
               LABELS          unit)
 
 dune_add_test(NAME            test_concepts_grid
               SOURCES         test_concepts_grid.cc
-              LINK_LIBRARIES  dune-copasi::dune-copasi
+              LINK_LIBRARIES  Dune::Copasi
               LABELS          unit)
 
 dune_add_test(NAME            test_concepts_typetree
               SOURCES         test_concepts_typetree.cc
-              LINK_LIBRARIES  dune-copasi::dune-copasi
+              LINK_LIBRARIES  Dune::Copasi
               LABELS          unit)
 
 dune_add_test(NAME            test_tiff_grayscale
               SOURCES         test_tiff_grayscale.cc
-              LINK_LIBRARIES  dune-copasi::dune-copasi
+              LINK_LIBRARIES  Dune::Copasi
               LABELS          unit)
 
 dune_add_test(NAME            test_event_stepper
               SOURCES         test_event_stepper.cc
-              LINK_LIBRARIES  dune-copasi::dune-copasi
+              LINK_LIBRARIES  Dune::Copasi
               LABELS          unit)
 
 # # SingleDomain tests
 add_executable(dune-copasi-sd-compare EXCLUDE_FROM_ALL dune_copasi_sd_compare.cc)
 
-target_link_libraries(dune-copasi-sd-compare PRIVATE dune-copasi::dune-copasi)
+target_link_libraries(dune-copasi-sd-compare PRIVATE Dune::Copasi)
 
 add_custom_target(build_system_tests)
 add_dependencies(build_system_tests dune-copasi-sd-compare)
@@ -88,22 +93,22 @@ if (dune-testtools_FOUND)
     TARGET          dune-copasi-sd-compare
     INIFILE         test_gauss.mini)
 
-  if(TARGET dune-copasi::singledomain-exec)
+  if(TARGET Dune::Copasi::SingleDomainxec)
     add_system_test_per_target(
-      TARGET          dune-copasi::singledomain-exec
+      TARGET          Dune::Copasi::SingleDomainxec
       SCRIPT          dune_vtkcompare.py
       INIFILE         test_tiff.mini)
 
     add_system_test_per_target(
-      TARGET          dune-copasi::singledomain-exec
+      TARGET          Dune::Copasi::SingleDomainxec
       INIFILE         test_brusselator.mini)
 
     add_system_test_per_target(
-      TARGET          dune-copasi::singledomain-exec
+      TARGET          Dune::Copasi::SingleDomainxec
       INIFILE         test_time_snap.mini)
 
     add_system_test_per_target(
-      TARGET          dune-copasi::singledomain-exec
+      TARGET          Dune::Copasi::SingleDomainxec
       INIFILE         test_no_writer.mini)
   endif()
 endif()
@@ -112,8 +117,8 @@ endif()
 add_executable(dune-copasi-md-compare EXCLUDE_FROM_ALL dune_copasi_md_compare.cc)
 add_executable(dune-copasi-md-jacobian EXCLUDE_FROM_ALL test_jacobian.cc)
 
-target_link_libraries(dune-copasi-md-compare PRIVATE dune-copasi::dune-copasi)
-target_link_libraries(dune-copasi-md-jacobian PRIVATE dune-copasi::dune-copasi)
+target_link_libraries(dune-copasi-md-compare PRIVATE Dune::Copasi)
+target_link_libraries(dune-copasi-md-jacobian PRIVATE Dune::Copasi)
 
 add_dependencies(build_system_tests
   dune-copasi-md-compare
@@ -142,19 +147,19 @@ if (dune-testtools_FOUND)
     TARGET          dune-copasi-md-compare
     INIFILE         test_gauss_mixed_geometry.mini)
 
-  if(TARGET dune-copasi::multidomain-exec)
+  if(TARGET Dune::Copasi::MultiDomainExec)
     add_system_test_per_target(
-      TARGET          dune-copasi::multidomain-exec
+      TARGET          Dune::Copasi::MultiDomainExec
       SCRIPT          dune_vtkcompare.py
       INIFILE         test_tiff.mini)
 
     add_system_test_per_target(
-      TARGET          dune-copasi::multidomain-exec
+      TARGET          Dune::Copasi::MultiDomainExec
       SCRIPT          dune_vtkcompare.py
       INIFILE         test_cell.mini)
 
     add_system_test_per_target(
-      TARGET          dune-copasi::multidomain-exec
+      TARGET          Dune::Copasi::MultiDomainExec
       INIFILE         test_no_writer.mini)
   endif()
 

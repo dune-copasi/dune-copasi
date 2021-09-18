@@ -2,21 +2,10 @@
 #include <dune/copasi/config.h>
 #endif
 
-#include <dune/copasi/common/enum.hh>
 #include <dune/copasi/common/stepper.hh>
 #include <dune/copasi/grid/mark_stripes.hh>
 #include <dune/copasi/grid/multidomain_gmsh_reader.hh>
-
 #include <dune/copasi/model/diffusion_reaction.hh>
-#ifndef DUNE_COPASI_SD_LIBRARY
-#include <dune/copasi/model/diffusion_reaction.cc>
-#endif
-
-#include <dune/copasi/model/multidomain_diffusion_reaction.hh>
-#ifndef DUNE_COPASI_MD_LIBRARY
-#include <dune/copasi/model/multidomain_diffusion_reaction.cc>
-#endif
-
 
 #include <dune/grid/multidomaingrid.hh>
 
@@ -97,15 +86,18 @@ main(int argc, char** argv)
     // lambda that instantiates and evolves a multidomain model
     auto evolve_model = [](const auto& config, auto dim, auto order) {
       using namespace Dune::Copasi;
+      using Dune::TypeTree::treePath;
 
       using HostGrid = Dune::UGGrid<dim>;
       using MDGTraits = Dune::mdgrid::DynamicSubDomainCountTraits<dim, 1>;
       using Grid = Dune::mdgrid::MultiDomainGrid<HostGrid, MDGTraits>;
 
       auto& grid_config = config.sub("grid", true);
-      auto level = grid_config.template get<int>("initial_level");
+      auto& model_config = config.sub("model", true);
+      auto& timestep_config = model_config.sub("time_stepping", true);
 
       auto grid_file = grid_config.template get<std::string>("file");
+      auto level = grid_config.template get<int>("initial_level");
 
       auto [md_grid_ptr, host_grid_ptr] =
         MultiDomainGmshReader<Grid>::read(grid_file);
@@ -120,38 +112,64 @@ main(int argc, char** argv)
         md_grid_ptr->postAdapt();
       }
 
-      auto& model_config = config.sub("model", true);
-      using Traits = ModelMultiDomainP0PkDiffusionReactionTraits<Grid, order>;
-      ModelMultiDomainDiffusionReaction<Traits> model(md_grid_ptr,
-                                                      model_config);
+      auto model = DiffusionReactionModel{model_config};
+      auto state = model.make_multidomain_multicomponent_state(md_grid_ptr, order);
+      state.time = timestep_config.template get<double>("begin");
+
+      for (std::size_t domain = 0; domain < state.space().degree(); ++domain){
+        // for each sub-domain interpret initial value expressions into a grid function...
+        auto& domain_space = state.space().child(domain);
+        auto domain_name = domain_space.name();
+        auto& initial = model_config.sub(domain_name).sub("initial", true);
+        auto mc_gf = make_multicomponent_grid_function(initial, domain_space.child(0).gridView(), false);
+        add_tiff_to_grid_function(mc_gf, model_config.sub("data"));
+        mc_gf.setTime(state.time);
+        // ...and interpolate it to the current state of the sub-domain
+        model.interpolate(state, mc_gf, treePath(domain));
+      }
+
+      {
+        std::vector writers{state.writer};
+        writers.resize(state.space().degree());
+        for (std::size_t domain = 0; domain < state.space().degree(); ++domain)
+          writers[domain] = model.make_vtk_writer(treePath(domain));
+
+        state.writer = [=](const auto& state, const fs::path& path, bool append) mutable {
+          for (std::size_t domain = 0; domain < state.space().degree(); ++domain) {
+            auto domain_name = state.space().child(domain).name();
+            auto domain_path = path.string() + "-" + domain_name;
+            writers[domain](state, domain_path, append);
+          }
+        };
+      }
 
       // setup writer
-      auto file = model_config.get("writer.file_path", "");
-      auto write_output = [=](const auto& state) {
+      std::string file = model_config.get("writer.file_path", "");
+      auto at_end_of_step = [=](const auto& state) {
         if (not file.empty())
           state.write(file, true);
       };
-      write_output(model.state()); // write initial condition
+      at_end_of_step(state); // write current time
 
       // create time stepper
-      auto timestep_config = model_config.sub("time_stepping", true);
       auto end_time = timestep_config.template get<double>("end");
       auto initial_step = timestep_config.template get<double>("initial_step");
-      auto stepper = Dune::Copasi::make_default_stepper(timestep_config);
+      auto stepper = make_default_stepper(timestep_config);
 
-      stepper.evolve(model, initial_step, end_time, write_output);
+      // auto state_out = state;
+      stepper.evolve(model, state, state, initial_step, end_time, at_end_of_step);
     };
 
     // maximum polynomial order instantiated
     constexpr auto max_order = 2;
-    if (order > max_order)
+    if (order == 0 or order > max_order)
       DUNE_THROW(Dune::IOError,
                  "Finite element order " << order
                                          << " is not supported by dune-copasi");
 
     // static loop that instantiates 2D and 3D polynomial orders but runs the
     // dynamic ones
-    auto order_range = Dune::range(Dune::index_constant<max_order + 1>{});
+    auto order_range = Dune::range(Dune::Indices::_1, Dune::index_constant<max_order + 1>{});
     Dune::Hybrid::forEach(order_range, [&](auto static_order) {
       // instantiate models with 2D grids
       if (dim == 2 and order == static_order)

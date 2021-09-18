@@ -4,6 +4,7 @@
 // this is because without it name lookup fails to find PDELab::native(...)
 #include <dune/pdelab/backend/istl.hh>
 
+#include <dune/pdelab/gridoperator/onestep.hh>
 #include <dune/pdelab/instationary/onestep.hh>
 #include <dune/pdelab/solver/newton.hh>
 
@@ -23,7 +24,7 @@ namespace Dune::Copasi {
  *
  * @details  The setpper implementation must contain the method `do_step` with
  * input and output states. Then, this class will be able to instantiate
- * `do_step` without in/out states and the methods to evolve a system until a
+ * `do_step` without in/out states and the methods to evolve a model until a
  * final time.
  *
  * @tparam Impl    Stepper implementation
@@ -33,23 +34,23 @@ class BaseStepper
 {
 public:
   /**
-   * @brief Perform one step in the system
+   * @brief Perform one step in the state accoding to a model
    *
    * @details The input state is advanced a delta time `dt` and placed in `out`
    * state. Signature of `do_step` method that `Impl` must implement
    *
-   * @tparam System   System that contain suitable operators to advance in time
+   * @tparam Model    Object that interprets state to advance in time
    * @tparam State    State to perform time-advance with
    * @tparam Time     Valid time type to operate with
-   * @param system    System that contain suitable operators to advance in time
+   * @param model     Object that interprets state to advance in time
    * @param in        Input state to advance time from
    * @param out       Output state where result will be placed. If step is not
    * possible, out is guaranteed to be false when casted to bool
    * @param dt        Delta time to perform step. If the step is not possible,
    * stepper may modify it to a suitable value
    */
-  template<class System, class State, class Time>
-  void do_step(System& system, const State& in, State& out, Time& dt) const
+  template<class Model, class State, class Time>
+  void do_step(const Model& model, const State& in, State& out, Time& dt) const
   {
     DUNE_THROW(NotImplemented,
                "The derived type '" << className<Impl>()
@@ -57,38 +58,16 @@ public:
   }
 
   /**
-   * @brief Perform one step in the system
-   *
-   * @details The system state is advanced a delta time `dt`
-   *
-   * @tparam System   System that contain suitable operators to advance in time
-   * @tparam Time     Valid time type to operate with
-   * @param system    System that contain suitable operators to advance in time.
-   * If the step is not possible, the system stays with its initial state
-   * @param dt        Delta time to perform step. If the step is not possible,
-   * stepper may modify it to a suitable value
-   */
-  template<class System, class Time>
-  void do_step(System& system, Time& dt) const
-  {
-    auto in = system.state();
-    auto out = in;
-    asImpl().do_step(system, in, out, dt);
-    if (out)
-      system.set_state(out);
-  }
-
-  /**
-   * @brief Evolve the system until `end_time`
+   * @brief Evolve the model until `end_time`
    *
    * @details The input state is advanced by time steps `dt` to approach
    * `end_time`. The application of each timestep is performed using
    * the `do_step` method, which may adapt the timestep `dt` adaptively.
    *
-   * @tparam System   System that contain suitable operators to advance in time
+   * @tparam Model   Model that contain suitable operators to advance in time
    * @tparam State    State to perform time-advance with
    * @tparam Time     Valid time type to operate with
-   * @param system    System that contain suitable operators to advance in time
+   * @param model    Model that contain suitable operators to advance in time
    * @param in        Input state to advance time from
    * @param out       Output state where result will be placed. If step is not
    * possible, out is guaranteed to be false when casted to bool
@@ -100,9 +79,9 @@ public:
    * @param snap_to_end_time True if `end_time` must be reached exactly,
    * otherwise it will be reached from below with the provided dt.
    */
-  template<class System, class State, class Time, class Callable>
+  template<class Model, class State, class Time, class Callable>
   void evolve(
-    System& system,
+    const Model& model,
     const State& in,
     State& out,
     Time& dt,
@@ -110,17 +89,17 @@ public:
     Callable&& callable = [](const auto& state) {},
     bool snap_to_end_time = true) const
   {
+    using std::swap;
     const auto& logger = asImpl().logger();
-    logger.notice("Evolving system: {:.2e}s -> {:.2e}s"_fmt, in.time, end_time);
-    out = in;
+    logger.notice("Evolving model: {:.2e}s -> {:.2e}s"_fmt, in.time, end_time);
     auto prev_out = in;
     // if snap to end time, stop loop 2 dt before final time, otherwise 1 dt
     double stop_dt = snap_to_end_time ? 2. : 1.;
     while (FloatCmp::le<Time>(out.time+stop_dt*dt, end_time)) {
-      std::swap(prev_out, out);
-      asImpl().do_step(system, prev_out, out, dt);
+      swap(prev_out, out);
+      asImpl().do_step(model, prev_out, out, dt);
       if (not out) {
-        logger.warn("Evolving system could not approach final time"_fmt);
+        logger.warn("Evolving model could not approach final time"_fmt);
         break;
       }
       callable(out);
@@ -128,43 +107,9 @@ public:
 
     if (out and snap_to_end_time)
     {
-      std::swap(prev_out, out);
-      asImpl().snap_to_time(system,prev_out,out,dt,end_time,callable);
+      swap(prev_out, out);
+      asImpl().snap_to_time(model,prev_out,out,dt,end_time,callable);
     }
-  }
-
-  /**
-   * @brief Evolve the system until `end_time`
-   *
-   * @details The input state is advanced by time steps `dt` to approach
-   * `end_time`. The application of each timestep is performed using
-   * the `do_step` method, which may adapt the timestep `dt` adaptively.
-   *
-   * @tparam System   System that contain suitable operators to advance in time
-   * @tparam Time     Valid time type to operate with
-   * @param system    System that contain suitable operators to advance in time.
-   * If the step is not possible, the system stays with its initial state
-   * @param dt        Delta time to perform first step. If the step is not
-   * possible, stepper may modify it to a suitable value
-   * @param end_time  Final time that `out` state must reach
-   * @param callable  A function called with an state at the end of each
-   * succesful step
-   * @param snap_to_end_time True if `end_time` must be reached exactly,
-   * otherwise it will be reached from below with the provided dt.
-   */
-  template<class System, class Time, class Callable>
-  void evolve(
-    System& system,
-    Time& dt,
-    const Time& end_time,
-    Callable&& callable = [](const auto& state) {},
-    bool snap_to_end_time = true) const
-  {
-    auto in = system.state();
-    auto out = in;
-    asImpl().evolve(system, in, out, dt, end_time, callable, snap_to_end_time);
-    if (out)
-      system.set_state(out);
   }
 
   /**
@@ -174,17 +119,17 @@ public:
    * of timesteps ahead of the suggested dt. It differs from evolve in that the
    * steps might be done with a suitable stepper for wider range of timesteps.
    *
-   * @tparam System   System that contain suitable operators to advance in time
+   * @tparam Model   Model that contain suitable operators to advance in time
    * @tparam Time     Valid time type to operate with
-   * @param system    System that contain suitable operators to advance in time.
+   * @param model    Model that contain suitable operators to advance in time.
    * @param dt        Suggested delta time to to reach snap time. It will be
    *                  modified to reach snap time exactly.
    * @param snap_time  Final time that `out` state must reach
    * @param callable  A function called with an state at the end of each
    *                  succesful step
    */
-  template<class System, class State, class Time, class Callable>
-  void snap_to_time(System& system,
+  template<class Model, class State, class Time, class Callable>
+  void snap_to_time(const Model& model,
                     const State& in,
                     State& out,
                     Time& dt,
@@ -192,7 +137,7 @@ public:
                     Callable&& callable) const
   {
     // use self implementation as default stepper
-    snap_to_time(asImpl(), system, in, out, dt, snap_time, callable);
+    snap_to_time(asImpl(), model, in, out, dt, snap_time, callable);
   }
 
 protected:
@@ -203,15 +148,16 @@ protected:
    * @tparam Stepper Class that fullfils the stepper interface.
    * @param stepper object to perfom `do_step` with.
    */
-  template<class Stepper, class System, class State, class Time, class Callable>
+  template<class Stepper, class Model, class State, class Time, class Callable>
   static void snap_to_time(const Stepper& stepper,
-                           System& system,
+                           const Model& model,
                            const State& in,
                            State& out,
                            Time& dt,
                            const Time& snap_time,
                            Callable&& callable)
   {
+    using std::swap;
     auto& logger = stepper.logger();
 
     logger.info(2, "Snapping current time to {:.5e}"_fmt, snap_time);
@@ -233,8 +179,8 @@ protected:
       logger.detail(2, "Snapping step size {:.5e}s -> {:.5e}s"_fmt, dt, new_dt);
       dt = new_dt;
 
-      std::swap(prev_out, out);
-      stepper.do_step(system, prev_out, out, dt);
+      swap(prev_out, out);
+      stepper.do_step(model, prev_out, out, dt);
 
       if (out) {
         callable(out);
@@ -265,11 +211,11 @@ private:
  * methods](https://en.wikipedia.org/wiki/List_of_Runge%E2%80%93Kutta_methods).
  * Fully implicit Runge-Kutta are not available.
  *
- * @warning Due the PDELab objects lifetime, advancing in time may modify system
+ * @warning Due the PDELab objects lifetime, advancing in time may modify model
  * local and grid operators. Thus, when applying steps to different states, be
- * sure that system operators are semantically const correct
+ * sure that model operators are semantically const correct
  *
- * @tparam T    Time type to step systems with
+ * @tparam T    Time type to step models with
  */
 template<class T = double>
 class RKStepper : public BaseStepper<RKStepper<T>>
@@ -311,7 +257,7 @@ public:
    * @return auto  a pointer to PDELab time stepping Runge-Kutta paramameters
    */
   static std::unique_ptr<PDELab::TimeSteppingParameterInterface<Time>>
-  make_rk_method(const std::string type)
+  make_rk_method(const std::string& type)
   {
     if (type == "explicit_euler")
       return std::make_unique<PDELab::ExplicitEulerParameter<Time>>();
@@ -334,21 +280,12 @@ public:
   }
 
   //! @copydoc BaseStepper::do_step()
-  template<class System>
-  void do_step(System& system, Time& dt) const
-  {
-    BaseStepper<RKStepper<T>>::do_step(system, dt);
-  }
-
-  //! @copydoc BaseStepper::do_step()
-  template<class System, class State>
-  void do_step(const System& system,
+  template<class Model, class State>
+  void do_step(const Model& model,
                const State& in,
                State& out,
                Time& dt) const
   {
-    assert(out.grid_function_space and out.grid);
-
     using Coefficients = typename State::Coefficients;
     const bool cout_redirected = Dune::Logging::Logging::isCoutRedirected();
     if (not cout_redirected)
@@ -360,16 +297,24 @@ public:
                    dt,
                    in.time + dt);
 
-    auto& solver = get_solver(system);
-
-    const auto& x_in = in.coefficients;
-    auto& x_out = out.coefficients;
+    auto [constraints, solver] = set_and_cache_solver(model, in);
+    assert(&in != &out && "in/out shall be different objects, otherwise writes "
+                          "to out may invalidate the coefficients on in");
+    const auto& x_in = in.coefficients_storage();
+    auto& x_out = out.coefficients_storage();
     if (not x_out or x_out == x_in)
       x_out = std::make_shared<Coefficients>(*x_in);
 
+    /*
+      bool do_constraints = boundary_conditions.setTime(in.time);
+      auto& cc = get_constraints(in);
+      if (do_constraints)
+        Dune::PDELab::constraints(boundary_conditions, in.space(), cc);
+    */
+
     // try & catch is the only way we have to check if the solver was successful
     try {
-      solver.apply(in.time, dt, *x_in, *x_out);
+      solver.apply(in.time, dt, *x_in, /*boundary_conditions, */ *x_out);
       solver.result(); // triggers an exception if solver failed
 
       _logger.notice("Time Step: {:.2e}s + {:.2e}s -> {:.2e}s"_fmt,
@@ -379,19 +324,19 @@ public:
       out.time = in.time + dt;
 
     } catch (const Dune::PDELab::NewtonError& e) {
-      out.coefficients.reset(); // set output to an invalid state
+      out.coefficients_storage().reset(); // set output to an invalid state
       _logger.warn(2, "Step failed (NewtonError)"_fmt);
       _logger.trace("{}"_fmt, e.what());
     } catch (const Dune::PDELab::TerminateError& e) {
-      out.coefficients.reset(); // set output to an invalid state
+      out.coefficients_storage().reset(); // set output to an invalid state
       _logger.warn(2, "Step failed (NewtonError::TerminateError)"_fmt);
       _logger.trace("{}"_fmt, e.what());
     } catch (const Dune::PDELab::LineSearchError& e) {
-      out.coefficients.reset(); // set output to an invalid state
+      out.coefficients_storage().reset(); // set output to an invalid state
       _logger.warn(2, "Step failed (NewtonError::LineSearchError)"_fmt);
       _logger.trace("{}"_fmt, e.what());
     } catch (const Dune::MathError& e) {
-      out.coefficients.reset(); // set output to an invalid state
+      out.coefficients_storage().reset(); // set output to an invalid state
       _logger.warn(2, "Step failed (MathError)"_fmt);
       _logger.trace("{}"_fmt, e.what());
     }
@@ -404,64 +349,93 @@ public:
   const Logging::Logger& logger() const { return _logger; }
 
 private:
-  //! Setup and cache solver for a given system
-  template<class System>
-  auto& get_solver(const System& system) const
+  //! Setup and cache solver for a given model
+  template<class Model, class State>
+  auto set_and_cache_solver(const Model& model, const State& state) const
   {
-    using Coefficients = typename System::State::Coefficients;
-    using InstationaryGridOperator = typename System::InstationaryGridOperator;
-    using LinearSolver = Dune::PDELab::ISTLBackend_NOVLP_BCGS_SSORk<InstationaryGridOperator>;
-    using NonLinearOperator =
-      PDELab::NewtonMethod<InstationaryGridOperator, LinearSolver>;
-    using OneStepOperator = PDELab::
-      OneStepMethod<Time, InstationaryGridOperator, NonLinearOperator, Coefficients>;
+    // we want to store all objects relevant to the solver in the internal data
+    // we have to constraints:
+    //  * since many PDELab objects use references, addresses should not change
+    //  * since we want to do type erasure with std::any, we need copyable objects
+    // That's why we move everything into shared ponters in the following
+    using GFS = typename State::GridFunctionSpace;
+    using Coefficients = typename State::Coefficients;
 
-    using InternalState = std::tuple<System const*,
-                                     InstationaryGridOperator const*,
-                                     std::shared_ptr<LinearSolver>,
-                                     std::shared_ptr<NonLinearOperator>,
-                                     std::shared_ptr<OneStepOperator>>;
+    // first declare a lambda that can construct internal state
+    auto make_internal_state = [&](){
+      auto slop = std::shared_ptr{model.make_spatial_local_operator(state.space())};
+      auto tlop = std::shared_ptr{model.make_temporal_local_operator(state.space())};
+      using RF = double;
 
-    InstationaryGridOperator& grid_operator = *system.get_instationary_grid_operator();
+      using CC = typename GFS::template ConstraintsContainer<RF>::Type;
+      auto cc = std::make_shared<CC>();
+      //! Matrix backend
+      using MBE = Dune::PDELab::ISTL::BCRSMatrixBackend<>;
+      using GOS = PDELab::GridOperator<GFS, GFS, std::decay_t<decltype(*slop)>, MBE, RF, RF, RF, CC, CC>;
 
-    auto linear_solver = std::make_unique<LinearSolver>(grid_operator);
+      //! Spatial grid operator
+      auto gos = std::make_shared<GOS>(state.space(), *cc, state.space(), *cc, *slop, MBE{10}); // FIXME
 
-    // If internal data correspond to input, return cached one-step-operator.
-    if (_internal_state.has_value() and
-        _internal_state.type() == typeid(InternalState)) {
-      auto& internal_state = *std::any_cast<InternalState>(&_internal_state);
-      if (std::get<0>(internal_state) == &system and
-          std::get<1>(internal_state) == &grid_operator)
-        return *std::get<4>(internal_state);
+      //! Temporal grid operator
+      using GOT = PDELab::GridOperator<GFS, GFS, std::decay_t<decltype(*tlop)>, MBE, RF, RF, RF, CC, CC>;
+      auto got = std::make_shared<GOT>(state.space(), *cc, state.space(), *cc, *tlop, MBE{10});
+
+      //! Instationary grid operator
+      using InstationaryGridOperator = PDELab::OneStepGridOperator<GOS, GOT>;
+      auto goi = std::make_shared<InstationaryGridOperator>(*gos, *got);
+
+      using LinearSolver = Dune::PDELab::ISTLBackend_NOVLP_BCGS_SSORk<InstationaryGridOperator>;
+      auto linear_solver = std::make_shared<LinearSolver>(*goi);
+
+      using NonLinearOperator = PDELab::NewtonMethod<InstationaryGridOperator, LinearSolver>;
+      auto non_linear_operator = std::make_shared<NonLinearOperator>(*goi, *linear_solver);
+      non_linear_operator->setVerbosityLevel(5);
+
+      // Add settings to the newton solver
+      non_linear_operator->setParameters(_solver_parameters);
+
+      _logger.trace("Get one step operator"_fmt);
+      using OneStepOperator = PDELab::OneStepMethod<Time, InstationaryGridOperator, NonLinearOperator, Coefficients>;
+      auto one_step_operator = std::make_shared<OneStepOperator>(*_rk_method, *goi, *non_linear_operator);
+      one_step_operator->setVerbosityLevel(5);
+
+      return std::make_tuple(&model,
+                             state.space_storage(),
+                             cc,
+                             slop,
+                             tlop,
+                             gos,
+                             got,
+                             goi,
+                             linear_solver,
+                             non_linear_operator,
+                             one_step_operator);
+    };
+
+    using InternalState = decltype(make_internal_state());
+    InternalState* internal_state_ptr;
+
+    // If internal data correspond to input, return cached one-step-operator and
+    // constraints.
+    if (_internal_state_cache.has_value() and
+        _internal_state_cache.type() == typeid(InternalState)) {
+      internal_state_ptr = std::any_cast<InternalState>(&_internal_state_cache);
+      if (std::get<0>(*internal_state_ptr) != &model or
+          std::get<1>(*internal_state_ptr) != state.space_storage())
+        _internal_state_cache = make_internal_state();
+    } else {
+      _internal_state_cache = make_internal_state();
     }
-
-    _logger.trace("Get non-linear operator"_fmt);
-    auto non_linear_operator =
-      std::make_unique<NonLinearOperator>(grid_operator, *linear_solver);
-
-    // Add settings to the newton solver
-    non_linear_operator->setParameters(_solver_parameters);
-
-    _logger.trace("Get one step operator"_fmt);
-    auto one_step_operator = std::make_unique<OneStepOperator>(
-      *_rk_method, grid_operator, *non_linear_operator);
-    one_step_operator->setVerbosityLevel(5);
-
-    _internal_state =
-      std::make_any<InternalState>(&system,
-                                   &grid_operator,
-                                   std::move(linear_solver),
-                                   std::move(non_linear_operator),
-                                   std::move(one_step_operator));
-    return *std::get<4>(*std::any_cast<InternalState>(&_internal_state));
+    internal_state_ptr = std::any_cast<InternalState>(&_internal_state_cache);
+    return std::tuple{ *std::get<2>(*internal_state_ptr),
+                       *std::get<10>(*internal_state_ptr) };
   }
 
 private:
-  std::unique_ptr<const PDELab::TimeSteppingParameterInterface<Time>>
-    _rk_method;
+  std::unique_ptr<const PDELab::TimeSteppingParameterInterface<Time>> _rk_method;
   const ParameterTree _solver_parameters;
   const Logging::Logger _logger;
-  mutable std::any _internal_state;
+  mutable std::any _internal_state_cache;
 };
 
 /**
@@ -506,15 +480,15 @@ public:
   }
 
   //! @copydoc BaseStepper::do_step()
-  template<class System>
-  void do_step(System& system, Time& dt) const
+  template<class Model>
+  void do_step(Model& model, Time& dt) const
   {
-    BaseStepper<SimpleAdaptiveStepper<SimpleStepper>>::do_step(system, dt);
+    BaseStepper<SimpleAdaptiveStepper<SimpleStepper>>::do_step(model, dt);
   }
 
   //! @copydoc BaseStepper::do_step()
-  template<class System, class State>
-  void do_step(const System& system,
+  template<class Model, class State>
+  void do_step(const Model& model,
                const State& in,
                State& out,
                Time& dt) const
@@ -531,7 +505,7 @@ public:
                                << "' is greater than the maximum allowed step '"
                                << _max_step << "'");
 
-    _stepper.do_step(system, in, out, dt);
+    _stepper.do_step(model, in, out, dt);
     while (not out) {
       logger().detail(2,
         "Reducing step size: {:.2e}s -> {:.2e}s"_fmt, dt, dt * _decrease_factor);
@@ -541,7 +515,7 @@ public:
                    "Time step '" << dt
                                  << "' is less than the minimun allowed step '"
                                  << _min_step << "'");
-      _stepper.do_step(system, in, out, dt);
+      _stepper.do_step(model, in, out, dt);
     }
 
     auto new_step = std::min<Time>(_max_step, dt * _increase_factor);
@@ -557,8 +531,8 @@ public:
    * steps with the simple stepper. That is, without restrictions on maximum and
    * minimum timesteps.
    */
-  template<class System, class State, class Time, class Callable>
-  void snap_to_time(System& system,
+  template<class Model, class State, class Time, class Callable>
+  void snap_to_time(Model& model,
                     const State& in,
                     State& out,
                     Time& dt,
@@ -566,7 +540,7 @@ public:
                     Callable&& callable) const
   {
     // use snap_to_time on the wrapped stepper
-    _stepper.snap_to_time(system, in, out, dt, time, callable);
+    _stepper.snap_to_time(model, in, out, dt, time, callable);
   }
 
   //! Return stepper logger
@@ -586,8 +560,8 @@ private:
  *            does not change, it simply applyies the do_step of the underlying
  *            stepper.
  *
- * @tparam Stepper  Underlying stepper that will advance the system on time
- * @tparam Predicate Functor that accepts system states and signals event
+ * @tparam Stepper  Underlying stepper that will advance the model on time
+ * @tparam Predicate Functor that accepts model states and signals event
  * changes
  */
 template<class Stepper, class Predicate>
@@ -616,14 +590,14 @@ public:
    * predicate signals an event change, out will hold the change before the
    * event
    */
-  template<class System, class State>
-  void do_step(const System& system,
+  template<class Model, class State>
+  void do_step(const Model& model,
                const State& in,
                State& out,
                Time& dt) const
   {
     std::size_t it = _max_it;
-    _stepper.do_step(system, in, out, dt);
+    _stepper.do_step(model, in, out, dt);
     if (not out)
       return;
     // let's make an binary search of the approiated time step
@@ -635,7 +609,7 @@ public:
     while ((pre_in != pre_out) and (0 != it--) and
            ((end - start) / dt > _threshold)) {
       Time test = start + (end - start) / 2.;
-      _stepper.do_step(system, in, test_out, test);
+      _stepper.do_step(model, in, test_out, test);
       bool pre_out = _predicate(std::as_const(test_out));
       if (pre_in == pre_out) {
         out = test_out;
@@ -668,7 +642,7 @@ auto
 make_default_stepper(const ParameterTree& config)
 {
   auto log = Logging::Logging::componentLogger({}, "stepper");
-  auto rk_type = config.get("rk_method","alexander_2");
+  std::string rk_type = config.get("rk_method","alexander_2");
   auto min_step = config.template get<double>("min_step");
   auto max_step = config.template get<double>("max_step");
   auto decrease_factor = config.get("decrease_factor", 0.9);
@@ -696,9 +670,9 @@ make_default_stepper(const ParameterTree& config)
   param["LineSearch.DampingFactor"] = np["linear_search.damping_factor"];
   param["LineSearch.AcceptBest"] = np.get("linear_search.accept_best", "false");
 
-  using RKStepper = Dune::Copasi::RKStepper<double>;
-  auto rk_stepper = RKStepper{ rk_type, param };
-  using Stepper = Dune::Copasi::SimpleAdaptiveStepper<RKStepper>;
+  using BaseStepper = Dune::Copasi::RKStepper<double>;
+  auto rk_stepper = BaseStepper{ rk_type, param };
+  using Stepper = Dune::Copasi::SimpleAdaptiveStepper<BaseStepper>;
   return Stepper{
     std::move(rk_stepper), min_step, max_step, decrease_factor, increase_factor
   };

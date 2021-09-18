@@ -1,7 +1,6 @@
 add_subdirectory(common)
 add_subdirectory(concepts)
-add_subdirectory(finite_element)
-add_subdirectory(finite_element_map)
 add_subdirectory(local_operator)
 add_subdirectory(grid)
 add_subdirectory(model)
+add_subdirectory(parser)
