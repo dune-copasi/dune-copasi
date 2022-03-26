@@ -20,9 +20,16 @@ stages:
   CPACK_GENERATORS: 'DEB'
   CPACK_PACKAGE_DIRECTORY: $CI_PROJECT_DIR/tmp
 
+.docker_service: &docker_service
+  services:
+  - name: docker:19.03.12-dind
+    entrypoint: ["env", "-u", "DOCKER_HOST"]
+    command: ["dockerd-entrypoint.sh"]
+
+
 .docker_variables: &docker_variables
   DOCKER_BUILDKIT: 1
-  DOCKER_IMAGE: docker:19.03.1
+  DOCKER_IMAGE: docker:19.03.12
   DOCKER_HOST: tcp://docker:2375/
   DOCKER_DRIVER: overlay2
   DOCKER_TLS_CERTDIR: ""
@@ -114,6 +121,7 @@ stages:
 
 # debian gcc
 setup:debian_gcc:
+  <<: *docker_service
   variables:
     <<: *docker_variables
     <<: *debian_gcc
@@ -127,6 +135,7 @@ build:debian_gcc:
     - setup:debian_gcc
 
 deploy:debian_gcc:
+  <<: *docker_service
   variables:
     <<: *docker_variables
     <<: *debian_gcc
@@ -136,6 +145,7 @@ deploy:debian_gcc:
 
 # debian clang
 setup:debian_clang:
+  <<: *docker_service
   variables:
     <<: *docker_variables
     <<: *debian_clang
@@ -149,6 +159,7 @@ build:debian_clang:
     - setup:debian_clang
 
 deploy:debian_clang:
+  <<: *docker_service
   variables:
     <<: *docker_variables
     <<: *debian_clang
