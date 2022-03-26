@@ -7,7 +7,7 @@ def dune_copasi_scripts():
     return ['./wrapper/profile_intel.py']
 
 setup(name='dune.copasi',
-  version='1.1.0',
+  version='1.1.1',
   namespace_packages=['dune'],
   description='DUNE Biochemical System Simulator for COPASI',
   author='Santiago Ospina De Los Ríos',

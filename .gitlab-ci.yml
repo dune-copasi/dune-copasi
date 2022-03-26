@@ -15,7 +15,7 @@ stages:
 
 .global_variables: &global_variables
   DUNECONTROL: dunecontrol
-  BASE_IMAGE_VERSION: v1.1.0
+  BASE_IMAGE_VERSION: v1.1.1
   DUNE_COPASI_SD_EXECUTABLE: 'ON'
   CPACK_GENERATORS: 'DEB'
   CPACK_PACKAGE_DIRECTORY: $CI_PROJECT_DIR/tmp
@@ -31,14 +31,14 @@ stages:
   <<: *global_variables
   TOOLCHAIN: gcc-8-17
   DUNECI_OS: debian
-  BASE_IMAGE: debian:10
+  BASE_IMAGE: debian:11
   DEPENDENCIES_IMAGE: ${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${TOOLCHAIN}-${BASE_IMAGE_VERSION}
 
 .debian_clang: &debian_clang
   <<: *global_variables
   TOOLCHAIN: clang-6-17
   DUNECI_OS: debian
-  BASE_IMAGE: debian:10
+  BASE_IMAGE: debian:11
   DEPENDENCIES_IMAGE: ${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${TOOLCHAIN}-${BASE_IMAGE_VERSION}
   MASTER_IMAGE: "true"
 
