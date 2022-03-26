@@ -28,6 +28,9 @@ Types of changes
 
 ## [Unreleased] ([git-diff][Unreleased-diff])
 
+## [1.1.1] ([git-diff][1.1.1-diff]) - 2022-03-27
+### Fixed
+ - Typos in documentation and installation instructions
 ## [1.1.0] ([git-diff][1.1.0-diff]) - 2021-04-29
 ### Added
  - Dune options file receives `CMAKE_OPTIONS` and `MAKE_OPTIONS` !60
@@ -136,7 +139,8 @@ Types of changes
 - [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Solver for reaction-diffusion systems in multiple compartments.
 
-[Unreleased-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v1.1.0...master
+[Unreleased-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v1.1.1...master
+[1.1.1-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v1.1.0...v1.1.1
 [1.1.0-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v1.0.0...v1.1.0
 [1.0.0-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v0.3.0...v1.0.0
 [0.3.0-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v0.2.0...v0.3.0
@@ -144,6 +148,7 @@ Types of changes
 
 [Unreleased]: https://gitlab.dune-project.org/copasi/dune-copasi/-/tree/master
 
+[1.1.1]: https://gitlab.dune-project.org/copasi/dune-copasi/-/releases/v1.1.1
 [1.1.0]: https://gitlab.dune-project.org/copasi/dune-copasi/-/releases/v1.1.0
 [1.0.0]: https://gitlab.dune-project.org/copasi/dune-copasi/-/releases/v1.0.0
 [0.3.0]: https://gitlab.dune-project.org/copasi/dune-copasi/-/releases/v0.3.0

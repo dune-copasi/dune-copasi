@@ -23,9 +23,9 @@ spatial *Systems Biology Markup Language* ([SBML](https://en.wikipedia.org/wiki/
 models of bio-chemical reactions. Additionally, it can simulate them with `dune-copasi`. A big
 adventage of this package is that is tailored for biologists and is availalbe
 with just a pair of clicks on the major plataforms. Find more information
-[here](https://spatial-model-editor.readthedocs.io/en/stable/quickstart/get-started.html)!
+[here](https://spatial-model-editor.readthedocs.io)!
 
-[![sme](./img/spatial-model-editor.png)](https://spatial-model-editor.readthedocs.io/en/stable/quickstart/get-started.html)
+[![sme](./img/spatial-model-editor.png)](https://spatial-model-editor.readthedocs.io)
 
 ### Configuration File
 
@@ -116,8 +116,8 @@ file `config.ini` using one of the following commands on the terminal:
   <TabItem value="md">
 
 ```bash
-docker run -v $PWD \
-  registry.dune-project.org/copasi/dune-copasi/dune-copasi:v1.1.0\
+docker run -v $PWD:/dunecopasi \
+  registry.dune-project.org/copasi/dune-copasi/dune-copasi:v1.1.1\
   config.ini
 ```
 
@@ -125,9 +125,9 @@ docker run -v $PWD \
   <TabItem value="sd">
 
 ```bash
-docker run -v $PWD \
+docker run -v $PWD:/dunecopasi \
   --entrypoint=dune-copasi-sd \
-  registry.dune-project.org/copasi/dune-copasi/dune-copasi:v1.1.0\
+  registry.dune-project.org/copasi/dune-copasi/dune-copasi:v1.1.1\
   config.ini
 ```
 
@@ -147,7 +147,7 @@ with [INI](#configuration-file) usage, installation is as simple as:
   groupId="package-manager"
   defaultValue="apt"
   values={[
-      {label: 'Debian/Ubuntu (apt)', value: 'apt', },
+      {label: 'Debian 11 (apt)', value: 'apt', },
       {label: 'macOS/Linux (brew)', value: 'brew', },
     ]
   }>
@@ -155,7 +155,7 @@ with [INI](#configuration-file) usage, installation is as simple as:
   <TabItem value="apt">
 
 ```bash
-curl -fsSL https://gitlab.dune-project.org/copasi/dune-copasi/-/jobs/artifacts/v1.1.0/raw/packages/dune-copasi-runtime.deb?job=build:debian_clang -o dune-copasi-runtime.deb
+curl -fsSL https://gitlab.dune-project.org/copasi/dune-copasi/-/jobs/artifacts/v1.1.1/raw/packages/dune-copasi-runtime.deb?job=build:debian_clang -o dune-copasi-runtime.deb
 apt install ./dune-copasi-runtime.deb
 ```
 
@@ -207,7 +207,7 @@ brew uninstall dune-copasi
 
 ### Docker Build
 
-Advanced users, who may want to make modifications the `dune-copasi`
+Advanced users, who may want to make modifications on the `dune-copasi`
 code but do not to install all the dependencies may opt for a docker build. In
 this case, you must download the `dune-copasi` source code, modify it, and build
 a new local docker image:
@@ -264,8 +264,8 @@ The following list of software is required to install and use `dune-copasi`:
 | [dune-functions](https://gitlab.dune-project.org/staging/dune-functions)                    | == 2.7 |
 | [dune-logging](https://gitlab.dune-project.org/staging/dune-logging)                        | == 2.7 |
 | [dune-multidomaingrid](https://gitlab.dune-project.org/extensions/dune-multidomaingrid)     | == 2.7 |
-| [COPASI/dune-typetree](https://gitlab.dune-project.org/copasi/dune-typetree)                | `support/dune-copasi-v1.1.0` |
-| [COPASI/dune-pdelab](https://gitlab.dune-project.org/copasi/dune-pdelab)                    | `support/dune-copasi-v1.1.0` |
+| [COPASI/dune-typetree](https://gitlab.dune-project.org/copasi/dune-typetree)                | `support/dune-copasi-v1.1.1` |
+| [COPASI/dune-pdelab](https://gitlab.dune-project.org/copasi/dune-pdelab)                    | `support/dune-copasi-v1.1.1` |
 
 :::info
 Notice that some required dune modules are forks of original reopsitories and
@@ -350,8 +350,8 @@ internet by using [`git`](https://git-scm.com/). For smooth installation, is
 better place all the dune modules within the same directory.
 
 :::caution DUNE Version incompatibility
-Notice that this procedure assumest that you don't have previous installion of DUNE in
-your system. If that's the case, uninstall DUNE before continouing, otherwise, version
+Notice that this procedure assumes that you don't have other DUNE versions installed in
+your system. If that's the case, uninstall DUNE before continuing, otherwise, version
 conflicts may be difficult if not impossible to resolve.
 :::
 
@@ -369,12 +369,12 @@ git clone -b releases/2.7 https://gitlab.dune-project.org/core/dune-localfunctio
 git clone -b releases/2.7 https://gitlab.dune-project.org/staging/dune-functions
 git clone -b releases/2.7 https://gitlab.dune-project.org/extensions/dune-multidomaingrid
 git clone -b releases/2.7 --recursive https://gitlab.dune-project.org/staging/dune-logging
-git clone -b support/dune-copasi-v1.1.0 https://gitlab.dune-project.org/copasi/dune-typetree
-git clone -b support/dune-copasi-v1.1.0 https://gitlab.dune-project.org/copasi/dune-pdelab
-git clone -b v1.1.0 https://gitlab.dune-project.org/copasi/dune-copasi
+git clone -b support/dune-copasi-v1.1.1 https://gitlab.dune-project.org/copasi/dune-typetree
+git clone -b support/dune-copasi-v1.1.1 https://gitlab.dune-project.org/copasi/dune-pdelab
+git clone -b v1.1.1 https://gitlab.dune-project.org/copasi/dune-copasi
 
 # apply patches
-git apply -C dune-common dune-copasi/.ci/dune-common.patch
+git -C dune-common apply ../dune-copasi/.ci/dune-common.patch
 ```
 
 Then, build and install the `DUNE` modules with the `dunecontrol` script:
