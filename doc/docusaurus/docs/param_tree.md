@@ -43,7 +43,7 @@ This section is the one that contains most of the aspects for simulation.
 | `[compartment]`   | subsection | List of compartmentes to simulate |
 | `[<comp_k>]` | subsection | Options for equations per each compartment |
 
-Whenever a compartment is coposed by cubes (2D) or hexahedra (3D), then such
+Whenever a compartment is composed by cubes (2D) or hexahedra (3D), then such
 compartment is modeled using Finite Volumes. These compartments are
 suitable to model membranes processes.
 
@@ -122,11 +122,10 @@ group id (`value`) to an compartment name (`key`).
 | `<comp_k>` | `integer` | Phisical group id assigned to `<comp_k>` subdomain |
 
 Each compartment id maps to a *physical group* in the gmsh identifiers.
-Although the gmsh format allows you to name such physical groups.
-Notice that `dune-copasi` uses 0-based
- indices while `gmsh` uses 1-based indices. In other words,
+Although the gmsh format allows you to name such physical groups, we have no
+support for it and identifiers must be used. Notice that `dune-copasi` uses
+0-based indices while `gmsh` uses 1-based indices. In other words,
 `<gmsh_physical_group> = <dune_copasi_compartment> + 1`.
-
 
 :::tip Example
 Let's say that there is two *physical groups* in our gmsh file
@@ -267,7 +266,7 @@ This section contains the transmmission condition $\mathcal{T}^{kl}_i$ for each
 
 The math expressions in this subsection are allowed to use all *variables* from
 both `<comp_k>` and `<comp_l>` compartments. Because they may have the same
-name, the parser distinguish them by assigin a `_i` (inside) sufix for variables
+name, the parser distinguish them by assigin a `_i` (inside) suffix for variables
 in `<comp_k>` and `_o` (outside) for variables in `<comp_l>`. Additionally,
 their normal gradients, $\nabla u_i^k\cdot \mathbf{n}^k$ and
 $\nabla u_j^l\cdot \mathbf{n}^l$, are also available as `d<var_i>__dn`. Here,
@@ -322,7 +321,7 @@ Following the example for the outflow, its jacobian would be
 du__du_i = 1
 du__du_o = -1
 
-[model.cytoplasm.boundary.nucleus.outflow.jacobian]
+# [model.cytoplasm.boundary.nucleus.outflow.jacobian]
 # du__du_i = 0
 # du__du_o = 0
 ```
@@ -393,6 +392,21 @@ min_step = 1e-3
 max_step = 0.35
 decrease_factor = 0.5
 increase_factor = 1.5
+
+[model.time_stepping.newton]
+reduction = 1e-8
+min_linear_reduction = 1e-3
+fixed_linear_reduction = false
+max_iterations = 40
+absolute_limit = 1e-12
+reassemble_threshold = 0.0
+keep_matrix = true
+force_iteration = false
+
+[model.time_stepping.newton.linear_search]
+strategy = hackbuschReusken
+max_iterations = 10
+damping_factor = 0.5
 
 [model.compartments]
 domain = 0
