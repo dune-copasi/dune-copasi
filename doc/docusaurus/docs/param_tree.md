@@ -114,12 +114,12 @@ The possible `rk_id`s can be found at the end of this document.
 
 #### `[model.compartment]`
 
-The compartment section is filled with `key=value` pairs that assign a phisical
+The compartment section is filled with `key=value` pairs that assign a physical
 group id (`value`) to an compartment name (`key`).
 
 | Key | Type | Description |
 | -----------|-----| -------------- |
-| `<comp_k>` | `integer` | Phisical group id assigned to `<comp_k>` subdomain |
+| `<comp_k>` | `integer` | Physical group id assigned to `<comp_k>` subdomain |
 
 Each compartment id maps to a *physical group* in the gmsh identifiers.
 Although the gmsh format allows you to name such physical groups.
