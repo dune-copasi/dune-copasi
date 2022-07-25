@@ -1,6 +1,8 @@
 #ifndef DUNE_COPASI_COMMON_STEPPERS_HH
 #define DUNE_COPASI_COMMON_STEPPERS_HH
 
+#include <dune/assembler/common/event_info.hh>
+
 // this is because without it name lookup fails to find PDELab::native(...)
 #include <dune/pdelab/backend/istl.hh>
 
@@ -257,22 +259,18 @@ private:
   const Impl& asImpl() const { return static_cast<const Impl&>(*this); }
 };
 
+
 /**
- * @brief Runge-Kutta stepper for PDEs
+ * @brief Simple system stepper
  *
- * @details This class is able to advance in time PDE models from PDELab
- * implemented in dune-copasi using [Runge-Kutta
- * methods](https://en.wikipedia.org/wiki/List_of_Runge%E2%80%93Kutta_methods).
- * Fully implicit Runge-Kutta are not available.
+ * @details This class is able to advance in time systems that provide an step
+ * forward operator from dune-assembler
  *
- * @warning Due the PDELab objects lifetime, advancing in time may modify system
- * local and grid operators. Thus, when applying steps to different states, be
- * sure that system operators are semantically const correct
  *
  * @tparam T    Time type to step systems with
  */
 template<class T = double>
-class RKStepper : public BaseStepper<RKStepper<T>>
+class SimpleStepper : public BaseStepper<SimpleStepper<T>>
 {
 public:
   using Time = T;
@@ -280,64 +278,20 @@ public:
   /**
    * @brief Construct a new object
    *
-   * @param rk_method   PDELab time stepping Runge-Kutta paramameters
    * @param solver_parameters parameter options for the newton solver
    */
-  RKStepper(
-    std::unique_ptr<PDELab::TimeSteppingParameterInterface<Time>> rk_method,
-    const ParameterTree& solver_parameters)
-    : _rk_method{ std::move(rk_method) }
-    , _solver_parameters{ solver_parameters }
+  SimpleStepper(const ParameterTree& solver_parameters)
+    : _solver_parameters{ solver_parameters }
     , _logger{ Logging::Logging::componentLogger({}, "stepper") }
   {
     _logger.detail("Setting up time stepper"_fmt);
-    _logger.trace("Stepper methd: {}"_fmt, _rk_method->name());
-  }
-
-  /**
-   * @brief Construct a new object
-   *
-   * @param rk_method   Keyword with the RK method type
-   * @param solver_parameters parameter options for the newton solver
-   */
-  RKStepper(std::string rk_method, const ParameterTree& solver_parameters)
-    : RKStepper(make_rk_method(rk_method), solver_parameters)
-  {}
-
-  /**
-   * @brief Make RK parameters
-   *
-   * @param type  a Keyword with the RK method type
-   * @return auto  a pointer to PDELab time stepping Runge-Kutta paramameters
-   */
-  static std::unique_ptr<PDELab::TimeSteppingParameterInterface<Time>>
-  make_rk_method(const std::string type)
-  {
-    if (type == "explicit_euler")
-      return std::make_unique<PDELab::ExplicitEulerParameter<Time>>();
-    if (type == "implicit_euler")
-      return std::make_unique<PDELab::ImplicitEulerParameter<Time>>();
-    if (type == "heun")
-      return std::make_unique<PDELab::HeunParameter<Time>>();
-    if (type == "shu_3")
-      return std::make_unique<PDELab::Shu3Parameter<Time>>();
-    if (type == "runge_kutta_4")
-      return std::make_unique<PDELab::RK4Parameter<Time>>();
-    if (type == "alexander_2")
-      return std::make_unique<PDELab::Alexander2Parameter<Time>>();
-    if (type == "fractional_step_theta")
-      return std::make_unique<PDELab::FractionalStepParameter<Time>>();
-    if (type == "alexander_3")
-      return std::make_unique<PDELab::Alexander3Parameter<Time>>();
-
-    DUNE_THROW(NotImplemented, "Not known '" << type << "' Runge Kutta method");
   }
 
   //! @copydoc BaseStepper::do_step()
   template<class System>
   void do_step(System& system, Time& dt) const
   {
-    BaseStepper<RKStepper<T>>::do_step(system, dt);
+    BaseStepper<SimpleStepper<T>>::do_step(system, dt);
   }
 
   //! @copydoc BaseStepper::do_step()
@@ -360,7 +314,7 @@ public:
                    dt,
                    in.time + dt);
 
-    auto& solver = get_solver(system);
+    auto step_operator = system.get_step_operator(_solver_parameters);
 
     const auto& x_in = in.coefficients;
     auto& x_out = out.coefficients;
@@ -368,32 +322,22 @@ public:
       x_out = std::make_shared<Coefficients>(*x_in);
 
     // try & catch is the only way we have to check if the solver was successful
-    try {
-      solver.apply(in.time, dt, *x_in, *x_out);
-      solver.result(); // triggers an exception if solver failed
+    step_operator->setDuration(dt);
+    _info.children.push_back(
+      step_operator->apply(*x_in, *x_out)
+    );
 
+    auto& solver_info = dynamic_cast<Assembler::SolverEventInfo&>(*_info.children.back().other_info);
+    assert(solver_info.converged.has_value());
+    if (solver_info.converged.value()) {
       _logger.notice("Time Step: {:.2e}s + {:.2e}s -> {:.2e}s"_fmt,
-                     in.time,
-                     dt,
-                     in.time + dt);
+                    in.time,
+                    dt,
+                    in.time + dt);
       out.time = in.time + dt;
-
-    } catch (const Dune::PDELab::NewtonError& e) {
+    } else {
       out.coefficients.reset(); // set output to an invalid state
-      _logger.warn(2, "Step failed (NewtonError)"_fmt);
-      _logger.trace("{}"_fmt, e.what());
-    } catch (const Dune::PDELab::TerminateError& e) {
-      out.coefficients.reset(); // set output to an invalid state
-      _logger.warn(2, "Step failed (NewtonError::TerminateError)"_fmt);
-      _logger.trace("{}"_fmt, e.what());
-    } catch (const Dune::PDELab::LineSearchError& e) {
-      out.coefficients.reset(); // set output to an invalid state
-      _logger.warn(2, "Step failed (NewtonError::LineSearchError)"_fmt);
-      _logger.trace("{}"_fmt, e.what());
-    } catch (const Dune::MathError& e) {
-      out.coefficients.reset(); // set output to an invalid state
-      _logger.warn(2, "Step failed (MathError)"_fmt);
-      _logger.trace("{}"_fmt, e.what());
+      _logger.warn(2, "Step failed (Convergence Error)"_fmt);
     }
 
     if (not cout_redirected)
@@ -403,65 +347,18 @@ public:
   //! Return stepper logger
   const Logging::Logger& logger() const { return _logger; }
 
-private:
-  //! Setup and cache solver for a given system
-  template<class System>
-  auto& get_solver(const System& system) const
-  {
-    using Coefficients = typename System::State::Coefficients;
-    using InstationaryGridOperator = typename System::InstationaryGridOperator;
-    using LinearSolver = Dune::PDELab::ISTLBackend_NOVLP_BCGS_SSORk<InstationaryGridOperator>;
-    using NonLinearOperator =
-      PDELab::NewtonMethod<InstationaryGridOperator, LinearSolver>;
-    using OneStepOperator = PDELab::
-      OneStepMethod<Time, InstationaryGridOperator, NonLinearOperator, Coefficients>;
-
-    using InternalState = std::tuple<System const*,
-                                     InstationaryGridOperator const*,
-                                     std::shared_ptr<LinearSolver>,
-                                     std::shared_ptr<NonLinearOperator>,
-                                     std::shared_ptr<OneStepOperator>>;
-
-    InstationaryGridOperator& grid_operator = *system.get_instationary_grid_operator();
-
-    auto linear_solver = std::make_unique<LinearSolver>(grid_operator);
-
-    // If internal data correspond to input, return cached one-step-operator.
-    if (_internal_state.has_value() and
-        _internal_state.type() == typeid(InternalState)) {
-      auto& internal_state = *std::any_cast<InternalState>(&_internal_state);
-      if (std::get<0>(internal_state) == &system and
-          std::get<1>(internal_state) == &grid_operator)
-        return *std::get<4>(internal_state);
-    }
-
-    _logger.trace("Get non-linear operator"_fmt);
-    auto non_linear_operator =
-      std::make_unique<NonLinearOperator>(grid_operator, *linear_solver);
-
-    // Add settings to the newton solver
-    non_linear_operator->setParameters(_solver_parameters);
-
-    _logger.trace("Get one step operator"_fmt);
-    auto one_step_operator = std::make_unique<OneStepOperator>(
-      *_rk_method, grid_operator, *non_linear_operator);
-    one_step_operator->setVerbosityLevel(5);
-
-    _internal_state =
-      std::make_any<InternalState>(&system,
-                                   &grid_operator,
-                                   std::move(linear_solver),
-                                   std::move(non_linear_operator),
-                                   std::move(one_step_operator));
-    return *std::get<4>(*std::any_cast<InternalState>(&_internal_state));
+  void report() const {
+    // TODO Improve interface!
+    _info.complete(*this, "Time Steps");
+    std::ofstream file{"report.json"};
+    _info.trace(file);
   }
 
 private:
-  std::unique_ptr<const PDELab::TimeSteppingParameterInterface<Time>>
-    _rk_method;
   const ParameterTree _solver_parameters;
   const Logging::Logger _logger;
   mutable std::any _internal_state;
+  mutable Assembler::EventInfo _info;
 };
 
 /**
@@ -572,6 +469,9 @@ public:
   //! Return stepper logger
   const Logging::Logger& logger() const { return _stepper.logger(); }
 
+  void report() const {
+    _stepper.report();
+  }
 private:
   const SimpleStepper _stepper;
   const Time _min_step, _max_step;
@@ -691,14 +591,22 @@ make_default_stepper(const ParameterTree& config)
   param["KeepMatrix"] = np["keep_matrix"];
   param["Terminate.MaxIterations"] = np["max_iterations"];
   param["Terminate.ForceIteration"] = np["force_iteration"];
-  param["LineSearchStrategy"] = np["linear_search.strategy"];
-  param["LineSearch.MaxIterations"] = np["linear_search.max_iterations"];
-  param["LineSearch.DampingFactor"] = np["linear_search.damping_factor"];
-  param["LineSearch.AcceptBest"] = np.get("linear_search.accept_best", "false");
 
-  using RKStepper = Dune::Copasi::RKStepper<double>;
-  auto rk_stepper = RKStepper{ rk_type, param };
-  using Stepper = Dune::Copasi::SimpleAdaptiveStepper<RKStepper>;
+  if (np.hasSub("linear_search")) {
+    log.warning("'linear_search' section is deprecated: use 'line_search' instead"_fmt);
+    param["LineSearchStrategy"] = np["linear_search.strategy"];
+    param["LineSearch.MaxIterations"] = np["linear_search.max_iterations"];
+    param["LineSearch.DampingFactor"] = np["linear_search.damping_factor"];
+    param["LineSearch.AcceptBest"] = np.get("linear_search.accept_best", "false");
+  }
+  param["LineSearchStrategy"] = np["line_search.strategy"];
+  param["LineSearch.MaxIterations"] = np["line_search.max_iterations"];
+  param["LineSearch.DampingFactor"] = np["line_search.damping_factor"];
+  param["LineSearch.AcceptBest"] = np.get("line_search.accept_best", "false");
+
+  using SimpleStepper = Dune::Copasi::SimpleStepper<double>;
+  auto rk_stepper = SimpleStepper{ param };
+  using Stepper = Dune::Copasi::SimpleAdaptiveStepper<SimpleStepper>;
   return Stepper{
     std::move(rk_stepper), min_step, max_step, decrease_factor, increase_factor
   };
