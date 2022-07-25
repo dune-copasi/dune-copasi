@@ -11,14 +11,14 @@ namespace Dune::Copasi {
 
 /**
  *
- * @tparam     GV    GridView
+ * @tparam     ES     EntitySet
  * @tparam     LBT    Local basis traits
  */
-template<class GV, class LBT>
+template<class ES, class LBT>
 struct LocalOperatorDiffusionReactionBase
 {
-  //! grid view
-  using GridView = GV;
+  //! entity set
+  using EntitySet = ES;
 
   //! local basis
   using LocalBasisTraits = LBT;
@@ -39,7 +39,7 @@ struct LocalOperatorDiffusionReactionBase
   using Jacobian = typename LocalBasisTraits::JacobianType;
 
   //! Adapter for dynamic expressions
-  using ExpressionAdapter = ExpressionToGridFunctionAdapter<GridView, RF>;
+  using ExpressionAdapter = ExpressionToGridFunctionAdapter<EntitySet, RF>;
 
   //! world dimension
   static constexpr int dim = LocalBasisTraits::dimDomain;
@@ -50,16 +50,20 @@ struct LocalOperatorDiffusionReactionBase
   // this operator only support scalar ranges
   static_assert(dim_range == 1);
 
+  ParameterTree _config;
+
+  EntitySet _entity_set;
+
   //! components
   std::size_t _components;
 
-  std::vector<std::shared_ptr<ExpressionAdapter>> _diffusion_gf;
-  mutable std::vector<std::shared_ptr<ExpressionAdapter>> _reaction_gf;
-  mutable std::vector<std::shared_ptr<ExpressionAdapter>> _jacobian_gf;
+  std::vector<std::unique_ptr<ExpressionAdapter>> _diffusion_gf;
+  mutable std::vector<std::unique_ptr<ExpressionAdapter>> _reaction_gf;
+  mutable std::vector<std::unique_ptr<ExpressionAdapter>> _jacobian_gf;
 
   Logging::Logger _logger;
 
-  std::set<std::pair<std::size_t, std::size_t>> _component_pattern;
+  std::vector<std::vector<std::size_t>> _component_pattern;
 
   /**
    * @brief      Constructs a new instance.
@@ -67,41 +71,28 @@ struct LocalOperatorDiffusionReactionBase
    * @todo       Make integration order variable depending on user requirements
    *             and polynomail order of the local finite element
    *
-   * @param[in]  grid_view       The grid view where this local operator is
-   *                             valid
-   * @param[in]  config          The configuration tree
-   * @param[in]  finite_element  The local finite element
-   * @param[in]  rule_order      order of the quadrature rule
-   */
-  LocalOperatorDiffusionReactionBase(const ParameterTree& config)
-    : _components(config.sub("reaction").getValueKeys().size())
-    , _logger(Logging::Logging::componentLogger({}, "model"))
-  {
-    assert(_components == config.sub("diffusion").getValueKeys().size());
-    assert((_components * _components) ==
-           config.sub("reaction.jacobian").getValueKeys().size());
-  }
-
-  /**
-   * @brief      Constructs a new instance.
-   *
-   * @todo       Make integration order variable depending on user requirements
-   *             and polynomail order of the local finite element
-   *
-   * @param[in]  grid_view       The grid view where this local operator is
-   *                             valid
+   * @param[in]  entity_set      The entity set where this local operator is valid
    * @param[in]  config          The configuration tree
    * @param[in]  finite_element  The local finite element
    * @param[in]  rule_order      order of the quadrature rule
    */
   LocalOperatorDiffusionReactionBase(const ParameterTree& config,
-                                  const GridView& grid_view)
-    : LocalOperatorDiffusionReactionBase(config)
+                                     const EntitySet& entity_set)
+    : _config(config)
+    , _entity_set(entity_set)
+    , _components(config.sub("reaction").getValueKeys().size())
+    , _logger(Logging::Logging::componentLogger({}, "model"))
   {
-    create_pattern_and_gf_expressions(grid_view,config);
+    assert(_components == _config.sub("diffusion").getValueKeys().size());
+    assert((_components * _components) == _config.sub("reaction.jacobian").getValueKeys().size());
+    create_pattern_and_gf_expressions();
   }
 
-  void create_pattern_and_gf_expressions(const GridView& grid_view, const ParameterTree& config)
+  LocalOperatorDiffusionReactionBase(const LocalOperatorDiffusionReactionBase& other)
+    : LocalOperatorDiffusionReactionBase(other._config, other._entity_set)
+  {}
+
+  void create_pattern_and_gf_expressions()
   {
     _logger.trace("creating pattern and grid function expressions"_fmt);
 
@@ -109,9 +100,9 @@ struct LocalOperatorDiffusionReactionBase
     _reaction_gf.resize(_components);
     _jacobian_gf.resize(_components * _components);
 
-    auto diffusion_config = config.sub("diffusion");
-    auto reaction_config = config.sub("reaction");
-    auto jacobian_config = config.sub("reaction.jacobian");
+    auto diffusion_config = _config.sub("diffusion");
+    auto reaction_config = _config.sub("reaction");
+    auto jacobian_config = _config.sub("reaction.jacobian");
 
     auto diffusion_keys = diffusion_config.getValueKeys();
     auto reaction_keys = reaction_config.getValueKeys();
@@ -125,6 +116,7 @@ struct LocalOperatorDiffusionReactionBase
     for (size_t i = 0; i < diffusion_keys.size(); i++)
       assert(diffusion_keys[i] == reaction_keys[i]);
 
+    _component_pattern.assign(_components, {});
     for (std::size_t k = 0; k < _components; k++) {
       std::string var = reaction_keys[k];
 
@@ -132,9 +124,9 @@ struct LocalOperatorDiffusionReactionBase
       std::string r_eq = reaction_config.template get<std::string>(var);
 
       _diffusion_gf[k] =
-        std::make_shared<ExpressionAdapter>(grid_view, d_eq);
+        std::make_unique<ExpressionAdapter>(_entity_set, d_eq);
       _reaction_gf[k] =
-        std::make_shared<ExpressionAdapter>(grid_view, r_eq, true, reaction_keys);
+        std::make_unique<ExpressionAdapter>(_entity_set, r_eq, true, reaction_keys);
 
       for (std::size_t l = 0; l < _components; l++) {
         const auto j = _components * k + l;
@@ -142,9 +134,9 @@ struct LocalOperatorDiffusionReactionBase
           jacobian_config.template get<std::string>(jacobian_keys[j]);
 
         _jacobian_gf[j] =
-          std::make_shared<ExpressionAdapter>(grid_view, j_eq, true, reaction_keys);
+          std::make_unique<ExpressionAdapter>(_entity_set, j_eq, true, reaction_keys);
         if (k == l) {
-          _component_pattern.insert(std::make_pair(k, l));
+          _component_pattern[k].push_back(l);
           continue;
         }
 
@@ -154,16 +146,15 @@ struct LocalOperatorDiffusionReactionBase
         do_pattern &= (j_eq != ".0");
         do_pattern &= (j_eq != "0.");
         if (do_pattern)
-          _component_pattern.insert(std::make_pair(k, l));
+          _component_pattern[k].push_back(l);
       }
     }
 
     // log compartment pattern
     _logger.debug("Compartment jacobian pattern:"_fmt);
-    for (auto i : _component_pattern) {
-      _logger.debug(
-        2, "{} -> {}"_fmt, diffusion_keys[i.first], diffusion_keys[i.second]);
-    }
+    for (std::size_t k = 0; k != _component_pattern.size(); ++k)
+      for (auto l : _component_pattern[k])
+      _logger.debug(2, "{} -> {}"_fmt, diffusion_keys[k], diffusion_keys[l]);
   }
 
   /**

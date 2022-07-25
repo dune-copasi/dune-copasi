@@ -97,6 +97,32 @@ public:
       compile_parser();
   }
 
+  ExpressionToGridFunctionAdapter(const ExpressionToGridFunctionAdapter& other)
+    : _logger(Logging::Logging::componentLogger({}, "model"))
+    , _gv(other._gv)
+    , _time(other._time)
+    , _other_value(other._other_value)
+    , _parser(other._parser)
+    , _expr(other._expr)
+    , _compiled(false)
+  {
+    if (other._compiled)
+      compile_parser();
+  }
+
+  ExpressionToGridFunctionAdapter(ExpressionToGridFunctionAdapter&& other)
+    : _logger(Logging::Logging::componentLogger({}, "model"))
+    , _gv(other._gv)
+    , _time(other._time)
+    , _other_value(std::move(other._other_value))
+    , _parser(std::move(other._parser))
+    , _expr(std::move(other._expr))
+    , _compiled(false)
+  {
+    if (other._compiled)
+      compile_parser();
+  }
+
   /**
    * @brief      Gets a reference to the grid view
    *
