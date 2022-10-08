@@ -62,6 +62,10 @@ module.exports = {
               label: 'Releases',
             },
             {
+              href: 'https://gitlab.dune-project.org/copasi/dune-copasi/-/blob/master/LICENSE.md',
+              label: 'Licence',
+            },
+            {
               href: 'https://gitlab.dune-project.org/copasi/dune-copasi/-/blob/master/CHANGELOG.md',
               label: 'Changelog',
             },
@@ -92,9 +96,14 @@ module.exports = {
       ],
     },
     footer: {
-      style: 'dark',
+      style: 'light',
       links: [],
-      //copyright: `${copyright} | ${impressum} | ${datenschutz} | ${disclaimer}`,
+      logo: {
+        alt: 'Meta Open Source Logo',
+        src: 'img/BMBF_logo.svg',
+      },
+      // copyright: `Research funded by the German federal Ministry of Education and Research (BMBF) FKZ 031L0158</br>${copyright} | ${impressum} | ${datenschutz} | ${disclaimer}`,
+      copyright: `Research funded by the German federal Ministry of Education and Research (BMBF) FKZ 031L0158`,
     },
   },
   presets: [

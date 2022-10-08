@@ -14,3 +14,7 @@ Solver for reaction-diffusion systems in multiple compartments
  * Output in the VTK format
 
 Get started [here](https://dune-copasi.netlify.app/docs//install_use).
+
+---
+
+Research funded by the German federal Ministry of Education and Research (BMBF) FKZ 031L0158
