@@ -214,13 +214,13 @@ a new local docker image:
 
 ```bash
 # fetch source code from git
-git clone ssh://git@gitlab.dune-project.org:22022/copasi/dune-copasi.git
-
-# checkout the branch you want to modify (e.g. latest)
-git checkout latest
+git clone https://gitlab.dune-project.org/copasi/dune-copasi
 
 # enter dune-copasi directory
 cd dune-copasi
+
+# checkout the branch you want to modify (e.g. latest)
+git checkout latest
 
 # modify source code at will
 # ...
