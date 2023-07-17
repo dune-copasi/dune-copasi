@@ -4,16 +4,16 @@
    overwritten
 */
 
-/* Define to the version of dune-copasi */
+/* Defines the version of dune-copasi */
 #define DUNE_COPASI_VERSION "@DUNE_COPASI_VERSION@"
 
-/* Define to the major version of dune-copasi */
+/* Defines the major version of dune-copasi */
 #define DUNE_COPASI_VERSION_MAJOR @DUNE_COPASI_VERSION_MAJOR@
 
-/* Define to the minor version of dune-copasi */
+/* Defines the minor version of dune-copasi */
 #define DUNE_COPASI_VERSION_MINOR @DUNE_COPASI_VERSION_MINOR@
 
-/* Define to the revision of dune-copasi */
+/* Defines the revision of dune-copasi */
 #define DUNE_COPASI_VERSION_REVISION @DUNE_COPASI_VERSION_REVISION@
 
 // std::move_only_function with noexcept attribute seems to be broken in clang

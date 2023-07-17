@@ -32,7 +32,8 @@
 
 #include <spdlog/spdlog.h>
 
-#include <fmt/format.h>
+#include <fmt/color.h>
+#include <fmt/core.h>
 
 #include <algorithm>
 #include <array>
@@ -40,8 +41,6 @@
 #include <chrono>
 #include <cstddef>
 #include <exception>
-#include <filesystem>
-#include <fmt/core.h>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -51,6 +50,13 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+#if __has_include("dune-copasi-config-file-options.hh")
+// Generated options for the done-copasi configuration ini-file
+#include "dune-copasi-config-file-options.hh"
+#else
+static const std::vector<std::array<std::string, 4>> config_file_opts;
+#endif
 
 constexpr auto exec_dimension = Dune::index_constant<DUNE_COPASI_GRID_DIMENSION>{};
 
@@ -63,39 +69,86 @@ using HostGrid = Dune::UGGrid<exec_dimension>;
 using MDGTraits = Dune::mdgrid::DynamicSubDomainCountTraits<exec_dimension, 10>;
 using MDGrid = Dune::mdgrid::MultiDomainGrid<HostGrid, MDGTraits>;
 
+void
+program_help(std::string_view prog_name, bool long_help)
+{
+  fmt::print(
+    "USAGE: {} [options]\n\n"
+    "Numerical simulator for diffusion-reaction systems on single or multiple compartments\n\n"
+    "Website: <https://dune-copasi.netlify.app>\n\n"
+    "OPTIONS:\n\n"
+    "  -h / --help          - Display this help\n"
+    "  --help-full          - Display this help with long descriptions\n"
+    "  --version            - Display the version of this program\n"
+    "  --config=<string>    - Specifies a config file in INI format. See Configuration Options\n"
+    "  --dump-config        - Dumps configuration in the INI format to stdout\n"
+    "  --<key>=<value>      - Overrides key=value sections of the config file\n\n",
+    prog_name);
+
+  if (not config_file_opts.empty()) {
+    fmt::print("Configuration Options:\n\n");
+    for (auto [key, type, short_doc, long_doc] : config_file_opts) {
+      fmt::print("  {}={}\n     {}\n",
+                 fmt::styled("--" + key, fmt::emphasis::bold),
+                 fmt::styled("<" + type + ">", fmt::emphasis::italic),
+                 fmt::styled(short_doc, fmt::fg(fmt::color::dark_gray)));
+      if (long_help and not long_doc.empty()) {
+        std::istringstream iss(long_doc);
+        for (std::string line; std::getline(iss, line);) {
+          fmt::print("       {}\n", fmt::styled(line, fmt::fg(fmt::color::dark_gray)));
+        }
+      }
+    }
+  }
+  std::cout << std::endl;
+}
+
 int
 main(int argc, char** argv)
 {
-  spdlog::info("Starting dune-copasi");
-  const fs::path prog_name = argv[0];
-  const std::string string_help =
-    fmt::format("Usage: {} [options] CONFIG_FILE\n\n"
-                "Execute numerical simulation of reaction-diffusion systems on single\n"
-                "compartments. The CONFIG_FILE is a DUNE INI file with the\n"
-                "parameters to perform the simulation.\n",
-                prog_name.filename().string());
-
-  Dune::ParameterTree config;
+  const fs::path prog_path = argv[0];
 
   int end_code = 0;
-  std::vector<std::string> cmd_line_args(argv, argv + argc);
+  Dune::ParameterTree config;
 
-  if (argc == 1) {
-    std::cerr << string_help;
-    return 1;
-  }
-
-  if (cmd_line_args[1] == "--help" or cmd_line_args[1] == "-h") {
-    std::cout << string_help;
+  std::vector<char*> cmd_args(argv, argv + argc);
+  auto is_help = [](std::string_view opt) { return opt.starts_with("--help") or opt == "-h"; };
+  if (auto hlp = std::ranges::find_if(cmd_args, is_help); hlp != cmd_args.end()) {
+    program_help(prog_path.filename().string(), std::string_view{ *hlp } == "--help-full");
     return 0;
   }
 
-  // Read and parse ini file
-  spdlog::info("Reading configuration file: '{}'", cmd_line_args.back());
-  Dune::ParameterTreeParser::readINITree(cmd_line_args.back(), config);
+  auto is_version = [](std::string_view opt) { return opt == "--version"; };
+  if (std::ranges::find_if(cmd_args, is_version) != cmd_args.end()) {
+    std::cout << DUNE_COPASI_VERSION << std::endl;
+    return 0;
+  }
 
+  bool dump_config = false;
+  auto is_dump_config = [](std::string_view opt) { return opt == "--dump-config"; };
+  if (auto dmp = std::ranges::find_if(cmd_args, is_dump_config); dmp != cmd_args.end()) {
+    cmd_args.erase(dmp);
+    dump_config = true;
+  }
+
+  auto is_config = [](std::string_view opt) { return opt.starts_with("--config="); };
+  if (auto cfg_it = std::ranges::find_if(cmd_args, is_config); cfg_it != cmd_args.end()) {
+    auto cfg_file = std::string{ *cfg_it }.substr(9);
+    if (not dump_config) {
+      spdlog::info("Reading configuration file '{}'", cfg_file);
+    }
+    Dune::ParameterTreeParser::readINITree(cfg_file, config);
+  }
+  Dune::ParameterTreeParser::readNamedOptions(cmd_args.size(), cmd_args.data(), config, {});
+
+  if (dump_config) {
+    config.report(std::cout);
+    return 0;
+  }
+
+  spdlog::info("Starting dune-copasi");
 #if HAVE_PERFETTO
-  auto tracing_session = Dune::PDELab::TracingSession{ prog_name.filename().string() + ".pftrace" };
+  auto tracing_session = Dune::PDELab::TracingSession{ prog_path.filename().string() + ".pftrace" };
 #endif
 
   {
@@ -104,20 +157,15 @@ main(int argc, char** argv)
   }
 
   try {
-    // detailed report of the input parameter tree
-    std::stringstream ss;
-    config.report(ss);
-    spdlog::info("----");
-    for (std::string line; std::getline(ss, line);) {
-      spdlog::info("{}", line);
-    }
-    spdlog::info("----");
-
     using namespace Dune::Copasi;
 
     auto parser_context = std::make_shared<ParserContext>(config.sub("parser_context"));
-
     std::shared_ptr md_grid_ptr = make_multi_domain_grid<MDGrid>(config, parser_context);
+
+    const auto& model_config = config.sub("model");
+    if (model_config.hasSub("compartments"))
+      spdlog::warn(
+        "The section '[model.compartments]' will be ignored, use '[compartments]' instead");
     config.sub("model.compartments") = config.sub("compartments");
 
     using SDGridView = typename MDGrid::SubDomainGrid::Traits::LeafGridView;
@@ -126,25 +174,25 @@ main(int argc, char** argv)
     using DurationQuantity = double;
     using Model = Model<MDGrid, SDGridView, SpeciesQuantity, TimeQuantity>;
 
-    const auto& model_config = config.sub("model", true);
-    auto parser_type = string2parser.at(config.get("parser_type", default_parser_str));
+    auto parser_type =
+      string2parser.at(config.get("parser_context.parser_type", default_parser_str));
     auto functor_factory = std::make_shared<FunctorFactoryParser<exec_dimension>>(
       parser_type, std::move(parser_context));
     std::unique_ptr<Model> model = make_model<Model>(model_config, functor_factory);
 
     // create time stepper
-    const auto& time_config = model_config.sub("time_step_operator", true);
+    const auto& time_config = model_config.sub("time_step_operator");
     auto decrease_factor = time_config.get("time_step_decrease_factor", 0.5);
     auto increase_factor = time_config.get("time_step_increase_factor", 1.5);
-    auto begin_time = time_config.template get<TimeQuantity>("time_begin");
-    auto end_time = time_config.template get<TimeQuantity>("time_end");
-    auto initial_step = time_config.template get<DurationQuantity>("time_step_initial");
+    auto begin_time = time_config.get("time_begin", TimeQuantity{ 0. });
+    auto end_time = time_config.get("time_end", TimeQuantity{ 1. });
+    auto initial_step = time_config.get("time_step_initial", DurationQuantity{ 0.1 });
     std::optional<DurationQuantity> min_step;
     std::optional<DurationQuantity> max_step;
-    if (time_config.hasKey("min_step")) {
+    if (time_config.hasKey("time_step_min")) {
       min_step = time_config.template get<DurationQuantity>("time_step_min");
     }
-    if (time_config.hasKey("max_step")) {
+    if (time_config.hasKey("time_step_max")) {
       max_step = time_config.template get<DurationQuantity>("time_step_max");
     }
 
@@ -158,7 +206,7 @@ main(int argc, char** argv)
     const auto& writer_config = model_config.sub("writer");
     const auto& writer_type = writer_config.get("type", "vtk");
     if (writer_type == "vtk") {
-      auto file = model_config.get("writer.file_path", "");
+      auto file = model_config.get("writer.path", "");
       output_writter = [&](const auto& state) {
         if (not file.empty()) {
           model->write(state, file, true);

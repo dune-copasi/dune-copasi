@@ -1,0 +1,2 @@
+float-list
+Position of the origin of an squared domain. Default: caresian origin (e.g., '0. 0. 0.' in 3D)

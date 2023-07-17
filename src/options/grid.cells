@@ -1,0 +1,2 @@
+integer-list
+Numbers of cells per dimension direction. Default: one-per-dimension (e.g., '1 1 1' in 3D)

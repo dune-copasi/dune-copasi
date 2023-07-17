@@ -1,0 +1,5 @@
+float-list
+Domain of values to be interpolated for token '{tkn}'
+For example, the options 'parser_context.f.domain=\"0 1 2\"' and 'parser_context.f.range=\".5 .1 .3\"'
+will define an interpolated function f: domain -> range within the parser.
+This option can only be used together with 'parser_context.{tkn}.type=interpolation'

@@ -32,3 +32,23 @@ foreach(dim ${DUNE_COPASI_GRID_DIMENSIONS})
 #       COMPONENT Runtime
 #       RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 endforeach()
+
+# generate configuration file options out of file descriptors in the "options/" folder
+file(GLOB opt_files "${CMAKE_CURRENT_SOURCE_DIR}/options/*")
+set(opt_header "static const std::vector<std::array<std::string, 4>> config_file_opts = \{\n")
+foreach(opt_file ${opt_files})
+   file(STRINGS ${opt_file} opt_content)
+   # the file name is the key name
+   get_filename_component(opt ${opt_file} NAME)
+   # first line is the type of the option
+   list(POP_FRONT opt_content opt_type)
+   # second line is short description
+   list(POP_FRONT opt_content opt_short_doc)
+   # the rest is its description
+  string(JOIN "\\n" opt_content ${opt_content})
+  # append to header
+  set(opt_header "${opt_header}  \{\"${opt}\", \"${opt_type}\", \"${opt_short_doc}\", \"${opt_content}\" \},\n")
+endforeach()
+
+set(opt_header "${opt_header} \}\;\n")
+file(WRITE "${PROJECT_BINARY_DIR}/dune-copasi-config-file-options.hh" ${opt_header})

@@ -1,0 +1,6 @@
+math-expr
+Expression that define a compartment in terms of a function
+If the expression evaluates to a value different than zero in the center of an entity,
+such entity is assigned to the compartment '{cmp}'. For example, an the expression
+'compartements.top.expression=\"position_y > 0.5\"' defines a compartment '{cmp}' with name
+'top' that is only defined for the top half of an square grid
