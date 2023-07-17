@@ -1,6 +1,8 @@
 #ifndef DUNE_COPASI_DYNAMIC_POWER_LOCAL_BASIS_HH
 #define DUNE_COPASI_DYNAMIC_POWER_LOCAL_BASIS_HH
 
+#include <dune-copasi-config.h>
+
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -138,15 +140,15 @@ public:
   }
 
   /**
-   * @brief      Polynomal order of the shape functions
+   * @brief      Polynomial order of the shape functions
    *
-   * @return     The polynomal order of the shape functions
+   * @return     The polynomial order of the shape functions
    */
   unsigned int order() const { return _basis->order(); }
 
 private:
   /**
-   * @brief      Helper class to polulate results for interface functions
+   * @brief      Helper class to populate results for interface functions
    *
    * @param[in]  f     A function that evaluates a interface function for an
    *                   individual local basis function

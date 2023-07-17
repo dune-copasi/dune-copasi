@@ -21,7 +21,7 @@ The [Spatial Model Editor](https://github.com/spatial-model-editor/spatial-model
 is a **user friendly** GUI editor to create and edit 2D
 spatial *Systems Biology Markup Language* ([SBML](https://en.wikipedia.org/wiki/SBML))
 models of bio-chemical reactions. Additionally, it can simulate them with `dune-copasi`. A big
-adventage of this package is that is tailored for biologists and is availalbe
+adventage of this package is that is tailored for biologists and is available
 with just a pair of clicks on the major plataforms. Find more information
 [here](https://spatial-model-editor.readthedocs.io/en/latest/quickstart/get-started.html)!
 
@@ -54,7 +54,7 @@ tools, or to implement another GUI, etc. In such a case, `dune-copasi` must be
 available in development mode and the downstream library is expected to
 [consume the library](#importing-cmake-targets) by using the
 [CMake build system](https://cmake.org) and use the [C++ objects](api.md) in code.
-This form is avaliable on:
+This form is available on:
 
 * [Manual Installation](#manual-installation)
 * [Docker Build](#docker-build)
@@ -276,7 +276,7 @@ on the [DUNE GitLab](https://gitlab.dune-project.org/).
 #### Dune Options File
 
 An important part of the installation procedure is to tune the build system
-flags to accomodate the build to your system. This is done via the [dune options
+flags to accommodate the build to your system. This is done via the [dune options
 file](https://dune-project.org/doc/installation/#storing-flags-in-an-options-file).
 In essence, is just a bash script that sets different flags (mainly the flags
 for CMake `CMAKE_FLAGS`). While the dune project usually leaves this open for the user, we
@@ -291,7 +291,7 @@ This file can be called to show the current configuration:
 
 There are two form to add flags to the `dune-copasi.opts` file:
 
-1. Setting enviromental variables starging with `CMAKE_` and `DUNE_`.
+1. Setting environmental variables starging with `CMAKE_` and `DUNE_`.
    These variables will be automatically included into the list of cmake flags.
 
   ```bash
@@ -311,11 +311,11 @@ There are two form to add flags to the `dune-copasi.opts` file:
 
 For more information about the possible options and the dune options file, check out
 the dune [installation documentation](https://dune-project.org/doc/installation/)
-and the [build system docuentation](https://dune-project.org/sphinx/core-2.7/).
+and the [build system documentation](https://dune-project.org/sphinx/core-2.7/).
 
 #### Installation
 
-The first four dependencies can be obtained by your prefered package manager in
+The first four dependencies can be obtained by your preferred package manager in
 unix-like operating systems. e.g.
 
 <Tabs
@@ -350,7 +350,7 @@ internet by using [`git`](https://git-scm.com/). For smooth installation, is
 better place all the dune modules within the same directory.
 
 :::caution DUNE Version incompatibility
-Notice that this procedure assumest that you don't have previous installion of DUNE in
+Notice that this procedure assumest that you don't have previous installation of DUNE in
 your system. If that's the case, uninstall DUNE before continouing, otherwise, version
 conflicts may be difficult if not impossible to resolve.
 :::
@@ -409,7 +409,7 @@ dune-copasi-md config.ini
 ```
 #### Importing CMake targets
 
-If you additionaly want to use the [API](#application-programming-interface) for
+If you additionally want to use the [API](#application-programming-interface) for
 development, you must find and consume the CMake targets from `dune-copasi`
 in your project as follows:
 

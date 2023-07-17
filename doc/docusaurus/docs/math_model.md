@@ -4,7 +4,7 @@ title: Mathematical Model
 sidebar_label: Math Model
 ---
 
-In the following, we decribe in mathemathical terms the actual model problem
+In the following, we describe in mathemathical terms the actual model problem
 that we want to solve.
 
 ## Continuous Problem

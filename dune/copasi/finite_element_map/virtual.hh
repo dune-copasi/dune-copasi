@@ -225,7 +225,7 @@ protected:
 /**
  * @brief      Factory for VirtualLocalFiniteElementMapWrapper instances
  * @ingroup    Factory, FiniteElementMap
- * @tparam     <unnamed>  Template paramenters of the VirtualLocalFiniteElementMapWrapper
+ * @tparam     <unnamed>  Template parameters of the VirtualLocalFiniteElementMapWrapper
  */
 template<class FEM, class Entity>
 struct Factory<VirtualLocalFiniteElementMapWrapper<FEM,Entity>>

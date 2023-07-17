@@ -25,7 +25,7 @@ expressions:
 | `x`      | First dimension in the cartesian coordinate system
 | `y`      | Second dimension in the cartesian coordinate system
 | `z`      | Third dimension in the cartesian coordinate system (only in 3D)
-| `dim`    | Dimension of the euclidian space
+| `dim`    | Dimension of the euclidean space
 | `pi`     | Approximation to the number π
 
 ### Context-Dependent
@@ -33,11 +33,11 @@ expressions:
 Additionally, there are other variables that are conditionally available to
 define the expression. These variables depend on the context of its definition.
 An example of it is the reaction expressions within a compartment. If the
-section `[model.nucleous.reaction]` defines expresions `u`, `v`, and `w`,
+section `[model.nucleus.reaction]` defines expressions `u`, `v`, and `w`,
 then, they all will be available to each other. E.g.
 
 ```ini
-[model.nucleous.reaction]
+[model.nucleus.reaction]
 u = u*v*w
 v = u*v*w
 w = u*v*w

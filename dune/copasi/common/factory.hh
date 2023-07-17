@@ -1,10 +1,11 @@
 #ifndef DUNE_COPASI_FACTORY_HH
 #define DUNE_COPASI_FACTORY_HH
 
-#include <memory>
+#include <dune-copasi-config.h>
 
 #include <dune/common/typetraits.hh>
 
+#include <memory>
 namespace Dune::Copasi {
 
 /**
@@ -14,8 +15,8 @@ namespace Dune::Copasi {
 
   A factory should be able to create an instance of a type out of @ref DataContext.
   This is done by the definition of an specialization of the class Factory and a static function create.
-  One thing to take into account is that data context can only store unique values of certain data type. 
-  This is quite restrictive is the contructor of T contains repeated or very common types (e.g. `T{int,int,double}`),
+  One thing to take into account is that data context can only store unique values of certain data type.
+  This is quite restrictive is the constructor of T contains repeated or very common types (e.g. `T{int,int,double}`),
   in shuch case, is best to wrap these values in a unique struct that contains all of these.
 @}
 */

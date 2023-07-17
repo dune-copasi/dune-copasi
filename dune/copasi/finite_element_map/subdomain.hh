@@ -3,6 +3,7 @@
 
 #include <dune/copasi/common/factory.hh>
 #include <dune/copasi/common/data_context.hh>
+#include <dune/copasi/concepts/grid.hh>
 #include <dune/copasi/finite_element_map/dynamic_power.hh>
 #include <dune/copasi/grid/has_single_geometry_type.hh>
 
@@ -10,11 +11,11 @@ namespace Dune::Copasi {
 
 /**
  * @brief      This class describes a sub domain local finite element map.
- * @details    This class wrapps a usual PDELab finite element map into a
+ * @details    This class wraps a usual PDELab finite element map into a
  *             dynamic power finite element map. If the entity to be map does
  *             not belong to the grid view, it will return a 0 power element map
  *             that turns to return a finite element with no degrees of freedom.
- *             This behaviour is useful when the pdelab machinary is operating
+ *             This behaviour is useful when the pdelab machinery is operating
  *             in the whole grid (e.g. multidomain grid) but you want to have
  *             different finite elements per sub domain.
  * @ingroup    FiniteElementMap
@@ -137,7 +138,7 @@ private:
 /**
  * @brief      Factory for SubDomainLocalFiniteElementMap instances
  * @ingroup    Factory, FiniteElementMap
- * @tparam     <unnamed>  Template paramenters of the SubDomainLocalFiniteElementMap
+ * @tparam     <unnamed>  Template parameters of the SubDomainLocalFiniteElementMap
  */
 template<class BaseLocalFiniteElementMap, class SubGridView>
 struct Factory<SubDomainLocalFiniteElementMap<BaseLocalFiniteElementMap,SubGridView>>
@@ -167,7 +168,7 @@ struct Factory<SubDomainLocalFiniteElementMap<BaseLocalFiniteElementMap,SubGridV
 
     auto multi_domain_ctx = Context::DataContext<MultiDomainGridView,dCtx>(multi_domain_gv,std::forward<Ctx>(ctx));
 
-    // base finite element and finite element map are created with multidomain contex
+    // base finite element and finite element map are created with multidomain context
     using BaseFE = typename BaseLocalFiniteElementMap::Traits::FiniteElement;
     auto base_fe = Factory<BaseFE>::create(multi_domain_ctx);
 

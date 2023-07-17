@@ -1,6 +1,8 @@
 #ifndef DUNE_COPASI_DYNAMIC_POWER_LOCAL_INTERPOLATION_HH
 #define DUNE_COPASI_DYNAMIC_POWER_LOCAL_INTERPOLATION_HH
 
+#include <dune-copasi-config.h>
+
 #include <dune/localfunctions/common/localinterpolation.hh>
 
 #include <dune/common/classname.hh>
@@ -93,7 +95,7 @@ public:
    * @param      out   The vector of coefficients for the local finite element
    *
    * @tparam     F     The function type
-   * @tparam     C     The coefficents type
+   * @tparam     C     The coefficients type
    */
   template<typename F, typename C>
   void interpolate(const F& f, std::vector<C>& out) const

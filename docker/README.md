@@ -24,7 +24,7 @@ cd dune-copasi
 # build a new container with the local changes
 docker build -t dune-copasi .
 
-# test changes with your local config files (be sure that $PWD gives docker read/write acces)
+# test changes with your local config files (be sure that $PWD gives docker read/write access)
 docker run -v $PWD dune-copasi config.ini
 ```
 

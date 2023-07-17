@@ -10,7 +10,7 @@ namespace Dune::Copasi {
 
 /**
  * @brief      This class describes a dynamic power local finite element map.
- * @details    This class wrapps a usual PDELab finite element map into a
+ * @details    This class wraps a usual PDELab finite element map into a
  *             dynamic power finite element map.
  * @ingroup    FiniteElementMap
  * @tparam     FiniteElementMap  The original finite element map to wrap
@@ -89,7 +89,7 @@ public:
   /**
    * @brief      Returns true if this finite element map has a fixed size
    *
-   * @return     Always the underlaying fixed size method
+   * @return     Always the underlying fixed size method
    */
   bool fixedSize() const { return _fem->fixedSize(); }
 
@@ -106,12 +106,13 @@ public:
   }
 
   /**
-   * @brief      Describes wheter a codim has associated degrees of freedom
+   * @brief      Describes whether a codim has associated degrees of freedom
    *
    * @param[in]  codim  The codim
    *
-   * @return     True if codim has dregees of freedom
+   * @return     True if codim has degrees of freedom
    */
+  template<class = void>
   bool hasDOFs(int codim) const
   {
     return (_power_size != 0) && _fem->hasDOFs(codim);
@@ -120,7 +121,7 @@ public:
   /**
    * @brief      Maximum local size for all finite elements
    *
-   * @return     The maximim size
+   * @return     The maximum size
    */
   std::size_t maxLocalSize() const { return _power_size * _fem->maxLocalSize(); }
 
@@ -133,7 +134,7 @@ private:
 /**
  * @brief      Factory for DynamicPowerLocalFiniteElementMap instances
  * @ingroup    Factory, FiniteElementMap
- * @tparam     <unnamed>  Template paramenters of the DynamicPowerLocalFiniteElementMap
+ * @tparam     <unnamed>  Template parameters of the DynamicPowerLocalFiniteElementMap
  */
 template<class BaseLocalFiniteElementMap>
 struct Factory<DynamicPowerLocalFiniteElementMap<BaseLocalFiniteElementMap>>

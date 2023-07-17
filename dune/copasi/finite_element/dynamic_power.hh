@@ -73,7 +73,7 @@ public:
   const typename Traits::LocalBasisType& localBasis() const { return _basis; }
 
   /**
-   * @brief      Returns the power local coefficents
+   * @brief      Returns the power local coefficients
    *
    * @return     The power local coefficients
    */

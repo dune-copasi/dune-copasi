@@ -91,7 +91,7 @@ def main(argv):
 
   print("If this is a definitive change, please update documentation and set a new tag in the repository\n")
   print("\tgit tag -s v"+new_version+"\n")
-  print("\nAlso remember to forward the branch latest to the lastest tag\n")
+  print("\nAlso remember to forward the branch latest to the most recent tag\n")
   print("\tgit checkout latest && git merge --ff-only v"+new_version+"\n")
 
 if __name__ == "__main__":

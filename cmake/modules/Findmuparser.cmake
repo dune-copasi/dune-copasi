@@ -71,7 +71,7 @@ if(muparser_FOUND
                 LINK_LIBRARIES muparser::muparser)
 
     if(NOT COMPILE_RESULT_STATIC)
-      message(FATAL_ERROR "A simple muparser test program could not be successfuly compiled")
+      message(FATAL_ERROR "A simple muparser test program could not be successfully compiled")
     endif()
 
     set_target_properties(

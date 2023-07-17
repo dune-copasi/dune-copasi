@@ -17,7 +17,7 @@ There are several ways you can participate.
   check the [bug tracker] to see if someone else is having the same problem,
   otherwise, [let us know]!
 * **Contribute with code**: If you happen know how to fix a bug, add a feature,
-  extend the package, etc. and want to do it, we would be very plased to
+  extend the package, etc. and want to do it, we would be very pleased to
   receive a *Merge Request* with your contributions. Read the
   [contribution guide] for more information.
 

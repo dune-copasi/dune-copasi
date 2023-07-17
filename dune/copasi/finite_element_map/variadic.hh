@@ -105,7 +105,7 @@ public:
     : _entity_mapper(entity_mapper)
     , _finite_element_maps(std::move(finite_element_maps))
   {}
-  
+
   /**
    * @brief      Constructs a new instance.
    *
@@ -175,7 +175,7 @@ public:
       return _finite_element_maps[0]->size(gt);
     else
       DUNE_THROW(PDELab::FiniteElementMapError,
-        "this method should not be called for not fixed sizes");
+         "\tThis method should not be called for not fixed sizes");
   }
 
   /**
@@ -214,7 +214,7 @@ private:
 /**
  * @brief      Factory for SubDomainLocalFiniteElementMap instances
  * @ingroup    Factory, FiniteElementMap
- * @tparam     <unnamed>  Template paramenters of the SubDomainLocalFiniteElementMap
+ * @tparam     <unnamed>  Template parameters of the SubDomainLocalFiniteElementMap
  */
 template<class Entity, class... LocalFiniteElementMaps>
 struct Factory<VariadicLocalFiniteElementMap<Entity,LocalFiniteElementMaps...>>
@@ -222,7 +222,7 @@ struct Factory<VariadicLocalFiniteElementMap<Entity,LocalFiniteElementMaps...>>
   /**
    * @brief      Create method
    *
-   * @param      ctx   @ref DataContext containing a entity mapper and sufficient data to 
+   * @param      ctx   @ref DataContext containing a entity mapper and sufficient data to
    *                   create finite element maps of the type LocalFiniteElementMaps... from
    *                   another factory.
    *

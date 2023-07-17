@@ -5,7 +5,7 @@ When contributing to `dune-copasi`, first discuss the change you wish to make vi
 Try to do this before anything else. This will greately improve both your and
 our experience working together :-). We follow the
 [GitLab Workflow](https://about.gitlab.com/blog/2016/10/25/gitlab-workflow-an-overview/)
-in our software development cycle and we expet you to be part of it. In short,
+in our software development cycle and we expect you to be part of it. In short,
 contributing single features can be summarized by following these steps:
 
 1. **ISSUE**: Create an issue in our
@@ -16,15 +16,15 @@ contributing single features can be summarized by following these steps:
 2. In the created issue, discuss with others the whole idea of your proposal.
    This is important because you may get input from someone that know the
    software on how to do it effectively, and poimting out considerations you may
-   have missed. It also syncronizes ideas so that changes are more easily
+   have missed. It also synchronizes ideas so that changes are more easily
    accepted.
 3. **CODE**: Implement what you proposed :-) in a new branch.
 4. Create a [Merge Request (MR)](https://docs.gitlab.com/ee/gitlab-basics/add-merge-request.html)
    using suitable template. Mark the MR as
-   [*Work In Progres* (WIP)](https://docs.gitlab.com/ee/user/project/merge_requests/work_in_progress_merge_requests.html)
+   [*Work In Progress* (WIP)](https://docs.gitlab.com/ee/user/project/merge_requests/work_in_progress_merge_requests.html)
    until is sent to review for approval. MR differ from issues in that MR
    discuss *how* to implement the idea rather than the idea itself. A MR is
-   filled of technical details that ensure that the *task* idea is fullfiled.
+   filled of technical details that ensure that the *task* idea is fulfilled.
 5. **COMMIT**: In the MR, discuss with others the details of your
    implementation. If discussions show that your proposal has to be modified to
    be accepted, push new commits and update the MR with the new technical
@@ -42,4 +42,3 @@ contributing single features can be summarized by following these steps:
    assigning a maintainer to review your modification.
 
 Check out our [code of conduct](CODE_OF_CONDUCT.md), please follow it in our interactions.
-

@@ -15,7 +15,7 @@ namespace Dune::Copasi {
 /**
  * @brief      Factory for P0LocalFiniteElementMap instances
  * @ingroup    Factory, FiniteElementMap
- * @tparam     <unnamed>  Template paramenters of the P0LocalFiniteElementMap
+ * @tparam     <unnamed>  Template parameters of the P0LocalFiniteElementMap
  */
 template<class DF, class RF, int dim>
 struct Factory<PDELab::P0LocalFiniteElementMap<DF,RF,dim>>

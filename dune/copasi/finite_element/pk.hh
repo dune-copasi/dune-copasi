@@ -3,19 +3,19 @@
 
 #include <dune/copasi/common/factory.hh>
 
-#include <dune/localfunctions/lagrange/pk.hh>
+#include<dune/localfunctions/lagrange/lagrangesimplex.hh>
 
 #include <dune/geometry/type.hh>
 
 namespace Dune::Copasi {
 
 /**
- * @brief      Factory for PkLocalFiniteElement instances
+ * @brief      Factory for LagrangeSimplexLocalFiniteElement instances
  * @ingroup    Factory, FiniteElement
- * @tparam     <unnamed>  Template paramenters of the PkLocalFiniteElement
+ * @tparam     <unnamed>  Template parameters of the PkLocalFiniteElement
  */
 template<class D, class R, int d, int k>
-struct Factory<Dune::PkLocalFiniteElement<D,R,d,k>>
+struct Factory<Dune::LagrangeSimplexLocalFiniteElement<D,R,d,k>>
 {
   /**
    * @brief      Create method
@@ -29,7 +29,7 @@ struct Factory<Dune::PkLocalFiniteElement<D,R,d,k>>
   template<class Ctx>
   static auto create(Ctx&& ctx)
   {
-    return std::make_unique<Dune::PkLocalFiniteElement<D,R,d,k>>();
+    return std::make_unique<Dune::LagrangeSimplexLocalFiniteElement<D,R,d,k>>();
   }
 };
 

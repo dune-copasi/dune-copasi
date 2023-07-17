@@ -15,8 +15,8 @@ sections and keywords. In addition, keywords between angle brackets (i.e.
 ### `[grid]`
 
 The grid is entred by a [GMSH file][GMSH] and should be formed by triangles and
-recangles in 2D or tetraedra and hexahedra in 3D. It must define
-*physical group*s, each refering to a different compartment.
+rectangles in 2D or tetraedra and hexahedra in 3D. It must define
+*physical group*s, each referring to a different compartment.
 Each *physical group* can only be formed the same collection of geometric types.
 
 | Key | Type | Description |
@@ -27,7 +27,7 @@ Each *physical group* can only be formed the same collection of geometric types.
 
 :::caution Bug in GMSH reader
 The GMSH file should not contain the `$PhysicalGroup` section at the
-begining of the file (this is a knwon bug in the `dune-grid` GMSH reader).
+beginning of the file (this is a known bug in the `dune-grid` GMSH reader).
 :::
 
 ### `[model]`
@@ -39,7 +39,7 @@ This section is the one that contains most of the aspects for simulation.
 | `order`           | `integer` | Finite Element polynomial order. if `order==0` FV else CG |
 | `[data]` | subsection | List of input files |
 | `[writer]` | subsection | Options for vtk writer |
-| `[time_stepping]` | subsection | Options for time-stepping |
+| `[time_step_operator]` | subsection | Options for time-stepping |
 | `[compartment]`   | subsection | List of compartmentes to simulate |
 | `[<comp_k>]` | subsection | Options for equations per each compartment |
 
@@ -64,13 +64,13 @@ See [Input Data](input_data.md) section for more information about usage.
 
 #### `[model.output]`
 
-The model ouput is controlled by the following parameters:
+The model output is controlled by the following parameters:
 
 | Key | Type | Description |
 | -----------|-----| -------------- |
 | `file_path` | `string` | Name used to output VTK files |
 
-#### `[model.time_stepping]`
+#### `[model.time_step_operator]`
 
 This section sets the settings for the evolution in time of the forward model.
 
@@ -80,10 +80,10 @@ This section sets the settings for the evolution in time of the forward model.
 | `begin` | `float` | Initial time of the forward simulation |
 | `end`   | `float` | Final time of the forward simulation |
 | `initial_step` | `float` | Time step at the beginning of the simulation |
-| `min_step` | `float` | Maxumum time step allowed |
+| `min_step` | `float` | Maximum time step allowed |
 | `max_step` | `float` | Minimum time step allowed |
 | `decrease_factor` | `float` | Time step decrease factor when time step fails |
-| `increase_factor` | `float` | Time step increase factor when time step succeds |
+| `increase_factor` | `float` | Time step increase factor when time step succeeds |
 | `[newton]` | subsection | Parameters for the Newton method at each timestep |
 
 The possible `rk_id`s can be found at the end of this document.
@@ -95,12 +95,12 @@ The possible `rk_id`s can be found at the end of this document.
 | `reduction` | `float` | Threshold for termination, relative to first linear defect
 | `use_max_norm` | `bool` | Use the maximum norm as a stopping criterion. This helps loosen the tolerance when solving for stationary solutions of nonlinear time-dependent problems.
 | `absolute_limit` | `float` | Threshold for termination, absolute to linear defect
-| `min_linear_reduction` | `float` | The linear reduction will be determined as mininum of this and the one needed to achieve second order newton convergence
+| `min_linear_reduction` | `float` | The linear reduction will be determined as minimum of this and the one needed to achieve second order newton convergence
 | `fixed_linear_reduction`   | `bool` | Whenever `true`, the linear reduction rate will always be fixed to `min_linear_reduction`
-| `max_iterations` | `integer` | Maximum number of linear searchs allowed
+| `max_iterations` | `integer` | Maximum number of linear searches allowed
 | `reassemble_threshold` | `float` | If the reduction drops below this the linear operator is reassembled to ensure convergence
 | `keep_matrix` | `bool` | Whether the jacobian matrix should be kept across time steps
-| `force_iteration` | `bool` | Enforce first iteration even if required reduction is acheived
+| `force_iteration` | `bool` | Enforce first iteration even if required reduction is achieved
 | `[linear_search]` | subsection | Parameters for linear search |
 
 #### `[model.newton.linear_search]`
@@ -169,7 +169,7 @@ Expressions in this section may contain [Input Data](input_data.md) functions.
 
 | Key | Type | Description |
 | -----------|-----| -------------- |
-| `<var>` | `math_expr` | Math expression to initializate variable `<var>` |
+| `<var>` | `math_expr` | Math expression to initialize variable `<var>` |
 
 ##### `[model.<comp_k>.diffusion]`
 
@@ -303,7 +303,7 @@ Otherwise, it will be evaluated to
 
 The jacobian for the outflow works similarly as the one for the reaction. That
 is, all *variables* from inside and outside as well as their normal gradients
-are available. Additionally, you have to distiguish between jacobians with
+are available. Additionally, you have to distinguish between jacobians with
 respect to inside and outside *variables*.
 
 | Key | Type | Description |
@@ -340,7 +340,7 @@ check its doxygen documentation for detailed information.
 A simple configuration is the following:
 ```ini
 [logging]
-# possible levels: off, critical, error, waring, notice, info, debug, trace, all
+# possible levels: off, critical, error, warning, notice, info, debug, trace, all
 default.level = info
 
 [logging.sinks.stdout]
@@ -384,7 +384,7 @@ order = 1
 [model.data]
 input_data = path/to/image.tiff
 
-[model.time_stepping]
+[model.time_step_operator]
 rk_method = alexander_2
 begin = 0
 end = 1

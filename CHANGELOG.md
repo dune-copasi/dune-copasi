@@ -70,7 +70,7 @@ Types of changes
 - Vendor GHC with CMake instead of git submodules !49
 - Increase vendored GHC version to 10.5 !49 & !51
 - Force GHC usage whenever c++ filesystem cannot be found, else, optional !49
-- CI scripts are improved to simplfy usage !49
+- CI scripts are improved to simplify usage !49
 - Simplify build and usage on docker containers !49
 - Drastically reduce size of final docker container !49
 - Improve performance on cases with no interaction between all species !43

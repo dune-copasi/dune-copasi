@@ -29,5 +29,5 @@ INPUT                 += @top_srcdir@/dune/
 
 # IMAGE_PATH            += @top_srcdir@/dune/copasi/pics
 
-# Include documents with other extesions
+# Include documents with other extensions
 FILE_PATTERNS += *.dox

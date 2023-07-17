@@ -1,6 +1,10 @@
 #ifndef DUNE_COPASI_CONTEXT_BASE_HH
 #define DUNE_COPASI_CONTEXT_BASE_HH
 
+#include <dune-copasi-config.h>
+
+#include <dune/common/classname.hh>
+
 #include <type_traits>
 
 /**
@@ -253,7 +257,7 @@ private:
  *
  * @tparam     T      Universal reference of the value to store
  *
- * @return     A context storing the value 
+ * @return     A context storing the value
  */
 template<class T>
 auto data_context(T&& value)

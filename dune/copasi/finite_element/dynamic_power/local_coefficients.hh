@@ -1,6 +1,8 @@
 #ifndef DUNE_COPASI_DYNAMIC_POWER_LOCAL_COEFFICIENTS_HH
 #define DUNE_COPASI_DYNAMIC_POWER_LOCAL_COEFFICIENTS_HH
 
+#include <dune-copasi-config.h>
+
 #include <dune/localfunctions/common/localkey.hh>
 
 #include <cassert>
