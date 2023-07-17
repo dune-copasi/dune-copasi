@@ -1,6 +1,3 @@
-#ifdef HAVE_DUNE_COPASI_CONFIG_H
-#include <dune/copasi/config.h>
-#endif
 
 #include <dune/copasi/common/tiff_grayscale.hh>
 
@@ -20,31 +17,29 @@ main(int argc, char** argv)
     std::string filename_08("data/tiff/flower-minisblack-08.tif");
     std::string filename_16("data/tiff/flower-minisblack-16.tif");
 
-    static_assert(sizeof(unsigned char) == 1);
-    static_assert(sizeof(unsigned short) == 2);
-    Dune::Copasi::TIFFGrayscale<unsigned char> tiff_08(filename_08);
-    Dune::Copasi::TIFFGrayscale<unsigned short> tiff_16(filename_16);
+    Dune::Copasi::TIFFGrayscale tiff_08(filename_08);
+    Dune::Copasi::TIFFGrayscale tiff_16(filename_16);
 
     try {
-      Dune::Copasi::TIFFGrayscale<unsigned char> tiff_08(filename_04);
+      Dune::Copasi::TIFFGrayscale tiff_08(filename_04);
       failed |= true;
     } catch (...) {
     }
 
     try {
-      Dune::Copasi::TIFFGrayscale<unsigned char> tiff_08(filename_16);
+      Dune::Copasi::TIFFGrayscale tiff_08(filename_16);
       failed |= true;
     } catch (...) {
     }
 
     try {
-      Dune::Copasi::TIFFGrayscale<unsigned short> tiff_16(filename_04);
+      Dune::Copasi::TIFFGrayscale tiff_16(filename_04);
       failed |= true;
     } catch (...) {
     }
 
     try {
-      Dune::Copasi::TIFFGrayscale<unsigned short> tiff_16(filename_08);
+      Dune::Copasi::TIFFGrayscale tiff_16(filename_08);
       failed |= true;
     } catch (...) {
     }

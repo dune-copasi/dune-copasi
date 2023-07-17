@@ -1,7 +1,3 @@
-#ifdef HAVE_DUNE_COPASI_CONFIG_H
-#include <dune/copasi/config.h>
-#endif
-
 #include <dune/copasi/finite_element/dynamic_power.hh>
 #include <dune/copasi/finite_element/dynamic_power/local_basis.hh>
 #include <dune/copasi/finite_element/dynamic_power/local_coefficients.hh>
