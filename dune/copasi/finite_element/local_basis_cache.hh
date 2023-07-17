@@ -1,126 +1,19 @@
 #ifndef DUNE_COPASI_LOCAL_FINITE_ELEMENT_CACHE_HH
 #define DUNE_COPASI_LOCAL_FINITE_ELEMENT_CACHE_HH
 
-#include <dune/localfunctions/common/virtualinterface.hh>
-#include <dune/localfunctions/common/virtualwrappers.hh>
+#include <dune-copasi-config.h>
 
-#include <dune/common/hash.hh>
+#include <dune/geometry/quadraturerules.hh>
 
-#include <functional>
-#include <unordered_map>
-#include <vector>
-#include <memory>
+#include <span>
 #include <typeindex>
 
 namespace Dune::Copasi {
 
 /**
- * @brief      This class describes a quadrature point cache key.
- *
- * @tparam     Domain  Domain type to cache
- */
-template<class Domain>
-class QuadraturePointCacheKey
-{
-public:
-
-  /**
-   * @brief      Constructs a new instance.
-   *
-   * @param[in]  position  The position
-   * @param[in]  basis_id  The basis identifier
-   */
-  QuadraturePointCacheKey(const Domain& position, const std::type_index& basis_id)
-    : _position(position)
-    , _basis_id(basis_id)
-  {}
-
-  /**
-   * @brief      Constructs a new instance.
-   *
-   * @param[in]  position    The position
-   * @param[in]  basis       The local basis
-   *
-   * @tparam     LocalBasis  Local basis type
-   */
-  template<class LocalBasis>
-  QuadraturePointCacheKey(const Domain& position, const LocalBasis& basis)
-    : QuadraturePointCacheKey(position,typeid(basis))
-  {}
-
-  /**
-   * @brief      Returns the hash code for this object.
-   *
-   * @return     The hash code value for this object
-   */
-  std::size_t hash_code() const noexcept
-  {
-    std::size_t seed = 46'255'207; // some prime number
-    Dune::hash_combine(seed,_basis_id);
-    for (auto&& i : _position)
-      Dune::hash_combine(seed,i);
-    return seed;
-  }
-
-  /**
-   * @brief      Equality operator.
-   *
-   * @param[in]  lhs   The left hand side
-   * @param[in]  rhs   The right hand side
-   *
-   * @return     The result of the equality
-   */
-  friend inline bool
-  operator==(const QuadraturePointCacheKey& lhs, const QuadraturePointCacheKey& rhs)
-  {
-    return (lhs._basis_id == rhs._basis_id) and (lhs._position == rhs._position);
-  }
-
-  /**
-   * @brief      Inequality operator.
-   *
-   * @param[in]  lhs   The left hand side
-   * @param[in]  rhs   The right hand side
-   *
-   * @return     The result of the inequality
-   */
-  friend inline bool
-  operator!=(const QuadraturePointCacheKey& lhs, const QuadraturePointCacheKey& rhs)
-  {
-    return not (lhs == rhs);
-  }
-
-private:
-  const Domain _position;
-  const std::type_index _basis_id;
-};
-
-} // namespace Dune::Copasi
-
-namespace std {
-
-  /**
-   * @brief      Standard overload of the hash function
-   *
-   * @tparam     Domain  Domain type
-   */
-  template<typename Domain>
-  struct hash<Dune::Copasi::QuadraturePointCacheKey<Domain>>
-  {
-    std::size_t operator()(const Dune::Copasi::QuadraturePointCacheKey<Domain>& key) const
-    {
-      return key.hash_code();
-    }
-  };
-} // namespace std
-
-namespace Dune::Copasi {
-
-/**
  * @brief      This class describes a local basis cache.
- * @details    This class cache results of the local basis for different local basis with same traits.
- * @warning    First tests show that this is relatively slower that the local basis cache provided by PDELab.
- * @todo       Improve preformance!
+ * @details    This class cache results of the local basis for different local basis with same
+ traits.
  * @ingroup    FiniteElement
  *
  * @tparam     LocalBasisTraits  Local basis traits
@@ -129,45 +22,30 @@ template<class LocalBasisTraits>
 class LocalBasisCache
 {
   using Domain = typename LocalBasisTraits::DomainType;
+  using DomainField = typename LocalBasisTraits::DomainFieldType;
 
-  using BasisKey = std::type_index;
-  using PointKey = QuadraturePointCacheKey<Domain>;
+  using Key = std::type_index;
+  using QuadratureRule = Dune::QuadratureRule<DomainField, LocalBasisTraits::dimDomain>;
 
   using Range = typename LocalBasisTraits::RangeType;
   using RangeField = typename LocalBasisTraits::RangeFieldType;
   using Jacobian = typename LocalBasisTraits::JacobianType;
 
-  using FiniteElementInterface = Dune::LocalFiniteElementVirtualInterface<LocalBasisTraits>;
-
 public:
+
   /**
-   * @brief      Constructs a new instance.
+   * @brief      Constructs a new instance with empty values.
    */
   LocalBasisCache()
-    : _bound_basis(typeid(void))
-    , _range(std::make_shared<std::unordered_map<PointKey,std::vector<Range>>>())
-    , _jacobian(std::make_shared<std::unordered_map<PointKey,std::vector<Jacobian>>>())
-  {}
-
-  /**
-   * @brief      Copy constructor
-   * @details    This makes caches to share underlying data. This is useful to bind to different 
-   *             finite elements but still using the same cache
-   * 
-   * @param[in]  other  Local basis cache
-   */
-  LocalBasisCache(const LocalBasisCache& other)
-    : _bound_basis(typeid(void))
+    : _bound_basis{ typeid(void) }
   {
-    // copy pointers to actual cache data
-    _range = other._range;
-    _jacobian = other._jacobian;
+    unbind();
   }
 
   /**
    * @brief      Binds a finite element to this cache
-   * @details    The finite element gets virtualized to be evaluated if necessary
-   * 
+   * @details    The finite element gets evaluated if necessary
+   *
    * @param[in]  finite_element  The finite element
    *
    * @tparam     FiniteElement   Type of the finite element
@@ -175,18 +53,33 @@ public:
   template<class FiniteElement>
   void bind(const FiniteElement& finite_element)
   {
-    const std::type_index basis_id = typeid(finite_element.localBasis());
+    // assume that the type uniquely identifies the finite element
+    const std::type_index& basis_id = typeid(finite_element.localBasis());
 
-    if (_bound_basis == basis_id)
+    if (_bound_basis == basis_id) {
       return;
+    }
 
+    _fe_size = finite_element.size();
     _bound_basis = basis_id;
 
-    using BasisTraits = typename FiniteElement::Traits::LocalBasisType::Traits;
-    static_assert(std::is_same_v<LocalBasisTraits,BasisTraits>);
-    using FiniteElementWrapper = Dune::LocalFiniteElementVirtualImp<FiniteElement>;
+    std::size_t const order = 4;
+    _bound_quadrature = &QuadratureRules<DomainField, LocalBasisTraits::dimDomain>::rule(
+      finite_element.type(), order);
 
-    _finite_element = std::make_unique<FiniteElementWrapper>(finite_element);
+    auto rit = _range.find(_bound_basis);
+    if (rit != _range.end()) {
+      _bound_range = rit->second.data();
+    } else {
+      _bound_range = cache_evaluate(finite_element.localBasis());
+    }
+
+    auto jit = _jacobian.find(_bound_basis);
+    if (jit != _jacobian.end()) {
+      _bound_jacobian = jit->second.data();
+    } else {
+      _bound_jacobian = cache_jacobian(finite_element.localBasis());
+    }
   }
 
   /**
@@ -195,123 +88,91 @@ public:
   void unbind()
   {
     _bound_basis = typeid(void);
-    _finite_element.release();
+    _bound_quadrature = nullptr;
+    _bound_range = nullptr;
+    _bound_jacobian = nullptr;
+  }
+
+  /**
+   * @brief      Quadrature rule used to cache the finite element
+   *
+   * The index of the positions in the quadrature rule are the position_id
+   * used to fetch the cached values.
+   *
+   * @return     Quadrature rule used to cache the finite element
+   */
+  const QuadratureRule& rule() const {
+    assert(_bound_quadrature);
+    return *_bound_quadrature;
   }
 
   /**
    * @brief      Evaluate function with the bound finite element
    *
-   * @param[in]  position  The position to be evaluated
+   * @param[in]  position_id  The position id to be evaluated
    *
-   * @return     The evaluation for each of the local basis
+   * @return     The evaluation for each of the local basis at position_id
    */
-  inline const std::vector<Range>& evaluateFunction(const Domain& position) const
+  std::span<const Range> evaluateFunction(std::size_t position_id) const
   {
-    assert(_bound_basis != typeid(void));
-    return evaluateFunction(position,_bound_basis);
+    assert(_bound_range);
+    assert(position_id < _bound_quadrature->size());
+    return {_bound_range + _fe_size * position_id, _fe_size};
   }
 
   /**
    * @brief      Evaluate jacobian with the bound finite element
    *
-   * @param[in]  position  The position to be evaluated
+   * @param[in]  position_id  The position id to be evaluated
    *
-   * @return     The jacobian evaluation for each of the local basis
+   * @return     The jacobian for each of the local basis at position_id
    */
-  inline const std::vector<Jacobian>& evaluateJacobian(const Domain& position) const
+  std::span<const Jacobian> evaluateJacobian(std::size_t position_id) const
   {
-    assert(_bound_basis != typeid(void));
-    return evaluateJacobian(position,_bound_basis);
+    assert(_bound_jacobian);
+    assert(position_id < _bound_quadrature->size());
+    return {_bound_jacobian + _fe_size * position_id, _fe_size};
   }
 
 private:
 
-  /**
-   * @brief      Cache the evaluate method
-   *
-   * @param[in]  position  The position
-   * @param[in]  basis     The local basis
-   * @param[in]  basis_id  The local basis identifier
-   *
-   * @tparam     Basis     Local basis type
-   *
-   * @return     A reference to the cached evaluations
-   */
   template<class Basis>
-  const std::vector<Range>& cache_evaluate(const Domain& position, const Basis& basis, const std::type_index& basis_id) const
+  Range* cache_evaluate(const Basis& basis)
   {
+    std::vector<Range> quad_range;
     std::vector<Range> range;
-    basis.evaluateFunction(position,range);
-    auto&& range_pair = std::make_pair(PointKey{position,basis_id},std::move(range));
-    const auto insert_pair = _range->insert(range_pair);
+    for (const auto& quad : *_bound_quadrature) {
+      basis.evaluateFunction(quad.position(), quad_range);
+      range.insert(end(range), begin(quad_range), end(quad_range));
+    }
+    assert(range.size() == _fe_size * _bound_quadrature->size());
+    const auto insert_pair = _range.emplace(_bound_basis, std::move(range));
     assert(insert_pair.second);
-    return insert_pair.first->second;
+    return insert_pair.first->second.data();
   }
 
-  /**
-   * @brief      Cache the jacobian method
-   *
-   * @param[in]  position  The position
-   * @param[in]  basis     The local basis
-   * @param[in]  basis_id  The local basis identifier
-   *
-   * @tparam     Basis     Local basis type
-   *
-   * @return     A reference to the cached jacobian evaluations
-   */
   template<class Basis>
-  const std::vector<Jacobian>& cache_jacobian(const Domain& position, const Basis& basis, const std::type_index& basis_id) const
+  Jacobian* cache_jacobian(const Basis& basis)
   {
+    std::vector<Jacobian> quad_jacobian;
     std::vector<Jacobian> jacobian;
-    basis.evaluateJacobian(position,jacobian);
-    auto&& jacobian_pair = std::make_pair(PointKey{position,basis_id},std::move(jacobian));
-    const auto insert_pair = _jacobian->insert(jacobian_pair);
+    for (const auto& quad : *_bound_quadrature) {
+      basis.evaluateJacobian(quad.position(), quad_jacobian);
+      jacobian.insert(end(jacobian),begin(quad_jacobian), end(quad_jacobian));
+    }
+    assert(jacobian.size() == _fe_size * _bound_quadrature->size());
+    const auto insert_pair = _jacobian.emplace(_bound_basis, std::move(jacobian));
     assert(insert_pair.second);
-    return insert_pair.first->second;
-  }
-
-  /**
-   * @brief      Cache the evaluate method
-   * @details    If basis_id is already cached returs the stored value, 
-   *             otherwise evaluates and caches it and returns the new value
-   *
-   * @param[in]  position  The position
-   * @param[in]  basis_id  The local basis identifier
-   *
-   * @return     A reference to the cached evaluations
-   */
-  const std::vector<Range>& evaluateFunction(const Domain& position, const std::type_index& basis_id) const
-  {
-    auto it = _range->find(PointKey{position,basis_id});
-    if (it != _range->end())
-      return it->second;
-    else
-      return cache_evaluate(position,_finite_element->localBasis(),basis_id);
-  }
-  
-  /**
-   * @brief      Cache the jacobian method
-   * @details    If basis_id is already cached returs the stored value, 
-  *              otherwise evaluates and caches it and returns the new value
-   *
-   * @param[in]  position  The position
-   * @param[in]  basis_id  The local basis identifier
-   *
-   * @return     A reference to the cached jacobian
-   */
-  const std::vector<Jacobian>& evaluateJacobian(const Domain& position, const std::type_index& basis_id) const
-  {
-    auto it = _jacobian->find(PointKey{position,basis_id});
-    if (it != _jacobian->end())
-      return it->second;
-    else
-      return cache_jacobian(position,_finite_element->localBasis(),basis_id);
+    return insert_pair.first->second.data();
   }
 
   std::type_index _bound_basis;
-  std::unique_ptr<FiniteElementInterface> _finite_element;
-  std::shared_ptr<std::unordered_map<PointKey,std::vector<Range>>> _range;
-  std::shared_ptr<std::unordered_map<PointKey,std::vector<Jacobian>>> _jacobian;
+  std::size_t _fe_size{};
+  QuadratureRule const * _bound_quadrature;
+  Range const * _bound_range;
+  Jacobian const * _bound_jacobian;
+  std::unordered_map<Key,std::vector<Range>> _range;
+  std::unordered_map<Key,std::vector<Jacobian>> _jacobian;
 };
 
 } // namespace Dune::Copasi
