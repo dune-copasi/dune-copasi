@@ -1,9 +1,9 @@
 #ifndef DUNE_COPASI_CONCEPTS_GRID_HH
 #define DUNE_COPASI_CONCEPTS_GRID_HH
 
-#include <dune/functions/common/functionconcepts.hh>
+#include <dune-copasi-config.h>
 
-#include <dune/geometry/type.hh>
+#include <dune/grid/concepts/grid.hh>
 
 /**
  * @ingroup Concepts
@@ -13,74 +13,24 @@ namespace Dune::Copasi::Concept {
 using namespace Dune::Concept;
 
 /**
- * @brief   Concept for dune grids
+ * @brief   Concept for dune subdomain grids of multidomain grids
  * @details Checks whether the type fits the most of the dune interface
- *          for grid. Some checks are missing, but they are not important
+ *          for grid and is extended to a subdomain grid.
+ *          Some checks are missing, but they are not important
  *          for the concept.
  */
-struct Grid
-{
-  template<class G>
-  auto require(G&& g) -> decltype(
-    requireConvertible<int>(G::dimension),
-    requireConvertible<int>(G::dimensionworld),
-    requireType<typename G::LeafGridView>(),
-    requireType<typename G::LevelGridView>(),
-    // Codim missing!
-    requireType<typename G::LeafIntersection>(),
-    requireType<typename G::LevelIntersection>(),
-    requireType<typename G::LeafIntersectionIterator>(),
-    requireType<typename G::LevelIntersectionIterator>(),
-    requireType<typename G::HierarchicIterator>(),
-    requireType<typename G::LevelIndexSet>(),
-    requireType<typename G::LeafIndexSet>(),
-    requireType<typename G::GlobalIdSet>(),
-    requireType<typename G::LocalIdSet>(),
-    requireType<typename G::CollectiveCommunication>(),
-    requireType<typename G::ctype>(),
-    requireConvertible<int>(g.maxLevel()),
-    requireConvertible<int>(g.size(std::declval<int>(), std::declval<int>())),
-    requireConvertible<int>(g.size(std::declval<int>())),
-    requireConvertible<int>(g.size(std::declval<int>(),
-                                   std::declval<GeometryType>())),
-    requireConvertible<int>(g.size(std::declval<GeometryType>())),
-    requireConvertible<std::size_t>(g.numBoundarySegments()),
-    requireConvertible<typename G::LevelGridView>(
-      g.levelGridView(std::declval<int>())),
-    requireConvertible<typename G::LeafGridView>(g.leafGridView()),
-    requireConvertible<const typename G::GlobalIdSet&>(g.globalIdSet()),
-    requireConvertible<const typename G::LocalIdSet&>(g.localIdSet()),
-    requireConvertible<const typename G::LevelIndexSet&>(
-      g.levelIndexSet(std::declval<int>())),
-    requireConvertible<const typename G::LeafIndexSet&>(g.leafIndexSet()),
-    g.globalRefine(std::declval<int>()),
-    requireConvertible<bool>(
-      g.mark(std::declval<int>(),
-             std::declval<typename G::template Codim<0>::Entity>())),
-    requireConvertible<int>(
-      g.getMark(std::declval<typename G::template Codim<0>::Entity>())),
-    requireConvertible<bool>(g.preAdapt()),
-    requireConvertible<bool>(g.adapt()),
-    g.postAdapt(),
-    requireConvertible<typename G::CollectiveCommunication>(g.comm()),
-    requireConvertible<std::size_t>(g.loadBalance())
-    // entity missing!
-  );
-};
-
-/**
- * @brief Check if a type is dune grid
- *
- * @tparam G        The type to check
- * @return true     if the type is a dune grid
- * @return false    if the type is not a dune grid
- */
 template<class G>
-static constexpr bool
-isGrid()
-{
-  return models<Concept::Grid, G>();
-}
+concept SubDomainGrid =
+  Dune::Concept::Grid<G> && std::same_as<G, typename G::MultiDomainGrid::SubDomainGrid> &&
+  requires(const G cg, typename G::SubDomainIndex sub_domain) {
+    {
+      cg.multiDomainGrid()
+    } -> std::convertible_to<const typename G::MultiDomainGrid&>;
+    {
+      cg.domain()
+    } -> std::convertible_to<typename G::SubDomainIndex>;
+    // Some other things missing but this is enough for now
+  };
 
 /**
  * @brief   Concept for dune multidomain grids
@@ -89,86 +39,41 @@ isGrid()
  *          Some checks are missing, but they are not important
  *          for the concept.
  */
-struct MultiDomainGrid : Refines<Dune::Copasi::Concept::Grid>
-{
-  template<class G>
-  auto require(G&& g) -> decltype(
-    requireType<typename G::HostGrid>(),
-    requireType<typename G::SubDomainIndex>(),
-    requireConvertible<typename G::SubDomainIndex>(g.maxSubDomainIndex()),
-    requireConvertible<bool>(G::maxSubDomainIndexIsStatic()),
-    requireType<typename G::SubDomainGrid>(),
-    requireType<typename G::LeafSubDomainInterfaceIterator>(),
-    requireType<typename G::LevelSubDomainInterfaceIterator>(),
-    requireType<typename G::LeafAllSubDomainInterfacesIterator>(),
-    requireType<typename G::LevelAllSubDomainInterfacesIterator>(),
-    g.startSubDomainMarking(),
-    g.preUpdateSubDomains(),
-    g.updateSubDomains(),
-    g.postUpdateSubDomains(),
-    g.addToSubDomain(std::declval<typename G::SubDomainIndex>(),
-                     std::declval<typename G::template Codim<0>::Entity>()),
-    g.removeFromSubDomain(
-      std::declval<typename G::SubDomainIndex>(),
-      std::declval<typename G::template Codim<0>::Entity>()),
-    g.assignToSubDomain(std::declval<typename G::SubDomainIndex>(),
-                        std::declval<typename G::template Codim<0>::Entity>()),
-    g.removeFromAllSubDomains(
-      std::declval<typename G::template Codim<0>::Entity>()),
-    requireConvertible<const typename G::SubDomainGrid&>(
-      g.subDomain(std::declval<typename G::SubDomainIndex>())),
-    requireConvertible<typename G::SubDomainIndex>(
-      g.maxAssignedSubDomainIndex()),
-    requireConvertible<bool>(g.supportLevelIndexSets()));
-};
-
-/**
- * @brief Check if a type is dune multidomain grid
- *
- * @tparam G        The type to check
- * @return true     if the type is a dune multidomain grid
- * @return false    if the type is not a dune multidomain grid
- */
 template<class G>
-static constexpr bool
-isMultiDomainGrid()
-{
-  return models<Concept::MultiDomainGrid, G>();
-}
-
-/**
- * @brief   Concept for dune subdomain grids of multidomain grids
- * @details Checks whether the type fits the most of the dune interface
- *          for grid and is extended to a subdomain grid.
- *          Some checks are missing, but they are not important
- *          for the concept.
- */
-struct SubDomainGrid : Refines<Dune::Copasi::Concept::Grid>
-{
-  template<class G>
-  auto require(G&& g) -> decltype(
-    requireType<typename G::HostGrid>(),
-    requireType<typename G::MultiDomainGrid>(),
-    requireConvertible<const typename G::MultiDomainGrid&>(g.multiDomainGrid()),
-    requireConcept<Concept::MultiDomainGrid, typename G::MultiDomainGrid>(),
-    requireConvertible<typename G::SubDomainIndex>(g.domain())
-    // Some other things missing but this is enough
-  );
-};
-
-/**
- * @brief Check if a type is dune subdomain grid
- *
- * @tparam G        The type to check
- * @return true     if the type is a dune subdomain grid
- * @return false    if the type is not a dune subdomain grid
- */
-template<class G>
-static constexpr bool
-isSubDomainGrid()
-{
-  return models<Concept::SubDomainGrid, G>();
-}
+concept MultiDomainGrid =
+  SubDomainGrid<typename G::SubDomainGrid> && Dune::Concept::Grid<G> &&
+  Dune::Concept::Grid<typename G::HostGrid> &&
+  requires(const G cg, typename G::SubDomainIndex sub_domain) {
+    {
+      G::maxSubDomainIndexIsStatic()
+    } -> std::convertible_to<bool>;
+    typename G::LeafSubDomainInterfaceIterator;
+    typename G::LevelSubDomainInterfaceIterator;
+    typename G::LeafAllSubDomainInterfacesIterator;
+    typename G::LevelAllSubDomainInterfacesIterator;
+    {
+      cg.maxSubDomainIndex()
+    } -> std::convertible_to<typename G::SubDomainIndex>;
+    {
+      cg.subDomain(sub_domain)
+    } -> std::convertible_to<const typename G::SubDomainGrid&>;
+    {
+      cg.maxAssignedSubDomainIndex()
+    } -> std::convertible_to<typename G::SubDomainIndex>;
+    {
+      cg.supportLevelIndexSets()
+    } -> std::convertible_to<bool>;
+    requires requires(G g, const typename G::template Codim<0>::Entity& entity) {
+      g.startSubDomainMarking();
+      g.preUpdateSubDomains();
+      g.updateSubDomains();
+      g.postUpdateSubDomains();
+      g.addToSubDomain(sub_domain, entity);
+      g.removeFromSubDomain(sub_domain, entity);
+      g.assignToSubDomain(sub_domain, entity);
+      g.removeFromAllSubDomains(entity);
+    };
+  };
 
 } // namespace Dune::Copasi::Concept
 
