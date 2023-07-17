@@ -1,77 +1,160 @@
 #ifndef DUNE_COPASI_LOCAL_OPERATOR_DIFFUSION_REACTION_CG_HH
 #define DUNE_COPASI_LOCAL_OPERATOR_DIFFUSION_REACTION_CG_HH
 
+#include <dune/copasi/concepts/grid.hh>
 #include <dune/copasi/finite_element/local_basis_cache.hh>
-#include <dune/copasi/common/enum.hh>
-#include <dune/copasi/local_operator/diffusion_reaction/base.hh>
+#include <dune/copasi/model/local_equations/functor_factory.hh>
+#include <dune/copasi/model/local_equations/local_equations.hh>
 
-#include <dune/pdelab/localoperator/numericaljacobian.hh>
-#include <dune/pdelab/localoperator/numericaljacobianapply.hh>
-#include <dune/pdelab/localoperator/pattern.hh>
-#include <dune/pdelab/localoperator/flags.hh>
-#include <dune/pdelab/localoperator/idefault.hh>
+#include <dune/pdelab/common/concurrency/shared_stash.hh>
 #include <dune/pdelab/common/quadraturerules.hh>
+#include <dune/pdelab/common/tree_traversal.hh>
+#include <dune/pdelab/operator/local_assembly/archetype.hh>
+#include <dune/pdelab/operator/local_assembly/interface.hh>
 
-#include <dune/geometry/referenceelements.hh>
+#include <dune/grid/multidomaingrid/singlevalueset.hh>
+
 #include <dune/geometry/type.hh>
 
 #include <dune/common/fvector.hh>
+#include <dune/common/overloadset.hh>
 
 namespace Dune::Copasi {
+
+enum class LocalOperatorType
+{
+  Stiffness,
+  Mass
+};
+
+// TODO currently, loops over trial and test functions cover the whole tree.
+// That makes the program O(n^2) where n is the number of nodes in the whole
+// tree. To fix that we need a mapping from entity domains to active local
+// bases... That would make this O(k^2) where k is the number of active local
+// bases.
 
 /**
  * @brief      This class describes a PDELab local operator for diffusion
  *             reaction systems.
  * @details    This class describre the operatrions for local integrals required
  *             for diffusion reaction system. The operator is only valid for
- *             entities contained in the grid view. The local finite element is
- *             used for caching shape function evaluations. And the jacobian
- *             method switches between numerical and analytical jacobians.
+ *             entities contained in the entity set. The local finite element is
+ *             used for caching shape function evaluations.
  *
- * @tparam     GV    Grid View
+ * @tparam     Basis    Basis
  * @tparam     LBT   Local basis traits
- * @tparam     JM    Jacobian Method
  */
-template<class GV,
-         class LBT,
-         JacobianMethod JM = JacobianMethod::Analytical>
-class LocalOperatorDiffusionReactionCG
-  : public Dune::PDELab::LocalOperatorDefaultFlags
-  , public Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>
-  , protected LocalOperatorDiffusionReactionBase<GV,LBT>
-  , public PDELab::NumericalJacobianVolume<
-      LocalOperatorDiffusionReactionCG<GV, LBT, JM>>
-  , public PDELab::NumericalJacobianApplyVolume<
-      LocalOperatorDiffusionReactionCG<GV, LBT, JM>>
+template<PDELab::Concept::Basis TestBasis, class LBT>
+class LocalOperatorDiffusionReactionCG : public PDELab::LocalAssembly::Archetype
 {
-  using GridView = GV;
 
-  using LOPBase = LocalOperatorDiffusionReactionBase<GV,LBT>;
+  //! range field
+  using RF = typename LBT::RangeFieldType;
 
-  using RF = typename LOPBase::RF;
-  using DF = typename LOPBase::DF;
-  using LOPBase::_component_pattern;
-  using LOPBase::_components;
-  using LOPBase::dim;
-  using LOPBase::_diffusion_gf;
-  using LOPBase::_reaction_gf;
-  using LOPBase::_jacobian_gf;
+  //! world dimension
+  static constexpr int dim = LBT::dimDomain;
 
-  mutable LocalBasisCache<LBT> _trial_cache;
-  mutable LocalBasisCache<LBT> _test_cache;
+  mutable std::vector<FieldVector<RF, dim>> _gradphi_i, _gradphi_o;
+  mutable std::vector<FieldMatrix<RF, 1, dim>> _jacphi_i, _jacphi_o;
+  mutable std::vector<FieldVector<RF, 1>> _phi_i, _phi_o;
+
+  using MembraneScalarFunction = typename LocalEquations<dim>::MembraneScalarFunction;
+  struct Outflow
+  {
+    const typename LocalEquations<dim>::MembraneScalarFunction& outflow;
+    const typename LocalEquations<dim>::CompartmentNode& source;
+  };
+  mutable std::vector<Outflow> _outflow_i;
+  mutable std::vector<Outflow> _outflow_o;
+
+  std::vector<std::size_t> _compartment2domain;
+
+  TestBasis _test_basis;
+
+  PDELab::SharedStash<LocalBasisCache<LBT>> _fe_cache;
+  PDELab::SharedStash<LocalEquations<dim>> _local_values;
+
+  bool _is_linear = true;
+  bool _has_outflow = true;
+
+  static inline const auto& firstCompartmentFiniteElement(
+    const Concept::CompartmentLocalBasisNode auto& lnode) noexcept
+  {
+    for (std::size_t i = 0; i != lnode.degree(); ++i)
+      if (lnode.child(i).size() != 0)
+        return lnode.child(i).finiteElement();
+    std::terminate();
+  }
+
+  static inline const auto& firstCompartmentFiniteElement(
+    const Concept::MultiCompartmentLocalBasisNode auto& lnode) noexcept
+  {
+    for (std::size_t i = 0; i != lnode.degree(); ++i)
+      if (lnode.child(i).size() != 0)
+        return firstCompartmentFiniteElement(lnode.child(i));
+    std::terminate();
+  }
+
+  template<class R, class X>
+  struct PseudoJacobian
+  {
+    void accumulate(const auto& ltest,
+                    auto test_dof,
+                    const auto& ltrial,
+                    auto trial_dof,
+                    auto value)
+    {
+      _r.accumulate(ltest, test_dof, _z(ltrial, trial_dof) * value);
+    }
+
+    R& _r;
+    const X& _z;
+  };
+
+  template<class R, class X>
+  PseudoJacobian(R&, const X&) -> PseudoJacobian<R, X>;
+
+  // mono-domains contain all entities, thus all domain sets are the same
+  struct MonoDomainSet
+  {
+    static constexpr std::true_type contains(auto) { return {}; }
+    friend constexpr std::true_type operator==(const MonoDomainSet&, const MonoDomainSet&)
+    {
+      return {};
+    }
+  };
+
+  auto subDomains(const Dune::Concept::Entity auto& entity) const
+  {
+    if constexpr (Concept::MultiDomainGrid<typename TestBasis::EntitySet::Grid>)
+      return _test_basis.entitySet().indexSet().subDomains(entity);
+    else
+      return MonoDomainSet{};
+  }
+
 public:
+  constexpr static std::true_type localAssembleDoVolume() noexcept { return {}; }
 
-  //! selective assembly flags
-  static constexpr bool doSkipEntity = false;
-  static constexpr bool doSkipIntersection = false;
+  constexpr static auto localAssembleDoSkeleton() noexcept
+  {
+    return std::bool_constant<Concept::MultiDomainGrid<typename TestBasis::EntitySet::Grid>>{};
+  }
 
-  //! pattern assembly flags
-  static constexpr bool doPatternVolume = true;
-  static constexpr bool doPatternSkeleton = false;
+  bool localAssembleDoBoundary() noexcept { return _has_outflow; }
 
-  //! residual assembly flags
-  static constexpr bool doAlphaVolume = true;
-  static constexpr bool doAlphaSkeleton = false;
+  bool localAssembleSkipIntersection(const Dune::Concept::Intersection auto& intersection) noexcept
+  {
+    // boundary case
+    if (not intersection.neighbor())
+      return not _has_outflow;
+
+    // if domain sets are the same this is not an domain interface and should be
+    // skipped
+    return (not _has_outflow) or
+           (subDomains(intersection.inside()) == subDomains(intersection.outside()));
+  }
+
+  bool localAssembleIsLinear() const noexcept { return _is_linear; }
 
   /**
    * @brief      Constructs a new instance.
@@ -79,665 +162,942 @@ public:
    * @todo       Make integration order variable depending on user requirements
    *             and polynomail order of the local finite element
    *
-   * @param[in]  grid_view       The grid view where this local operator is
-   *                             valid
+   * @param[in]  basis
    * @param[in]  config          The configuration tree
    * @param[in]  finite_element  The local finite element
    */
-  LocalOperatorDiffusionReactionCG(GridView grid_view,
-                                   const ParameterTree& config)
-    : LOPBase(config,grid_view)
-    , _trial_cache()
-    , _test_cache(_trial_cache)
-  {}
-
-  void setTime(double t)
+  LocalOperatorDiffusionReactionCG(const PDELab::Concept::Basis auto& test_basis,
+                                   LocalOperatorType lop_type,
+                                   const ParameterTree& config,
+                                   std::shared_ptr<const FunctorFactory<dim>> functor_factory)
+    : _test_basis{ test_basis }
+    , _fe_cache([]() { return std::make_unique<LocalBasisCache<LBT>>(); })
+    , _local_values([_lop_type = lop_type,
+                     _basis = _test_basis,
+                     _config = config,
+                     _functor_factory = std::move(functor_factory)]() {
+      if (_lop_type == LocalOperatorType::Mass)
+        return LocalEquations<dim>::make_mass(_basis.localView(), _config, *_functor_factory);
+      else if (_lop_type == LocalOperatorType::Stiffness)
+        return LocalEquations<dim>::make_stiffness(_basis.localView(), _config, *_functor_factory);
+      std::terminate();
+    })
   {
-    Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>::setTime(t);
-    LOPBase::setTime(t);
+    auto lbasis = _test_basis.localView();
+    if (_test_basis.entitySet().size(0) == 0)
+      return;
+    lbasis.bind(*_test_basis.entitySet().template begin<0>());
+    _is_linear = true;
+    _has_outflow = false;
+    forEachLeafNode(lbasis.tree(), [&](const auto& ltrial_node) {
+      const auto& eq = _local_values->get_equation(ltrial_node);
+      _is_linear &= eq.is_linear;
+      _has_outflow |= not eq.outflow.empty();
+    });
+    lbasis.unbind();
+
+    if constexpr (Concept::MultiDomainGrid<typename TestBasis::EntitySet::Grid>)
+      forEachNode(lbasis.tree(),
+                  overload(
+                    [&](const Concept::CompartmentLocalBasisNode auto& ltrial_node, auto path) {
+                      auto compartment = back(path);
+                      _compartment2domain.resize(compartment + 1);
+                      _compartment2domain[compartment] =
+                        _test_basis.subSpace(path).entitySet().grid().domain();
+                    },
+                    [&](const auto& ltrial_node) {}));
+    else
+      _compartment2domain.assign(1, std::numeric_limits<std::size_t>::max());
   }
 
   /**
    * @brief      Pattern volume
    * @details    This method links degrees of freedom between trial and test
-   *             spaces taking into account the structure of the reaction term
+   *             basiss taking into account the structure of the reaction term
    *
-   * @param[in]  lfsu          The trial local function space
-   * @param[in]  lfsv          The test local function space
+   * @param[in]  lfsu          The trial local function basis
+   * @param[in]  lfsv          The test local function basis
    * @param      pattern       The local pattern
    *
-   * @tparam     LFSU          The trial local function space
-   * @tparam     LFSV          The test local function space
+   * @tparam     LFSU          The trial local function basis
+   * @tparam     LFSV          The test local function basis
    * @tparam     LocalPattern  The local pattern
    */
-  template<typename LFSU, typename LFSV, typename LocalPattern>
-  void pattern_volume(const LFSU& lfsu,
-                      const LFSV& lfsv,
-                      LocalPattern& pattern) const
+  void pattern_volume(const PDELab::Concept::LocalBasis auto& ltrial,
+                      const PDELab::Concept::LocalBasis auto& ltest,
+                      auto& lpattern) const
   {
-    auto do_link = [&](std::size_t comp_i, std::size_t comp_j) {
-      auto it = _component_pattern.find(std::make_pair(comp_i, comp_j));
-      return (it != _component_pattern.end());
-    };
-    for (std::size_t i = 0; i < lfsv.degree(); ++i)
-      for (std::size_t j = 0; j < lfsu.degree(); ++j)
-        if (do_link(i, j))
-          for (std::size_t k = 0; k < lfsv.child(i).size(); ++k)
-            for (std::size_t l = 0; l < lfsu.child(j).size(); ++l)
-              pattern.addLink(lfsv.child(i), k, lfsu.child(j), l);
-  }
-
-  /**
-   * @brief      The jacobian volume integral for matrix free operations
-   * @details    This only switches between the actual implementation (in
-   *             _jacobian_apply_volume) and the numerical jacobian
-   *
-   * @param[in]  eg    The entity
-   * @param[in]  lfsu  The trial local function space
-   * @param[in]  x     The local coefficient vector
-   * @param[in]  z     The local position in the trial space to which to apply
-   *                   the Jacobian.
-   * @param[in]  lfsv  The test local function space
-   * @param      r     The resulting vector
-   *
-   * @tparam     EG    The entity
-   * @tparam     LFSU  The trial local function space
-   * @tparam     X     The local coefficient vector type
-   * @tparam     LFSV  The test local function space
-   * @tparam     R     The resulting vector
-   */
-  template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
-  void jacobian_apply_volume(const EG& eg,
-                             const LFSU& lfsu,
-                             const X& x,
-                             const X& z,
-                             const LFSV& lfsv,
-                             R& r) const
-  {
-    if constexpr (JM == JacobianMethod::Numerical) {
-      PDELab::NumericalJacobianApplyVolume<LocalOperatorDiffusionReactionCG>::
-        jacobian_apply_volume(eg, lfsu, x, z, lfsv, r);
-    } else {
-      _jacobian_apply_volume(eg, lfsu, x, z, lfsv, r);
-    }
-  }
-
-  /**
-   * @brief      The jacobian volume integral for matrix free operations (linear
-   *             variant)
-   * @details    This only switches between the actual implementation (in
-   *             _jacobian_apply_volume) and the numerical jacobian
-   *
-   * @param[in]  eg    The entity
-   * @param[in]  lfsu  The trial local function space
-   * @param[in]  x     The local coefficient vector
-   * @param[in]  lfsv  The test local function space
-   * @param      r     The resulting vector
-   *
-   * @tparam     EG    The entity
-   * @tparam     LFSU  The trial local function space
-   * @tparam     X     The local coefficient vector type
-   * @tparam     LFSV  The test local function space
-   * @tparam     R     The resulting vector
-   */
-  template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
-  void jacobian_apply_volume(const EG& eg,
-                             const LFSU& lfsu,
-                             const X& x,
-                             const LFSV& lfsv,
-                             R& r) const
-  {
-    if constexpr (JM == JacobianMethod::Numerical) {
-      PDELab::NumericalJacobianApplyVolume<LocalOperatorDiffusionReactionCG>::
-        jacobian_apply_volume(eg, lfsu, x, lfsv, r);
-      return;
-    } else {
-      _jacobian_apply_volume(eg, lfsu, x, x, lfsv, r);
-    }
-  }
-
-  /**
-   * @brief      The jacobian volume integral for matrix free operations
-   *
-   * @param[in]  eg    The entity
-   * @param[in]  lfsu  The trial local function space
-   * @param[in]  x     The local coefficient vector
-   * @param[in]  z     The local position in the trial space to which to apply
-   *                   the Jacobian.
-   * @param[in]  lfsv  The test local function space
-   * @param      r     The resulting vector
-   *
-   * @tparam     EG    The entity
-   * @tparam     LFSU  The trial local function space
-   * @tparam     X     The local coefficient vector type
-   * @tparam     LFSV  The test local function space
-   * @tparam     R     The resulting vector
-   */
-  template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
-  void _jacobian_apply_volume(const EG& eg,
-                              const LFSU& lfsu,
-                              const X& x,
-                              const X& z,
-                              const LFSV& lfsv,
-                              R& r) const
-  {
-    // assume we receive a power local finite element!
-    auto x_coeff_local = [&](const std::size_t& component,
-                             const std::size_t& dof) {
-      return x(lfsu.child(component), dof);
-    };
-    auto z_coeff_local = [&](const std::size_t& component,
-                             const std::size_t& dof) {
-      return z(lfsu.child(component), dof);
-    };
-
-    auto accumulate = [&](const std::size_t& component,
-                          const std::size_t& dof,
-                          const auto& value) {
-      r.accumulate(lfsu.child(component), dof, value);
-    };
-
-    // get entity
-    const auto entity = eg.entity();
-
-    // get geometry
-    const auto geo = eg.geometry();
-
-    // TODO: check geometry type
-    const auto& rule = quadratureRule(geo,3);
-    const auto& trial_finite_element = lfsu.child(0).finiteElement();
-    const auto& test_finite_element = lfsv.child(0).finiteElement();
-    const auto& trial_basis = trial_finite_element.localBasis();
-    const auto& test_basis = test_finite_element.localBasis();
-
-    _trial_cache.bind(trial_finite_element);
-    _test_cache.bind(test_finite_element);
-
-    DynamicVector<RF> u(_components);
-    DynamicVector<RF> diffusion(_components);
-    DynamicVector<RF> reaction(_components);
-    DynamicVector<FieldVector<RF, dim>> gradphi(trial_basis.size());
-    DynamicVector<FieldVector<RF, dim>> gradpsi(test_basis.size());
-
-    // loop over quadrature points
-    for (const auto& point : rule) {
-      const auto& position = point.position();
-
-      std::fill(u.begin(), u.end(), 0.);
-      std::fill(diffusion.begin(), diffusion.end(), 0.);
-      std::fill(reaction.begin(), reaction.end(), 0.);
-      std::fill(gradphi.begin(), gradphi.end(), 0.);
-      std::fill(gradpsi.begin(), gradpsi.end(), 0.);
-
-      const auto& phi = _trial_cache.evaluateFunction(position);
-      const auto& jacphi = _trial_cache.evaluateJacobian(position);
-
-      const auto& psi = _trial_cache.evaluateFunction(position);
-      const auto& jacpsi = _trial_cache.evaluateJacobian(position);
-
-      FieldMatrix<DF, dim, dim> jac = geo.jacobianInverseTransposed(position);
-
-      for (std::size_t i=0; i<gradphi.size(); i++)
-        jac.mv(jacphi[i][0],gradphi[i]);
-
-      for (std::size_t i=0; i<gradpsi.size(); i++)
-        jac.mv(jacpsi[i][0],gradpsi[i]);
-
-      // get diffusion coefficient
-      for (std::size_t k = 0; k < _components; k++)
-        _diffusion_gf[k]->evaluate(entity, position, diffusion[k]);
-
-      // evaluate concentrations at quadrature point
-      for (std::size_t comp = 0; comp < _components; comp++)
-        for (std::size_t dof = 0; dof < phi.size(); dof++)
-          u[comp] += x_coeff_local(comp, dof) * phi[dof];
-
-      RF factor = point.weight() * geo.integrationElement(position);
-
-      // contribution for each component
-      for (std::size_t k = 0; k < _components; k++) {
-        // get reaction term
-        _reaction_gf[k]->update(u);
-        _reaction_gf[k]->evaluate(entity, position, reaction[k]);
-        // compute gradient u_h
-        FieldVector<RF, dim> graduh(.0);
-        for (std::size_t d = 0; d < dim; d++)
-          for (std::size_t j = 0; j < gradphi.size(); j++)
-            graduh[d] += gradphi[j][d] * z_coeff_local(k, j);
-
-        // scalar products
-        for (std::size_t i = 0; i < psi.size(); i++) // test func. loop
-        {
-          typename R::value_type rhs = -reaction[k] * psi[i];
-          for (std::size_t d = 0; d < dim; d++) // rows of grad
-            rhs += diffusion[k] * gradpsi[i][d] * graduh[d];
-          accumulate(k, i, rhs * factor);
+    forEachLeafNode(ltest.tree(), [&](const auto& ltest_node) {
+      const auto& eq =
+        _local_values->get_equation(PDELab::containerEntry(ltrial.tree(), ltest_node.path()));
+      if (eq.reaction) {
+        for (const auto& jacobian_entry : eq.reaction.compartment_jacobian) {
+          const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
+          for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i)
+            for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
+              lpattern.addLink(ltest_node, dof_i, wrt_lbasis, dof_j);
         }
       }
+
+      if (eq.storage) {
+        // TODO: add self
+        for (const auto& jacobian_entry : eq.storage.compartment_jacobian) {
+          const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
+          for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i)
+            for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
+              lpattern.addLink(ltest_node, dof_i, wrt_lbasis, dof_j);
+        }
+      }
+
+      if (eq.velocity) {
+        // TODO: add self
+        for (const auto& jacobian_entry : eq.velocity.compartment_jacobian) {
+          const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
+          for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i)
+            for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
+              lpattern.addLink(ltest_node, dof_i, wrt_lbasis, dof_j);
+        }
+      }
+
+      for (const auto& diffusion : eq.cross_diffusion) {
+        const auto& wrt_lbasis = diffusion.wrt.to_local_basis_node(ltrial);
+
+        for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i)
+          for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
+            lpattern.addLink(ltest_node, dof_i, wrt_lbasis, dof_j);
+
+        for (const auto& jacobian_entry : diffusion.compartment_jacobian) {
+          auto flux = jacobian_entry.wrt.gradient * jacobian_entry();
+          const auto& jac_wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
+          for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i)
+            for (std::size_t dof_j = 0; dof_j != jac_wrt_lbasis.size(); ++dof_j)
+              lpattern.addLink(ltest_node, dof_i, jac_wrt_lbasis, dof_j);
+        }
+      }
+    });
+  }
+
+  /**
+   * @brief      The volume integral
+   *
+   * @param[in]  eg    The entity
+   * @param[in]  lfsu  The trial local function basis
+   * @param[in]  x     The local coefficient vector
+   * @param[in]  lfsv  The test local function basis
+   * @param      r     The local residual vector
+   *
+   * @tparam     EG    The entity
+   * @tparam     LFSU  The trial local function basis
+   * @tparam     X     The local coefficient vector type
+   * @tparam     LFSV  The test local function basis
+   * @tparam     R     The local residual vector
+   */
+
+  void localAssembleVolume(auto time,
+                           const PDELab::Concept::LocalBasis auto& ltrial,
+                           const PDELab::Concept::LocalConstContainer auto& lcoefficients,
+                           const PDELab::Concept::LocalBasis auto& ltest,
+                           PDELab::Concept::LocalMutableContainer auto& lresidual) noexcept
+  {
+    if (ltrial.size() == 0)
+      return;
+
+    const auto& entity = ltrial.element();
+    const auto& geo = entity.geometry();
+    auto es = _test_basis.entitySet();
+
+    _local_values->time = time;
+    _local_values->entity_volume = geo.volume();
+    _local_values->cell_index = es.indexSet().index(entity);
+
+    const auto& trial_finite_element = firstCompartmentFiniteElement(ltrial.tree());
+
+    _fe_cache->bind(trial_finite_element);
+    _gradphi_i.resize(trial_finite_element.size());
+
+    const auto& rule = _fe_cache->rule();
+
+    assert(geo.affine());
+    const auto& jac = geo.jacobianInverse(rule[0].position());
+
+    // loop over quadrature points
+    for (std::size_t q = 0; q != rule.size(); ++q) {
+      const auto [position, weight] = rule[q];
+      _local_values->position = geo.global(position);
+      auto factor = weight * geo.integrationElement(position);
+
+      const auto& phi = _fe_cache->evaluateFunction(q);
+      const auto& jacphi = _fe_cache->evaluateJacobian(q);
+
+      for (std::size_t dof = 0; dof != _gradphi_i.size(); ++dof)
+        _gradphi_i[dof] = (jacphi[dof] * jac)[0];
+
+      const auto& psi = phi;
+      const auto& gradpsi = _gradphi_i;
+
+      // evaluate concentrations at quadrature point
+      forEachLeafNode(ltrial.tree(), [&](const auto& node) {
+        if (node.size() == 0)
+          return;
+        auto& value = _local_values->get_value(node);
+        auto& gradient = _local_values->get_gradient(node);
+        value = 0.;
+        gradient = 0.;
+        for (std::size_t dof = 0; dof != node.size(); ++dof) {
+          value += phi[dof] * lcoefficients(node, dof);
+          gradient += _gradphi_i[dof] * lcoefficients(node, dof);
+        }
+      });
+
+      // contribution for each component
+      forEachLeafNode(ltest.tree(), [&](const auto& ltest_node) {
+        if (ltest_node.size() == 0)
+          return;
+        const auto& eq =
+          _local_values->get_equation(PDELab::containerEntry(ltrial.tree(), ltest_node.path()));
+
+        // accumulate reaction/storage part into residual
+        if (eq.reaction or eq.storage) {
+          double scalar = 0.;
+          if (eq.reaction)
+            scalar += -eq.reaction();
+          if (eq.storage)
+            scalar += eq.value * eq.storage();
+          for (std::size_t dof = 0; dof != ltest_node.size(); ++dof)
+            lresidual.accumulate(ltest_node, dof, scalar * psi[dof] * factor);
+        }
+
+        // accumulate velocity part into residual
+        if (eq.velocity) {
+          auto adv_flux = eq.velocity() * eq.value[0];
+          for (std::size_t dof = 0; dof != ltest_node.size(); ++dof)
+            lresidual.accumulate(ltest_node, dof, -dot(adv_flux, gradpsi[dof]) * factor);
+        }
+
+        // accumulate cross-diffusion part into residual
+        for (const auto& diffusion : eq.cross_diffusion) {
+          auto diff_flux = diffusion(diffusion.wrt.gradient);
+          for (std::size_t dof = 0; dof != ltest_node.size(); ++dof)
+            lresidual.accumulate(ltest_node, dof, dot(diff_flux, gradpsi[dof]) * factor);
+        }
+      });
     }
+
+    _local_values->clear();
+  }
+
+  /**
+   * @brief      The jacobian volume integral for matrix free operations
+   *
+   * @param[in]  eg    The entity
+   * @param[in]  lfsu  The trial local function basis
+   * @param[in]  x     The local coefficient vector
+   * @param[in]  z     The local position in the trial basis to which to apply
+   *                   the Jacobian.
+   * @param[in]  lfsv  The test local function basis
+   * @param      r     The resulting vector
+   *
+   * @tparam     EG    The entity
+   * @tparam     LFSU  The trial local function basis
+   * @tparam     X     The local coefficient vector type
+   * @tparam     LFSV  The test local function basis
+   * @tparam     R     The resulting vector
+   */
+  void localAssembleJacobianVolumeApply(
+    auto time,
+    const PDELab::Concept::LocalBasis auto& ltrial,
+    const PDELab::Concept::LocalConstContainer auto& llin_point,
+    const PDELab::Concept::LocalConstContainer auto& lapp_point,
+    const PDELab::Concept::LocalBasis auto& ltest,
+    PDELab::Concept::LocalMutableContainer auto& ljacobian) noexcept
+
+  {
+    PseudoJacobian mat{ ljacobian, lapp_point };
+    if (localAssembleIsLinear())
+      localAssembleVolume(time, ltrial, lapp_point, ltest, ljacobian);
+    else
+      localAssembleJacobianVolume(time, ltrial, llin_point, ltest, mat);
   }
 
   /**
    * @brief      The jacobian volume integral
    *
    * @param[in]  eg    The entity
-   * @param[in]  lfsu  The trial local function space
+   * @param[in]  lfsu  The trial local function basis
    * @param[in]  x     The local coefficient vector
-   * @param[in]  lfsv  The test local function space
+   * @param[in]  lfsv  The test local function basis
    * @param      mat   The local matrix
    *
    * @tparam     EG    The entity
-   * @tparam     LFSU  The trial local function space
+   * @tparam     LFSU  The trial local function basis
    * @tparam     X     The local coefficient vector type
-   * @tparam     LFSV  The test local function space
+   * @tparam     LFSV  The test local function basis
    * @tparam     M     The local matrix
    */
-  template<typename EG, typename LFSU, typename X, typename LFSV, typename M>
-  void jacobian_volume(const EG& eg,
-                       const LFSU& lfsu,
-                       const X& x,
-                       const LFSV& lfsv,
-                       M& mat) const
+  void localAssembleJacobianVolume(auto time,
+                                   const PDELab::Concept::LocalBasis auto& ltrial,
+                                   const PDELab::Concept::LocalConstContainer auto& llin_point,
+                                   const PDELab::Concept::LocalBasis auto& ltest,
+                                   auto& ljacobian) noexcept
   {
-    if constexpr (JM == JacobianMethod::Numerical) {
-      PDELab::NumericalJacobianVolume<LocalOperatorDiffusionReactionCG>::
-        jacobian_volume(eg, lfsu, x, lfsv, mat);
+    if (ltrial.size() == 0)
       return;
-    }
-    // assume we receive a power local finite element!
-    auto x_coeff_local = [&](const std::size_t& component,
-                             const std::size_t& dof) {
-      return x(lfsu.child(component), dof);
-    };
 
-    auto accumulate = [&](const std::size_t& component_i,
-                          const std::size_t& dof_i,
-                          const std::size_t& component_j,
-                          const std::size_t& dof_j,
-                          const auto& value) {
-      mat.accumulate(
-        lfsv.child(component_i), dof_i, lfsu.child(component_j), dof_j, value);
-    };
+    const auto& entity = ltrial.element();
+    const auto& geo = entity.geometry();
+    auto es = _test_basis.entitySet();
 
-    // get entity
-    const auto entity = eg.entity();
+    _local_values->time = time;
+    _local_values->entity_volume = geo.volume();
+    _local_values->cell_index = es.indexSet().index(entity);
 
-    // get geometry
-    const auto geo = eg.geometry();
+    const auto& trial_finite_element = firstCompartmentFiniteElement(ltrial.tree());
 
-    const auto& rule = QuadratureRules<RF, dim>::rule(geo.type(),3);
+    _fe_cache->bind(trial_finite_element);
+    _gradphi_i.resize(trial_finite_element.size());
 
-    const auto& trial_basis = lfsu.child(0).finiteElement().localBasis();
-    const auto basis_size = trial_basis.size();
-    std::vector<typename LBT::RangeType> phi(basis_size);
-    std::vector<typename LBT::JacobianType> jac(basis_size);
+    const auto& rule = _fe_cache->rule();
 
-    DynamicVector<RF> u(_components);
-    DynamicVector<RF> diffusion(_components);
-    DynamicVector<RF> jacobian(_components * _components);
-    DynamicVector<FieldVector<RF, dim>> grad(basis_size);
+    assert(geo.affine());
+    const auto& jac = geo.jacobianInverse(rule[0].position());
 
     // loop over quadrature points
-    for (const auto& point : rule) {
-      const auto& position = point.position();
+    for (std::size_t q = 0; q != rule.size(); ++q) {
+      const auto [position, weight] = rule[q];
+      _local_values->position = geo.global(position);
+      auto factor = weight * geo.integrationElement(position);
 
-      trial_basis.evaluateFunction(position, phi);
-      trial_basis.evaluateJacobian(position, jac);
+      const auto& phi = _fe_cache->evaluateFunction(q);
+      const auto& jacphi = _fe_cache->evaluateJacobian(q);
 
-      std::fill(u.begin(), u.end(), 0.);
-      std::fill(diffusion.begin(), diffusion.end(), 0.);
-      std::fill(jacobian.begin(), jacobian.end(), 0.);
-      std::fill(grad.begin(), grad.end(), FieldVector<RF, dim>(0.));
+      for (std::size_t dof = 0; dof != _gradphi_i.size(); ++dof)
+        _gradphi_i[dof] = (jacphi[dof] * jac)[0];
 
-      // get diffusion coefficient
-      for (std::size_t k = 0; k < _components; k++)
-        _diffusion_gf[k]->evaluate(entity, position, diffusion[k]);
+      const auto& psi = phi;
+      const auto& gradpsi = _gradphi_i;
 
       // evaluate concentrations at quadrature point
-      for (std::size_t comp = 0; comp < _components; comp++)
-        for (std::size_t dof = 0; dof < basis_size; dof++) //  ansatz func. loop
-          u[comp] += x_coeff_local(comp, dof) * phi[dof];
+      forEachLeafNode(ltrial.tree(), [&](const auto& node) {
+        if (node.size() == 0)
+          return;
+        auto& value = _local_values->get_value(node);
+        auto& gradient = _local_values->get_gradient(node);
+        value = 0.;
+        gradient = 0.;
+        for (std::size_t dof = 0; dof != node.size(); ++dof) {
+          value += phi[dof] * llin_point(node, dof);
+          gradient += _gradphi_i[dof] * llin_point(node, dof);
+        }
+      });
 
-      // get jacobian and determinant
-      FieldMatrix<DF, dim, dim> S = geo.jacobianInverseTransposed(position);
-      RF factor = point.weight() * geo.integrationElement(position);
+      // contribution for each component
+      forEachLeafNode(ltest.tree(), [&](const auto& ltest_node) {
+        if (ltest_node.size() == 0)
+          return;
+        const auto& eq =
+          _local_values->get_equation(PDELab::containerEntry(ltrial.tree(), ltest_node.path()));
 
-      // compute gradients of basis functions in transformed element
-      // (independent of component)
-      for (std::size_t i = 0; i < dim; i++)             // rows of S
-        for (std::size_t k = 0; k < dim; k++)           // columns of S
-          for (std::size_t j = 0; j < basis_size; j++) // columns of _gradhat
-            grad[j][i] += S[i][k] * jac[j][0][k];
+        // accumulate reaction part into jacobian
+        if (eq.reaction) {
+          for (const auto& jacobian_entry : eq.reaction.compartment_jacobian) {
+            auto jac = jacobian_entry();
+            const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
+            for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i)
+              for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
+                ljacobian.accumulate(
+                  ltest_node, dof_i, wrt_lbasis, dof_j, -jac * phi[dof_i] * psi[dof_j] * factor);
+          }
+        }
 
-      auto do_link = [&](std::size_t comp_i, std::size_t comp_j) {
-        auto it = _component_pattern.find(std::make_pair(comp_i, comp_j));
-        return (it != _component_pattern.end());
-      };
+        if (eq.storage) {
+          auto stg = eq.storage();
+          const auto& wrt_lbasis = eq.to_local_basis_node(ltrial);
 
-      // compute grad^T * grad
-      for (std::size_t k = 0; k < _components; k++) {
-        for (std::size_t l = 0; l < _components; l++) {
-          if (not do_link(k, l))
-            continue;
-          const auto j = _components * k + l;
-          // evaluate reaction term
-          _jacobian_gf[j]->update(u);
-          _jacobian_gf[j]->evaluate(entity, position, jacobian[j]);
-          for (std::size_t m = 0; m < basis_size; m++) {
-            for (std::size_t n = 0; n < basis_size; n++) {
-              typename M::value_type ljac =
-                -jacobian[j] * phi[m] * phi[n];
-              if (l == k)
-                for (std::size_t d = 0; d < dim; d++)
-                  ljac += diffusion[k] * grad[m][d] * grad[n][d];
-              accumulate(k, m, l, n, ljac * factor);
-            }
+          for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i)
+            for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
+              ljacobian.accumulate(
+                ltest_node, dof_i, wrt_lbasis, dof_j, stg * phi[dof_i] * psi[dof_j] * factor);
+
+          for (const auto& jacobian_entry : eq.storage.compartment_jacobian) {
+            auto jac = jacobian_entry();
+            const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
+            for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i)
+              for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
+                ljacobian.accumulate(ltest_node,
+                                     dof_i,
+                                     wrt_lbasis,
+                                     dof_j,
+                                     jac * eq.value * phi[dof_i] * psi[dof_j] * factor);
+          }
+        }
+
+        if (eq.velocity) {
+          auto vel = eq.velocity();
+          const auto& wrt_lbasis = eq.to_local_basis_node(ltrial);
+
+          for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i) {
+            for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
+              ljacobian.accumulate(ltest_node,
+                                   dof_i,
+                                   wrt_lbasis,
+                                   dof_j,
+                                   -dot(vel * phi[dof_i][0], gradpsi[dof_j]) * factor);
+          }
+
+          // accumulate jacobian for non-linear terms
+          for (const auto& jacobian_entry : eq.velocity.compartment_jacobian) {
+            auto adv_flux = jacobian_entry() * eq.value[0];
+            const auto& jac_wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
+            for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i)
+              for (std::size_t dof_j = 0; dof_j != jac_wrt_lbasis.size(); ++dof_j)
+                ljacobian.accumulate(ltest_node,
+                                     dof_i,
+                                     jac_wrt_lbasis,
+                                     dof_j,
+                                     -phi[dof_i] * dot(adv_flux, gradpsi[dof_j]) * factor);
+          }
+        }
+
+        // accumulate cross-diffusion part into jacobian
+        for (const auto& diffusion : eq.cross_diffusion) {
+          const auto& wrt_lbasis = diffusion.wrt.to_local_basis_node(ltrial);
+          // by product rule
+          // accumulate linear term
+          for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i) {
+            auto diffusive_flux = diffusion(_gradphi_i[dof_i]);
+            for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
+              ljacobian.accumulate(
+                ltest_node, dof_i, wrt_lbasis, dof_j, dot(diffusive_flux, gradpsi[dof_j]) * factor);
+          }
+
+          // accumulate jacobian for non-linear terms
+          for (const auto& jacobian_entry : diffusion.compartment_jacobian) {
+            auto diffusive_flux = jacobian_entry(jacobian_entry.wrt.gradient);
+            const auto& jac_wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
+            for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i)
+              for (std::size_t dof_j = 0; dof_j != jac_wrt_lbasis.size(); ++dof_j)
+                ljacobian.accumulate(ltest_node,
+                                     dof_i,
+                                     jac_wrt_lbasis,
+                                     dof_j,
+                                     phi[dof_i] * dot(diffusive_flux, gradpsi[dof_j]) * factor);
+          }
+        }
+      });
+    }
+
+    _local_values->clear();
+  }
+
+  template<PDELab::Concept::LocalBasis LocalBasisTrial, PDELab::Concept::LocalBasis LocalBasisTest>
+  void localAssembleSkeleton(const Dune::Concept::Intersection auto& intersection,
+                             auto time,
+                             const LocalBasisTrial& ltrial_in,
+                             const PDELab::Concept::LocalConstContainer auto& lcoefficients_in,
+                             const LocalBasisTest& ltest_in,
+                             const LocalBasisTrial& ltrial_out,
+                             const PDELab::Concept::LocalConstContainer auto& lcoefficients_out,
+                             const LocalBasisTest& ltest_out,
+                             PDELab::Concept::LocalMutableContainer auto& lresidual_in,
+                             PDELab::Concept::LocalMutableContainer auto& lresidual_out) noexcept
+  {
+    if (ltrial_in.size() == 0 and ltrial_out.size() == 0)
+      return;
+
+    const auto& entity_i = intersection.inside();
+    // in case of a boundary, outside objects are an alias of the inside ones
+    const auto& entity_o = intersection.neighbor() ? intersection.outside() : entity_i;
+
+    auto domain_set_i = subDomains(entity_i);
+    auto domain_set_o = subDomains(entity_o);
+
+    if (intersection.neighbor() and domain_set_i == domain_set_o)
+      return; // not an intersection case
+
+    auto geo_f = intersection.geometry();
+
+    _local_values->time = time;
+    _local_values->entity_volume = geo_f.volume();
+
+    using LocalBasis =
+      std::decay_t<decltype(firstCompartmentFiniteElement(ltrial_in.tree()).localBasis())>;
+    LocalBasis const* local_basis_i = nullptr;
+    if (ltrial_in.size() != 0)
+      local_basis_i = &firstCompartmentFiniteElement(ltrial_in.tree()).localBasis();
+
+    LocalBasis const* local_basis_o = nullptr;
+    if (intersection.neighbor() and ltrial_out.size() != 0)
+      local_basis_o = &firstCompartmentFiniteElement(ltrial_out.tree()).localBasis();
+
+    if (local_basis_i)
+      _gradphi_i.resize(local_basis_i->size());
+    if (local_basis_o)
+      _gradphi_o.resize(local_basis_o->size());
+
+    _outflow_i.clear();
+    _outflow_o.clear();
+
+    // collect ouflow part for the inside compartment
+    if (local_basis_i)
+      forEachLeafNode(ltest_in.tree(), [&](const auto& ltest_node_in, auto path) {
+        // evaluate outflow only if component exists on this side but not on
+        // the outside entity
+        const auto& eq =
+          _local_values->get_equation(PDELab::containerEntry(ltrial_in.tree(), path));
+        auto compartment_i = eq.path[Indices::_1];
+        if (ltest_node_in.size() == 0 or eq.outflow.empty())
+          return;
+
+        // accumulate outflow part into residual
+        if (intersection.neighbor()) { // interior skeleton case
+          if (domain_set_o.contains(_compartment2domain[compartment_i]))
+            return;
+          for (std::size_t compartment_o = 0; compartment_o != _compartment2domain.size();
+               ++compartment_o) {
+            auto domain_o = _compartment2domain[compartment_o];
+            if (compartment_i != compartment_o and
+                (domain_set_o.contains(domain_o) or domain_set_i.contains(domain_o)) and
+                eq.outflow[compartment_o])
+              _outflow_i.emplace_back(eq.outflow[compartment_o], eq);
+          }
+        } else if (eq.outflow[compartment_i]) { // boundary case
+          _outflow_i.emplace_back(eq.outflow[compartment_i], eq);
+        }
+      });
+
+    // collect ouflow part for the outside compartment
+    if (local_basis_o)
+      forEachLeafNode(ltest_out.tree(), [&](const auto& ltest_node_out, auto path) {
+        // evaluate outflow only if component exists on this side but not on
+        // the outside entity
+        const auto& eq =
+          _local_values->get_equation(PDELab::containerEntry(ltrial_out.tree(), path));
+        auto compartment_o = eq.path[Indices::_1];
+        if (ltest_node_out.size() == 0 or
+            domain_set_i.contains(_compartment2domain[compartment_o]) or eq.outflow.empty())
+          return;
+
+        // accumulate outflow part into residual (interior skeleton case)
+        for (std::size_t compartment_i = 0; compartment_i != _compartment2domain.size();
+             ++compartment_i) {
+          auto domain_i = _compartment2domain[compartment_i];
+          if (compartment_i != compartment_o and
+              (domain_set_o.contains(domain_i) or domain_set_i.contains(domain_i)) and
+              eq.outflow[compartment_i])
+            _outflow_o.emplace_back(eq.outflow[compartment_i], eq);
+        }
+      });
+
+    if (_outflow_i.empty() and _outflow_o.empty())
+      return;
+
+    // loop over quadrature points
+    for (auto [position_f, weight] : quadratureRule(geo_f, 3)) {
+      _local_values->position = geo_f.global(position_f);
+      auto factor = weight * geo_f.integrationElement(position_f);
+
+      if (local_basis_i and not _outflow_i.empty()) {
+
+        const auto position_i = intersection.geometryInInside().global(position_f);
+        auto jac_i = entity_i.geometry().jacobianInverse(position_i);
+        // evaluate basis functions
+        local_basis_i->evaluateFunction(position_i, _phi_i);
+        local_basis_i->evaluateJacobian(position_i, _jacphi_i);
+
+        for (std::size_t dof = 0; dof != _gradphi_i.size(); ++dof)
+          _gradphi_i[dof] = (_jacphi_i[dof] * jac_i)[0];
+
+        const auto& psi_i = _phi_i;
+
+        // evaluate concentrations at quadrature point (inside part)
+        forEachLeafNode(ltrial_in.tree(), [&](const auto& node_in, auto path) {
+          const auto& node_out = PDELab::containerEntry(ltrial_out.tree(), path);
+          if (node_in.size() == 0 and node_out.size() == 0)
+            return;
+          // take inside values unless they only exists outside
+          const auto& node = (node_in.size() != 0) ? node_in : node_out;
+          const auto& lcoefficients = (node_in.size() != 0) ? lcoefficients_in : lcoefficients_out;
+          auto& value = _local_values->get_value(node);
+          auto& gradient = _local_values->get_gradient(node);
+          value = 0.;
+          gradient = 0.;
+          for (std::size_t dof = 0; dof != node.size(); ++dof) {
+            value += lcoefficients(node, dof) * _phi_i[dof];
+            gradient += _gradphi_i[dof] * lcoefficients(node, dof);
+          }
+        });
+
+        // contribution for each component
+        for (const auto& [outflow_i, source_i] : _outflow_i) {
+          auto outflow = std::invoke(outflow_i);
+          const auto& ltest_node_in = source_i.to_local_basis_node(ltest_in);
+          for (std::size_t dof = 0; dof != ltest_node_in.size(); ++dof)
+            lresidual_in.accumulate(ltest_node_in, dof, outflow * psi_i[dof] * factor);
+        }
+      }
+
+      if (local_basis_o and not _outflow_o.empty()) {
+
+        const auto position_o = intersection.geometryInOutside().global(position_f);
+        auto jac_o = entity_o.geometry().jacobianInverse(position_o);
+
+        // evaluate basis functions
+        local_basis_o->evaluateFunction(position_o, _phi_o);
+        local_basis_o->evaluateJacobian(position_o, _jacphi_o);
+
+        for (std::size_t dof = 0; dof != _gradphi_o.size(); ++dof)
+          _gradphi_o[dof] = (_jacphi_o[dof] * jac_o)[0];
+
+        const auto& psi_o = _phi_o;
+
+        // evaluate concentrations at quadrature point (outside part)
+        forEachLeafNode(ltrial_out.tree(), [&](const auto& node_out, auto path) {
+          const auto& node_in = PDELab::containerEntry(ltrial_out.tree(), path);
+          // take outside values unless they only exists inside
+          const auto& node = (node_out.size() != 0) ? node_out : node_in;
+          const auto& lcoefficients = (node_out.size() != 0) ? lcoefficients_out : lcoefficients_in;
+          auto& value = _local_values->get_value(node);
+          auto& gradient = _local_values->get_gradient(node);
+          value = 0.;
+          gradient = 0.;
+          if (node_in.size() == 0 and node_out.size() == 0)
+            return;
+          for (std::size_t dof = 0; dof != node.size(); ++dof) {
+            value += lcoefficients(node, dof) * _phi_o[dof];
+            gradient += _gradphi_o[dof] * lcoefficients(node, dof);
+          }
+        });
+
+        // contribution for each component
+        for (const auto& [outflow_o, source_o] : _outflow_o) {
+          auto outflow = std::invoke(outflow_o);
+          const auto& ltest_node_out = source_o.to_local_basis_node(ltest_out);
+          for (std::size_t dof = 0; dof != ltest_node_out.size(); ++dof)
+            lresidual_out.accumulate(ltest_node_out, dof, outflow * psi_o[dof] * factor);
+        }
+      }
+    }
+
+    _local_values->clear();
+  }
+
+  void localAssembleJacobianSkeleton(
+    const Dune::Concept::Intersection auto& intersection,
+    auto time,
+    const PDELab::Concept::LocalBasis auto& ltrial_in,
+    const PDELab::Concept::LocalConstContainer auto& llin_point_in,
+    const PDELab::Concept::LocalBasis auto& ltest_in,
+    const PDELab::Concept::LocalBasis auto& ltrial_out,
+    const PDELab::Concept::LocalConstContainer auto& llin_point_out,
+    const PDELab::Concept::LocalBasis auto& ltest_out,
+    auto& ljacobian_in_in,
+    auto& ljacobian_in_out,
+    auto& ljacobian_out_in,
+    auto& ljacobian_out_out) noexcept
+  {
+    if (ltrial_in.size() == 0 and ltrial_out.size() == 0)
+      return;
+
+    const auto& entity_i = intersection.inside();
+    // in case of a boundary, outside objects are an alias of the inside ones
+    const auto& entity_o = intersection.neighbor() ? intersection.outside() : entity_i;
+
+    auto domain_set_i = subDomains(entity_i);
+    auto domain_set_o = subDomains(entity_o);
+
+    if (intersection.neighbor() and domain_set_i == domain_set_o)
+      return; // not an intersection case
+
+    auto geo_f = intersection.geometry();
+
+    _local_values->time = time;
+    _local_values->entity_volume = geo_f.volume();
+
+    using LocalBasis =
+      std::decay_t<decltype(firstCompartmentFiniteElement(ltrial_in.tree()).localBasis())>;
+    LocalBasis const* local_basis_i = nullptr;
+    if (ltrial_in.size() != 0)
+      local_basis_i = &firstCompartmentFiniteElement(ltrial_in.tree()).localBasis();
+
+    LocalBasis const* local_basis_o = nullptr;
+    if (intersection.neighbor() and ltrial_out.size() != 0)
+      local_basis_o = &firstCompartmentFiniteElement(ltrial_out.tree()).localBasis();
+
+    if (local_basis_i)
+      _gradphi_i.resize(local_basis_i->size());
+    if (local_basis_o)
+      _gradphi_o.resize(local_basis_o->size());
+
+    _outflow_i.clear();
+    _outflow_o.clear();
+
+    // collect ouflow part for the inside compartment
+    if (local_basis_i)
+      forEachLeafNode(ltest_in.tree(), [&](const auto& ltest_node_in, auto path) {
+        // evaluate outflow only if component exists on this side but not on
+        // the outside entity
+        const auto& eq =
+          _local_values->get_equation(PDELab::containerEntry(ltrial_in.tree(), path));
+        auto compartment_i = eq.path[Indices::_1];
+        if (ltest_node_in.size() == 0 or eq.outflow.empty())
+          return; // FIXME this is empty even when the outflow is filled in
+                  // local_values??!
+
+        // accumulate outflow part into residual
+        if (intersection.neighbor()) { // interior skeleton case
+          if (domain_set_o.contains(_compartment2domain[compartment_i]))
+            return;
+          for (std::size_t compartment_o = 0; compartment_o != _compartment2domain.size();
+               ++compartment_o) {
+            auto domain_o = _compartment2domain[compartment_o];
+            if (compartment_i != compartment_o and
+                (domain_set_o.contains(domain_o) or domain_set_i.contains(domain_o)) and
+                eq.outflow[compartment_o])
+              if (not eq.outflow[compartment_o].compartment_jacobian.empty())
+                _outflow_i.emplace_back(eq.outflow[compartment_o], eq);
+          }
+        } else if (eq.outflow[compartment_i]) { // boundary case
+          if (not eq.outflow[compartment_i].compartment_jacobian.empty())
+            _outflow_i.emplace_back(eq.outflow[compartment_i], eq);
+        }
+      });
+
+    // collect ouflow part for the outside compartment
+    if (local_basis_o)
+      forEachLeafNode(ltest_out.tree(), [&](const auto& ltest_node_out, auto path) {
+        // evaluate outflow only if component exists on this side but not on
+        // the outside entity
+        const auto& eq =
+          _local_values->get_equation(PDELab::containerEntry(ltrial_out.tree(), path));
+        auto compartment_o = eq.path[Indices::_1];
+        if (ltest_node_out.size() == 0 or
+            domain_set_i.contains(_compartment2domain[compartment_o]) or eq.outflow.empty())
+          return;
+
+        // accumulate outflow part into residual (interior skeleton case)
+        for (std::size_t compartment_i = 0; compartment_i != _compartment2domain.size();
+             ++compartment_i) {
+          auto domain_i = _compartment2domain[compartment_i];
+          if (compartment_i != compartment_o and
+              (domain_set_o.contains(domain_i) or domain_set_i.contains(domain_i)) and
+              eq.outflow[compartment_i])
+            if (not eq.outflow[compartment_i].compartment_jacobian.empty())
+              _outflow_o.emplace_back(eq.outflow[compartment_i], eq);
+        }
+      });
+
+    if (_outflow_i.empty() and _outflow_o.empty())
+      return;
+
+    // loop over quadrature points
+    for (auto [position_f, weight] : quadratureRule(geo_f, 3)) {
+      _local_values->position = geo_f.global(position_f);
+      auto factor = weight * geo_f.integrationElement(position_f);
+
+      if (local_basis_i and not _outflow_i.empty()) {
+
+        const auto position_i = intersection.geometryInInside().global(position_f);
+        auto jac_i = entity_i.geometry().jacobianInverse(position_i);
+        // evaluate basis functions
+        local_basis_i->evaluateFunction(position_i, _phi_i);
+        local_basis_i->evaluateJacobian(position_i, _jacphi_i);
+
+        for (std::size_t dof = 0; dof != _gradphi_i.size(); ++dof)
+          _gradphi_i[dof] = (_jacphi_i[dof] * jac_i)[0];
+
+        const auto& psi_i = _phi_i;
+
+        // evaluate concentrations at quadrature point (inside part)
+        forEachLeafNode(ltrial_in.tree(), [&](const auto& node_in, auto path) {
+          const auto& node_out = PDELab::containerEntry(ltrial_out.tree(), path);
+          if (node_in.size() == 0 and node_out.size() == 0)
+            return;
+          // take inside values unless they only exists outside
+          const auto& node = (node_in.size() != 0) ? node_in : node_out;
+          const auto& llin_point = (node_in.size() != 0) ? llin_point_in : llin_point_out;
+          auto& value = _local_values->get_value(node);
+          auto& gradient = _local_values->get_gradient(node);
+          value = 0.;
+          gradient = 0.;
+          for (std::size_t dof = 0; dof != node.size(); ++dof) {
+            value += _phi_i[dof] * llin_point(node, dof);
+            gradient += _gradphi_i[dof] * llin_point(node, dof);
+          }
+        });
+
+        // contribution for each component
+        for (const auto& [outflow_i, source_i] : _outflow_i) {
+          const auto& ltest_node_in = source_i.to_local_basis_node(ltest_in);
+          for (const auto& jacobian_entry : outflow_i.compartment_jacobian) {
+            auto jac = jacobian_entry();
+            bool self_jac = (source_i.path[Indices::_1] == jacobian_entry.wrt.path[Indices::_1]);
+            const auto& ltrial = self_jac ? ltrial_in : ltrial_out;
+            auto& ljacobian = self_jac ? ljacobian_in_in : ljacobian_in_out;
+            const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
+            for (std::size_t dof_i = 0; dof_i != ltest_node_in.size(); ++dof_i)
+              for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
+                ljacobian.accumulate(ltest_node_in,
+                                     dof_i,
+                                     wrt_lbasis,
+                                     dof_j,
+                                     jac * _phi_i[dof_i] * psi_i[dof_j] * factor);
+          }
+        }
+      }
+
+      if (local_basis_o and not _outflow_o.empty()) {
+
+        const auto position_o = intersection.geometryInOutside().global(position_f);
+        auto jac_o = entity_o.geometry().jacobianInverse(position_o);
+
+        // evaluate basis functions
+        local_basis_o->evaluateFunction(position_o, _phi_o);
+        local_basis_o->evaluateJacobian(position_o, _jacphi_o);
+
+        for (std::size_t dof = 0; dof != _gradphi_o.size(); ++dof)
+          _gradphi_o[dof] = (_jacphi_o[dof] * jac_o)[0];
+
+        const auto& psi_o = _phi_o;
+
+        // evaluate concentrations at quadrature point (outside part)
+        forEachLeafNode(ltrial_out.tree(), [&](const auto& node_out, auto path) {
+          const auto& node_in = PDELab::containerEntry(ltrial_out.tree(), path);
+          // take outside values unless they only exists inside
+          const auto& node = (node_out.size() != 0) ? node_out : node_in;
+          const auto& llin_point = (node_out.size() != 0) ? llin_point_out : llin_point_in;
+          auto& value = _local_values->get_value(node);
+          auto& gradient = _local_values->get_gradient(node);
+          value = 0.;
+          gradient = 0.;
+          if (node_in.size() == 0 and node_out.size() == 0)
+            return;
+          for (std::size_t dof = 0; dof != node.size(); ++dof) {
+            value += _phi_o[dof] * llin_point(node, dof);
+            gradient += _gradphi_o[dof] * llin_point(node, dof);
+          }
+        });
+
+        for (const auto& [outflow_o, source_o] : _outflow_o) {
+          const auto& ltest_node_out = source_o.to_local_basis_node(ltest_out);
+          for (const auto& jacobian_entry : outflow_o.compartment_jacobian) {
+            auto jac = jacobian_entry();
+            bool self_jac = (source_o.path[Indices::_1] == jacobian_entry.wrt.path[Indices::_1]);
+            const auto& ltrial = self_jac ? ltrial_out : ltrial_in;
+            auto& ljacobian = self_jac ? ljacobian_out_out : ljacobian_out_in;
+            const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
+            for (std::size_t dof_i = 0; dof_i != ltest_node_out.size(); ++dof_i)
+              for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
+                ljacobian.accumulate(ltest_node_out,
+                                     dof_i,
+                                     wrt_lbasis,
+                                     dof_j,
+                                     jac * _phi_o[dof_i] * psi_o[dof_j] * factor);
           }
         }
       }
     }
+
+    _local_values->clear();
   }
 
-  /**
-   * @brief      The volume integral
-   *
-   * @param[in]  eg    The entity
-   * @param[in]  lfsu  The trial local function space
-   * @param[in]  x     The local coefficient vector
-   * @param[in]  lfsv  The test local function space
-   * @param      r     The local residual vector
-   *
-   * @tparam     EG    The entity
-   * @tparam     LFSU  The trial local function space
-   * @tparam     X     The local coefficient vector type
-   * @tparam     LFSV  The test local function space
-   * @tparam     R     The local residual vector
-   */
-  template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
-  void alpha_volume(const EG& eg,
-                    const LFSU& lfsu,
-                    const X& x,
-                    const LFSV& lfsv,
-                    R& r) const
+  void localAssembleJacobianSkeletonApply(
+    const Dune::Concept::Intersection auto& intersection,
+    auto time,
+    const PDELab::Concept::LocalBasis auto& ltrial_in,
+    const PDELab::Concept::LocalConstContainer auto& llin_point_in,
+    const PDELab::Concept::LocalConstContainer auto& lapp_point_in,
+    const PDELab::Concept::LocalBasis auto& ltest_in,
+    const PDELab::Concept::LocalBasis auto& ltrial_out,
+    const PDELab::Concept::LocalConstContainer auto& llin_point_out,
+    const PDELab::Concept::LocalConstContainer auto& lapp_point_out,
+    const PDELab::Concept::LocalBasis auto& ltest_out,
+    PDELab::Concept::LocalMutableContainer auto& ljacobian_in,
+    PDELab::Concept::LocalMutableContainer auto& ljacobian_out) noexcept
   {
-    _jacobian_apply_volume(eg, lfsu, x, x, lfsv, r);
-  }
-};
-
-/**
- * @brief      This class describes a PDELab local operator for temporal part
- *             for diffusion reaction systems.
- * @details    This class describre the operatrions for local integrals required
- *             for diffusion reaction system. The operator is only valid for
- *             entities contained in the grid view. The local finite element is
- *             used for caching shape function evaluations. And the jacobian
- *             method switches between numerical and analytical jacobians.
- *
- * @tparam     GV    Grid View
- * @tparam     LBT   Local Finite Element
- * @tparam     JM    Jacobian Method
- */
-template<class GV, class LBT, JacobianMethod JM = JacobianMethod::Analytical>
-class TemporalLocalOperatorDiffusionReactionCG
-  : public Dune::PDELab::LocalOperatorDefaultFlags
-  , public Dune::PDELab::FullVolumePattern
-  , public Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>
-  , protected LocalOperatorDiffusionReactionBase<GV,LBT>
-  , public Dune::PDELab::NumericalJacobianVolume<
-      TemporalLocalOperatorDiffusionReactionCG<GV, LBT, JM>>
-  , public Dune::PDELab::NumericalJacobianApplyVolume<
-      TemporalLocalOperatorDiffusionReactionCG<GV, LBT, JM>>
-{
-  //! grid view
-  using GridView = GV;
-
-  using LOPBase = LocalOperatorDiffusionReactionBase<GV,LBT>;
-
-  using RF = typename LOPBase::RF;
-  using LOPBase::_components;
-  using LOPBase::dim;
-
-
-public:
-  //! pattern assembly flags
-  static constexpr bool doPatternVolume = true;
-
-  //! residual assembly flags
-  static constexpr bool doAlphaVolume = true;
-
-  /**
-   * @brief      Constructs a new instance.
-   *
-   * @todo       Make integration order variable depending on user requirements
-   *             and polynomail order of the local finite element
-   *
-   * @param[in]  grid_view       The grid view where this local operator is
-   *                             valid
-   * @param[in]  config          The configuration tree
-   * @param[in]  finite_element  The local finite element
-   */
-  TemporalLocalOperatorDiffusionReactionCG(
-    GridView grid_view,
-    const ParameterTree& config)
-    : LOPBase(config,grid_view)
-  {}
-
-  void setTime(double t)
-  {
-    Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>::setTime(t);
-    LOPBase::setTime(t);
+    PseudoJacobian mat_ii{ ljacobian_in, lapp_point_in };
+    PseudoJacobian mat_io{ ljacobian_in, lapp_point_out };
+    PseudoJacobian mat_oi{ ljacobian_out, lapp_point_in };
+    PseudoJacobian mat_oo{ ljacobian_out, lapp_point_out };
+    if (localAssembleIsLinear())
+      localAssembleSkeleton(intersection,
+                            time,
+                            ltrial_in,
+                            lapp_point_in,
+                            ltest_in,
+                            ltrial_out,
+                            lapp_point_out,
+                            ltest_out,
+                            ljacobian_in,
+                            ljacobian_out);
+    else
+      localAssembleJacobianSkeleton(intersection,
+                                    time,
+                                    ltrial_in,
+                                    llin_point_in,
+                                    ltest_in,
+                                    ltrial_out,
+                                    llin_point_out,
+                                    ltest_out,
+                                    mat_ii,
+                                    mat_io,
+                                    mat_oi,
+                                    mat_oo);
   }
 
-  /**
-   * @brief      The volume integral
-   *
-   * @param[in]  eg    The entity
-   * @param[in]  lfsu  The trial local function space
-   * @param[in]  x     The local coefficient vector
-   * @param[in]  lfsv  The test local function space
-   * @param      r     The local residual vector
-   *
-   * @tparam     EG    The entity
-   * @tparam     LFSU  The trial local function space
-   * @tparam     X     The local coefficient vector type
-   * @tparam     LFSV  The test local function space
-   * @tparam     R     The local residual vector
-   */
-  template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
-  void alpha_volume(const EG& eg,
-                    const LFSU& lfsu,
-                    const X& x,
-                    const LFSV& lfsv,
-                    R& r) const
+  void localAssembleBoundary(const Dune::Concept::Intersection auto& intersection,
+                             auto time,
+                             const PDELab::Concept::LocalBasis auto& ltrial_in,
+                             const PDELab::Concept::LocalConstContainer auto& lcoefficients_in,
+                             const PDELab::Concept::LocalBasis auto& ltest_in,
+                             PDELab::Concept::LocalMutableContainer auto& lresidual_in) noexcept
   {
-    auto x_coeff_local = [&](const std::size_t& component,
-                             const std::size_t& dof) {
-      return x(lfsu.child(component), dof);
-    };
-    auto accumulate = [&](const std::size_t& component,
-                          const std::size_t& dof,
-                          const auto& value) {
-      r.accumulate(lfsu.child(component), dof, value);
-    };
-
-    // get geometry
-    const auto geo = eg.geometry();
-
-    // TODO: check geometry type
-    const auto& rule = QuadratureRules<RF, dim>::rule(geo.type(),3);
-
-    // loop over quadrature points
-    for (const auto& point : rule) {
-      const auto& position = point.position();
-
-      // get Jacobian and determinant
-      RF factor = point.weight() * geo.integrationElement(position);
-
-      // contribution for each component
-      for (std::size_t k = 0; k < _components;
-           k++) // loop over components
-      {
-        const auto& trial_basis = lfsu.child(k).finiteElement().localBasis();
-        const auto basis_size = trial_basis.size();
-        std::vector<typename LBT::RangeType> phi(basis_size);
-          trial_basis.evaluateFunction(position, phi);
-
-        // compute value of component
-        double u = 0.0;
-        for (std::size_t j = 0; j < basis_size; j++) // ansatz func. loop
-          u += x_coeff_local(k, j) * phi[j];
-
-        for (std::size_t i = 0; i < basis_size; i++) // test func. loop
-          accumulate(k, i, u * phi[i] * factor);
-      }
-    }
+    localAssembleSkeleton(intersection,
+                          time,
+                          ltrial_in,
+                          lcoefficients_in,
+                          ltest_in,
+                          ltrial_in,
+                          lcoefficients_in,
+                          ltest_in,
+                          lresidual_in,
+                          lresidual_in);
   }
 
-  /**
-   * @brief      The jacobian volume integral
-   *
-   * @param[in]  eg    The entity
-   * @param[in]  lfsu  The trial local function space
-   * @param[in]  x     The local coefficient vector
-   * @param[in]  lfsv  The test local function space
-   * @param      mat   The local matrix
-   *
-   * @tparam     EG    The entity
-   * @tparam     LFSU  The trial local function space
-   * @tparam     X     The local coefficient vector type
-   * @tparam     LFSV  The test local function space
-   * @tparam     M     The local matrix
-   */
-  template<typename EG, typename LFSU, typename X, typename LFSV, typename M>
-  void jacobian_volume(const EG& eg,
-                       const LFSU& lfsu,
-                       const X& x,
-                       const LFSV& lfsv,
-                       M& mat) const
+  void localAssembleJacobianBoundary(const Dune::Concept::Intersection auto& intersection,
+                                     auto time,
+                                     const PDELab::Concept::LocalBasis auto& ltrial_in,
+                                     const PDELab::Concept::LocalConstContainer auto& llin_point_in,
+                                     const PDELab::Concept::LocalBasis auto& ltest_in,
+                                     auto& ljacobian_ii) noexcept
   {
-    if constexpr (JM == JacobianMethod::Numerical) {
-      PDELab::NumericalJacobianVolume<
-        TemporalLocalOperatorDiffusionReactionCG>::jacobian_volume(eg,
-                                                                   lfsu,
-                                                                   x,
-                                                                   lfsv,
-                                                                   mat);
-      return;
-    }
-
-    auto accumulate = [&](const std::size_t& component_i,
-                          const std::size_t& dof_i,
-                          const std::size_t& component_j,
-                          const std::size_t& dof_j,
-                          const auto& value) {
-      mat.accumulate(
-        lfsv.child(component_i), dof_i, lfsu.child(component_j), dof_j, value);
-    };
-
-    // get geometry
-    const auto geo = eg.geometry();
-
-    // TODO: check geometry type
-    const auto& rule = QuadratureRules<RF, dim>::rule(geo.type(),3);
-
-    // loop over quadrature points
-    for (const auto& point : rule) {
-      const auto& position = point.position();
-
-
-      // get Jacobian and determinant
-      RF factor = point.weight() * geo.integrationElement(position);
-
-      // integrate mass matrix
-      for (std::size_t k = 0; k < _components;
-           k++) // loop over components
-      {
-        const auto& trial_basis = lfsu.child(k).finiteElement().localBasis();
-        const auto basis_size = trial_basis.size();
-        std::vector<typename LBT::RangeType> phi(basis_size);
-          trial_basis.evaluateFunction(position, phi);
-        for (std::size_t i = 0; i < basis_size; i++)
-          for (std::size_t j = 0; j < basis_size; j++)
-            accumulate(k, i, k, j, phi[i] * phi[j] * factor);
-      }
-    }
+    localAssembleJacobianSkeleton(intersection,
+                                  time,
+                                  ltrial_in,
+                                  llin_point_in,
+                                  ltest_in,
+                                  ltrial_in,
+                                  llin_point_in,
+                                  ltest_in,
+                                  ljacobian_ii,
+                                  ljacobian_ii,
+                                  ljacobian_ii,
+                                  ljacobian_ii);
   }
 
-  /**
-   * @brief      The jacobian volume integral for matrix free operations
-   * @details    This only switches between the actual implementation (in
-   *             alpha_volume) and the numerical jacobian
-   *
-   * @param[in]  eg    The entity
-   * @param[in]  lfsu  The trial local function space
-   * @param[in]  x     The local coefficient vector
-   * @param[in]  z     The local position in the trial space to which to apply
-   *                   the Jacobian.
-   * @param[in]  lfsv  The test local function space
-   * @param      r     The resulting vector
-   *
-   * @tparam     EG    The entity
-   * @tparam     LFSU  The trial local function space
-   * @tparam     X     The local coefficient vector type
-   * @tparam     LFSV  The test local function space
-   * @tparam     R     The resulting vector
-   */
-  template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
-  void jacobian_apply_volume(const EG& eg,
-                             const LFSU& lfsu,
-                             const X& x,
-                             const X& z,
-                             const LFSV& lfsv,
-                             R& r) const
+  void localAssembleJacobianBoundaryApply(
+    const Dune::Concept::Intersection auto& intersection,
+    auto time,
+    const PDELab::Concept::LocalBasis auto& ltrial_in,
+    const PDELab::Concept::LocalConstContainer auto& llin_point_in,
+    const PDELab::Concept::LocalConstContainer auto& lapp_point_in,
+    const PDELab::Concept::LocalBasis auto& ltest_in,
+    PDELab::Concept::LocalMutableContainer auto& ljacobian_in) noexcept
   {
-    if constexpr (JM == JacobianMethod::Numerical) {
-      PDELab::NumericalJacobianApplyVolume<
-        TemporalLocalOperatorDiffusionReactionCG>::jacobian_apply_volume(eg,
-                                                                         lfsu,
-                                                                         x,
-                                                                         z,
-                                                                         lfsv,
-                                                                         r);
-      return;
-    }
-    alpha_volume(eg, lfsu, z, lfsv, r);
-  }
-
-  /**
-   * @brief      The jacobian volume integral for matrix free operations (linear
-   *             variant)
-   * @details    This only switches between the actual implementation (in
-   *             alpha_volume) and the numerical jacobian
-   *
-   * @param[in]  eg    The entity
-   * @param[in]  lfsu  The trial local function space
-   * @param[in]  x     The local coefficient vector
-   * @param[in]  lfsv  The test local function space
-   * @param      r     The resulting vector
-   *
-   * @tparam     EG    The entity
-   * @tparam     LFSU  The trial local function space
-   * @tparam     X     The local coefficient vector type
-   * @tparam     LFSV  The test local function space
-   * @tparam     R     The resulting vector
-   */
-  template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
-  void jacobian_apply_volume(const EG& eg,
-                             const LFSU& lfsu,
-                             const X& x,
-                             const LFSV& lfsv,
-                             R& r) const
-  {
-    if constexpr (JM == JacobianMethod::Numerical) {
-      PDELab::NumericalJacobianApplyVolume<
-        TemporalLocalOperatorDiffusionReactionCG>::jacobian_apply_volume(eg,
-                                                                         lfsu,
-                                                                         x,
-                                                                         lfsv,
-                                                                         r);
-      return;
-    }
-    alpha_volume(eg, lfsu, x, lfsv, r);
+    PseudoJacobian mat_ii{ ljacobian_in, lapp_point_in };
+    if (localAssembleIsLinear())
+      localAssembleBoundary(intersection, time, ltrial_in, lapp_point_in, ltest_in, ljacobian_in);
+    else
+      localAssembleJacobianBoundary(intersection, time, ltrial_in, llin_point_in, ltest_in, mat_ii);
   }
 };
 
