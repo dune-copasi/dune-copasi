@@ -1,36 +1,34 @@
-# add source files to main library
-target_sources(dune-copasi PRIVATE
-  dune/copasi/model/base.cc
-  dune/copasi/common/tiff_file.cc
+
+include(GNUInstallDirs)
+
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/>${CMAKE_INSTALL_LIBDIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/>${CMAKE_INSTALL_LIBDIR})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/>${CMAKE_INSTALL_BINDIR})
+
+add_subdirectory(dune)
+
+target_link_libraries(dune-copasi
+  INTERFACE
+    Dune::Copasi::Common
+    Dune::Copasi::Parser
 )
 
-# set up single-domain executable
-if(TARGET singledomain-exec)
-  target_sources(singledomain-exec PRIVATE dune_copasi_sd.cc)
-  target_link_libraries(singledomain-exec PRIVATE dune-copasi)
-  set_property(TARGET singledomain-exec PROPERTY RUNTIME_OUTPUT_NAME dune-copasi-sd)
-  if(DUNE_COPASI_COMPILE_3D)
-    target_compile_definitions(singledomain-exec PUBLIC DUNE_COPASI_COMPILE_3D)
-  endif()
-  install(TARGETS singledomain-exec
-  EXPORT dune-copasi-targets
-    COMPONENT Runtime
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-  )
-endif()
-
-# set up multi-domain executable
-if(TARGET multidomain-exec)
-  target_sources(multidomain-exec PRIVATE dune_copasi_md.cc)
-  target_link_libraries(multidomain-exec PRIVATE dune-copasi)
-  set_property(TARGET multidomain-exec PROPERTY RUNTIME_OUTPUT_NAME dune-copasi-md)
-  if(DUNE_COPASI_COMPILE_3D)
-    target_compile_definitions(multidomain-exec PUBLIC DUNE_COPASI_COMPILE_3D)
-  endif()
-  install(TARGETS multidomain-exec
-    EXPORT dune-copasi-targets
-    COMPONENT Runtime
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-  )
-endif()
-
+foreach(dim ${DUNE_COPASI_GRID_DIMENSIONS})
+  set(target dune-copasi-exec-${dim}D)
+  add_executable(${target})
+  add_executable(Dune::Copasi::Executable${dim}D ALIAS ${target})
+  target_sources(${target} PRIVATE dune_copasi.cc)
+  target_link_libraries(${target} PRIVATE Dune::Copasi)
+  target_compile_definitions(${target}
+    PRIVATE
+      DUNE_COPASI_GRID_DIMENSION=${dim}
+      DUNE_COPASI_MAX_FEM_ORDER=${DUNE_COPASI_${dim}D_MAX_FEM_ORDER})
+  set_target_properties(${target}
+    PROPERTIES
+      RUNTIME_OUTPUT_NAME dune-copasi-${dim}D
+      EXPORT_NAME Copasi::Executable${dim}D)
+#   install(TARGETS ${target}
+#     EXPORT dune-copasi-targets
+#       COMPONENT Runtime
+#       RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+endforeach()
