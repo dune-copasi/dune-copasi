@@ -1,19 +1,19 @@
 #ifndef DUNE_COPASI_FILESYSTEM_HH
 #define DUNE_COPASI_FILESYSTEM_HH
 
-#ifdef DUNE_USE_FALLBACK_FILESYSTEM
+#include <dune-copasi-config.h>
+
+#if HAVE_GHC_FILESYSTEM
 
 #include <ghc/filesystem.hpp>
-namespace fs {
-using namespace ghc::filesystem;
-}
+
+namespace fs = ghc::filesystem;
 
 #else
 
 #include <filesystem>
-namespace fs {
-using namespace std::filesystem;
-}
+
+namespace fs = std::filesystem;
 
 #endif
 
