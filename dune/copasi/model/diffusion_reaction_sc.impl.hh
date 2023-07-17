@@ -1,0 +1,301 @@
+#ifndef DUNE_COPASI_MODEL_DIFFUSION_REACTION_SINGLE_COMPARTMENT_IMPL_HH
+#define DUNE_COPASI_MODEL_DIFFUSION_REACTION_SINGLE_COMPARTMENT_IMPL_HH
+
+#include <dune/copasi/model/diffusion_reaction_sc.hh>
+#include <dune/copasi/model/interpolate.hh>
+#include <dune/copasi/model/make_initial.hh>
+#include <dune/copasi/model/make_step_operator.hh>
+
+#include <dune/copasi/common/ostream_to_spdlog.hh>
+#include <dune/copasi/concepts/grid.hh>
+#include <dune/copasi/grid/has_single_geometry_type.hh>
+#include <dune/copasi/local_operator/diffusion_reaction/continuous_galerkin.hh>
+#include <dune/copasi/parser/factory.hh>
+
+#include <dune/pdelab/basis/backend/istl.hh>
+#include <dune/pdelab/basis/basis.hh>
+#include <dune/pdelab/basis/discrete_global_function.hh>
+#include <dune/pdelab/common/trace.hh>
+#include <dune/pdelab/concepts/multiindex.hh>
+
+#include <dune/grid/io/file/vtk.hh>
+
+#include <spdlog/spdlog.h>
+
+#ifdef DUNE_COPASI_PRECOMPILED_MODE
+#warning "Including this file in pre-compiled mode may defeat the purpose of pre-compilation"
+#endif
+
+namespace Dune::Copasi {
+
+template<class Traits>
+auto
+ModelDiffusionReaction<Traits>::get_entity_set(const Grid& grid, std::size_t subdomain)
+  -> CompartmentEntitySet
+{
+  if constexpr (std::same_as<typename Grid::LeafGridView, CompartmentEntitySet>) {
+    return grid.leafGridView();
+  } else if constexpr (Concept::SubDomainGrid<typename CompartmentEntitySet::Grid>) {
+    static_assert(std::same_as<typename Grid::SubDomainGrid::LeafGridView, CompartmentEntitySet>);
+    return grid.subDomain(subdomain).leafGridView();
+  }
+  DUNE_THROW(NotImplemented, "\tNot known mapping from Grid to CompartmentEntitySet");
+}
+
+template<class Traits>
+void
+ModelDiffusionReaction<Traits>::interpolate(
+  State& state,
+  const std::unordered_map<std::string, GridFunction>& initial) const
+{
+  using CompartmentBasis = PDELab::Basis<CompartmentEntitySet, CompartmentPreBasis>;
+  using CoefficientsBackend = PDELab::ISTLUniformBackend<ScalarQuantity>;
+  using Coefficients = typename CompartmentBasis::template Container<CoefficientsBackend>;
+  const auto& basis = any_cast<const CompartmentBasis&>(state.basis);
+  auto& coefficients = any_cast<Coefficients&>(state.coefficients);
+
+  Dune::Copasi::interpolate(basis, coefficients, initial);
+}
+
+template<class Traits>
+auto
+ModelDiffusionReaction<Traits>::make_scalar_field_pre_basis(const CompartmentEntitySet& entity_set,
+                                                            std::string_view name) -> ScalarPreBasis
+{
+  spdlog::info("Setup grid function space for component {}", name);
+  auto scalar_field_pre_basis =
+    ScalarPreBasis{ ScalarMergingStrategy{ entity_set },
+                    std::make_shared<ScalarFiniteElementMap>(entity_set) };
+  scalar_field_pre_basis.name(name);
+  return scalar_field_pre_basis;
+}
+
+template<class Traits>
+auto
+ModelDiffusionReaction<Traits>::make_compartment_pre_basis(
+  const CompartmentEntitySet& entity_set,
+  std::string_view compartment_name,
+  const std::vector<std::string>& scalar_field_names) -> CompartmentPreBasis
+{
+  spdlog::info("Setup compartment grid function space");
+
+  std::vector<ScalarPreBasis> scalar_field_pre_basis;
+  for (const auto& name : scalar_field_names) {
+    scalar_field_pre_basis.push_back(make_scalar_field_pre_basis(entity_set, name));
+  }
+
+  CompartmentPreBasis compartment_pre_basis =
+    composite(CompartmentMergingStrategy{ entity_set }, scalar_field_pre_basis);
+  compartment_pre_basis.name(compartment_name);
+
+  spdlog::info("No. of components on '{}' compartment: {}",
+               compartment_pre_basis.name(),
+               compartment_pre_basis.degree());
+
+  return compartment_pre_basis;
+}
+
+template<class Traits>
+void
+ModelDiffusionReaction<Traits>::setup_basis(State& state,
+                                            const Grid& grid,
+                                            const ParameterTree& config)
+{
+  TRACE_EVENT("dune", "Basis::SetUp");
+  using CompartmentBasis = PDELab::Basis<CompartmentEntitySet, CompartmentPreBasis>;
+  const auto& compartments_config = config.sub("compartments", true);
+  const auto& compartments = compartments_config.getSubKeys();
+  if (compartments.size() != 1) {
+    DUNE_THROW(InvalidStateException, "\tConfig file should only have one compartment");
+  }
+  auto compartment = compartments.front();
+  auto entity_set = get_entity_set(
+    grid, compartments_config.sub(compartment, true).template get<std::size_t>("id"));
+
+  std::vector<std::string> components;
+  const auto& scalar_field_config = config.sub("scalar_field", true);
+  for (const auto& scalar_field : scalar_field_config.getSubKeys()) {
+    if (scalar_field_config.sub(scalar_field)["compartment"] == compartment) {
+      components.push_back(scalar_field);
+    }
+  }
+  auto comp_space = make_compartment_pre_basis(entity_set, compartment, components);
+  state.basis = CompartmentBasis{ makeBasis(entity_set, comp_space) };
+}
+
+template<class Traits>
+void
+ModelDiffusionReaction<Traits>::setup_coefficient_vector(State& state)
+{
+  spdlog::info("Setup coefficient vector");
+  using CompartmentBasis = PDELab::Basis<CompartmentEntitySet, CompartmentPreBasis>;
+  using CoefficientsBackend = PDELab::ISTLUniformBackend<ScalarQuantity>;
+  using Coefficients = typename CompartmentBasis::template Container<CoefficientsBackend>;
+  const auto& basis = any_cast<const CompartmentBasis&>(state.basis);
+  state.coefficients = Coefficients{ basis.makeContainer(CoefficientsBackend{}) };
+}
+
+template<class Traits>
+auto
+ModelDiffusionReaction<Traits>::make_state(const std::shared_ptr<const Grid>& grid,
+                                           const ParameterTree& config) const
+  -> std::unique_ptr<State>
+{
+  auto state_ptr = std::make_unique<State>();
+  setup_basis(*state_ptr, *grid, config);
+  setup_coefficient_vector(*state_ptr);
+  state_ptr->grid = grid;
+  state_ptr->time = TimeQuantity{ 0. };
+  return state_ptr;
+}
+
+template<class Traits>
+ModelDiffusionReaction<Traits>::GridFunction
+ModelDiffusionReaction<Traits>::make_compartment_function(const std::shared_ptr<const State>& state,
+                                                          std::string_view name) const
+{
+  using CompartmentBasis = PDELab::Basis<CompartmentEntitySet, CompartmentPreBasis>;
+  using CoefficientsBackend = PDELab::ISTLUniformBackend<ScalarQuantity>;
+  using Coefficients = typename CompartmentBasis::template Container<CoefficientsBackend>;
+  const auto& basis = any_cast<const CompartmentBasis&>(state->basis);
+  const auto& coeff = any_cast<const Coefficients&>(state->coefficients);
+  std::shared_ptr<const Coefficients> const coeff_ptr(state, &coeff);
+
+  for (std::size_t component = 0; component != basis.degree(); ++component) {
+    auto leaf_space = basis.subSpace(TypeTree::treePath(std::size_t{ component }));
+    if (leaf_space.name() == name) {
+      return makeDiscreteGlobalBasisFunction(leaf_space, coeff_ptr);
+    }
+  }
+  DUNE_THROW(RangeError, "\tState doesn't contain any function with name: " << name);
+}
+
+template<class Traits>
+auto
+ModelDiffusionReaction<Traits>::make_initial(const Grid& grid, const ParameterTree& config) const
+  -> std::unordered_map<std::string, GridFunction>
+{
+  return Dune::Copasi::make_initial<GridFunction>(grid, config, *_functor_factory);
+}
+
+template<class Traits>
+auto
+ModelDiffusionReaction<Traits>::make_step_operator(const State& state,
+                                                   const ParameterTree& config) const
+  -> std::unique_ptr<PDELab::OneStep<State>>
+{
+  using CompartmentBasis = PDELab::Basis<CompartmentEntitySet, CompartmentPreBasis>;
+  using CoefficientsBackend = PDELab::ISTLUniformBackend<ScalarQuantity>;
+  using Coefficients = typename CompartmentBasis::template Container<CoefficientsBackend>;
+  using ResidualBackend = PDELab::ISTLUniformBackend<ResidualQuantity>;
+  using Residual = typename CompartmentBasis::template Container<ResidualBackend>;
+
+  const auto& basis = any_cast<const CompartmentBasis&>(state.basis);
+
+  using LocalOperator = LocalOperatorDiffusionReactionCG<
+    CompartmentBasis,
+    typename ScalarFiniteElementMap::Traits::FiniteElement::Traits::LocalBasisType::Traits>;
+
+  spdlog::info("Creating mass/stiffness local operator");
+  LocalOperator const stiff_lop(
+    basis, LocalOperatorType::Stiffness, config.sub("scalar_field"), _functor_factory);
+  LocalOperator const mass_lop(
+    basis, LocalOperatorType::Mass, config.sub("scalar_field"), _functor_factory);
+
+  std::shared_ptr const one_step =
+    Dune::Copasi::make_step_operator<Coefficients, Residual, ResidualQuantity, TimeQuantity>(
+      config.sub("time_step_operator"), basis, mass_lop, stiff_lop);
+
+  // type erase the original runge kutta operator
+  auto type_erased_one_step = std::make_unique<PDELab::OperatorAdapter<State, State>>(
+    [one_step](PDELab::Operator<State, State>& self, State& domain, State& range) mutable {
+      auto log_guard = ostream2spdlog();
+      // copy contents of this operator into runge-kutta operator
+      static_cast<PDELab::PropertyTree&>(*one_step) =
+        static_cast<const PDELab::PropertyTree&>(self);
+      auto& domain_coeff = any_cast<Coefficients&>(domain.coefficients);
+      auto& range_coeff = any_cast<Residual&>(range.coefficients);
+      return one_step->apply(domain_coeff, range_coeff);
+    });
+
+  // assign properties of the original one step to the type erased one
+  static_cast<PDELab::PropertyTree&>(*type_erased_one_step) =
+    static_cast<const PDELab::PropertyTree&>(*one_step);
+
+  auto residual_ptr = std::make_shared<Residual>(basis.makeContainer(ResidualBackend{}));
+  type_erased_one_step->get("initial_residual") = residual_ptr;
+  type_erased_one_step->get("time") = state.time;
+  return type_erased_one_step;
+}
+
+template<class Traits>
+void
+ModelDiffusionReaction<Traits>::write(const State& state, const fs::path& path, bool append) const
+{
+  using CompartmentBasis = PDELab::Basis<CompartmentEntitySet, CompartmentPreBasis>;
+  using CoefficientsBackend = PDELab::ISTLUniformBackend<ScalarQuantity>;
+  using Coefficients = typename CompartmentBasis::template Container<CoefficientsBackend>;
+  using ScalarBasis =
+    PDELab::Basis<CompartmentEntitySet, CompartmentPreBasis, TypeTree::HybridTreePath<std::size_t>>;
+  const auto& basis = any_cast<const CompartmentBasis&>(state.basis);
+  const auto& coeff = any_cast<const Coefficients&>(state.coefficients);
+  // warning: we use Dune::stackobject_to_shared_ptr to avoid copying the coefficients vector,
+  // be we need to check that no one else took ownership of this pointer when we leave this
+  // function!
+  std::shared_ptr<const Coefficients> const coeff_ptr = Dune::stackobject_to_shared_ptr(coeff);
+
+  // create directory if necessary
+  auto path_entry = fs::directory_entry{ path };
+  if (not path_entry.exists()) {
+    spdlog::info("Creating output directory '{}'", path_entry.path().string());
+    std::error_code ec{ 0, std::generic_category() };
+    fs::create_directories(path_entry.path(), ec);
+    if (ec) {
+      DUNE_THROW(IOError,
+                 "\n Category: " << ec.category().name() << '\n'
+                                 << "Value: " << ec.value() << '\n'
+                                 << "Message: " << ec.message() << '\n');
+    }
+  }
+
+  // Recover old timestesps in case something was written before
+  auto& timesteps = _writer_timesteps[path.string()];
+  std::string name = fmt::format("{}-{}", path.filename().string(), basis.name());
+  if (not append) {
+    timesteps.clear();
+    spdlog::info("Creating a time sequence file: '{}.pvd'", name);
+  } else {
+    spdlog::info("Overriding time sequence file: '{}.pvd'", name);
+  }
+
+  // setup writer again with old timesteps if necessary
+  auto writer =
+    std::make_shared<VTKWriter<CompartmentEntitySet>>(basis.entitySet(), Dune::VTK::conforming);
+  auto sequential_writer =
+    VTKSequenceWriter<CompartmentEntitySet>{ writer, name, path.string(), path.string() };
+  sequential_writer.setTimeSteps(timesteps);
+
+  for (std::size_t component = 0; component != basis.degree(); ++component) {
+    ScalarBasis const component_basis =
+      basis.subSpace(TypeTree::treePath(std::size_t{ component }));
+    sequential_writer.vtkWriter()->addVertexData(
+      makeDiscreteGlobalBasisFunction(component_basis, coeff_ptr),
+      VTK::FieldInfo{ component_basis.name(), VTK::FieldInfo::Type::scalar, 1 });
+  }
+
+  spdlog::info("Writing solution for {:.2f}s time stamp", state.time);
+  spdlog::info("Writing vtu file: '{0}/{0}-{1:0>5}.vtu'", name, timesteps.size());
+  sequential_writer.write(state.time, Dune::VTK::base64);
+  sequential_writer.vtkWriter()->clear();
+  timesteps = sequential_writer.getTimeSteps();
+
+  if (coeff_ptr.use_count() != 1) {
+    DUNE_THROW(InvalidStateException,
+               "Fake shared pointer from coefficient vector may have been leaked outsie of this"
+               "function!");
+  }
+}
+
+} // namespace Dune::Copasi
+
+#endif // DUNE_COPASI_MODEL_DIFFUSION_REACTION_SINGLE_COMPARTMENT_IMPL_HH
