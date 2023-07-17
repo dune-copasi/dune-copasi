@@ -16,7 +16,7 @@
 
 #include <spdlog/spdlog.h>
 
-#include <fmt/format.h>
+#include <fmt/core.h>
 
 #include <algorithm>
 #include <array>
@@ -55,7 +55,7 @@ public:
 
   explicit RandomFieldTraits(const Dune::ParameterTree& config)
   {
-    levels = config.get<int>("grid.levels", 1);
+    levels = config.get<int>("grid.refinement_level", 1);
     maxExt = config.get<std::vector<DomainField>>("grid.extensions");
     maxCells = config.get<std::vector<unsigned int>>("grid.cells");
 
@@ -143,7 +143,7 @@ ParserContext::ParserContext(const ParameterTree& config)
       spdlog::info("Generating '{}' random field", sub);
       auto rmf_dim = sub_config.template get<std::vector<double>>("grid.extensions").size();
       auto seed = sub_config.template get<unsigned int>("seed", 0);
-      auto file = sub_config.get("file", "");
+      auto file = sub_config.get("write_to", "");
       Dune::Hybrid::switchCases(std::index_sequence<1, 2, 3>{}, rmf_dim, [&](auto dim) {
         auto field =
           std::make_shared<Dune::RandomField::RandomField<RandomFieldTraits<dim>>>(sub_config);

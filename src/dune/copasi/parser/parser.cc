@@ -3,7 +3,6 @@
 #include <dune/common/exceptions.hh>
 
 #include <fmt/core.h>
-#include <fmt/format.h>
 
 #include <algorithm>
 #include <string>

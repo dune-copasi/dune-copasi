@@ -29,7 +29,7 @@ make_multi_domain_grid(Dune::ParameterTree& config,
   using HostGrid = typename MDGrid::HostGrid;
   using Entity = typename MDGrid::template Codim<0>::Entity;
 
-  const auto& grid_config = config.sub("grid", true);
+  const auto& grid_config = config.sub("grid");
   std::size_t const dim = grid_config.get("dimension", std::size_t{ MDGrid::dimensionworld });
   if (dim != MDGrid::dimensionworld) {
     DUNE_THROW(Dune::IOError,
@@ -57,9 +57,8 @@ make_multi_domain_grid(Dune::ParameterTree& config,
     host_grid_ptr = host_grid_factory.createGrid();
 
     // get compartments with fixed id
-    for (const auto& compartment : config.sub("model.compartments", true).getSubKeys()) {
-      const auto& compartment_config =
-        config.sub("model.compartments", true).sub(compartment, true);
+    for (const auto& compartment : config.sub("compartments").getSubKeys()) {
+      const auto& compartment_config = config.sub("compartments").sub(compartment, true);
       if (compartment_config.hasKey("id")) {
         auto const id = compartment_config.template get<std::size_t>("id");
         compartment_ids.insert(id);
@@ -82,22 +81,21 @@ make_multi_domain_grid(Dune::ParameterTree& config,
     std::fill_n(begin(cells), MDGrid::dimensionworld, 1);
     cells = grid_config.get("cells", cells);
     auto upper_right =
-      grid_config.get("extensions", Dune::FieldVector<double, MDGrid::dimensionworld>(1.));
-    auto lower_left =
-      grid_config.get("origin", Dune::FieldVector<double, MDGrid::dimensionworld>(0.));
+      grid_config.get("extensions", FieldVector<double, MDGrid::dimensionworld>(1.));
+    auto lower_left = grid_config.get("origin", FieldVector<double, MDGrid::dimensionworld>(0.));
     upper_right += lower_left;
     if (MDGrid::dimensionworld == 1) {
       host_grid_ptr =
-        Dune::StructuredGridFactory<HostGrid>::createCubeGrid(lower_left, upper_right, cells);
+        StructuredGridFactory<HostGrid>::createCubeGrid(lower_left, upper_right, cells);
     } else {
       host_grid_ptr =
-        Dune::StructuredGridFactory<HostGrid>::createSimplexGrid(lower_left, upper_right, cells);
+        StructuredGridFactory<HostGrid>::createSimplexGrid(lower_left, upper_right, cells);
     }
   }
 
   // fix id of other compartments
-  for (const auto& compartment : config.sub("model.compartments", true).getSubKeys()) {
-    auto& compartment_config = config.sub("model.compartments").sub(compartment);
+  for (const auto& compartment : config.sub("compartments").getSubKeys()) {
+    auto& compartment_config = config.sub("compartments").sub(compartment);
     if (not compartment_config.hasKey("id")) {
       std::size_t id = 0;
       std::size_t count = 0;
@@ -113,7 +111,7 @@ make_multi_domain_grid(Dune::ParameterTree& config,
         std::shared_ptr const parser_ptr = make_parser(parser_type);
         if (parser_context)
           parser_context->add_context(*parser_ptr);
-        auto position = std::make_shared<Dune::FieldVector<double, MDGrid::dimensionworld>>();
+        auto position = std::make_shared<FieldVector<double, MDGrid::dimensionworld>>();
         std::vector<std::string> dim_name = { "x", "y", "z" };
         for (std::size_t i = 0; i != MDGrid::dimensionworld; ++i) {
           parser_ptr->define_variable(fmt::format("position_{}", dim_name.at(i)), &(*position)[i]);
@@ -122,23 +120,24 @@ make_multi_domain_grid(Dune::ParameterTree& config,
         parser_ptr->compile();
         compartment_fncs[id] = [position, parser_ptr](const Entity& entity) {
           (*position) = entity.geometry().center();
-          return Dune::FloatCmp::ne(std::invoke(*parser_ptr), 0.);
+          return FloatCmp::ne(std::invoke(*parser_ptr), 0.);
         };
       } else {
-        DUNE_THROW(Dune::NotImplemented, "");
+        DUNE_THROW(NotImplemented, "");
       }
     }
   }
 
   typename MDGrid::MDGridTraits const md_grid_traits(compartment_fncs.size());
   md_grid_ptr = std::make_unique<MDGrid>(std::move(host_grid_ptr), md_grid_traits);
-  mcmg = std::make_unique<Dune::MultipleCodimMultipleGeomTypeMapper<typename MDGrid::LeafGridView>>(
-    md_grid_ptr->leafGridView(), Dune::mcmgElementLayout());
+  mcmg = std::make_unique<MultipleCodimMultipleGeomTypeMapper<typename MDGrid::LeafGridView>>(
+    md_grid_ptr->leafGridView(), mcmgElementLayout());
 
-  auto level = grid_config.template get<int>("initial_level");
-
-  spdlog::info("Applying refinement of level: {}", level);
-  md_grid_ptr->globalRefine(level);
+  auto level = grid_config.get("refinement_level", int{ 0 });
+  if (level > 0) {
+    spdlog::info("Applying refinement of level: {}", level);
+    md_grid_ptr->globalRefine(level);
+  }
 
   spdlog::info("Applying sub-domain partition");
   md_grid_ptr->startSubDomainMarking();
@@ -151,7 +150,7 @@ make_multi_domain_grid(Dune::ParameterTree& config,
       }
     }
     if (max_domains_per_entity > static_cast<std::size_t>(md_grid_traits.maxSubDomainIndex() + 1)) {
-      DUNE_THROW(Dune::GridError,
+      DUNE_THROW(GridError,
                  fmt::format("This version of dune-copasi does not support to"
                              " have more than {} domains per entity!",
                              md_grid_traits.maxSubDomainIndex() + 1));

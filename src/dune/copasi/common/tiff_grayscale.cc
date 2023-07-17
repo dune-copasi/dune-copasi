@@ -6,7 +6,6 @@
 #include <dune/common/hybridutilities.hh>
 
 #include <fmt/core.h>
-#include <fmt/format.h>
 
 #include <algorithm>
 #include <cassert>

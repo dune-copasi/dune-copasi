@@ -48,14 +48,17 @@ make_model(
       std::make_shared<FunctorFactoryParser<Model::Grid::dimensionworld>>(parser_type);
   }
 
-  auto dynamic_fem_order = config.template get<std::size_t>("order");
+  auto dynamic_fem_order = config.get("order", std::size_t{ 1 });
   auto order_range =
     Dune::range(Indices::_1, Dune::index_constant<DUNE_COPASI_MAX_FEM_ORDER + 1>{});
 
-  auto field_blocked = config.template get<bool>("blocked_layout.field", false);
-  auto compartments_blocked = config.template get<bool>("blocked_layout.compartments", false);
+  auto field_blocked = config.get("blocked_layout.scalar_fields", false);
+  auto compartments_blocked = config.get("blocked_layout.compartments", false);
 
   std::set<std::string> compartments;
+  if (not config.hasSub("scalar_field")) {
+    DUNE_THROW(IOError, "A model must have an 'scalar_field' section");
+  }
   for (const auto& component : config.sub("scalar_field", true).getSubKeys()) {
     compartments.insert(config[fmt::format("scalar_field.{}.compartment", component)]);
   }

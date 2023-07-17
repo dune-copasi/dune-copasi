@@ -33,10 +33,10 @@ struct Model
 
   struct State
   {
-    std::any coefficients;
-    std::any basis;
-    TimeQuantity time{};
     std::shared_ptr<const Grid> grid;
+    TimeQuantity time{ 0. };
+    std::any coefficients = nullptr;
+    std::any basis = nullptr;
   };
 
   using GridFunction = Dune::Functions::GridViewFunction<
