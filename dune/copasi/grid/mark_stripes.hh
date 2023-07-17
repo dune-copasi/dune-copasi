@@ -1,6 +1,8 @@
 #ifndef DUNE_COPASI_GRID_MARK_STRIPES_HH
 #define DUNE_COPASI_GRID_MARK_STRIPES_HH
 
+#include <dune-copasi-config.h>
+
 #include <dune/grid/uggrid.hh>
 
 #include <list>
@@ -9,14 +11,14 @@ namespace Dune::Copasi {
 
 /**
  * @brief      Mark stripes for refinement
- * @details    If a cube element is surrounded by non-cubes in oposite sides
+ * @details    If a cube element is surrounded by non-cubes in opposite sides
  *             such cube is understood to be part of a stripe of cubes. In such
  *             case, this method should mark the grid such that a stripe is a
- *             stripe after refinment (e.g. refine in the direction of
+ *             stripe after refinement (e.g. refine in the direction of
  *             perpendicular to the non cubes)
  *
  * @param      grid         The grid
- * @param[in]  mark_others  If true, mark non-stripe entities for refinment.
+ * @param[in]  mark_others  If true, mark non-stripe entities for refinement.
  *
  * @tparam     dim         Dimension of the grid
  */
@@ -42,23 +44,23 @@ void mark_stripes(UGGrid<dim>& grid, bool mark_others = true)
 
       bool is_stripe = false;
 
-      // oposite facets have consecutive indexing (e.g. [2,3] are oposite)
+      // opposite facets have consecutive indexing (e.g. [2,3] are opposite)
       if (non_cube_side.size() == 2)
         is_stripe = !(non_cube_side.front()/2 - non_cube_side.back()/2);
 
       if (is_stripe)
       {
-        // side orienation of the simplices
+        // side orientation of the simplices
         [[maybe_unused]] int orientation = *(non_cube_side.begin())/2;
 
         if constexpr (dim == 2)
         {
-          // mark entity with a blue type refinment
+          // mark entity with a blue type refinement
           grid.mark(entity,RuleType::BLUE,!(bool)orientation);
         }
         else if constexpr (dim == 3)
         {
-          DUNE_THROW(NotImplemented,"Stripes on 3D is not available yet!");
+          DUNE_THROW(NotImplemented,"\tStripes on 3D is not available yet!");
           // Need a mesh to correctly check which orientation needs which rule!
           // if (orientation == 0)
           //    grid.mark(entity,RuleType::HEX_BISECT_0_1);
@@ -70,7 +72,7 @@ void mark_stripes(UGGrid<dim>& grid, bool mark_others = true)
         else
         {
           DUNE_THROW(NotImplemented,
-                     "Stripe refinement not known for grids of dimension '"
+                     "\tStripe refinement not known for grids of dimension '"
                        << dim << "'");
         }
       }
