@@ -1,0 +1,6 @@
+---
+FormatStyle:         file
+UseColor:            true
+HeaderFilterRegex:   'dune/copasi/*'
+
+Checks:              '*,-llvmlibc-*,-fuchsia-*,-modernize-use-trailing-return-type,-llvm-header-guard'
