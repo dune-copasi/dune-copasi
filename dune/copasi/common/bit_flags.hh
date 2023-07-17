@@ -1,6 +1,8 @@
 #ifndef DUNE_COPASI_COMMON_BITFLAGS_HH
 #define DUNE_COPASI_COMMON_BITFLAGS_HH
 
+#include <dune-copasi-config.h>
+
 #include <bitset>
 #include <climits>
 
@@ -9,7 +11,7 @@ namespace Dune::Copasi {
 /**
  * @brief  Bitflag indicator
  * @details This class might be specialized when a certain enum is wanted to do
- *          not have automatic convertion to BitFlags.
+ *          not have automatic conversion to BitFlags.
  * @see BitFlags
  * @see is_bitflags_v
  */
@@ -75,7 +77,7 @@ public:
   {}
 
   //! Enum constructor
-  // Initialization with an undelying enumerator
+  // Initialization with an underlying enumerator
   constexpr inline BitFlags(const Enum& value)
     : _value(static_cast<UnderlyingType>(value))
   {}
@@ -90,27 +92,24 @@ public:
   }
 
   //! Return bitflag as bitset
-  constexpr inline BitSet as_bitset() const
+  [[nodiscard]] constexpr inline BitSet as_bitset() const
   {
     return BitSet{ static_cast<unsigned long long>(_value) };
   }
   //! Return bitflag as its underlying type
-  constexpr inline const UnderlyingType as_underlying() const { return _value; }
+  [[nodiscard]] constexpr inline UnderlyingType as_underlying() const { return _value; }
 
   //! Return bitflag as its underlying type
   constexpr inline UnderlyingType& as_underlying() { return _value; }
 
   //! Return bitflag as its underlying enum
-  constexpr inline const Enum as_enum() const
-  {
-    return static_cast<const Enum>(_value);
-  }
+  [[nodiscard]] constexpr inline Enum as_enum() const { return static_cast<const Enum>(_value); }
 
   //! Return bitflag as its underlying enum
   constexpr inline Enum& as_enum() { return static_cast<Enum&>(_value); }
 
   //! Implicit conversion to underlying enum
-  constexpr inline operator Enum() const { return as_enum(); }
+  constexpr inline explicit operator Enum() const { return as_enum(); }
 
   //! Bitwise or operator with another bitflag
   constexpr inline BitFlags operator|(const BitFlags& rhs) const
@@ -184,7 +183,7 @@ public:
   }
 
   //! Test if the required flag is active in the bitflag
-  constexpr inline bool test(const BitFlags& flag) const
+  [[nodiscard]] constexpr inline bool test(const BitFlags& flag) const
   {
     return (_value & flag._value) == flag._value;
   }
@@ -202,13 +201,13 @@ public:
   inline void flip(const BitFlags& flag) { _value ^= flag; }
 
   //! Checks if all flags are set to true
-  constexpr inline bool all() const { return as_bitset().all(); }
+  [[nodiscard]] constexpr inline bool all() const { return as_bitset().all(); }
 
   //! Checks if any flags are set to true
-  constexpr inline bool any() const { return as_bitset().any(); }
+  [[nodiscard]] constexpr inline bool any() const { return as_bitset().any(); }
 
   //! Checks if none flags are set to true
-  constexpr inline bool none() const { return as_bitset().none(); }
+  [[nodiscard]] constexpr inline bool none() const { return as_bitset().none(); }
 
 private:
   //! Underlying data
