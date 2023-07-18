@@ -1,2 +1,2 @@
-integer
-Sets the polynomail order of the finite elements
+float
+In case of time-step success, the subsequent time-step will be increased by this factor

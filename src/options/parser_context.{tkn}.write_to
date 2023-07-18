@@ -1,2 +1,4 @@
 string
-TODO
+Path to write VTK file of 'random_field' contexts. Default: none
+If empty, no output will be written
+This option can only be used together with 'parser_context.{tkn}.type=random_field'.
