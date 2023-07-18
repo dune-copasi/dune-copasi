@@ -134,11 +134,12 @@ main(int argc, char** argv)
   }
 
   spdlog::info("Starting dune-copasi");
-#if HAVE_PERFETTO
-  auto tracing_session = Dune::PDELab::TracingSession{ prog_path.filename().string() + ".pftrace" };
-#endif
-
   {
+#if HAVE_PERFETTO
+    Dune::Copasi::ostream2spdlog();
+    auto tracing_session =
+      Dune::PDELab::TracingSession{ prog_path.filename().string() + ".pftrace" };
+#endif
     TRACE_EVENT("dune", "MPI::Init");
     Dune::MPIHelper::instance(argc, argv);
   }
@@ -193,7 +194,7 @@ main(int argc, char** argv)
           auto parser_type = string2parser.at(config.get("model.parser_type", default_parser_str));
           auto functor_factory =
             std::make_shared<FunctorFactoryParser<dim>>(parser_type, std::move(parser_context));
-          std::unique_ptr<Model> model = make_model<Model>(model_config, functor_factory);
+          std::shared_ptr model = make_model<Model>(model_config, functor_factory);
 
           // create time stepper
           const auto& time_config = model_config.sub("time_step_operator");
@@ -222,7 +223,7 @@ main(int argc, char** argv)
           const auto& writer_type = writer_config.get("type", "vtk");
           if (writer_type == "vtk") {
             auto file = model_config.get("writer.path", "");
-            output_writter = [&](const auto& state) {
+            output_writter = [file, model](const auto& state) {
               if (not file.empty()) {
                 model->write(state, file, true);
               }
@@ -234,7 +235,9 @@ main(int argc, char** argv)
 
           // interpolate initial conditions into the model state
           model->interpolate(*in, model->make_initial(*(in->grid), model_config));
-          output_writter(*in); // write initial condition
+          if (output_writter) {
+            output_writter(*in); // write initial condition
+          }
 
           auto step_operator = model->make_step_operator(*in, model_config);
 
@@ -269,5 +272,13 @@ main(int argc, char** argv)
   } else {
     spdlog::info("dune-copasi successfully finished :)");
   }
+
+#if HAVE_PERFETTO
+  {
+    Dune::Copasi::ostream2spdlog();
+    tracing_session.reset();
+  }
+#endif
+
   return end_code;
 }
