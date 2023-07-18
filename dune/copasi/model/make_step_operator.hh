@@ -42,7 +42,7 @@ make_step_operator(const ParameterTree& config,
     spdlog::info("Local operator is non-linear");
   }
 
-  bool const matrix_free = config.get("matrix_free", false);
+  bool const matrix_free = config.get("matrix_free", true);
   std::string const solver = "RestartedGMRes";
 
   // using Jacobian = decltype([](){
