@@ -3,6 +3,7 @@
 
 #include <dune/copasi/concepts/grid.hh>
 
+#include <dune/copasi/common/exceptions.hh>
 #include <dune/copasi/model/diffusion_reaction_mc.hh>
 #include <dune/copasi/model/diffusion_reaction_mc_traits.hh>
 #include <dune/copasi/model/diffusion_reaction_sc.hh>
@@ -10,8 +11,17 @@
 
 #include <dune/copasi/model/local_equations/functor_factory_parser.hh>
 
-#ifndef DUNE_COPASI_MAX_FEM_ORDER
-#define DUNE_COPASI_MAX_FEM_ORDER 1
+// comma separated list of fem orders to compile for each dimension
+#ifndef DUNE_COPASI_1D_FEM_ORDERS
+#define DUNE_COPASI_1D_FEM_ORDERS 1
+#endif
+
+#ifndef DUNE_COPASI_2D_FEM_ORDERS
+#define DUNE_COPASI_2D_FEM_ORDERS 1
+#endif
+
+#ifndef DUNE_COPASI_3D_FEM_ORDERS
+#define DUNE_COPASI_3D_FEM_ORDERS 1
 #endif
 
 namespace Dune::Copasi {
@@ -41,66 +51,90 @@ make_model(
   const ParameterTree& config,
   std::shared_ptr<const FunctorFactory<Model::Grid::dimensionworld>> functor_factory = nullptr)
 {
-
+  const auto dim = Model::Grid::dimensionworld;
   if (not functor_factory) {
-    auto parser_type = string2parser.at(config.get("parser_type", default_parser_str));
-    functor_factory =
-      std::make_shared<FunctorFactoryParser<Model::Grid::dimensionworld>>(parser_type);
+    functor_factory = std::make_shared<FunctorFactoryParser<dim>>();
   }
 
-  auto dynamic_fem_order = config.get("order", std::size_t{ 1 });
-  auto order_range =
-    Dune::range(Indices::_1, Dune::index_constant<DUNE_COPASI_MAX_FEM_ORDER + 1>{});
+  const auto fem_orders = [dim]() {
+    if constexpr (dim == 1) {
+      return std::index_sequence<DUNE_COPASI_1D_FEM_ORDERS>{};
+    } else if constexpr (dim == 2) {
+      return std::index_sequence<DUNE_COPASI_2D_FEM_ORDERS>{};
+    } else if constexpr (dim == 3) {
+      return std::index_sequence<DUNE_COPASI_3D_FEM_ORDERS>{};
+    }
+    return std::index_sequence<1>{};
+  }();
+  auto config_fem_order = config.get("order", std::size_t{ 1 });
 
   auto field_blocked = config.get("blocked_layout.scalar_fields", false);
   auto compartments_blocked = config.get("blocked_layout.compartments", false);
 
   std::set<std::string> compartments;
   if (not config.hasSub("scalar_field")) {
-    DUNE_THROW(IOError, "A model must have an 'scalar_field' section");
+    throw format_exception(IOError{}, "A model must have an 'scalar_field' section");
+  }
+  // find the numer of compartments
+  if (config.hasSub("scalar_field")) {
   }
   for (const auto& component : config.sub("scalar_field", true).getSubKeys()) {
     compartments.insert(config[fmt::format("scalar_field.{}.compartment", component)]);
   }
 
+  // default case when order is unknown
+  auto not_know_order = [config_fem_order]() {
+    throw format_exception(
+      IOError{}, "Polynomail degree '{}' not available for this simulation", config_fem_order);
+  };
+
   std::unique_ptr<Model> model;
+
   if (compartments.size() == 1) {
-    Dune::Hybrid::switchCases(order_range, dynamic_fem_order, [&](auto static_fem_order) {
-      if (field_blocked) {
-        model = std::make_unique<
-          ModelDiffusionReaction<Impl::SingleCompartmentTraits<Model, static_fem_order, true>>>(
-          functor_factory);
-      } else {
-        model = std::make_unique<
-          ModelDiffusionReaction<Impl::SingleCompartmentTraits<Model, static_fem_order, false>>>(
-          functor_factory);
-      }
-    });
+    // unroll static swtich case for dynamic order case
+    Dune::Hybrid::switchCases(
+      fem_orders,
+      config_fem_order,
+      [&](auto fem_order) {
+        if (field_blocked) {
+          model = std::make_unique<
+            ModelDiffusionReaction<Impl::SingleCompartmentTraits<Model, fem_order, true>>>(
+            functor_factory);
+        } else {
+          model = std::make_unique<
+            ModelDiffusionReaction<Impl::SingleCompartmentTraits<Model, fem_order, false>>>(
+            functor_factory);
+        }
+      } /*,
+      not_know_order */);
   } else {
-    Dune::Hybrid::switchCases(order_range, dynamic_fem_order, [&](auto static_fem_order) {
-      if (compartments_blocked) {
-        if (field_blocked) {
-          model = std::make_unique<ModelMultiCompartmentDiffusionReaction<
-            Impl::MultiCompartmentTraits<Model, static_fem_order, true, true>>>(functor_factory);
+    // unroll static swtich case for dynamic order case
+    Dune::Hybrid::switchCases(
+      fem_orders,
+      config_fem_order,
+      [&](auto fem_order) {
+        if (compartments_blocked) {
+          if (field_blocked) {
+            model = std::make_unique<ModelMultiCompartmentDiffusionReaction<
+              Impl::MultiCompartmentTraits<Model, fem_order, true, true>>>(functor_factory);
+          } else {
+            model = std::make_unique<ModelMultiCompartmentDiffusionReaction<
+              Impl::MultiCompartmentTraits<Model, fem_order, false, true>>>(functor_factory);
+          }
         } else {
-          model = std::make_unique<ModelMultiCompartmentDiffusionReaction<
-            Impl::MultiCompartmentTraits<Model, static_fem_order, false, true>>>(functor_factory);
+          if (field_blocked) {
+            model = std::make_unique<ModelMultiCompartmentDiffusionReaction<
+              Impl::MultiCompartmentTraits<Model, fem_order, true, false>>>(functor_factory);
+          } else {
+            model = std::make_unique<ModelMultiCompartmentDiffusionReaction<
+              Impl::MultiCompartmentTraits<Model, fem_order, false, false>>>(functor_factory);
+          }
         }
-      } else {
-        if (field_blocked) {
-          model = std::make_unique<ModelMultiCompartmentDiffusionReaction<
-            Impl::MultiCompartmentTraits<Model, static_fem_order, true, false>>>(functor_factory);
-        } else {
-          model = std::make_unique<ModelMultiCompartmentDiffusionReaction<
-            Impl::MultiCompartmentTraits<Model, static_fem_order, false, false>>>(functor_factory);
-        }
-      }
-    });
+      },
+      not_know_order);
   }
 
-  if (not model) {
-    DUNE_THROW(NotImplemented, "Not known model for the given configuration");
-  }
+  assert(model); // this should not be reachable if parameters are invalid
   return model;
 }
 

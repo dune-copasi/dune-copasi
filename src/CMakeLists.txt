@@ -13,38 +13,43 @@ target_link_libraries(dune-copasi
     Dune::Copasi::Parser
 )
 
+set(target dune-copasi-exec)
+add_executable(dune-copasi-exec)
+add_executable(Dune::Copasi::Executable ALIAS dune-copasi-exec)
+target_sources(dune-copasi-exec PRIVATE dune_copasi.cc)
+target_link_libraries(dune-copasi-exec PRIVATE Dune::Copasi)
+
+string(JOIN "," comp_def_dims ${DUNE_COPASI_GRID_DIMENSIONS})
+target_compile_definitions(dune-copasi-exec PRIVATE DUNE_COPASI_GRID_DIMENSIONS=${comp_def_dims})
+
 foreach(dim ${DUNE_COPASI_GRID_DIMENSIONS})
-  set(target dune-copasi-exec-${dim}D)
-  add_executable(${target})
-  add_executable(Dune::Copasi::Executable${dim}D ALIAS ${target})
-  target_sources(${target} PRIVATE dune_copasi.cc)
-  target_link_libraries(${target} PRIVATE Dune::Copasi)
-  target_compile_definitions(${target}
-    PRIVATE
-      DUNE_COPASI_GRID_DIMENSION=${dim}
-      DUNE_COPASI_MAX_FEM_ORDER=${DUNE_COPASI_${dim}D_MAX_FEM_ORDER})
-  set_target_properties(${target}
-    PROPERTIES
-      RUNTIME_OUTPUT_NAME dune-copasi-${dim}D
-      EXPORT_NAME Copasi::Executable${dim}D)
+  string(JOIN "," comp_def_dims ${DUNE_COPASI_${dim}_FEM_ORDERS})
+  target_compile_definitions(dune-copasi-exec PRIVATE DUNE_COPASI_${dim}_FEM_ORDERS=${comp_def_dims})
+endforeach()
+
+set_target_properties(dune-copasi-exec
+  PROPERTIES
+    RUNTIME_OUTPUT_NAME dune-copasi
+    EXPORT_NAME Copasi::Executable)
+
+# TODO: dune build system owns the export set...
 #   install(TARGETS ${target}
-#     EXPORT dune-copasi-targets
+#     EXPORT <dune-export-set>
 #       COMPONENT Runtime
 #       RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-endforeach()
 
 # generate configuration file options out of file descriptors in the "options/" folder
 file(GLOB opt_files "${CMAKE_CURRENT_SOURCE_DIR}/options/*")
 set(opt_header "static const std::vector<std::array<std::string, 4>> config_file_opts = \{\n")
 foreach(opt_file ${opt_files})
-   file(STRINGS ${opt_file} opt_content)
-   # the file name is the key name
-   get_filename_component(opt ${opt_file} NAME)
-   # first line is the type of the option
-   list(POP_FRONT opt_content opt_type)
-   # second line is short description
-   list(POP_FRONT opt_content opt_short_doc)
-   # the rest is its description
+  file(STRINGS ${opt_file} opt_content)
+  # the file name is the key name
+  get_filename_component(opt ${opt_file} NAME)
+  # first line is the type of the option
+  list(POP_FRONT opt_content opt_type)
+  # second line is short description
+  list(POP_FRONT opt_content opt_short_doc)
+  # the rest is its description
   string(JOIN "\\n" opt_content ${opt_content})
   # append to header
   set(opt_header "${opt_header}  \{\"${opt}\", \"${opt_type}\", \"${opt_short_doc}\", \"${opt_content}\" \},\n")
