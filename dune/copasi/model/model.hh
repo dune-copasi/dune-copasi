@@ -78,7 +78,7 @@ struct Model
     throw format_exception(NotImplemented{}, "Model has no membrane functions");
   }
 
-  virtual void write(const State&, const fs::path&, bool) const
+  virtual void write_vtk(const State&, const fs::path&, bool) const
   {
     throw format_exception(NotImplemented{}, "Model write has not been implemented");
   }

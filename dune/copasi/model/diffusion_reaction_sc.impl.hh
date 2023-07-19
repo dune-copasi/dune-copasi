@@ -231,7 +231,9 @@ ModelDiffusionReaction<Traits>::make_step_operator(const State& state,
 
 template<class Traits>
 void
-ModelDiffusionReaction<Traits>::write(const State& state, const fs::path& path, bool append) const
+ModelDiffusionReaction<Traits>::write_vtk(const State& state,
+                                          const fs::path& path,
+                                          bool append) const
 {
   using CompartmentBasis = PDELab::Basis<CompartmentEntitySet, CompartmentPreBasis>;
   using CoefficientsBackend = PDELab::ISTLUniformBackend<ScalarQuantity>;

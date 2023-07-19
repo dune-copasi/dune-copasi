@@ -74,7 +74,7 @@ public:
   std::unique_ptr<PDELab::OneStep<State>> make_step_operator(const State&,
                                                              const ParameterTree&) const override;
 
-  void write(const State&, const fs::path&, bool) const override;
+  void write_vtk(const State&, const fs::path&, bool) const override;
 
 private:
   static MultiCompartmentPreBasis make_multi_compartment_pre_basis(const Grid&,

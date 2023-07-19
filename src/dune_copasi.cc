@@ -166,61 +166,60 @@ main(int argc, char** argv)
 
     // unroll dimensions and select the one case defined at run-time
     constexpr auto dims = std::index_sequence<DUNE_COPASI_GRID_DIMENSIONS>{};
-    Dune::Hybrid::
-      switchCases(
-        dims,
-        config_dim,
-        [&](auto dim) {
-          // get a pointer to the grid
-          auto md_grid_ptr = [&] {
-            using MDGTraits = Dune::mdgrid::DynamicSubDomainCountTraits<dim, 10>;
-            if constexpr (dim < 2) {
-              using MDGrid = Dune::mdgrid::MultiDomainGrid<Dune::YaspGrid<dim>, MDGTraits>;
-              return make_multi_domain_grid<MDGrid>(config, parser_context);
-            } else {
-              using MDGrid = Dune::mdgrid::MultiDomainGrid<Dune::UGGrid<dim>, MDGTraits>;
-              return make_multi_domain_grid<MDGrid>(config, parser_context);
-            }
-          }();
-
-          const auto& model_config = config.sub("model");
-          if (model_config.hasSub("compartments"))
-            spdlog::warn(
-              "The section '[model.compartments]' will be ignored, use '[compartments]' instead");
-          config.sub("model.compartments") = config.sub("compartments");
-
-          using MDGrid = std::decay_t<decltype(*md_grid_ptr)>;
-          using SDGridView = typename MDGrid::SubDomainGrid::Traits::LeafGridView;
-          using SpeciesQuantity = double;
-          using TimeQuantity = double;
-          using DurationQuantity = double;
-          using Model = Model<MDGrid, SDGridView, SpeciesQuantity, TimeQuantity>;
-
-          auto parser_type = string2parser.at(config.get("model.parser_type", default_parser_str));
-          auto functor_factory =
-            std::make_shared<FunctorFactoryParser<dim>>(parser_type, std::move(parser_context));
-          std::shared_ptr model = make_model<Model>(model_config, functor_factory);
-
-          // create time stepper
-          const auto& time_config = model_config.sub("time_step_operator");
-          auto decrease_factor = time_config.get("time_step_decrease_factor", 0.5);
-          auto increase_factor = time_config.get("time_step_increase_factor", 1.5);
-          auto begin_time = time_config.get("time_begin", TimeQuantity{ 0. });
-          auto end_time = time_config.get("time_end", TimeQuantity{ 1. });
-          auto initial_step = time_config.get("time_step_initial", DurationQuantity{ 0.1 });
-          std::optional<DurationQuantity> min_step;
-          std::optional<DurationQuantity> max_step;
-          if (time_config.hasKey("time_step_min")) {
-            min_step = time_config.template get<DurationQuantity>("time_step_min");
+    Dune::Hybrid::switchCases(
+      dims,
+      config_dim,
+      [&](auto dim) {
+        // get a pointer to the grid
+        auto md_grid_ptr = [&] {
+          using MDGTraits = Dune::mdgrid::DynamicSubDomainCountTraits<dim, 10>;
+          if constexpr (dim < 2) {
+            using MDGrid = Dune::mdgrid::MultiDomainGrid<Dune::YaspGrid<dim>, MDGTraits>;
+            return make_multi_domain_grid<MDGrid>(config, parser_context);
+          } else {
+            using MDGrid = Dune::mdgrid::MultiDomainGrid<Dune::UGGrid<dim>, MDGTraits>;
+            return make_multi_domain_grid<MDGrid>(config, parser_context);
           }
-          if (time_config.hasKey("time_step_max")) {
-            max_step = time_config.template get<DurationQuantity>("time_step_max");
-          }
+        }();
 
-          using State = typename Model::State;
-          auto stepper = SimpleAdaptiveStepper<State, TimeQuantity, DurationQuantity>{
-            decrease_factor, increase_factor, min_step, max_step
-          };
+        const auto& model_config = config.sub("model");
+        if (model_config.hasSub("compartments"))
+          spdlog::warn(
+            "The section '[model.compartments]' will be ignored, use '[compartments]' instead");
+        config.sub("model.compartments") = config.sub("compartments");
+
+        using MDGrid = std::decay_t<decltype(*md_grid_ptr)>;
+        using SDGridView = typename MDGrid::SubDomainGrid::Traits::LeafGridView;
+        using SpeciesQuantity = double;
+        using TimeQuantity = double;
+        using DurationQuantity = double;
+        using Model = Model<MDGrid, SDGridView, SpeciesQuantity, TimeQuantity>;
+
+        auto parser_type = string2parser.at(config.get("model.parser_type", default_parser_str));
+        auto functor_factory =
+          std::make_shared<FunctorFactoryParser<dim>>(parser_type, std::move(parser_context));
+        std::shared_ptr model = make_model<Model>(model_config, functor_factory);
+
+        // create time stepper
+        const auto& time_config = model_config.sub("time_step_operator");
+        auto decrease_factor = time_config.get("time_step_decrease_factor", 0.5);
+        auto increase_factor = time_config.get("time_step_increase_factor", 1.5);
+        auto begin_time = time_config.get("time_begin", TimeQuantity{ 0. });
+        auto end_time = time_config.get("time_end", TimeQuantity{ 1. });
+        auto initial_step = time_config.get("time_step_initial", DurationQuantity{ 0.1 });
+        std::optional<DurationQuantity> min_step;
+        std::optional<DurationQuantity> max_step;
+        if (time_config.hasKey("time_step_min")) {
+          min_step = time_config.template get<DurationQuantity>("time_step_min");
+        }
+        if (time_config.hasKey("time_step_max")) {
+          max_step = time_config.template get<DurationQuantity>("time_step_max");
+        }
+
+        using State = typename Model::State;
+        auto stepper = SimpleAdaptiveStepper<State, TimeQuantity, DurationQuantity>{
+          decrease_factor, increase_factor, min_step, max_step
+        };
 
         // setup writer
         std::function<void(const State&)> output_writter;
@@ -231,26 +230,25 @@ main(int argc, char** argv)
           };
         }
 
-          auto in = model->make_state(std::move(md_grid_ptr), model_config);
-          in->time = begin_time;
+        auto in = model->make_state(std::move(md_grid_ptr), model_config);
+        in->time = begin_time;
 
-          // interpolate initial conditions into the model state
-          model->interpolate(*in, model->make_initial(*(in->grid), model_config));
-          if (output_writter) {
-            output_writter(*in); // write initial condition
-          }
+        // interpolate initial conditions into the model state
+        model->interpolate(*in, model->make_initial(*(in->grid), model_config));
+        if (output_writter) {
+          output_writter(*in); // write initial condition
+        }
 
-          auto step_operator = model->make_step_operator(*in, model_config);
+        auto step_operator = model->make_step_operator(*in, model_config);
 
-          stepper.evolve(*step_operator, *in, *in, initial_step, end_time, output_writter)
-            .or_throw();
-        },
-        [config_dim]() {
-          Dune::IOError excep;
-          excep.message(fmt::format("This executable cannot simulate in {}D grids!",
-                                    std::size_t{ config_dim }));
-          throw excep;
-        });
+        stepper.evolve(*step_operator, *in, *in, initial_step, end_time, output_writter).or_throw();
+      },
+      [config_dim]() {
+        Dune::IOError excep;
+        excep.message(
+          fmt::format("This executable cannot simulate in {}D grids!", std::size_t{ config_dim }));
+        throw excep;
+      });
   } catch (Dune::NotImplemented& e) {
     spdlog::error("Feature is not implemented:");
     spdlog::error("{}", e.what());

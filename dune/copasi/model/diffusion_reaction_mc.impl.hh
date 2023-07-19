@@ -248,7 +248,7 @@ ModelMultiCompartmentDiffusionReaction<Traits>::make_step_operator(
 
 template<class Traits>
 void
-ModelMultiCompartmentDiffusionReaction<Traits>::write(const State& state,
+ModelMultiCompartmentDiffusionReaction<Traits>::write_vtk(const State& state,
                                                       const fs::path& path,
                                                       bool append) const
 {
