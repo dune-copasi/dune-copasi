@@ -113,7 +113,7 @@ public:
     // advance one step from `in` and store result in `out`
     auto error = one_step.apply(in, out);
 
-    if (error) {
+    if (not error) {
       _time_mut(out) = time + dt; // set new time in resulting state
     } else {
       spdlog::warn("Time step failed: {}", error.message());
@@ -345,7 +345,7 @@ public:
     error = Base::do_step(one_step, in, out, dt);
 
     // iterate until we succeed or reach a lower time step limit
-    while (not error) {
+    while (error) {
       spdlog::warn("Reducing step size: {:.2e}s -> {:.2e}s", dt, dt * _decrease_factor);
       error = check_dt(dt = dt * _decrease_factor);
       if (error) {

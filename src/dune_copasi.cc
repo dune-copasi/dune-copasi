@@ -217,18 +217,14 @@ main(int argc, char** argv)
             decrease_factor, increase_factor, min_step, max_step
           };
 
-          // setup writer
-          std::function<void(const State&)> output_writter;
-          const auto& writer_config = model_config.sub("writer");
-          const auto& writer_type = writer_config.get("type", "vtk");
-          if (writer_type == "vtk") {
-            auto file = model_config.get("writer.path", "");
-            output_writter = [file, model](const auto& state) {
-              if (not file.empty()) {
-                model->write(state, file, true);
-              }
-            };
-          }
+        // setup writer
+        std::function<void(const State&)> output_writter;
+        auto file = model_config.get("writer.vtk.path", "");
+        if (not file.empty()) {
+          output_writter = [file, model](const auto& state) {
+            model->write_vtk(state, file, true);
+          };
+        }
 
           auto in = model->make_state(std::move(md_grid_ptr), model_config);
           in->time = begin_time;
