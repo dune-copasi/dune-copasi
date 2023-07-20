@@ -39,17 +39,17 @@ public:
   [[nodiscard]] virtual ScalarFunctor make_scalar(std::string_view,
                                                   const ParameterTree&,
                                                   const LocalDomain<dim>&,
-                                                  bool) const noexcept = 0;
+                                                  bool) const = 0;
 
   [[nodiscard]] virtual VectorFunctor make_vector(std::string_view,
                                                   const ParameterTree&,
                                                   const LocalDomain<dim>&,
-                                                  bool) const noexcept = 0;
+                                                  bool) const = 0;
 
   [[nodiscard]] virtual TensorApplyFunctor make_tensor_apply(std::string_view,
                                                              const ParameterTree&,
                                                              const LocalDomain<dim>&,
-                                                             bool) const noexcept = 0;
+                                                             bool) const = 0;
 };
 
 } // namespace Dune::Copasi

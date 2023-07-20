@@ -28,7 +28,7 @@ auto
 FunctorFactoryParser<dim>::make_scalar(std::string_view /*prefix*/,
                                        const ParameterTree& config,
                                        const LocalDomain<dim>& local_values,
-                                       bool is_membrane_expression) const noexcept -> ScalarFunctor
+                                       bool is_membrane_expression) const -> ScalarFunctor
 {
   return parse_scalar_expression(config, local_values, is_membrane_expression);
 }
@@ -38,7 +38,7 @@ auto
 FunctorFactoryParser<dim>::make_vector(std::string_view /*prefix*/,
                                        const ParameterTree& config,
                                        const LocalDomain<dim>& local_values,
-                                       bool is_membrane_expression) const noexcept -> VectorFunctor
+                                       bool is_membrane_expression) const -> VectorFunctor
 {
   // create one parser for each entry of the vector
   std::array<ScalarFunctor, dim> vector_parser;
@@ -67,7 +67,7 @@ auto
 FunctorFactoryParser<dim>::make_tensor_apply(std::string_view prefix,
                                              const ParameterTree& config,
                                              const LocalDomain<dim>& local_values,
-                                             bool is_membrane_expression) const noexcept
+                                             bool is_membrane_expression) const
   -> TensorApplyFunctor
 {
   // diffusion apply parser
@@ -116,7 +116,7 @@ template<std::size_t dim>
 auto
 FunctorFactoryParser<dim>::parse_scalar_expression(const ParameterTree& config,
                                                    const LocalDomain<dim>& local_values,
-                                                   bool is_membrane_expression) const noexcept
+                                                   bool is_membrane_expression) const
   -> ScalarFunctor
 {
   const auto& expression = config["expression"];
@@ -160,6 +160,9 @@ FunctorFactoryParser<dim>::parse_scalar_expression(const ParameterTree& config,
     if (_parser_context)
       _parser_context->add_context(*parser_ptr);
     parser_ptr->compile();
+    // try to run the parser once, if compilation is wrong,
+    // this will throw outside of the functor
+    [[maybe_unused]] auto dummy = std::invoke(*parser_ptr);
     return [_parser_ptr = std::move(parser_ptr)] noexcept {
       return Scalar{ std::invoke(*_parser_ptr) };
     };

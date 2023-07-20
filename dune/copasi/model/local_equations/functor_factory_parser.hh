@@ -33,25 +33,23 @@ public:
   [[nodiscard]] ScalarFunctor make_scalar(std::string_view /*prefix*/,
                                           const ParameterTree& /*config*/,
                                           const LocalDomain<dim>& /*local_domain*/,
-                                          bool /*is_membrane_expression*/) const noexcept override;
+                                          bool /*is_membrane_expression*/) const override;
 
   [[nodiscard]] VectorFunctor make_vector(std::string_view /*prefix*/,
                                           const ParameterTree& /*config*/,
                                           const LocalDomain<dim>& /*local_domain*/,
-                                          bool /*is_membrane_expression*/) const noexcept override;
+                                          bool /*is_membrane_expression*/) const override;
 
   [[nodiscard]] TensorApplyFunctor make_tensor_apply(
     std::string_view /*prefix*/,
     const ParameterTree& /*config*/,
     const LocalDomain<dim>& /*local_domain*/,
-    bool /*is_membrane_expression*/) const noexcept override;
-
+    bool /*is_membrane_expression*/) const override;
 
 private:
-  [[nodiscard]] ScalarFunctor parse_scalar_expression(
-    const ParameterTree& /*config*/,
-    const LocalDomain<dim>& /*local_values*/,
-    bool /*is_membrane_expression*/) const noexcept;
+  [[nodiscard]] ScalarFunctor parse_scalar_expression(const ParameterTree& /*config*/,
+                                                      const LocalDomain<dim>& /*local_values*/,
+                                                      bool /*is_membrane_expression*/) const;
 
   ParserType _parser_type;
   std::shared_ptr<const ParserContext> _parser_context;
