@@ -43,7 +43,7 @@ make_multi_domain_grid(Dune::ParameterTree& config,
   std::unique_ptr<MDGrid> md_grid_ptr;
 
   std::unique_ptr<Dune::MultipleCodimMultipleGeomTypeMapper<typename MDGrid::LeafGridView>> mcmg;
-  std::set<std::size_t> compartment_ids;
+  std::map<std::size_t, std::string> compartment_names;
   std::vector<std::function<bool(const Entity&)>> compartment_fncs;
 
   if (grid_config.hasKey("path")) {
@@ -62,7 +62,11 @@ make_multi_domain_grid(Dune::ParameterTree& config,
       const auto& compartment_config = config.sub("compartments").sub(compartment, true);
       if (compartment_config.hasKey("id")) {
         auto const id = compartment_config.template get<std::size_t>("id");
-        compartment_ids.insert(id);
+        if (compartment_names.contains(id)) {
+          compartment_names[id] += fmt::format(", {}", compartment);
+        } else {
+          compartment_names[id] = compartment;
+        }
         compartment_fncs.resize(id + 1);
         compartment_fncs[id] = [&gmsh_physical_entity, &mcmg, id](const Entity& entity) {
           Entity _entity = entity;
@@ -100,9 +104,9 @@ make_multi_domain_grid(Dune::ParameterTree& config,
     if (not compartment_config.hasKey("id")) {
       std::size_t id = 0;
       std::size_t count = 0;
-      while (compartment_ids.contains(id = count++)) {
+      while (compartment_names.contains(id = count++)) {
       }
-      compartment_ids.insert(id);
+      compartment_names[id] = compartment;
       compartment_config["id"] = std::to_string(id);
       compartment_fncs.resize(id + 1);
       const auto& type = compartment_config["type"];
@@ -162,11 +166,11 @@ make_multi_domain_grid(Dune::ParameterTree& config,
   md_grid_ptr->updateSubDomains();
   md_grid_ptr->postUpdateSubDomains();
 
-  gridinfo(*md_grid_ptr, "MultiDomainGrid: ");
-  for (typename MDGrid::SubDomainIndex i = 0; i != md_grid_ptr->maxAssignedSubDomainIndex() + 1;
-       ++i) {
-    std::cout << '\n';
-    gridinfo(md_grid_ptr->subDomain(i), fmt::format("  SubDomainGrid[{}]: ", i));
+  std::cout << fmt::format("MultiDomainGrid: ");
+  gridinfo(*md_grid_ptr, "    ");
+  for (auto [id, compartment_name] : compartment_names) {
+    std::cout << fmt::format("  SubDomain {{{}: {}}}", id, compartment_name);
+    gridinfo(md_grid_ptr->subDomain(id), "      ");
   }
 
   return md_grid_ptr;
