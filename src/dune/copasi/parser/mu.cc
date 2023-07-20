@@ -6,9 +6,10 @@
 #include <dune/common/exceptions.hh>
 #include <dune/common/hybridutilities.hh>
 
+#include <spdlog/spdlog.h>
+
 #include <muParser.h>
 
-#include <any>
 #include <cassert>
 #include <cstddef>
 #include <exception>
@@ -29,7 +30,7 @@ const std::size_t max_functions = 100;
 template<class F>
 struct FunctionID
 {
-  std::shared_ptr<const std::any> parser;
+  std::shared_ptr<const void> parser;
   std::string name;
   F function;
 };
@@ -87,7 +88,7 @@ function_wrapper_3d(typename MuParser::RangeField arg0,
 } // namespace
 
 MuParser::MuParser()
-  : _parser{ std::make_unique<std::any>(std::make_any<mu::Parser>()) }
+  : _parser{ new mu::Parser{}, [](void* ptr) { delete reinterpret_cast<mu::Parser*>(ptr); } }
 {
 }
 
@@ -99,7 +100,7 @@ MuParser::~MuParser()
 void
 MuParser::define_constant(const std::string& symbol, const RangeField& value)
 {
-  any_cast<mu::Parser&>(*_parser).DefineConst(symbol, value);
+  reinterpret_cast<mu::Parser*>(_parser.get())->DefineConst(symbol, value);
 }
 
 void
@@ -164,7 +165,7 @@ MuParser::compile()
   assert(not _compiled);
   assert(size(_symbols) == size(_variables));
 
-  auto& mu_parser = any_cast<mu::Parser&>(*_parser);
+  auto& mu_parser = *reinterpret_cast<mu::Parser*>(_parser.get());
 
   // notice that we are casting away the constness of the variable because
   // that's muParser signature. In practice, this means that the muParser
@@ -186,13 +187,18 @@ MuParser::compile()
   try {
     mu_parser.Eval();
   } catch (mu::Parser::exception_type& e) {
-    DUNE_THROW(IOError,
-               "Evaluating muParser expression failed:\n"
-                 << "  Parsed expression:   " << e.GetExpr() << "\n"
-                 << "  Token:               " << e.GetToken() << "\n"
-                 << "  Error position:      " << e.GetPos() << "\n"
-                 << "  Error code:          " << static_cast<int>(e.GetCode()) << "\n"
-                 << "  Error message:       " << e.GetMsg() << "\n");
+    throw format_exception(IOError{},
+                           "Evaluating muParser expression failed:\n"
+                           "  Parsed expression:   {}\n"
+                           "  Token:               {}\n"
+                           "  Error position:      {}\n"
+                           "  Error code:          {}\n"
+                           "  Error message:       {}\n",
+                           e.GetExpr(),
+                           e.GetToken(),
+                           e.GetPos(),
+                           static_cast<int>(e.GetCode()),
+                           e.GetMsg());
   }
 }
 
@@ -201,14 +207,19 @@ MuParser::operator()() const noexcept
 {
   try {
     assert(_compiled);
-    return any_cast<mu::Parser&>(*_parser).Eval();
+    return reinterpret_cast<mu::Parser*>(_parser.get())->Eval();
   } catch (mu::Parser::exception_type& e) {
-    std::cerr << "Evaluating muParser expression failed:\n"
-              << "  Parsed expression:   " << e.GetExpr() << "\n"
-              << "  Token:               " << e.GetToken() << "\n"
-              << "  Error position:      " << e.GetPos() << "\n"
-              << "  Error code:          " << static_cast<int>(e.GetCode()) << "\n"
-              << "  Error message:       " << e.GetMsg() << "\n";
+    spdlog::error("Evaluating muParser expression failed:\n"
+                  "  Parsed expression:   {}\n"
+                  "  Token:               {}\n"
+                  "  Error position:      {}\n"
+                  "  Error code:          {}\n"
+                  "  Error message:       {}\n",
+                  e.GetExpr(),
+                  e.GetToken(),
+                  e.GetPos(),
+                  static_cast<int>(e.GetCode()),
+                  e.GetMsg());
     std::terminate();
   } catch (...) {
     std::terminate();
@@ -219,7 +230,7 @@ void
 MuParser::register_functions()
 {
   auto indices = std::make_index_sequence<max_functions>{};
-  auto& mu_parser = any_cast<mu::Parser&>(*_parser);
+  auto& mu_parser = *reinterpret_cast<mu::Parser*>(_parser.get());
   Dune::Hybrid::forEach(indices, [&, guard = std::unique_lock{ _mutex }](auto idx) {
     auto idx_0d = _function0d.find(idx);
     auto idx_1d = _function1d.find(idx);

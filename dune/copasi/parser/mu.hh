@@ -3,7 +3,6 @@
 
 #include <dune/copasi/parser/parser.hh>
 
-#include <any>
 #include <memory>
 #include <string>
 
@@ -48,7 +47,7 @@ private:
   using Parser::_symbols;
   using Parser::_variables;
 
-  std::shared_ptr<std::any> _parser;
+  std::shared_ptr<void> _parser;
 };
 
 } // namespace Dune::Copasi
