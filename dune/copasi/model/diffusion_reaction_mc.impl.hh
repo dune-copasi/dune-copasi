@@ -20,7 +20,7 @@
 
 #include <spdlog/spdlog.h>
 
-#include <fmt/format.h>
+#include <fmt/core.h>
 
 #ifdef DUNE_COPASI_PRECOMPILED_MODE
 #warning "Including this file in pre-compiled mode may defeat the purpose of pre-compilation"

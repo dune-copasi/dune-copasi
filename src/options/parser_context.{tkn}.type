@@ -1,8 +1,0 @@
-string
-Type of token '{tkn}' within the dune-copasi parsers
-Possible selections are:
-  * constat:        Sets token '{tkn}' as a constant float. Options: 'parser_context.{tkn}.value'
-  * random_field:   Sets token '{tkn}' as a random field function. Options: 'parser_context.{tkn}.[seed|grid|...]'
-  * function:       Sets token '{tkn}' as an inline function. Options: 'parser_context.{tkn}.expression'
-  * tiff:           Sets token '{tkn}' as a function with the contents of a tiff file. Options: 'parser_context.{tkn}.file'
-  * interpolation:  Sets token '{tkn}' as a 1D interpolation function. Options: 'parser_context.{tkn}.[domain|range]'

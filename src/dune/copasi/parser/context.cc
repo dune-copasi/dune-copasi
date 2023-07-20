@@ -148,7 +148,7 @@ ParserContext::ParserContext(const ParameterTree& config)
       spdlog::info("Generating '{}' random field", sub);
       auto rmf_dim = sub_config.template get<std::vector<double>>("grid.extensions").size();
       auto seed = sub_config.template get<unsigned int>("seed", 0);
-      auto file = sub_config.get("write_to", "");
+      auto file = sub_config.get("writer.vtk.path", "");
       Hybrid::switchCases(std::index_sequence<1, 2, 3>{}, rmf_dim, [&](auto dim) {
         auto field = std::make_shared<RandomField::RandomField<RandomFieldTraits<dim>>>(sub_config);
         if (seed == 0) {

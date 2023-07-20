@@ -1,4 +1,0 @@
-string
-Default underlying parser for dune-copasi. Default: MuParser
-Whenever an option doesn't define its own parser, this one is selected.
-Options: SymEngine, SymEngineSBML, MuParser, ExprTk

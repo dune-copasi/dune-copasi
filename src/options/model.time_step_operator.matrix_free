@@ -1,5 +1,0 @@
-bool
-Whether to perform computations with matrix-free methods. Default: true
-In general, the matrix-free version will require less memory but will take more
-computation time to calculate the residual and jacobian applications. Additionally,
-it is not compatible with direct solvers.

@@ -1,4 +1,0 @@
-float-list
-Range of values to be interpolated for token '{tkn}'
-The number of arguments in the list must be the same as for 'parser_context.{tkn}.range'
-This option can only be used together with 'parser_context.{tkn}.type=interpolation'

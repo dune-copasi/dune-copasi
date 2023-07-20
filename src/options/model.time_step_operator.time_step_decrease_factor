@@ -1,2 +1,0 @@
-float
-In case of time-step failure, the subsequent time-step will be decreased by this factor

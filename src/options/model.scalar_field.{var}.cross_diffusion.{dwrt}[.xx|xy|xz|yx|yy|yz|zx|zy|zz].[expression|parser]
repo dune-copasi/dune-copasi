@@ -1,0 +1,5 @@
+<string>
+
+
+type=<string>
+  Selects between 'scalar' and 'tensor'

@@ -1,0 +1,47 @@
+<string|math-expr|string|float|float-list|integer>
+Sets up a token '{tkn}' in the dune-copasi parsers
+
+type=<string>
+  Type of token '{tkn}' within the dune-copasi parsers
+    Possible selections are:
+      * constat:        Sets token '{tkn}' as a constant float. Options: 'parser_context.{tkn}.value'
+      * function:       Sets token '{tkn}' as an inline function. Options: 'parser_context.{tkn}.expression'
+      * tiff:           Sets token '{tkn}' as a function with the contents of a tiff file. Options: 'parser_context.{tkn}.file'
+      * interpolation:  Sets token '{tkn}' as a 1D interpolation function. Options: 'parser_context.{tkn}.[domain|range]'
+      * random_field:   Sets token '{tkn}' as a random field function. Options: 'parser_context.{tkn}.[seed|grid|...]'
+
+value=<float>
+  Value of the token '{tkn}' as a float with the contents of <float>
+    This option can only be used together with 'parser_context.{tkn}.type=constat'
+
+function:
+  expression=<string>:
+    Expression of an inline function for the token '{tkn}'
+      The expression must start with a comma serparated list of tknuments
+      and split with the function content with a colon. For example:
+      'parser_context.pow2.expression=\"x: x^2\"' defines a function that may be
+      called as 'pow(1.)' in the context of parsed expressions. Note that inline
+      functions know other contexts defined in the parser (e.g., random_field,
+      constant, interpolation, etc.), except other inline functions. Thus, inline
+      functions are not recursive nor composable with other inline functions.
+      This option can only be used together with 'parser_context.{tkn}.type=function'.
+
+domain=<float-list>:
+  Domain of values to be interpolated for token '{tkn}'
+    For example, the options 'parser_context.f.domain=\"0 1 2\"' and 'parser_context.f.range=\".5 .1 .3\"'
+    will define an interpolated function f: domain -> range within the parser.
+    This option can only be used together with 'parser_context.{tkn}.type=interpolation'
+
+range=<float-list>
+  Range of values to be interpolated for token '{tkn}'
+    The number of arguments in the list must be the same as for 'parser_context.{tkn}.range'
+    This option can only be used together with 'parser_context.{tkn}.type=interpolation'
+
+parser_type=<string>
+  Underlying parser for inlined function of the token '{tkn}'
+    See 'model.parser_type' for more options.
+    This option can only be used together with 'parser_context.{tkn}.type=function'
+
+seed=<integer>
+  Seed to be used in the pseudorandom number field generator
+    This option can only be used together with 'parser_context.{tkn}.type=random_field'

@@ -46,13 +46,13 @@ make_multi_domain_grid(Dune::ParameterTree& config,
   std::set<std::size_t> compartment_ids;
   std::vector<std::function<bool(const Entity&)>> compartment_fncs;
 
-  if (grid_config.hasKey("file")) {
-    auto grid_file = grid_config.template get<std::string>("file");
-    spdlog::info("Reading grid file '{}'", grid_file);
+  if (grid_config.hasKey("path")) {
+    auto grid_path = grid_config.template get<std::string>("path");
+    spdlog::info("Reading grid file '{}'", grid_path);
     auto host_grid_factory = Dune::GridFactory<HostGrid>{};
     auto host_grid_parser = Dune::GmshReaderParser<HostGrid>{ host_grid_factory, false, false };
 
-    host_grid_parser.read(grid_file);
+    host_grid_parser.read(grid_path);
     const auto& gmsh_physical_entity = host_grid_parser.elementIndexMap();
 
     host_grid_ptr = host_grid_factory.createGrid();

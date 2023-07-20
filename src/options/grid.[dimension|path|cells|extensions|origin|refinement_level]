@@ -1,0 +1,19 @@
+<integer|string|integer-list|float-list>
+
+dimension=<integer>
+  Dimension of the simulation
+
+path=<string>
+  Path to a Gmsh file containing a grid
+
+cells=<integer-list>
+  Numbers of cells per dimension direction. Default: one-per-dimension (e.g., '1 1 1' in 3D)
+
+extnsions=<float-list>
+  Extensions of an squared domain. Default: unit square (e.g., '1. 1. 1.' in 3D)
+
+origin=<float-list>
+  Position of the origin of an squared domain. Default: caresian origin (e.g., '0. 0. 0.' in 3D)
+
+refinement_level=<integer>
+  Refinement level of the grid at the beginning of the simulation

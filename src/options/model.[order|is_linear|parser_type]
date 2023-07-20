@@ -1,0 +1,12 @@
+<integer|bool|string>
+
+is_linear=<bool>
+  Whether the problem is linear. Default: false
+
+order=<integer>
+  Polynomail order of the finite elements
+
+parser_type=<string>
+  Default underlying parser for dune-copasi. Default: MuParser
+    Whenever an option doesn't define its own parser, this one is selected.
+    Options: SymEngine, SymEngineSBML, MuParser, ExprTk

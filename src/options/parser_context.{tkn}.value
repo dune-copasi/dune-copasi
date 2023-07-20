@@ -1,3 +1,0 @@
-float
-Value of the token '{tkn}' as a float with the contents of <float>
-This option can only be used together with 'parser_context.{tkn}.type=constat'

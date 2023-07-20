@@ -77,7 +77,7 @@ program_help(std::string_view prog_name, bool long_help)
     for (auto [key, type, short_doc, long_doc] : config_file_opts) {
       fmt::print("  {}={}\n     {}\n",
                  fmt::styled("--" + key, fmt::emphasis::bold),
-                 fmt::styled("<" + type + ">", fmt::emphasis::italic),
+                 fmt::styled(type, fmt::emphasis::italic),
                  fmt::styled(short_doc, fmt::fg(fmt::color::dark_gray)));
       if (long_help and not long_doc.empty()) {
         std::istringstream iss(long_doc);
@@ -134,12 +134,17 @@ main(int argc, char** argv)
   }
 
   spdlog::info("Starting dune-copasi");
-  {
 #if HAVE_PERFETTO
-    Dune::Copasi::ostream2spdlog();
-    auto tracing_session =
-      Dune::PDELab::TracingSession{ prog_path.filename().string() + ".pftrace" };
+  std::unique_ptr<Dune::PDELab::TracingSession> tracing_session;
+  auto trace_path = config.get("trace.path", "");
+  if (not trace_path.empty()) {
+    tracing_session = [trace_path]() {
+      auto ostream_guard = Dune::Copasi::ostream2spdlog();
+      return std::make_unique<Dune::PDELab::TracingSession>(trace_path);
+    }();
+  }
 #endif
+  {
     TRACE_EVENT("dune", "MPI::Init");
     Dune::MPIHelper::instance(argc, argv);
   }
@@ -271,7 +276,7 @@ main(int argc, char** argv)
 
 #if HAVE_PERFETTO
   {
-    Dune::Copasi::ostream2spdlog();
+    auto ostream_guard = Dune::Copasi::ostream2spdlog();
     tracing_session.reset();
   }
 #endif

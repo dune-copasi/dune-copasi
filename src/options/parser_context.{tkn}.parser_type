@@ -1,4 +1,0 @@
-string
-Underlying parser for inlined function of the token '{tkn}'
-See 'parser_context.parser_type' for more options.
-This option can only be used together with 'parser_context.{tkn}.type=function'

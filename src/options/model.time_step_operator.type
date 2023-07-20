@@ -1,0 +1,11 @@
+<string>
+Type of the time-stepping operator. Default: Alexander2
+Possible options:
+  * ExplicitEuler
+  * ImplicitEuler
+  * Heun
+  * Shu3
+  * RungeKutta4
+  * Alexander2
+  * FractionalStepTheta
+  * Alexander3

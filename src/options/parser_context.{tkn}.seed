@@ -1,3 +1,0 @@
-integer
-Seed to be used in the pseudorandom number field generator
-This option can only be used together with 'parser_context.{tkn}.type=random_field'.
