@@ -208,10 +208,9 @@ main(int argc, char** argv)
         // create time stepper
         const auto& time_config = model_config.sub("time_step_operator");
         auto decrease_factor = time_config.get("time_step_decrease_factor", 0.5);
-        auto increase_factor = time_config.get("time_step_increase_factor", 1.5);
+        auto increase_factor = time_config.get("time_step_increase_factor", 1.1);
         auto begin_time = time_config.get("time_begin", TimeQuantity{ 0. });
         auto end_time = time_config.get("time_end", TimeQuantity{ 1. });
-        auto initial_step = time_config.get("time_step_initial", DurationQuantity{ 0.1 });
         std::optional<DurationQuantity> min_step;
         std::optional<DurationQuantity> max_step;
         if (time_config.hasKey("time_step_min")) {
@@ -220,6 +219,7 @@ main(int argc, char** argv)
         if (time_config.hasKey("time_step_max")) {
           max_step = time_config.template get<DurationQuantity>("time_step_max");
         }
+        auto initial_step = time_config.get("time_step_initial", max_step.value_or(.1));
 
         using State = typename Model::State;
         auto stepper = SimpleAdaptiveStepper<State, TimeQuantity, DurationQuantity>{
