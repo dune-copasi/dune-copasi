@@ -46,9 +46,6 @@ public:
     const LocalDomain<dim>& /*local_domain*/,
     bool /*is_membrane_expression*/) const noexcept override;
 
-  [[nodiscard]] bool is_linear(std::string_view prefix,
-                               const ParameterTree& /*config*/,
-                               const LocalDomain<dim>& /*local_values*/) const noexcept override;
 
 private:
   [[nodiscard]] ScalarFunctor parse_scalar_expression(

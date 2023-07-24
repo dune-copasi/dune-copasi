@@ -198,10 +198,16 @@ ModelDiffusionReaction<Traits>::make_step_operator(const State& state,
     typename ScalarFiniteElementMap::Traits::FiniteElement::Traits::LocalBasisType::Traits>;
 
   spdlog::info("Creating mass/stiffness local operator");
-  LocalOperator const stiff_lop(
-    basis, LocalOperatorType::Stiffness, config.sub("scalar_field"), _functor_factory);
-  LocalOperator const mass_lop(
-    basis, LocalOperatorType::Mass, config.sub("scalar_field"), _functor_factory);
+  LocalOperator const stiff_lop(basis,
+                                LocalOperatorType::Stiffness,
+                                config.get("is_linear", false),
+                                config.sub("scalar_field"),
+                                _functor_factory);
+  LocalOperator const mass_lop(basis,
+                               LocalOperatorType::Mass,
+                               config.get("is_linear", false),
+                               config.sub("scalar_field"),
+                               _functor_factory);
 
   std::shared_ptr const one_step =
     Dune::Copasi::make_step_operator<Coefficients, Residual, ResidualQuantity, TimeQuantity>(

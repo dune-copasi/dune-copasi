@@ -71,11 +71,11 @@ class LocalOperatorDiffusionReactionCG : public PDELab::LocalAssembly::Archetype
 
   TestBasis _test_basis;
 
-  PDELab::SharedStash<LocalBasisCache<LBT>> _fe_cache;
-  PDELab::SharedStash<LocalEquations<dim>> _local_values;
-
   bool _is_linear = true;
   bool _has_outflow = true;
+
+  PDELab::SharedStash<LocalBasisCache<LBT>> _fe_cache;
+  PDELab::SharedStash<LocalEquations<dim>> _local_values;
 
   static inline const auto& firstCompartmentFiniteElement(
     const Concept::CompartmentLocalBasisNode auto& lnode) noexcept
@@ -168,9 +168,11 @@ public:
    */
   LocalOperatorDiffusionReactionCG(const PDELab::Concept::Basis auto& test_basis,
                                    LocalOperatorType lop_type,
+                                   bool is_linear,
                                    const ParameterTree& config,
                                    std::shared_ptr<const FunctorFactory<dim>> functor_factory)
     : _test_basis{ test_basis }
+    , _is_linear{ is_linear }
     , _fe_cache([]() { return std::make_unique<LocalBasisCache<LBT>>(); })
     , _local_values([_lop_type = lop_type,
                      _basis = _test_basis,
@@ -187,11 +189,9 @@ public:
     if (_test_basis.entitySet().size(0) == 0)
       return;
     lbasis.bind(*_test_basis.entitySet().template begin<0>());
-    _is_linear = true;
     _has_outflow = false;
     forEachLeafNode(lbasis.tree(), [&](const auto& ltrial_node) {
       const auto& eq = _local_values->get_equation(ltrial_node);
-      _is_linear &= eq.is_linear;
       _has_outflow |= not eq.outflow.empty();
     });
     lbasis.unbind();
@@ -223,9 +223,9 @@ public:
    * @tparam     LFSV          The test local function basis
    * @tparam     LocalPattern  The local pattern
    */
-  void pattern_volume(const PDELab::Concept::LocalBasis auto& ltrial,
+  void localAssemblePatternVolume(const PDELab::Concept::LocalBasis auto& ltrial,
                       const PDELab::Concept::LocalBasis auto& ltest,
-                      auto& lpattern) const
+                      auto& lpattern) const noexcept
   {
     forEachLeafNode(ltest.tree(), [&](const auto& ltest_node) {
       const auto& eq =
@@ -267,7 +267,6 @@ public:
             lpattern.addLink(ltest_node, dof_i, wrt_lbasis, dof_j);
 
         for (const auto& jacobian_entry : diffusion.compartment_jacobian) {
-          auto flux = jacobian_entry.wrt.gradient * jacobian_entry();
           const auto& jac_wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
           for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i)
             for (std::size_t dof_j = 0; dof_j != jac_wrt_lbasis.size(); ++dof_j)
@@ -276,6 +275,27 @@ public:
       }
     });
   }
+
+  void localAssemblePatternSkeleton(
+    const Dune::Concept::Intersection                  auto& intersection,
+    const PDELab::Concept::LocalBasis                  auto& ltrial_in,
+    const PDELab::Concept::LocalBasis                  auto& ltest_in,
+    const PDELab::Concept::LocalBasis                  auto& ltrial_out,
+    const PDELab::Concept::LocalBasis                  auto& ltest_out,
+                                                       auto& lpattern_in_in,
+                                                       auto& lpattern_in_out,
+                                                       auto& lpattern_out_in,
+                                                       auto& lpattern_out_out) noexcept {
+                                                        std::terminate();
+                                                       }
+
+  void localAssemblePatternBoundary(
+    const Dune::Concept::Intersection                  auto& intersection,
+    const PDELab::Concept::LocalBasis                  auto& ltrial_in,
+    const PDELab::Concept::LocalBasis                  auto& ltest_in,
+                                                       auto& lpattern_in) noexcept {
+                                                        std::terminate();
+                                                       }
 
   /**
    * @brief      The volume integral

@@ -50,10 +50,6 @@ public:
                                                              const ParameterTree&,
                                                              const LocalDomain<dim>&,
                                                              bool) const noexcept = 0;
-
-  [[nodiscard]] virtual bool is_linear(std::string_view,
-                                       const ParameterTree&,
-                                       const LocalDomain<dim>&) const noexcept = 0;
 };
 
 } // namespace Dune::Copasi

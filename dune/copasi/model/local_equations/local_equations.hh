@@ -172,7 +172,6 @@ public:
 
     CompartmentPath path;
     std::string name;
-    bool is_linear = false;
 
     CompartmentScalarFunction reaction;
     CompartmentScalarFunction storage;
@@ -535,8 +534,6 @@ private:
           for (Node& component_fncs : compartment_fncs) {
 
             const auto& component_config = config.sub(component_fncs.name, true);
-            component_fncs.is_linear = functor_factory.is_linear(
-              component_fncs.name, component_config, std::as_const(*this));
 
             if (opts.test(FactoryFalgs::Diffusion) and component_config.hasSub("cross_diffusion")) {
               const auto& cross_diffusion_config = component_config.sub("cross_diffusion");

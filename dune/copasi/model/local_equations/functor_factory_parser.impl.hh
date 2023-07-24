@@ -15,6 +15,7 @@
 namespace Dune::Copasi {
 
 namespace Impl {
+// TODO: match scientific notation
 static inline const std::regex float_regex("-?([0-9]+)?([\\.]?)([0-9]+)?");
 static inline const std::regex zero_regex("-?([0]+)?([\\.]?)([0]+)?");
 } // namespace Impl
@@ -163,42 +164,6 @@ FunctorFactoryParser<dim>::parse_scalar_expression(const ParameterTree& config,
       return Scalar{ std::invoke(*_parser_ptr) };
     };
   }
-}
-
-template<std::size_t dim>
-bool
-FunctorFactoryParser<dim>::is_linear(std::string_view /*prefix*/,
-                                     const ParameterTree& config,
-                                     const LocalDomain<dim>& local_values) const noexcept
-{
-  bool _is_linear = true;
-  if (auto const* d = dynamic_cast<LocalEquations<dim> const*>(&local_values); d != nullptr) {
-    for (const auto& jac_key : config.sub("jacobian").getSubKeys()) {
-      const auto& expression = config[fmt::format("jacobian.{}.expression", jac_key)];
-      PDELab::forEach(d->nodes(), [&](auto& compartments) {
-        for (auto& compartment_fncs : compartments) {
-          for (auto& component_fncs : compartment_fncs) {
-            if (auto pos = expression.find(component_fncs.name); pos != std::string::npos) {
-              // avoid false positives by checking that surrounding tokens are invalid variable
-              // tokens
-              bool is_var = true;
-              if (pos != 0) {
-                is_var &= !std::isalpha(expression[pos - 1]);
-              }
-              if (auto next_pos = pos + component_fncs.name.size(); next_pos >= expression.size()) {
-                is_var &= !std::isalnum(expression[next_pos]);
-              }
-              if (is_var) {
-                _is_linear &= false;
-                return;
-              }
-            }
-          }
-        }
-      });
-    }
-  }
-  return _is_linear;
 }
 
 } // namespace Dune::Copasi
