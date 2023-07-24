@@ -118,16 +118,21 @@ main(int argc, char** argv)
     dump_config = true;
   }
 
-  auto is_config = [](std::string_view opt) { return opt.starts_with("--config="); };
-  if (auto cfg_it = std::ranges::find_if(cmd_args, is_config); cfg_it != cmd_args.end()) {
-    auto cfg_file = std::string{ *cfg_it }.substr(9);
-    if (not dump_config) {
-      spdlog::info("Reading configuration file '{}'", cfg_file);
+  try {
+    auto is_config = [](std::string_view opt) { return opt.starts_with("--config="); };
+    if (auto cfg_it = std::ranges::find_if(cmd_args, is_config); cfg_it != cmd_args.end()) {
+      auto cfg_file = std::string{ *cfg_it }.substr(9);
+      if (not dump_config) {
+        spdlog::info("Reading configuration file '{}'", cfg_file);
+      }
+      Dune::ParameterTreeParser::readINITree(cfg_file, config);
     }
-    Dune::ParameterTreeParser::readINITree(cfg_file, config);
+    Dune::ParameterTreeParser::readNamedOptions(cmd_args.size(), cmd_args.data(), config, {});
+  } catch (...) {
+    spdlog::error("Invalid arguments!\n");
+    program_help(prog_path.filename().string(), false);
+    return 1;
   }
-  Dune::ParameterTreeParser::readNamedOptions(cmd_args.size(), cmd_args.data(), config, {});
-
   if (dump_config) {
     config.report(std::cout);
     return 0;
