@@ -1,6 +1,6 @@
-#include <dune/copasi/common/tiff_file.hh>
-
+#include <dune/copasi/common/exceptions.hh>
 #include <dune/copasi/common/filesystem.hh>
+#include <dune/copasi/common/tiff_file.hh>
 
 #include <dune/common/exceptions.hh>
 #include <dune/common/float_cmp.hh>
@@ -18,14 +18,14 @@ TIFFFile::TIFFFile(const fs::path& filename)
 {
   TIFF* tiff_file = static_cast<TIFF*>(_tiff_file);
   if (tiff_file == nullptr) {
-    DUNE_THROW(IOError, "Error opening TIFF file '" << filename << "'.");
+    throw format_exception(IOError{}, "Error opening TIFF file '{}'", filename.string());
   }
 
   uint16_t photometric = 0;
   // NOLINTBEGIN(cppcoreguidelines-pro-type-vararg,hicpp-vararg): this is how the library is used
   TIFFGetField(tiff_file, TIFFTAG_PHOTOMETRIC, &photometric);
   if ((photometric != PHOTOMETRIC_MINISWHITE) and (photometric != PHOTOMETRIC_MINISBLACK)) {
-    DUNE_THROW(IOError, "TIFF file '" << filename << "' must be in grayscale.");
+    throw format_exception(IOError{}, "TIFF file '{}' must be in grayscale", filename.string());
   }
   _info.zero = static_cast<bool>(photometric);
 
@@ -35,7 +35,7 @@ TIFFFile::TIFFFile(const fs::path& filename)
   TIFFGetField(tiff_file, TIFFTAG_XRESOLUTION, &_info.x_res);
   TIFFGetField(tiff_file, TIFFTAG_YRESOLUTION, &_info.y_res);
   if (FloatCmp::le(_info.x_res, 0.F) or FloatCmp::le(_info.y_res, 0.F)) {
-    DUNE_THROW(IOError, "TIFF file " << filename << " has negative resolution");
+    throw format_exception(IOError{}, "TIFF file '{}' has negative resolution", filename.string());
   }
   TIFFGetField(tiff_file, TIFFTAG_XPOSITION, &_info.x_off);
   TIFFGetField(tiff_file, TIFFTAG_YPOSITION, &_info.y_off);

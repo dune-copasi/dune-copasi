@@ -1,6 +1,6 @@
-#include <dune/copasi/common/tiff_grayscale.hh>
-
+#include <dune/copasi/common/exceptions.hh>
 #include <dune/copasi/common/tiff_file.hh>
+#include <dune/copasi/common/tiff_grayscale.hh>
 
 #include <dune/common/exceptions.hh>
 #include <dune/common/hybridutilities.hh>
@@ -42,9 +42,8 @@ TIFFGrayscale::TIFFGrayscaleRow::TIFFGrayscaleRow(const TIFFFile& tiff, const st
     }
   });
   if (tiff_buffer) {
-    DUNE_THROW(
-      NotImplemented,
-      fmt::format("Encoding with {} bits not implemented", _tiff_ptr->info().bits_per_sample));
+    throw format_exception(
+      NotImplemented{}, "Encoding with {} bits not implemented", _tiff_ptr->info().bits_per_sample);
   }
 }
 

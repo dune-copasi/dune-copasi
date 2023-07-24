@@ -1,5 +1,7 @@
 #include <dune/copasi/parser/exprtk.hh>
 
+#include <dune/copasi/common/exceptions.hh>
+
 #include <exprtk.hpp>
 
 #include <map>
@@ -35,7 +37,7 @@ ExprTkParser::define_function(const std::string& symbol, const Function0D& funct
       _function0d[i] = std::make_unique<FunctionID0D>(FunctionID0D{ _parser, symbol, function });
       return;
     }
-  DUNE_THROW(Exception, "\tNot enough instantiated functions");
+  throw format_exception(NotImplemented, "Maximum number of functions reached [{}]", max_functions);
 }
 
 void
@@ -47,7 +49,7 @@ ExprTkParser::define_function(const std::string& symbol, const Function1D& funct
       _function1d[i] = std::make_unique<FunctionID1D>(FunctionID1D{ _parser, symbol, function });
       return;
     }
-  DUNE_THROW(Exception, "\tNot enough instantiated functions");
+  throw format_exception(NotImplemented, "Maximum number of functions reached [{}]", max_functions);
 }
 
 void
@@ -59,7 +61,7 @@ ExprTkParser::define_function(const std::string& symbol, const Function2D& funct
       _function2d[i] = std::make_unique<FunctionID2D>(FunctionID2D{ _parser, symbol, function });
       return;
     }
-  DUNE_THROW(Exception, "\tNot enough instantiated functions");
+  throw format_exception(NotImplemented, "Maximum number of functions reached [{}]", max_functions);
 }
 
 void
@@ -71,7 +73,7 @@ ExprTkParser::define_function(const std::string& symbol, const Function3D& funct
       _function3d[i] = std::make_unique<FunctionID3D>(FunctionID3D{ _parser, symbol, function });
       return;
     }
-  DUNE_THROW(Exception, "\tNot enough instantiated functions");
+  throw format_exception(NotImplemented, "Maximum number of functions reached [{}]", max_functions);
 }
 
 void

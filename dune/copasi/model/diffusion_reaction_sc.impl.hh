@@ -6,6 +6,7 @@
 #include <dune/copasi/model/make_initial.hh>
 #include <dune/copasi/model/make_step_operator.hh>
 
+#include <dune/copasi/common/exceptions.hh>
 #include <dune/copasi/common/ostream_to_spdlog.hh>
 #include <dune/copasi/concepts/grid.hh>
 #include <dune/copasi/grid/has_single_geometry_type.hh>
@@ -39,7 +40,7 @@ ModelDiffusionReaction<Traits>::get_entity_set(const Grid& grid, std::size_t sub
     static_assert(std::same_as<typename Grid::SubDomainGrid::LeafGridView, CompartmentEntitySet>);
     return grid.subDomain(subdomain).leafGridView();
   }
-  DUNE_THROW(NotImplemented, "\tNot known mapping from Grid to CompartmentEntitySet");
+  throw format_exception(NotImplemented{}, "Not known mapping from Grid to CompartmentEntitySet");
 }
 
 template<class Traits>
@@ -106,7 +107,7 @@ ModelDiffusionReaction<Traits>::setup_basis(State& state,
   const auto& compartments_config = config.sub("compartments", true);
   const auto& compartments = compartments_config.getSubKeys();
   if (compartments.size() != 1) {
-    DUNE_THROW(InvalidStateException, "\tConfig file should only have one compartment");
+    throw format_exception(InvalidStateException{}, "Config file should only have one compartment");
   }
   auto compartment = compartments.front();
   auto entity_set = get_entity_set(
@@ -167,7 +168,7 @@ ModelDiffusionReaction<Traits>::make_compartment_function(const std::shared_ptr<
       return makeDiscreteGlobalBasisFunction(leaf_space, coeff_ptr);
     }
   }
-  DUNE_THROW(RangeError, "\tState doesn't contain any function with name: " << name);
+  throw format_exception(RangeError{}, "State doesn't contain any function with name: {}", name);
 }
 
 template<class Traits>
@@ -251,10 +252,11 @@ ModelDiffusionReaction<Traits>::write(const State& state, const fs::path& path, 
     std::error_code ec{ 0, std::generic_category() };
     fs::create_directories(path_entry.path(), ec);
     if (ec) {
-      DUNE_THROW(IOError,
-                 "\n Category: " << ec.category().name() << '\n'
-                                 << "Value: " << ec.value() << '\n'
-                                 << "Message: " << ec.message() << '\n');
+      throw format_exception(IOError{},
+                             "\n Category: {}\nValue: {}\nMessage: {}\n",
+                             ec.category().name(),
+                             ec.value(),
+                             ec.message());
     }
   }
 
@@ -290,9 +292,10 @@ ModelDiffusionReaction<Traits>::write(const State& state, const fs::path& path, 
   timesteps = sequential_writer.getTimeSteps();
 
   if (coeff_ptr.use_count() != 1) {
-    DUNE_THROW(InvalidStateException,
-               "Fake shared pointer from coefficient vector may have been leaked outsie of this"
-               "function!");
+    throw format_exception(
+      InvalidStateException{},
+      "Fake shared pointer from coefficient vector may have been leaked outsie of this"
+      "function!");
   }
 }
 

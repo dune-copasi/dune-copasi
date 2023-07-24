@@ -1,6 +1,7 @@
 
 #include <dune/copasi/parser/context.hh>
 
+#include <dune/copasi/common/exceptions.hh>
 #include <dune/copasi/common/tiff_grayscale.hh>
 #include <dune/copasi/parser/factory.hh>
 #include <dune/copasi/parser/parser.hh>
@@ -45,38 +46,42 @@ public:
     dim = dimension
   };
   using RangeField = double;
-  using Scalar = Dune::FieldVector<double, 1>;
+  using Scalar = FieldVector<double, 1>;
   using DomainField = double;
-  using Domain = Dune::FieldVector<double, dim>;
+  using Domain = FieldVector<double, dim>;
 
   int levels;
   std::vector<DomainField> maxExt;
   std::vector<unsigned int> minCells, maxCells;
 
-  explicit RandomFieldTraits(const Dune::ParameterTree& config)
+  explicit RandomFieldTraits(const ParameterTree& config)
   {
     levels = config.get<int>("grid.refinement_level", 1);
     maxExt = config.get<std::vector<DomainField>>("grid.extensions");
     maxCells = config.get<std::vector<unsigned int>>("grid.cells");
 
     if (maxExt.size() != maxCells.size()) {
-      DUNE_THROW(Dune::Exception, "cell and extension vectors differ in size");
+      throw format_exception(IOError{},
+                             "'cell[{}]' and 'extension[{}]' vectors differ in size",
+                             maxCells.size(),
+                             maxExt.size());
     }
     minCells = maxCells;
     for (int i = 0; i < levels - 1; i++) {
       for (unsigned int j = 0; j < maxCells.size(); j++) {
         if (minCells[j] % 2 != 0) {
-          DUNE_THROW(Dune::Exception,
-                     "cannot create enough levels for hierarchical grid, check number of cells");
+          throw format_exception(
+            Exception{},
+            "cannot create enough levels for hierarchical grid, check number of cells");
         }
         minCells[j] /= 2;
       }
     }
   }
 
-  [[nodiscard]] Dune::FieldVector<DomainField, dim> L() const
+  [[nodiscard]] FieldVector<DomainField, dim> L() const
   {
-    Dune::FieldVector<DomainField, dim> Lvector;
+    FieldVector<DomainField, dim> Lvector;
 
     for (unsigned int i = 0; i < dim; i++) {
       Lvector[i] = maxExt[i];
@@ -118,11 +123,11 @@ ParserContext::ParserContext(const ParameterTree& config)
       auto domain = sub_config.template get<std::vector<double>>("domain");
       auto range = sub_config.template get<std::vector<double>>("range");
       if (not std::is_sorted(domain.begin(), domain.end())) {
-        DUNE_THROW(IOError, "The interpolation domain must be sorted");
+        throw format_exception(IOError{}, "The interpolation domain must be sorted");
       }
       if (domain.size() < 2 or domain.size() != range.size()) {
-        DUNE_THROW(
-          IOError,
+        throw format_exception(
+          IOError{},
           "Interpolation range and domain must have at least two points and be the same size");
       }
       _functions_1[sub] = [_domain = std::move(domain),
@@ -144,16 +149,15 @@ ParserContext::ParserContext(const ParameterTree& config)
       auto rmf_dim = sub_config.template get<std::vector<double>>("grid.extensions").size();
       auto seed = sub_config.template get<unsigned int>("seed", 0);
       auto file = sub_config.get("write_to", "");
-      Dune::Hybrid::switchCases(std::index_sequence<1, 2, 3>{}, rmf_dim, [&](auto dim) {
-        auto field =
-          std::make_shared<Dune::RandomField::RandomField<RandomFieldTraits<dim>>>(sub_config);
+      Hybrid::switchCases(std::index_sequence<1, 2, 3>{}, rmf_dim, [&](auto dim) {
+        auto field = std::make_shared<RandomField::RandomField<RandomFieldTraits<dim>>>(sub_config);
         if (seed == 0) {
           field->generate();
         } else {
           field->generate(seed);
         }
         const RandomFieldTraits<dim> traits(sub_config);
-        const Dune::YaspGrid<dim> yaspGrid(traits.L(), traits.N(), traits.B(), 1);
+        const YaspGrid<dim> yaspGrid(traits.L(), traits.N(), traits.B(), 1);
         if (not file.empty()) {
           // TODO(sospinar): change for dune-vtk which writes structured grids much faster
           spdlog::info("Writing random field");
@@ -183,9 +187,9 @@ ParserContext::ParserContext(const ParameterTree& config)
         }
       });
     } else if (type == "cell_data") {
-      DUNE_THROW(NotImplemented, "cell data is not implemented");
+      throw format_exception(NotImplemented{}, "cell data is not implemented");
     } else {
-      DUNE_THROW(IOError, "Unknown type " << type);
+      throw format_exception(IOError{}, "Unknown type {}", type);
     }
   }
 }
@@ -237,7 +241,7 @@ ParserContext::add_context(Parser& parser) const
                                return std::invoke(*_sub_parser);
                              });
     } else {
-      DUNE_THROW(NotImplemented, "");
+      throw NotImplemented{};
     }
   }
 }
@@ -250,7 +254,7 @@ ParserContext::parse_function_expression(std::string_view fnc_expr)
   // colon splits the argument between arguments and exprssion
   auto colon_pos = fnc_expr.find(':');
   if (colon_pos == std::string_view::npos) {
-    DUNE_THROW(IOError, "Function arguments must precede a colon ':'");
+    throw format_exception(IOError{}, "Function arguments must precede a colon ':'");
   }
 
   // get expression part
@@ -283,25 +287,23 @@ ParserContext::parse_function_expression(std::string_view fnc_expr)
         break;
       }
       // wrong: argument after a comma is empty!
-      DUNE_THROW(IOError, "Function arguments shall be named: " << fnc_expr);
+      throw format_exception(IOError{}, "Function arguments shall be named: {}", fnc_expr);
     }
 
     // check that argument contains valid identifiers
     if (std::isalpha(arg[0]) == 0) {
-      DUNE_THROW(
-        IOError,
-        fmt::format(
-          "Function argument '{}' must start with an alphabetic character.\nExpression: {}",
-          arg,
-          fnc_expr));
+      throw format_exception(
+        IOError{},
+        "Function argument '{}' must start with an alphabetic character.\nExpression: {}",
+        arg,
+        fnc_expr);
     }
     if (not std::ranges::all_of(arg, [](auto lchar) { return std::isalnum(lchar); })) {
-      DUNE_THROW(
-        IOError,
-        fmt::format(
-          "Function argument '{}' must contain only alphanumeric character.\nExpression: {}",
-          arg,
-          fnc_expr));
+      throw format_exception(
+        IOError{},
+        "Function argument '{}' must contain only alphanumeric character.\nExpression: {}",
+        arg,
+        fnc_expr);
     }
 
     // store argument view in vector

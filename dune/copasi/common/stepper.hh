@@ -3,6 +3,8 @@
 
 #include <dune-copasi-config.h>
 
+#include <dune/copasi/common/exceptions.hh>
+
 #include <dune/pdelab/common/convergence/reason.hh>
 #include <dune/pdelab/common/trace.hh>
 #include <dune/pdelab/operator/operator.hh>
@@ -211,7 +213,7 @@ public:
       using std::ceil;
       const int timesteps_until_end = ceil(timesteps_ratio);
       if (timesteps_until_end <= 0) {
-        DUNE_THROW(MathError, "\tTimestep doesn't make advances towards snap step");
+        throw format_exception(MathError{}, "Timestep doesn't make advances towards snap step");
       }
       DurationQuantity new_dt = (snap_time - time) / timesteps_until_end;
       spdlog::info("Snapping step size {:.5e}s -> {:.5e}s", dt, new_dt);
@@ -225,8 +227,7 @@ public:
       } else {
         out = prev_out;
         if (max_snap_count == snap_count++) {
-          DUNE_THROW(RangeError, "\tSnapping time exceeded maximum iteration count");
-          return error;
+          throw format_exception(RangeError{}, "Snapping time exceeded maximum iteration count");
         }
         spdlog::info("Reducing step size: {:.5e}s -> {:.5e}s", dt, dt * 0.5);
         dt *= 0.5;
@@ -277,16 +278,16 @@ public:
     , _increase_factor{ increase_factor }
   {
     if (FloatCmp::gt(_decrease_factor, 1.)) {
-      DUNE_THROW(IOError,
-                 fmt::format("Decrease factor {} must be in the range of (0,1]", _decrease_factor));
+      throw format_exception(
+        IOError{}, "Decrease factor {} must be in the range of (0,1]", _decrease_factor);
     }
     if (FloatCmp::lt(_decrease_factor, 0.)) {
-      DUNE_THROW(IOError,
-                 fmt::format("Decrease factor {} must be in the range of (0,1]", _decrease_factor));
+      throw format_exception(
+        IOError{}, "Decrease factor {} must be in the range of (0,1]", _decrease_factor);
     }
     if (FloatCmp::lt(_increase_factor, 1.)) {
-      DUNE_THROW(IOError,
-                 fmt::format("Increase factor {} must be in the range of (1,∞)", _increase_factor));
+      throw format_exception(
+        IOError{}, "Increase factor {} must be in the range of (1,∞)", _increase_factor);
     }
   }
 

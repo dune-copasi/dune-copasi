@@ -60,7 +60,8 @@ SymEngineParser::setup_function_symbol(const std::string& symbol)
               (*arg_i) = distance(begin(_symbols), it);
             } else {
               // I am not sure what has_symbol exactly does, so we may get here??
-              DUNE_THROW(Exception, "Symbol not found in main expression: " << arg_name);
+              throw format_exception(
+                Exception{}, "Symbol not found in main expression: {}", arg_name);
             }
           });
           continue;
@@ -80,7 +81,7 @@ SymEngineParser::setup_function_symbol(const std::string& symbol)
       return args_i;
     }
   }
-  DUNE_THROW(IOError, "\tFunction symbol is not contained in expression!");
+  throw format_exception(IOError{}, "Function symbol is not contained in expression!");
 }
 
 void
@@ -89,7 +90,7 @@ SymEngineParser::define_function(const std::string& symbol, const Function0D& fu
   auto args_i = setup_function_symbol(symbol);
 
   if (size(args_i) != 1)
-    DUNE_THROW(IOError, "\tFunction arguments do not match with defined function");
+    throw format_exception(IOError{}, "Function arguments do not match with defined function");
 
   _callbacks.emplace_back([args_i, this, function = function]() {
     // update function return value
@@ -103,7 +104,7 @@ SymEngineParser::define_function(const std::string& symbol, const Function1D& fu
   auto args_i = setup_function_symbol(symbol);
 
   if (size(args_i) != 2)
-    DUNE_THROW(IOError, "\tFunction arguments do not match with defined function");
+    throw format_exception(IOError{}, "Function arguments do not match with defined function");
 
   _callbacks.emplace_back([args_i, this, function = function]() {
     // update function return value
@@ -117,7 +118,7 @@ SymEngineParser::define_function(const std::string& symbol, const Function2D& fu
   auto args_i = setup_function_symbol(symbol);
 
   if (size(args_i) != 3)
-    DUNE_THROW(IOError, "\tFunction arguments do not match with defined function");
+    throw format_exception(IOError{}, "Function arguments do not match with defined function");
 
   _callbacks.emplace_back([args_i, this, function = function]() {
     // update function return value
@@ -131,7 +132,7 @@ SymEngineParser::define_function(const std::string& symbol, const Function3D& fu
   auto args_i = setup_function_symbol(symbol);
 
   if (size(args_i) != 4)
-    DUNE_THROW(IOError, "\tFunction arguments do not match with defined function");
+    throw format_exception(IOError{}, "Function arguments do not match with defined function");
 
   _callbacks.emplace_back([args_i, this, function = function]() {
     // update function return value
@@ -161,7 +162,7 @@ SymEngineParser::compile()
     _callbacks.emplace_back([this, &visitor]() { _result = visitor.call(_input); });
 
   } catch (SymEngine::SymEngineException& e) {
-    DUNE_THROW(IOError, e.what());
+    throw format_exception(IOError{}, e.what());
   }
   _compiled = true;
 }

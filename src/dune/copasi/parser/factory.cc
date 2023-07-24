@@ -1,3 +1,4 @@
+#include <dune/copasi/common/exceptions.hh>
 #include <dune/copasi/parser/factory.hh>
 #include <dune/copasi/parser/parser.hh>
 
@@ -40,7 +41,7 @@ make_parser(ParserType parser_type) -> std::unique_ptr<Parser>
 #if __has_include(<muParser.h>)
     return std::make_unique<MuParser>();
 #else
-    DUNE_THROW(Exception, "\tMuParser is not available");
+    throw format_exception(Exception{}, "MuParser is not available");
 #endif
   }
 
@@ -48,7 +49,7 @@ make_parser(ParserType parser_type) -> std::unique_ptr<Parser>
 #if __has_include(<symengine_config.h>)
     return std::make_unique<SymEngineParser>(SymEngineParser::Type::Native);
 #else
-    DUNE_THROW(Exception, "\tExprTkParser is not available");
+    throw format_exception(Exception{}, "SymEngine parser is not available");
 #endif
   }
 
@@ -56,7 +57,7 @@ make_parser(ParserType parser_type) -> std::unique_ptr<Parser>
 #if __has_include(<symengine_config.h>)
     return std::make_unique<SymEngineParser>(SymEngineParser::Type::SBML);
 #else
-    DUNE_THROW(Exception, "\tExprTkParser is not available");
+    throw format_exception(Exception{}, "SymEngineSBML is not available");
 #endif
   }
 
@@ -64,12 +65,12 @@ make_parser(ParserType parser_type) -> std::unique_ptr<Parser>
 #if __has_include(<exprtk.hpp>)
     return std::make_unique<ExprTkParser>();
 #else
-    DUNE_THROW(Exception, "\tExprTkParser is not available");
+    throw format_exception(Exception{}, "ExprTk parser is not available");
 #endif
   }
 
   assert(parser_type == ParserType::None);
-  DUNE_THROW(Exception, "\tNo parser type selected");
+  throw format_exception(Exception{}, "No parser type selected");
 }
 
 std::unique_ptr<Parser>

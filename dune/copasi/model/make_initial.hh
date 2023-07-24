@@ -1,8 +1,8 @@
 #ifndef DUNE_COPASI_MODEL_MAKE_INITIAL_HH
 #define DUNE_COPASI_MODEL_MAKE_INITIAL_HH
 
+#include <dune/copasi/common/exceptions.hh>
 #include <dune/copasi/concepts/grid.hh>
-
 #include <dune/copasi/model/local_equations/functor_factory.hh>
 
 #include <dune/pdelab/common/trace.hh>
@@ -44,13 +44,13 @@ make_initial(const Grid& grid,
         using SubDomainIndex = typename Grid::SubDomainIndex;
         auto const domain_id = compartment_config.template get<SubDomainIndex>("id");
         if (domain_id > grid.maxAssignedSubDomainIndex()) {
-          DUNE_THROW(IOError, "\tCompartment ID does not exist in multi-domain grid");
+          throw format_exception(IOError{}, "Compartment ID does not exist in multi-domain grid");
         }
         return grid.subDomain(domain_id).leafGridView();
       } else {
         auto const domain_id = compartment_config.template get<std::size_t>("id");
         if (domain_id != 0) {
-          DUNE_THROW(IOError, "\tCompartment ID does not exist in grid");
+          throw format_exception(IOError{}, "Compartment ID does not exist in grid");
         }
         return grid.leafGridView();
       }
@@ -84,7 +84,7 @@ make_initial(const Grid& grid,
       std::string const component_id = fmt::format("{}.{}", compartment, component);
       auto [_, inserted] = functions.try_emplace(component_id, std::move(grid_function));
       if (not inserted) {
-        DUNE_THROW(IOError, "\tTwo or more components share the same name");
+        throw format_exception(IOError{}, "Two or more components share the same name");
       }
     }
   }

@@ -1,5 +1,7 @@
 #include <dune/copasi/parser/parser.hh>
 
+#include <dune/copasi/common/exceptions.hh>
+
 #include <dune/common/exceptions.hh>
 
 #include <fmt/core.h>
@@ -26,7 +28,7 @@ Parser::define_variable(const std::string& symbol, RangeField const* value)
 {
   auto symb_it = std::find(_symbols.begin(), _symbols.end(), symbol);
   if (symb_it != _symbols.end()) {
-    DUNE_THROW(Exception, fmt::format("\tSymbol '{}' is already defined", symbol));
+    throw format_exception(IOError{}, "Symbol '{}' is already defined", symbol);
   }
   _symbols.push_back(symbol);
   _variables.emplace_back(value);

@@ -3,6 +3,7 @@
 
 #include <dune-copasi-config.h>
 
+#include <dune/copasi/common/exceptions.hh>
 #include <dune/copasi/common/ostream_to_spdlog.hh>
 #include <dune/copasi/concepts/grid.hh>
 #include <dune/copasi/parser/context.hh>
@@ -32,8 +33,8 @@ make_multi_domain_grid(Dune::ParameterTree& config,
   const auto& grid_config = config.sub("grid");
   std::size_t const dim = grid_config.get("dimension", std::size_t{ MDGrid::dimensionworld });
   if (dim != MDGrid::dimensionworld) {
-    DUNE_THROW(Dune::IOError,
-               "\tExecutable grid dimension does not match with input grid dimension!");
+    throw format_exception(IOError{},
+                           "Executable grid dimension does not match with input grid dimension!");
   }
 
   auto out_guard = ostream2spdlog();
@@ -123,7 +124,7 @@ make_multi_domain_grid(Dune::ParameterTree& config,
           return FloatCmp::ne(std::invoke(*parser_ptr), 0.);
         };
       } else {
-        DUNE_THROW(NotImplemented, "");
+        throw format_exception(NotImplemented{}, "Not know type '{}' of compartment", type);
       }
     }
   }
@@ -150,10 +151,10 @@ make_multi_domain_grid(Dune::ParameterTree& config,
       }
     }
     if (max_domains_per_entity > static_cast<std::size_t>(md_grid_traits.maxSubDomainIndex() + 1)) {
-      DUNE_THROW(GridError,
-                 fmt::format("This version of dune-copasi does not support to"
+      throw format_exception(GridError{},
+                             "This version of dune-copasi does not support to"
                              " have more than {} domains per entity!",
-                             md_grid_traits.maxSubDomainIndex() + 1));
+                             md_grid_traits.maxSubDomainIndex() + 1);
     }
   }
 

@@ -2,6 +2,8 @@
 #define DUNE_COPASI_MODEL_MODEL_HH
 
 #include <dune-copasi-config.h>
+
+#include <dune/copasi/common/exceptions.hh>
 #include <dune/copasi/common/filesystem.hh>
 
 #include <dune/pdelab/operator/operator.hh>
@@ -67,18 +69,18 @@ struct Model
 
   virtual std::nullptr_t make_membrane_function(const State&, std::string_view) const
   {
-    DUNE_THROW(NotImplemented, "\tModel has no membrane functions");
+    throw format_exception(NotImplemented{}, "Model has no membrane functions");
   }
 
   virtual std::nullptr_t make_membrane_function(const std::shared_ptr<const State>&,
                                                 std::string_view) const
   {
-    DUNE_THROW(NotImplemented, "\tModel has no membrane functions");
+    throw format_exception(NotImplemented{}, "Model has no membrane functions");
   }
 
   virtual void write(const State&, const fs::path&, bool) const
   {
-    DUNE_THROW(NotImplemented, "\tModel write has not been implemented");
+    throw format_exception(NotImplemented{}, "Model write has not been implemented");
   }
 
   [[nodiscard]] virtual std::unique_ptr<PDELab::OneStep<State>> make_step_operator(

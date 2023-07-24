@@ -40,6 +40,5 @@ target_precompile_headers(dune-copasi-common
     $<BUILD_INTERFACE:dune/grid/yaspgrid.hh>
     $<BUILD_INTERFACE:dune/pdelab/common/tree_traversal.hh>
     $<BUILD_INTERFACE:dune/pdelab/common/for_each.hh>
-    $<BUILD_INTERFACE:dune/copasi/common/stepper.hh>
     $<BUILD_INTERFACE:memory>
 )

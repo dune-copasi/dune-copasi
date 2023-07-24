@@ -1,5 +1,6 @@
 #include <dune/copasi/parser/mu.hh>
 
+#include <dune/copasi/common/exceptions.hh>
 #include <dune/copasi/parser/parser.hh>
 
 #include <dune/common/exceptions.hh>
@@ -111,7 +112,8 @@ MuParser::define_function(const std::string& symbol, const Function0D& function)
       return;
     }
   }
-  DUNE_THROW(Exception, "\tNot enough instantiated functions");
+  throw format_exception(
+    NotImplemented{}, "Maximum number of functions reached: {}", max_functions);
 }
 
 void
@@ -124,7 +126,8 @@ MuParser::define_function(const std::string& symbol, const Function1D& function)
       return;
     }
   }
-  DUNE_THROW(Exception, "\tNot enough instantiated functions");
+  throw format_exception(
+    NotImplemented{}, "Maximum number of functions reached: {}", max_functions);
 }
 
 void
@@ -137,7 +140,8 @@ MuParser::define_function(const std::string& symbol, const Function2D& function)
       return;
     }
   }
-  DUNE_THROW(Exception, "\tNot enough instantiated functions");
+  throw format_exception(
+    NotImplemented{}, "Maximum number of functions reached: {}", max_functions);
 }
 
 void
@@ -150,7 +154,8 @@ MuParser::define_function(const std::string& symbol, const Function3D& function)
       return;
     }
   }
-  DUNE_THROW(Exception, "\tNot enough instantiated functions");
+  throw format_exception(
+    NotImplemented{}, "Maximum number of functions reached: {}", max_functions);
 }
 
 void

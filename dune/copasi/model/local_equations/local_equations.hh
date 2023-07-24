@@ -2,6 +2,7 @@
 #define DUNE_COPASI_MODEL_LOCAL_EQUATIONS_LOCAL_EQUATIONS_HH
 
 #include <dune/copasi/common/bit_flags.hh>
+#include <dune/copasi/common/exceptions.hh>
 #include <dune/copasi/concepts/compartment_tree.hh>
 #include <dune/copasi/model/local_equations/functor_factory.hh>
 #include <dune/copasi/parser/factory.hh>
@@ -281,8 +282,8 @@ public:
       for (const auto& compartment_fncs : compartments_fncs)
         for (const auto& component_fncs : compartment_fncs)
           if (auto [it, inserted] = names.insert(component_fncs.name); not inserted)
-            DUNE_THROW(InvalidStateException,
-                       fmt::format("\tVariable with name '{}' is repeated", *it));
+            throw format_exception(
+              InvalidStateException{}, "\tVariable with name '{}' is repeated", *it);
     });
 
     if (opts.any())
@@ -582,7 +583,8 @@ private:
 
             if (opts.test(FactoryFalgs::Outflow) and component_config.hasSub("outflow")) {
               if (l == 1)
-                DUNE_THROW(NotImplemented, "\nOutflow for membranes is not implemented");
+                throw format_exception(NotImplemented{},
+                                       "Outflow for membranes is not implemented");
               const auto& boundaries_config = component_config.sub("outflow");
               for (std::size_t i = 0; i != _compartment_names[l].size(); ++i) {
                 if (boundaries_config.hasSub(_compartment_names[l][i])) {
