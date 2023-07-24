@@ -49,59 +49,6 @@ public:
   using Scalar = FieldVector<double, 1>;
   using DomainField = double;
   using Domain = FieldVector<double, dim>;
-
-  int levels;
-  std::vector<DomainField> maxExt;
-  std::vector<unsigned int> minCells, maxCells;
-
-  explicit RandomFieldTraits(const ParameterTree& config)
-  {
-    levels = config.get<int>("grid.refinement_level", 1);
-    maxExt = config.get<std::vector<DomainField>>("grid.extensions");
-    maxCells = config.get<std::vector<unsigned int>>("grid.cells");
-
-    if (maxExt.size() != maxCells.size()) {
-      throw format_exception(IOError{},
-                             "'cell[{}]' and 'extension[{}]' vectors differ in size",
-                             maxCells.size(),
-                             maxExt.size());
-    }
-    minCells = maxCells;
-    for (int i = 0; i < levels - 1; i++) {
-      for (unsigned int j = 0; j < maxCells.size(); j++) {
-        if (minCells[j] % 2 != 0) {
-          throw format_exception(
-            Exception{},
-            "cannot create enough levels for hierarchical grid, check number of cells");
-        }
-        minCells[j] /= 2;
-      }
-    }
-  }
-
-  [[nodiscard]] FieldVector<DomainField, dim> L() const
-  {
-    FieldVector<DomainField, dim> Lvector;
-
-    for (unsigned int i = 0; i < dim; i++) {
-      Lvector[i] = maxExt[i];
-    }
-
-    return Lvector;
-  }
-
-  [[nodiscard]] std::array<int, dim> N() const
-  {
-    std::array<int, dim> Nvector{};
-
-    for (unsigned int i = 0; i < dim; i++) {
-      Nvector[i] = minCells[i];
-    }
-
-    return Nvector;
-  }
-
-  [[nodiscard]] std::bitset<dim> B() const { return std::bitset<dim>(false); }
 };
 
 ParserContext::ParserContext(const ParameterTree& config)
@@ -156,30 +103,43 @@ ParserContext::ParserContext(const ParameterTree& config)
         } else {
           field->generate(seed);
         }
-        const RandomFieldTraits<dim> traits(sub_config);
-        const YaspGrid<dim> yaspGrid(traits.L(), traits.N(), traits.B(), 1);
+
+        auto upper_right = sub_config.get("grid.extensions", FieldVector<double, dim>(1.));
         if (not file.empty()) {
+          // make grid for writing it into vtk file
+          std::array<int, dim> cells{};
+          std::fill_n(std::begin(cells), dim, 1);
+          cells = sub_config.get("grid.cells", cells);
+          auto levels = config.get<int>("grid.refinement_level", 1);
+          YaspGrid<dim> yasp_grid(upper_right, cells);
+          yasp_grid.globalRefine(levels);
           // TODO(sospinar): change for dune-vtk which writes structured grids much faster
           spdlog::info("Writing random field");
-          field->writeToVTK(file, yaspGrid.leafGridView());
+          field->writeToVTK(file, yasp_grid.leafGridView());
         }
 
         if constexpr (dim == 1) {
-          _functions_1[sub] = [_field = std::move(field)](auto pos_x) {
+          _functions_1[sub] = [upper_right, _field = std::move(field)](auto pos_x) {
+            pos_x = std::clamp(0., pos_x, upper_right[0]);
             FieldVector<double, 1> res;
             _field->evaluate(FieldVector<double, 1>{ pos_x }, res);
             return res[0];
           };
         }
         if constexpr (dim == 2) {
-          _functions_2[sub] = [_field = std::move(field)](auto pos_x, auto pos_y) {
+          _functions_2[sub] = [upper_right, _field = std::move(field)](auto pos_x, auto pos_y) {
+            pos_x = std::clamp(0., pos_x, upper_right[0]);
+            pos_y = std::clamp(0., pos_y, upper_right[1]);
             FieldVector<double, 1> res;
             _field->evaluate(FieldVector<double, 2>{ pos_x, pos_y }, res);
             return res[0];
           };
         }
         if constexpr (dim == 3) {
-          _functions_3[sub] = [_field = std::move(field)](auto pos_x, auto pos_y, auto pos_z) {
+          _functions_3[sub] = [upper_right, _field = std::move(field)](auto pos_x, auto pos_y, auto pos_z) {
+            pos_x = std::clamp(0., pos_x, upper_right[0]);
+            pos_y = std::clamp(0., pos_y, upper_right[1]);
+            pos_z = std::clamp(0., pos_z, upper_right[2]);
             FieldVector<double, 1> res;
             _field->evaluate(FieldVector<double, 3>{ pos_x, pos_y, pos_z }, res);
             return res[0];
