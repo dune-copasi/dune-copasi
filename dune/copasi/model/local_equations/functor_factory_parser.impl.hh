@@ -135,24 +135,34 @@ FunctorFactoryParser<dim>::parse_scalar_expression(const ParameterTree& config,
     parser_ptr->define_variable("entity_volume", &(local_values.entity_volume));
     if (not is_membrane_expression)
       parser_ptr->define_variable("cell_index", &(local_values.cell_index));
-    for (std::size_t i = 0; i != dim; ++i) {
-      parser_ptr->define_variable(fmt::format("position_{}", dim_name.at(i)),
-                                  &(local_values.position)[i]);
-      if (is_membrane_expression)
-        parser_ptr->define_variable(fmt::format("normal_{}", dim_name.at(i)),
-                                    &(local_values.normal)[i]);
+    for (std::size_t i = 0; i != 3; ++i) {
+      auto pos_arg = fmt::format("position_{}", dim_name.at(i));
+      auto norm_arg = fmt::format("normal_{}", dim_name.at(i));
+      if (i < dim) {
+        parser_ptr->define_variable(pos_arg, &(local_values.position)[i]);
+        if (is_membrane_expression)
+          parser_ptr->define_variable(norm_arg, &(local_values.normal)[i]);
+      } else {
+        parser_ptr->define_constant(pos_arg, 0.);
+        if (is_membrane_expression)
+          parser_ptr->define_constant(norm_arg, 0.);
+      }
     }
 
-    if (LocalEquations<dim> const* d = dynamic_cast<LocalEquations<dim> const*>(&local_values);
-        d != nullptr)
+    LocalEquations<dim> const* d = dynamic_cast<LocalEquations<dim> const*>(&local_values);
+    if (d != nullptr)
       PDELab::forEach(d->nodes(), [&](auto& compartments) {
         for (auto& compartment_fncs : compartments)
           for (auto& component_fncs : compartment_fncs) {
             parser_ptr->define_variable(component_fncs.name, &(component_fncs.value[0]));
-            for (std::size_t i = 0; i != dim; ++i)
-              parser_ptr->define_variable(
-                fmt::format("grad_{}_{}", component_fncs.name, dim_name.at(i)),
-                &(component_fncs.gradient)[i]);
+            for (std::size_t i = 0; i != 3; ++i) {
+              auto grad_arg = fmt::format("grad_{}_{}", component_fncs.name, dim_name.at(i));
+              if (i < dim) {
+                parser_ptr->define_variable(grad_arg, &(component_fncs.gradient)[i]);
+              } else {
+                parser_ptr->define_constant(grad_arg, 0.);
+              }
+            }
           }
       });
 

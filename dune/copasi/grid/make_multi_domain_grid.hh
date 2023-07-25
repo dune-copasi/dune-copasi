@@ -118,8 +118,13 @@ make_multi_domain_grid(Dune::ParameterTree& config,
           parser_context->add_context(*parser_ptr);
         auto position = std::make_shared<FieldVector<double, MDGrid::dimensionworld>>();
         std::vector<std::string> dim_name = { "x", "y", "z" };
-        for (std::size_t i = 0; i != MDGrid::dimensionworld; ++i) {
-          parser_ptr->define_variable(fmt::format("position_{}", dim_name.at(i)), &(*position)[i]);
+        for (std::size_t i = 0; i != 3; ++i) {
+          auto pos_arg = fmt::format("position_{}", dim_name.at(i));
+          if (i < MDGrid::dimensionworld) {
+            parser_ptr->define_variable(pos_arg, &(*position)[i]);
+          } else {
+            parser_ptr->define_constant(pos_arg, 0.);
+          }
         }
         parser_ptr->set_expression(compartment_config["expression"]);
         parser_ptr->compile();
