@@ -228,8 +228,8 @@ public:
                       auto& lpattern) const noexcept
   {
     forEachLeafNode(ltest.tree(), [&](const auto& ltest_node) {
-      const auto& eq =
-        _local_values->get_equation(PDELab::containerEntry(ltrial.tree(), ltest_node.path()));
+      const auto& ltrial_node = PDELab::containerEntry(ltrial.tree(), ltest_node.path());
+      const auto& eq = _local_values->get_equation(ltrial_node);
       if (eq.reaction) {
         for (const auto& jacobian_entry : eq.reaction.compartment_jacobian) {
           const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
@@ -240,7 +240,9 @@ public:
       }
 
       if (eq.storage) {
-        // TODO: add self
+        for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i)
+          for (std::size_t dof_j = 0; dof_j != ltrial_node.size(); ++dof_j)
+            lpattern.addLink(ltest_node, dof_i, ltrial_node, dof_j);
         for (const auto& jacobian_entry : eq.storage.compartment_jacobian) {
           const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
           for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i)
@@ -250,7 +252,9 @@ public:
       }
 
       if (eq.velocity) {
-        // TODO: add self
+        for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i)
+          for (std::size_t dof_j = 0; dof_j != ltrial_node.size(); ++dof_j)
+            lpattern.addLink(ltest_node, dof_i, ltrial_node, dof_j);
         for (const auto& jacobian_entry : eq.velocity.compartment_jacobian) {
           const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
           for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i)
@@ -276,26 +280,64 @@ public:
     });
   }
 
-  void localAssemblePatternSkeleton(
-    const Dune::Concept::Intersection                  auto& intersection,
-    const PDELab::Concept::LocalBasis                  auto& ltrial_in,
-    const PDELab::Concept::LocalBasis                  auto& ltest_in,
-    const PDELab::Concept::LocalBasis                  auto& ltrial_out,
-    const PDELab::Concept::LocalBasis                  auto& ltest_out,
-                                                       auto& lpattern_in_in,
-                                                       auto& lpattern_in_out,
-                                                       auto& lpattern_out_in,
-                                                       auto& lpattern_out_out) noexcept {
-                                                        std::terminate();
-                                                       }
+  void localAssemblePatternSkeleton(const Dune::Concept::Intersection auto& intersection,
+                                    const PDELab::Concept::LocalBasis auto& ltrial_in,
+                                    const PDELab::Concept::LocalBasis auto& ltest_in,
+                                    const PDELab::Concept::LocalBasis auto& ltrial_out,
+                                    const PDELab::Concept::LocalBasis auto& ltest_out,
+                                    auto& lpattern_in_in,
+                                    auto& lpattern_in_out,
+                                    auto& lpattern_out_in,
+                                    auto& lpattern_out_out) noexcept
+  {
+    forEachLeafNode(ltest_in.tree(), [&](const auto& ltest_node_in) {
+      if (ltest_node_in.size() == 0)
+        return;
+      const auto& ltrial_node = PDELab::containerEntry(ltrial_in.tree(), ltest_node_in.path());
+      const auto& eq = _local_values->get_equation(ltrial_node);
+      for (const auto& outflow_i : eq.outflow) {
+        for (const auto& jacobian_entry : outflow_i.compartment_jacobian) {
+          bool do_self_basis = jacobian_entry.wrt.to_local_basis_node(ltrial_out).size() == 0;
+          const auto& ltrial = do_self_basis ? ltrial_in : ltrial_out;
+          auto& lpattern = do_self_basis ? lpattern_in_in : lpattern_in_out;
+          const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
+          for (std::size_t dof_i = 0; dof_i != ltest_node_in.size(); ++dof_i)
+            for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
+              lpattern.addLink(ltest_node_in, dof_i, wrt_lbasis, dof_j);
+        }
+      }
+    });
 
-  void localAssemblePatternBoundary(
-    const Dune::Concept::Intersection                  auto& intersection,
-    const PDELab::Concept::LocalBasis                  auto& ltrial_in,
-    const PDELab::Concept::LocalBasis                  auto& ltest_in,
-                                                       auto& lpattern_in) noexcept {
-                                                        std::terminate();
-                                                       }
+    if (not intersection.neighbor())
+      return;
+
+    forEachLeafNode(ltest_out.tree(), [&](const auto& ltest_node_out) {
+      if (ltest_node_out.size() == 0)
+        return;
+      const auto& ltrial_node = PDELab::containerEntry(ltrial_out.tree(), ltest_node_out.path());
+      const auto& eq = _local_values->get_equation(ltrial_node);
+      for (const auto& outflow_i : eq.outflow) {
+        for (const auto& jacobian_entry : outflow_i.compartment_jacobian) {
+          bool do_self_basis = jacobian_entry.wrt.to_local_basis_node(ltrial_out).size() == 0;
+          const auto& ltrial = do_self_basis ? ltrial_out : ltrial_in;
+          auto& lpattern = do_self_basis ? lpattern_out_out : lpattern_out_in;
+          const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
+          for (std::size_t dof_i = 0; dof_i != ltest_node_out.size(); ++dof_i)
+            for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
+              lpattern.addLink(ltest_node_out, dof_i, wrt_lbasis, dof_j);
+        }
+      }
+    });
+
+  }
+
+  void localAssemblePatternBoundary(const Dune::Concept::Intersection auto& intersection,
+                                    const PDELab::Concept::LocalBasis auto& ltrial_in,
+                                    const PDELab::Concept::LocalBasis auto& ltest_in,
+                                    auto& lpattern_in) noexcept
+  {
+    localAssemblePatternSkeleton(intersection, ltrial_in, ltest_in, ltrial_in, ltest_in, lpattern_in, lpattern_in, lpattern_in, lpattern_in);
+  }
 
   /**
    * @brief      The volume integral
@@ -860,8 +902,7 @@ public:
           _local_values->get_equation(PDELab::containerEntry(ltrial_in.tree(), path));
         auto compartment_i = eq.path[Indices::_1];
         if (ltest_node_in.size() == 0 or eq.outflow.empty())
-          return; // FIXME this is empty even when the outflow is filled in
-                  // local_values??!
+          return;
 
         // accumulate outflow part into residual
         if (intersection.neighbor()) { // interior skeleton case
@@ -950,9 +991,9 @@ public:
           const auto& ltest_node_in = source_i.to_local_basis_node(ltest_in);
           for (const auto& jacobian_entry : outflow_i.compartment_jacobian) {
             auto jac = jacobian_entry();
-            bool self_jac = (source_i.path[Indices::_1] == jacobian_entry.wrt.path[Indices::_1]);
-            const auto& ltrial = self_jac ? ltrial_in : ltrial_out;
-            auto& ljacobian = self_jac ? ljacobian_in_in : ljacobian_in_out;
+            bool do_self_basis = jacobian_entry.wrt.to_local_basis_node(ltrial_out).size() == 0;
+            const auto& ltrial = do_self_basis ? ltrial_in : ltrial_out;
+            auto& ljacobian = do_self_basis ? ljacobian_in_in : ljacobian_in_out;
             const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
             for (std::size_t dof_i = 0; dof_i != ltest_node_in.size(); ++dof_i)
               for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
@@ -1001,9 +1042,9 @@ public:
           const auto& ltest_node_out = source_o.to_local_basis_node(ltest_out);
           for (const auto& jacobian_entry : outflow_o.compartment_jacobian) {
             auto jac = jacobian_entry();
-            bool self_jac = (source_o.path[Indices::_1] == jacobian_entry.wrt.path[Indices::_1]);
-            const auto& ltrial = self_jac ? ltrial_out : ltrial_in;
-            auto& ljacobian = self_jac ? ljacobian_out_out : ljacobian_out_in;
+            bool do_self_basis = jacobian_entry.wrt.to_local_basis_node(ltrial_out).size() == 0;
+            const auto& ltrial = do_self_basis ? ltrial_out : ltrial_in;
+            auto& ljacobian = do_self_basis ? ljacobian_out_out : ljacobian_out_in;
             const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
             for (std::size_t dof_i = 0; dof_i != ltest_node_out.size(); ++dof_i)
               for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
