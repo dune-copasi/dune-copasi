@@ -8,6 +8,16 @@ foreach(dim ${DUNE_COPASI_GRID_DIMENSIONS})
     foreach(order ${DUNE_COPASI_${dim}D_FEM_ORDERS})
       set(target dune-copasi-lib-${dim}D-P${order})
       dune_add_library(${target} STATIC EXPORT_NAME Copasi::ModelLibraryP${order}${dim}D)
+      target_link_libraries(${target}
+        PRIVATE
+          $<TARGET_NAME_IF_EXISTS:SuiteSparse::SuiteSparse>
+          $<TARGET_NAME_IF_EXISTS:SuperLU::SuperLU>
+      )
+      target_compile_definitions(${target}
+        PRIVATE
+          $<$<TARGET_EXISTS:SuiteSparse::SuiteSparse>:ENABLE_SUITESPARSE=1>
+          $<$<TARGET_EXISTS:SuperLU::SuperLU>:ENABLE_SUPERLU=1>
+      )
       target_precompile_headers(${target}
         PUBLIC
           $<BUILD_INTERFACE:dune/copasi/model/diffusion_reaction_sc.hh>

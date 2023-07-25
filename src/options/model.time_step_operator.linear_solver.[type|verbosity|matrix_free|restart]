@@ -7,13 +7,15 @@ type=<string>
     * 'RestartedGMRes'
     * 'CG'
     * 'BiCGSTAB'
+    * 'UMFPack'
+    * 'SuperLU'
 
 restart=<integer>
   Number of iterations before the Gram-Schmidt orthognialization is restarted
     This option can only be used together with 'type=RestartedGMRes'.
 
 matrix_free=<bool>
-  Whether to perform computations with matrix-free methods in the linear solver. Default: true
+  Whether to perform computations with matrix-free methods in the linear solver. Default: false
     In general, the matrix-free version will require less memory but will take more
     computation time to calculate the jacobian application. Additionally,
     it is not compatible with direct solvers.

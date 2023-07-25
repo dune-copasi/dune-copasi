@@ -13,6 +13,9 @@
 #include <dune/pdelab/operator/forward/runge_kutta.hh>
 #include <dune/pdelab/operator/inverse/newton.hh>
 #include <dune/pdelab/operator/operator.hh>
+#include <dune/pdelab/pattern/basis_to_pattern.hh>
+#include <dune/pdelab/pattern/sparsity_pattern.hh>
+#include <dune/pdelab/pattern/pattern_to_matrix.hh>
 
 #include <dune/istl/operators.hh>
 #include <dune/istl/preconditioners.hh>
@@ -20,6 +23,9 @@
 #include <dune/istl/solvers.hh>
 #include <dune/istl/superlu.hh>
 #include <dune/istl/umfpack.hh>
+#include <dune/istl/io.hh>
+
+#include <dune/common/overloadset.hh>
 
 #include <concepts>
 #include <functional>
@@ -88,17 +94,8 @@ public:
     std::shared_ptr<Preconditioner<Domain, Range>> pre_op;
     pre_op = std::make_shared<Dune::Richardson<Domain, Range>>(0.1);
 
-    // // try to get the jacobian...
-    // using JacobianOperator = PDELab::AssembledLinearOperator<Jacobian,Domain,Range>;
-    // auto assembled_derivative = dynamic_cast<JacobianOperator const *>(&derivative);
-    // if (assembled_derivative) {
-    //   // pre_op =
-    //   std::make_shared<Dune::SeqSSOR<Jacobian,Domain,Range,2>>(assembled_derivative->matrix(), 5,
-    //   1);
-    // }
-
     auto solver = this->template get<std::string>("type");
-    auto verbosity = this->template get<u_char>("verbosity");
+    auto verbosity = this->template get<int>("verbosity");
     auto rel_tol = this->template get<double>("convergence_condition.relative_tolerance");
     const auto& it_range = this->get("convergence_condition.iteration_range").as_vector();
     std::size_t min_iterations = unwrap_property_ref<const std::size_t>(it_range[0]);
@@ -106,33 +103,65 @@ public:
 
     Dune::InverseOperatorResult result;
     PDELab::ErrorCondition ec{};
-    std::unique_ptr<IterativeSolver<Domain, Range>> istl_solver;
     if (solver == "BiCGSTAB") {
-      istl_solver = std::make_unique<Dune::BiCGSTABSolver<Domain>>(
+      auto istl_solver = Dune::BiCGSTABSolver<Domain>(
         istl_forward_op, scalar_product_op, pre_op, rel_tol, int(max_iterations), verbosity);
+      istl_solver.apply(domain, range, result);
     } else if (solver == "CG") {
-      istl_solver = std::make_unique<CGSolver<Domain>>(
+      auto istl_solver = CGSolver<Domain>(
         istl_forward_op, scalar_product_op, pre_op, rel_tol, max_iterations, verbosity);
+      istl_solver.apply(domain, range, result);
     } else if (solver == "RestartedGMRes") {
       auto restart = this->get("restart", std::size_t{ 40 });
-      istl_solver = std::make_unique<RestartedGMResSolver<Domain, Range>>(istl_forward_op,
+      auto istl_solver = RestartedGMResSolver<Domain, Range>(istl_forward_op,
                                                                           scalar_product_op,
                                                                           pre_op,
                                                                           rel_tol,
                                                                           restart,
                                                                           int(max_iterations),
                                                                           verbosity);
-
+      istl_solver.apply(domain, range, result);
+    } else if (solver == "SuperLU") {
+#if HAVE_SUPERLU
+      if constexpr (std::same_as<Domain,BlockVector<BlockVector<double>>>) {
+        if (domain.size() != 1 or range.size() != 1)
+          throw format_exception(IOError{}, "SuperLU solver can only be used on semi-implicit or explicit time stepping methods");
+        if (not forward.hasKey("container"))
+          throw format_exception(IOError{}, "SuperLU solver cannot be a matrix-free operator");
+        auto& matrix = forward.template get<DynamicMatrix<BCRSMatrix<double>>>("container");
+        auto istl_solver = Dune::SuperLU<BCRSMatrix<double>>(matrix[0][0]);
+        istl_solver.apply(domain[0], range[0], result);
+      } else {
+        throw format_exception(IOError{}, "SuperLU solver can only be used on flat matrices for semi-implicit or explicit time stepping methods");
+      }
+#else
+      throw format_exception(IOError{}, "SuperLU solver is not available");
+#endif
+    } else if (solver == "UMFPack") {
+#if HAVE_SUITESPARSE_UMFPACK
+      if constexpr (std::same_as<Domain,BlockVector<BlockVector<double>>>) {
+        if (domain.size() != 1 or range.size() != 1)
+          throw format_exception(IOError{}, "UMFPack solver can only be used on semi-implicit or explicit time stepping methods");
+        if (not forward.hasKey("container"))
+          throw format_exception(IOError{}, "UMFPack solver cannot be a matrix-free operator");
+        auto& matrix = forward.template get<DynamicMatrix<BCRSMatrix<double>>>("container");
+        auto istl_solver = Dune::UMFPack<BCRSMatrix<double>>(matrix[0][0]);
+        istl_solver.apply(domain[0], range[0], result);
+      } else {
+        throw format_exception(IOError{}, "UMFPack solver can only be used on flat matrices for semi-implicit or explicit time stepping methods");
+      }
+#else
+      throw format_exception(IOError{}, "UMFPack solver is not available");
+#endif
     } else {
       throw format_exception(IOError{}, "Not known linear solver of type '{}'", solver);
     }
-    istl_solver->apply(domain, range, result);
 
     TRACE_COUNTER("dune", "LinearSolver::Iterations", solver_timestamp, result.iterations);
     TRACE_COUNTER("dune", "LinearSolver::Reduction", solver_timestamp, result.reduction);
     TRACE_COUNTER("dune", "LinearSolver::Converged", solver_timestamp, result.converged);
 
-    if (result.iterations <= min_iterations) {
+    if (result.iterations <= static_cast<int>(min_iterations)) {
       spdlog::warn("Minimum of {} iteration requested but {} were performed",
                    min_iterations,
                    result.iterations);
@@ -152,10 +181,10 @@ public:
   }
 };
 
-template<class Coefficients, class Residual, class ResidualQuantity, class TimeQuantity>
+template<class Coefficients, class Residual, class ResidualQuantity, class TimeQuantity, PDELab::Concept::Basis Basis>
 [[nodiscard]] inline static std::unique_ptr<PDELab::OneStep<Coefficients>>
 make_step_operator(const ParameterTree& config,
-                   const PDELab::Concept::Basis auto& basis,
+                   const Basis& basis,
                    const auto& mass_local_operator,
                    const auto& stiffness_local_operator)
 {
@@ -174,29 +203,34 @@ make_step_operator(const ParameterTree& config,
     spdlog::info("Local operator is non-linear");
   }
 
-  // using Jacobian = decltype([](){
-  //   if constexpr (CompartmentMergingStrategy::Blocked)
-  //     return DynamicMatrix<BCRSMatrix<BCRSMatrix<double>>>{};
-  //   else
-  //     return DynamicMatrix<BCRSMatrix<double>>{};
-  // }());
+  auto jacobian_selector = overload(
+    [](BlockVector<double>) -> BCRSMatrix<double> {return {};},
+    [](BlockVector<BlockVector<double>>) -> BCRSMatrix<BCRSMatrix<double>> { return {}; },
+    [](BlockVector<BlockVector<BlockVector<double>>>) -> BCRSMatrix<BCRSMatrix<BCRSMatrix<double>>> { return {}; }
+  );
+
+  static_assert(std::same_as<Coefficients, Residual>);
+
+  using Jacobian = decltype(jacobian_selector(Coefficients{}));
+  using RKJacobian = DynamicMatrix<Jacobian>;
 
   std::shared_ptr<PDELab::Operator<RKResidual, RKCoefficients>> const linear_solver =
     std::make_shared<LinearSolver<RKResidual, RKCoefficients>>();
 
   // configure linear solver
   const auto& lsover_config = config.sub("linear_solver");
-  const bool matrix_free = lsover_config.get("matrix_free", true);
-  const auto lin_solver = lsover_config.get("type", std::string{ "RestartedGMRes" });
+  auto svg_path = lsover_config.get("layout.writer.svg.path", "");
+  const bool matrix_free = lsover_config.get("matrix_free", false);
+  const auto lin_solver = lsover_config.get("type", std::string{ "UMFPack" });
   auto rel_tol = lsover_config.get("convergence_condition.relative_tolerance", 1e-4);
   auto it_range =
     lsover_config.get("convergence_condition.iteration_range", std::array<std::size_t, 2>{ 0, 40 });
   linear_solver->get("type") = lin_solver;
   linear_solver->get("convergence_condition.relative_tolerance") = rel_tol;
   linear_solver->get("convergence_condition.iteration_range") = { it_range[0], it_range[1] };
-  linear_solver->get("verbosity") = lsover_config.get("verbosity", u_char{ 1 });
+  linear_solver->get("verbosity") = lsover_config.get("verbosity", int{ 0 });
   linear_solver->get("restart") = lsover_config.get("restart", std::size_t{ 40 });
-  spdlog::info("Creating linear solver with '{}' method", lin_solver);
+  spdlog::info("Creating linear solver with '{}' type", lin_solver);
 
   if (lin_solver == "CG" and not is_linear) {
     spdlog::warn("Using conjugate gradient in a non-linear solver is not recommended");
@@ -223,7 +257,8 @@ make_step_operator(const ParameterTree& config,
 
           RKCoefficients z = *coeff_zero;
 
-          linear_solver->get("forward") = forward.derivative(x);
+          if (not linear_solver->hasKey("forward"))
+            linear_solver->get("forward") = forward.derivative(x);
           // compute correction
           auto error_condition = linear_solver->apply(b, z);
 
@@ -231,13 +266,12 @@ make_step_operator(const ParameterTree& config,
             return error_condition;
           }
           PDELab::axpy(x, -1., z);
-          linear_solver->get("forward") = nullptr;
           return Dune::PDELab::ErrorCondition{};
         });
 
     runge_kutta_inverse = std::move(linear_runge_kutta_inverse);
   } else {
-    spdlog::info("Creating non-linear solver with 'Newton' method");
+    spdlog::info("Creating non-linear solver with 'Newton' type");
     auto newton_op =
       std::make_unique<PDELab::NewtonOperator<RKCoefficients, RKResidual, ResidualQuantity>>();
 
@@ -283,79 +317,90 @@ make_step_operator(const ParameterTree& config,
     instationary_op = PDELab::makeInstationaryMatrixFreeAssembler<RKCoefficients, RKResidual>(
       basis, basis, mass_local_operator, stiffness_local_operator);
   } else { // matrix based
-    DUNE_THROW(NotImplemented, "");
-    //   //   auto pattern_factory = [stiffness_local_operator, mass_local_operator](const Basis&
-    //   test, const Basis& trial, Jacobian& jac){
-    //   //     auto& entry = jac[0][0];
+    auto pattern_factory = [basis, stiffness_local_operator, mass_local_operator, svg_path](
+                             const auto& op, RKJacobian& jac) {
+      // TODO(sospinar): resize outer jacobian wrt instationary coefficients
+      jac.resize(1, 1);
 
-    //   //     auto size_per_row = []<class MultiIndex>(MultiIndex i ,MultiIndex j) -> std::size_t
-    //   {
-    //   //       if constexpr (CompartmentMergingStrategy::Blocked) {
-    //   //         assert(i.size() == j.size());
-    //   //         assert(i.size() < 2);
-    //   //         // TODO: put actual values from spaces
-    //   //         if (i.size() == 0)
-    //   //           return 5; // number of edges connecting to a vertex
-    //   //         if (i.size() == 1)
-    //   //           return 10; // number of component per vertex (P1)
-    //   //         return 0;
-    //   //       } else {
-    //   //         return 5;
-    //   //       }
-    //   //     };
+      // all jacobian entries of the RK jacobian have the same pattern
+      auto& entry = jac[0][0];
 
-    //   //     auto pattern = [&](){
-    //   //       if constexpr (CompartmentMergingStrategy::Blocked)
-    //   //         return PDELab::BlockedSparsePattern<PDELab::LeafSparsePattern<Basis,
-    //   Basis>>{test, {}, trial, {}, size_per_row};
-    //   //       else
-    //   //         return PDELab::LeafSparsePattern<Basis, Basis>{test, {}, trial, {},
-    //   size_per_row};
-    //   //     }();
+      // TODO(sospinar): fix pattern in PDELab!
+      auto size_per_row = []<class MultiIndex>(MultiIndex i, MultiIndex j) -> std::size_t {
+        //       if constexpr (CompartmentMergingStrategy::Blocked) {
+        //         assert(i.size() == j.size());
+        //         assert(i.size() < 2);
+        //         // TODO: put actual values from spaces
+        //         if (i.size() == 0)
+        //           return 5; // number of edges connecting to a vertex
+        //         if (i.size() == 1)
+        //           return 10; // number of component per vertex (P1)
+        //         return 0;
+        //       } else {
+        //          return 5;
+        //       }
+        return 100;
+      };
 
-    //   //     spaceToPattern(stiffness_local_operator, pattern);
-    //   //     spaceToPattern(mass_local_operator, pattern);
-    //   //     pattern.sort();
-    //   //     patternToMatrix(pattern, entry);
-    //   //     entry = 0.;
+      auto pattern_selector = overload(
+        [&](BCRSMatrix<double>&) -> PDELab::LeafSparsePattern<Basis, Basis> {
+          return { basis, {}, basis, {}, size_per_row };
+        },
+        [&](BCRSMatrix<BCRSMatrix<double>>&)
+          -> PDELab::BlockedSparsePattern<PDELab::LeafSparsePattern<Basis, Basis>> {
+          return { basis, {}, basis, {}, size_per_row };
+        },
+        [&](BCRSMatrix<BCRSMatrix<BCRSMatrix<double>>>&)
+          -> PDELab::BlockedSparsePattern<
+            PDELab::BlockedSparsePattern<PDELab::LeafSparsePattern<Basis, Basis>>> {
+          return { basis, {}, basis, {}, size_per_row };
+        });
 
-    //   //     // copy patterns into other runge-kutta jacobians
-    //   //     for (std::size_t i = 0; i != jac.N(); ++i) {
-    //   //       for (std::size_t j = 0; j != jac.M(); ++j) {
-    //   //         if (i == 0 and j == 0) continue;
-    //   //         jac[i][j] = entry;
-    //   //       }
-    //   //     }
+      auto pattern = pattern_selector(entry);
 
-    //   //     std::ofstream file{"mat-sd.svg"};
-    //   //     writeSVGMatrix(jac, file);
-    //   //   };
+      PDELab::basisToPattern(stiffness_local_operator, pattern);
+      PDELab::basisToPattern(mass_local_operator, pattern);
+      pattern.sort();
+      PDELab::patternToMatrix(pattern, entry);
+      entry = 0.;
 
-    //   //   using MassStiffnesOperator = PDELab::MassStiffnessOperator<RKCoefficients, RKResidual,
-    //   Jacobian, Basis, Basis, MassLocalOperator, StiffnessLocalOperator, Weight, TimeQuantity,
-    //   TimeQuantity, PDELab::DurationPosition::StiffnessNumerator>;
-    //   //   auto diff_op = std::make_shared<MassStiffnesOperator>(state.basis(), state.basis(),
-    //   mass_local_operator, stiffness_local_operator, pattern_factory);
-    //   //   diff_op->setTimePoint(state.time());
-    //   //   rk_invesrse->setDifferentiableOperator(diff_op);
-  }
+      // copy patterns into other runge-kutta jacobians
+      for (std::size_t i = 0; i != jac.N(); ++i) {
+        for (std::size_t j = 0; j != jac.M(); ++j) {
+          if (i == 0 and j == 0) continue;
+          jac[i][j] = entry;
+        }
+      }
 
-  using RungeKutta = PDELab::RungeKutta<RKCoefficients, RKResidual, TimeQuantity, TimeQuantity>;
-  auto runge_kutta = std::make_unique<RungeKutta>();
+      if (not svg_path.empty()) {
+        auto path = fs::path{svg_path}.replace_extension("svg");
+        spdlog::info("Writing matrix pattern in svg file: '{}'", path.string());
+        std::ofstream file{ path.string() };
+        writeSVGMatrix(jac, file);
+      }
+    };
 
-  runge_kutta->get("inverse") = runge_kutta_inverse;
-  runge_kutta->get("inverse.forward") = instationary_op;
-  const auto& type = config.get("type", "Alexander2");
-  std::shared_ptr<PDELab::InstationaryCoefficients> inst_coeff;
+    instationary_op =
+      PDELab::makeInstationaryMatrixBasedAssembler<RKCoefficients, RKResidual, RKJacobian>(
+        basis, basis, mass_local_operator, stiffness_local_operator, pattern_factory);
+      }
 
-  auto pdelab2coeff = [](auto pdlab_param) {
-    return std::make_shared<PDELab::InstationaryCoefficients>(pdlab_param);
-  };
+    using RungeKutta = PDELab::RungeKutta<RKCoefficients, RKResidual, TimeQuantity, TimeQuantity>;
+    auto runge_kutta = std::make_unique<RungeKutta>();
 
-  spdlog::info("Creating time-stepping solver with '{}' method", type);
+    runge_kutta->get("inverse") = runge_kutta_inverse;
+    runge_kutta->get("inverse.forward") = instationary_op;
+    const auto& type = config.get("type", "Alexander2");
+    std::shared_ptr<PDELab::InstationaryCoefficients> inst_coeff;
 
-  if (type == "ExplicitEuler") {
-    inst_coeff = pdelab2coeff(Dune::PDELab::ExplicitEulerParameter<double>{});
+    auto pdelab2coeff = [](auto pdlab_param) {
+      return std::make_shared<PDELab::InstationaryCoefficients>(pdlab_param);
+    };
+
+    spdlog::info("Creating time-stepping solver with '{}' type", type);
+
+    if (type == "ExplicitEuler") {
+      inst_coeff = pdelab2coeff(Dune::PDELab::ExplicitEulerParameter<double>{});
   } else if (type == "ImplicitEuler") {
     inst_coeff = pdelab2coeff(Dune::PDELab::ImplicitEulerParameter<double>{});
   } else if (type == "Heun") {
