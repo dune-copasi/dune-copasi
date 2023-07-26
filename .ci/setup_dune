@@ -55,50 +55,34 @@ mkdir /tmp/setup-dune && cd /tmp/setup-dune
 
 # setup dune repositories, branches, and patches
 for module in common geometry grid istl localfunctions; do
-  eval SETUP_dune_${module}_BRANCH=\"releases/2.7\"
+  eval SETUP_dune_${module}_BRANCH=\"master\"
   eval SETUP_dune_${module}_REPO=\"https://gitlab.dune-project.org/core/dune-${module}.git\"
 done
 
-for module in logging functions uggrid; do
-  eval SETUP_dune_${module}_BRANCH=\"releases/2.7\"
+# tests with aliases
+SETUP_dune_common_BRANCH="d1da4e5ec112f506caad73fd730b81381c61e1af"
+
+# c++23 compatibility
+SETUP_dune_grid_BRANCH="c57a065ea63fbc30d850a4cfec0070be0231e6ab"
+
+for module in functions uggrid typetree; do
+  eval SETUP_dune_${module}_BRANCH=\"master\"
   eval SETUP_dune_${module}_REPO=\"https://gitlab.dune-project.org/staging/dune-${module}.git\"
 done
 
-for module in typetree pdelab
-do
-  eval SETUP_dune_${module}_BRANCH=\"support/dune-copasi-v1.1.0\"
-  eval SETUP_dune_${module}_REPO=\"https://gitlab.dune-project.org/copasi/dune-${module}.git\"
-done
+SETUP_dune_pdelab_BRANCH="feature/dune-assembler/main"
+SETUP_dune_pdelab_REPO="https://gitlab.dune-project.org/pdelab/dune-pdelab.git"
 
-SETUP_dune_testtools_BRANCH="releases/2.7"
+SETUP_dune_testtools_BRANCH="master"
 SETUP_dune_testtools_REPO="https://gitlab.dune-project.org/quality/dune-testtools.git"
 
-SETUP_dune_multidomaingrid_BRANCH="releases/2.7"
+SETUP_dune_multidomaingrid_BRANCH="master"
 SETUP_dune_multidomaingrid_REPO="https://gitlab.dune-project.org/extensions/dune-multidomaingrid.git"
-
-cat ${SCRIPT_DIR}/dune-common.patch >> "${PWD}/dune-common.patch"
-
-SETUP_dune_common_PATCHES="${SCRIPT_DIR}/dune-common.patch"
-
-SETUP_dune_logging_RECURSIVE="$DUNE_VENDOR_FMT"
 
 echo "Downloading patches"
 
-PATCH_URL="https://gist.githubusercontent.com/lkeegan/059984b71f8aeb0bbc062e85ad7ee377/raw/e9c7af42c47fe765547e60833a72b5ff1e78123c/cmake-patch.txt"
-if command -v wget &> /dev/null; then
-  wget -O cmake-patch.txt $PATCH_URL
-elif command -v curl &> /dev/null; then
-  curl $PATCH_URL --output cmake-patch.txt
-else
-  ONFAILURE_MESSAGE+="'wget' not 'curl' was not found."
-  exit 1
-fi
-
-echo '' >> cmake-patch.txt
-SETUP_dune_common_PATCHES+=" ${PWD}/cmake-patch.txt"
-
 # hardcoded **ordered** dependencies
-MODULES="common logging uggrid geometry grid localfunctions istl typetree functions pdelab multidomaingrid"
+MODULES="common uggrid geometry grid localfunctions istl typetree functions pdelab multidomaingrid"
 if [[ "$SETUP_DUNE_TESTTOOLS" =~ ^(ON|on|1|yes|YES|true|TRUE)$ ]]; then
 	MODULES+=" testtools"
 fi
