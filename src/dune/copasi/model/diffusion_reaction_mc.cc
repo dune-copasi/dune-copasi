@@ -25,7 +25,7 @@
 namespace Dune {
 
 #if DUNE_COPASI_GRID_DIMENSION < 2
-using HostGrid = Dune::YaspGrid<DUNE_COPASI_GRID_DIMENSION>;
+using HostGrid = Dune::YaspGrid<DUNE_COPASI_GRID_DIMENSION, Dune::EquidistantOffsetCoordinates<double,DUNE_COPASI_GRID_DIMENSION>>;
 #else
 using HostGrid = Dune::UGGrid<DUNE_COPASI_GRID_DIMENSION>;
 #endif
@@ -44,9 +44,6 @@ using SingleCompartmentTraits = ModelDiffusionPkReactionTraits<MDGrid,
                                                                double,
                                                                false,
                                                                SpeciesBlocked>;
-
-extern template class ModelDiffusionReaction<SingleCompartmentTraits<true>>;
-extern template class ModelDiffusionReaction<SingleCompartmentTraits<false>>;
 
 template<bool SpeciesBlocked, bool CompartmentBlocked>
 using MultiCompartmentTraits =

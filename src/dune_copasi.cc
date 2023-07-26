@@ -179,7 +179,7 @@ main(int argc, char** argv)
         auto md_grid_ptr = [&] {
           using MDGTraits = Dune::mdgrid::DynamicSubDomainCountTraits<dim, 10>;
           if constexpr (dim < 2) {
-            using MDGrid = Dune::mdgrid::MultiDomainGrid<Dune::YaspGrid<dim>, MDGTraits>;
+            using MDGrid = Dune::mdgrid::MultiDomainGrid<Dune::YaspGrid<dim, Dune::EquidistantOffsetCoordinates<double,dim>>, MDGTraits>;
             return make_multi_domain_grid<MDGrid>(config, parser_context);
           } else {
             using MDGrid = Dune::mdgrid::MultiDomainGrid<Dune::UGGrid<dim>, MDGTraits>;
