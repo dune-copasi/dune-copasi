@@ -45,7 +45,7 @@ enum class LocalOperatorType
  * @tparam     LBT   Local basis traits
  */
 template<PDELab::Concept::Basis TestBasis, class LBT>
-class LocalOperatorDiffusionReactionCG : public PDELab::LocalAssembly::Archetype
+class LocalOperatorDiffusionReactionCG
 {
 
   //! range field
@@ -140,18 +140,17 @@ public:
     return std::bool_constant<Concept::MultiDomainGrid<typename TestBasis::EntitySet::Grid>>{};
   }
 
-  bool localAssembleDoBoundary() noexcept { return _has_outflow; }
+  bool localAssembleDoBoundary() const noexcept { return _has_outflow; }
 
-  bool localAssembleSkipIntersection(const Dune::Concept::Intersection auto& intersection) noexcept
+  bool localAssembleSkipIntersection(const Dune::Concept::Intersection auto& intersection) const noexcept
   {
     // boundary case
     if (not intersection.neighbor())
-      return not _has_outflow;
+      return false;
 
     // if domain sets are the same this is not an domain interface and should be
     // skipped
-    return (not _has_outflow) or
-           (subDomains(intersection.inside()) == subDomains(intersection.outside()));
+    return (subDomains(intersection.inside()) == subDomains(intersection.outside()));
   }
 
   bool localAssembleIsLinear() const noexcept { return _is_linear; }
@@ -297,13 +296,14 @@ public:
       const auto& eq = _local_values->get_equation(ltrial_node);
       for (const auto& outflow_i : eq.outflow) {
         for (const auto& jacobian_entry : outflow_i.compartment_jacobian) {
-          bool do_self_basis = jacobian_entry.wrt.to_local_basis_node(ltrial_out).size() == 0;
-          const auto& ltrial = do_self_basis ? ltrial_in : ltrial_out;
-          auto& lpattern = do_self_basis ? lpattern_in_in : lpattern_in_out;
-          const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
-          for (std::size_t dof_i = 0; dof_i != ltest_node_in.size(); ++dof_i)
-            for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
-              lpattern.addLink(ltest_node_in, dof_i, wrt_lbasis, dof_j);
+          const auto& wrt_lbasis_in = jacobian_entry.wrt.to_local_basis_node(ltrial_in);
+          const auto& wrt_lbasis_out = jacobian_entry.wrt.to_local_basis_node(ltrial_out);
+          for (std::size_t dof_i = 0; dof_i != ltest_node_in.size(); ++dof_i) {
+            for (std::size_t dof_j = 0; dof_j != wrt_lbasis_in.size(); ++dof_j)
+              lpattern_in_in.addLink(ltest_node_in, dof_i, wrt_lbasis_in, dof_j);
+            for (std::size_t dof_j = 0; dof_j != wrt_lbasis_out.size(); ++dof_j)
+              lpattern_in_out.addLink(ltest_node_in, dof_i, wrt_lbasis_out, dof_j);
+          }
         }
       }
     });
@@ -316,15 +316,16 @@ public:
         return;
       const auto& ltrial_node = PDELab::containerEntry(ltrial_out.tree(), ltest_node_out.path());
       const auto& eq = _local_values->get_equation(ltrial_node);
-      for (const auto& outflow_i : eq.outflow) {
-        for (const auto& jacobian_entry : outflow_i.compartment_jacobian) {
-          bool do_self_basis = jacobian_entry.wrt.to_local_basis_node(ltrial_out).size() == 0;
-          const auto& ltrial = do_self_basis ? ltrial_out : ltrial_in;
-          auto& lpattern = do_self_basis ? lpattern_out_out : lpattern_out_in;
-          const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
-          for (std::size_t dof_i = 0; dof_i != ltest_node_out.size(); ++dof_i)
-            for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
-              lpattern.addLink(ltest_node_out, dof_i, wrt_lbasis, dof_j);
+      for (const auto& outflow_o : eq.outflow) {
+        for (const auto& jacobian_entry : outflow_o.compartment_jacobian) {
+          const auto& wrt_lbasis_in = jacobian_entry.wrt.to_local_basis_node(ltrial_in);
+          const auto& wrt_lbasis_out = jacobian_entry.wrt.to_local_basis_node(ltrial_out);
+          for (std::size_t dof_i = 0; dof_i != ltest_node_out.size(); ++dof_i) {
+            for (std::size_t dof_j = 0; dof_j != wrt_lbasis_in.size(); ++dof_j)
+              lpattern_out_in.addLink(ltest_node_out, dof_i, wrt_lbasis_in, dof_j);
+            for (std::size_t dof_j = 0; dof_j != wrt_lbasis_out.size(); ++dof_j)
+              lpattern_out_out.addLink(ltest_node_out, dof_i, wrt_lbasis_out, dof_j);
+          }
         }
       }
     });
@@ -406,8 +407,8 @@ public:
         value = 0.;
         gradient = 0.;
         for (std::size_t dof = 0; dof != node.size(); ++dof) {
-          value += phi[dof] * lcoefficients(node, dof);
-          gradient += _gradphi_i[dof] * lcoefficients(node, dof);
+            value     += lcoefficients(node, dof) * phi[dof];
+            gradient  += lcoefficients(node, dof) * _gradphi_i[dof] ;
         }
       });
 
@@ -784,8 +785,8 @@ public:
           value = 0.;
           gradient = 0.;
           for (std::size_t dof = 0; dof != node.size(); ++dof) {
-            value += lcoefficients(node, dof) * _phi_i[dof];
-            gradient += _gradphi_i[dof] * lcoefficients(node, dof);
+            value     += lcoefficients(node, dof) * _phi_i[dof];
+            gradient  += lcoefficients(node, dof) * _gradphi_i[dof] ;
           }
         });
 
@@ -814,7 +815,7 @@ public:
 
         // evaluate concentrations at quadrature point (outside part)
         forEachLeafNode(ltrial_out.tree(), [&](const auto& node_out, auto path) {
-          const auto& node_in = PDELab::containerEntry(ltrial_out.tree(), path);
+          const auto& node_in = PDELab::containerEntry(ltrial_in.tree(), path);
           // take outside values unless they only exists inside
           const auto& node = (node_out.size() != 0) ? node_out : node_in;
           const auto& lcoefficients = (node_out.size() != 0) ? lcoefficients_out : lcoefficients_in;
@@ -822,11 +823,9 @@ public:
           auto& gradient = _local_values->get_gradient(node);
           value = 0.;
           gradient = 0.;
-          if (node_in.size() == 0 and node_out.size() == 0)
-            return;
           for (std::size_t dof = 0; dof != node.size(); ++dof) {
-            value += lcoefficients(node, dof) * _phi_o[dof];
-            gradient += _gradphi_o[dof] * lcoefficients(node, dof);
+            value     += lcoefficients(node, dof) * _phi_o[dof];
+            gradient  += lcoefficients(node, dof) * _gradphi_o[dof] ;
           }
         });
 
@@ -981,8 +980,8 @@ public:
           value = 0.;
           gradient = 0.;
           for (std::size_t dof = 0; dof != node.size(); ++dof) {
-            value += _phi_i[dof] * llin_point(node, dof);
-            gradient += _gradphi_i[dof] * llin_point(node, dof);
+            value    += llin_point(node, dof) * _phi_i[dof];
+            gradient += llin_point(node, dof) * _gradphi_i[dof];
           }
         });
 
@@ -1022,7 +1021,7 @@ public:
 
         // evaluate concentrations at quadrature point (outside part)
         forEachLeafNode(ltrial_out.tree(), [&](const auto& node_out, auto path) {
-          const auto& node_in = PDELab::containerEntry(ltrial_out.tree(), path);
+          const auto& node_in = PDELab::containerEntry(ltrial_in.tree(), path);
           // take outside values unless they only exists inside
           const auto& node = (node_out.size() != 0) ? node_out : node_in;
           const auto& llin_point = (node_out.size() != 0) ? llin_point_out : llin_point_in;
@@ -1030,11 +1029,9 @@ public:
           auto& gradient = _local_values->get_gradient(node);
           value = 0.;
           gradient = 0.;
-          if (node_in.size() == 0 and node_out.size() == 0)
-            return;
           for (std::size_t dof = 0; dof != node.size(); ++dof) {
-            value += _phi_o[dof] * llin_point(node, dof);
-            gradient += _gradphi_o[dof] * llin_point(node, dof);
+            value    += llin_point(node, dof) * _phi_o[dof];
+            gradient += llin_point(node, dof) * _gradphi_o[dof];
           }
         });
 
