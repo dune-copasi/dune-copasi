@@ -24,7 +24,7 @@ namespace Dune::Copasi {
 
 namespace {
 
-const std::size_t max_functions = 100;
+const std::size_t max_functions = 1000;
 
 // NOLINTBEGIN(altera-struct-pack-align)
 template<class F>
