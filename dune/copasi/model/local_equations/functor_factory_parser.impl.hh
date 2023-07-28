@@ -85,10 +85,11 @@ FunctorFactoryParser<dim>::make_tensor_apply(std::string_view prefix,
     bool is_active = false;
     for (std::size_t i = 0; i != dim; ++i) {
       for (std::size_t j = 0; j != dim; ++j) {
-        is_active |= bool(tensor_parser[i][j] = parse_scalar_expression(
-                            config.sub(dim_name.at(i) + dim_name.at(j), true),
-                            local_values,
-                            is_membrane_expression));
+        if (config.hasSub(dim_name.at(i) + dim_name.at(j)))
+          is_active |= bool(tensor_parser[i][j] = parse_scalar_expression(
+                              config.sub(dim_name.at(i) + dim_name.at(j)),
+                              local_values,
+                              is_membrane_expression));
       }
     }
     if (not is_active) {
