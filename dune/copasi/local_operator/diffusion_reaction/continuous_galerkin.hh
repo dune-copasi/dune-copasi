@@ -1039,7 +1039,7 @@ public:
           const auto& ltest_node_out = source_o.to_local_basis_node(ltest_out);
           for (const auto& jacobian_entry : outflow_o.compartment_jacobian) {
             auto jac = jacobian_entry();
-            bool do_self_basis = jacobian_entry.wrt.to_local_basis_node(ltrial_out).size() == 0;
+            bool do_self_basis = jacobian_entry.wrt.to_local_basis_node(ltrial_in).size() == 0;
             const auto& ltrial = do_self_basis ? ltrial_out : ltrial_in;
             auto& ljacobian = do_self_basis ? ljacobian_out_out : ljacobian_out_in;
             const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
