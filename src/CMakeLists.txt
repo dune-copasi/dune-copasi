@@ -32,12 +32,6 @@ set_target_properties(dune-copasi-exec
     RUNTIME_OUTPUT_NAME dune-copasi
     EXPORT_NAME Copasi::Executable)
 
-# TODO: dune build system owns the export set...
-#   install(TARGETS ${target}
-#     EXPORT <dune-export-set>
-#       COMPONENT Runtime
-#       RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-
 # generate configuration file options out of file descriptors in the "options/" folder
 file(GLOB opt_files "${CMAKE_CURRENT_SOURCE_DIR}/options/*")
 set(opt_header "static const std::vector<std::array<std::string, 4>> config_file_opts = \{\n")

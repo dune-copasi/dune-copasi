@@ -1,6 +1,5 @@
 install(FILES has_single_geometry_type.hh
+              make_multi_domain_grid.hh
               mark_stripes.hh
-              multidomain_entity_transformation.hh
-              multidomain_gmsh_reader.hh
         COMPONENT Development
         DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/dune/copasi/grid")

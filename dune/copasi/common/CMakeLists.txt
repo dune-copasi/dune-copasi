@@ -1,10 +1,10 @@
 install(FILES bit_flags.hh
               data_context.hh
-              enum.hh
+              exceptions.hh
               factory.hh
               filesystem.hh
-              muparser_data_handler.hh
-              pdelab_expression_adapter.hh
+              ostream_redirect.hh
+              ostream_to_spdlog.hh
               stepper.hh
               tiff_file.hh
               tiff_grayscale.hh
