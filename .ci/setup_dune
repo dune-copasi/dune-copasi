@@ -59,9 +59,6 @@ for module in common geometry grid istl localfunctions; do
   eval SETUP_dune_${module}_REPO=\"https://gitlab.dune-project.org/core/dune-${module}.git\"
 done
 
-# tests with aliases
-SETUP_dune_common_BRANCH="d1da4e5ec112f506caad73fd730b81381c61e1af"
-
 # c++23 compatibility
 SETUP_dune_grid_BRANCH="c57a065ea63fbc30d850a4cfec0070be0231e6ab"
 
@@ -82,10 +79,10 @@ SETUP_dune_multidomaingrid_REPO="https://gitlab.dune-project.org/extensions/dune
 echo "Downloading patches"
 
 # hardcoded **ordered** dependencies
-MODULES="common uggrid geometry grid localfunctions istl typetree functions pdelab multidomaingrid"
-if [[ "$SETUP_DUNE_TESTTOOLS" =~ ^(ON|on|1|yes|YES|true|TRUE)$ ]]; then
-	MODULES+=" testtools"
-fi
+MODULES="common geometry uggrid grid typetree localfunctions istl functions multidomaingrid pdelab"
+# if [[ "$SETUP_DUNE_TESTTOOLS" =~ ^(ON|on|1|yes|YES|true|TRUE)$ ]]; then
+# 	MODULES+=" testtools"
+# fi
 
 [ -z $DUNE_OPTIONS_FILE ] && ONFAILURE_MESSAGE+="Dune options file is not set!\n" && exit 1
 
@@ -144,7 +141,8 @@ for module in $MODULES; do
   RECURSIVE="$(eval echo \$SETUP_dune_${module}_RECURSIVE)"
 
   [[ "$RECURSIVE" =~ ^(ON|on|1|yes|YES|true|TRUE)$ ]] && RECURSIVE_ARG="--recursive"
-  git clone -b $BRANCH --depth 1 $RECURSIVE_ARG $REPO
+  git clone $RECURSIVE_ARG $REPO
+  git -C dune-$module checkout $BRANCH
 
   # on windows, symlinks from git repos don't work
   # msys git replaces symlinks with a text file containing the linked file location
@@ -189,7 +187,7 @@ for module in $MODULES; do
   $SUDOCMD $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module bexec cmake --build . --target install
 
   # we want to know where the build dir is located
-  # since it could be ant complex path, we write the path from dunecontrol into a file
+  # since it could be a complex path, we write the path from dunecontrol into a file
   $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module bexec "echo \$PWD > /tmp/setup-dune/module_builddir"
 
   # remove build and sources

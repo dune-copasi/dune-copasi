@@ -18,11 +18,6 @@ foreach(dim ${DUNE_COPASI_GRID_DIMENSIONS})
           $<$<TARGET_EXISTS:SuiteSparse::SuiteSparse>:ENABLE_SUITESPARSE=1>
           $<$<TARGET_EXISTS:SuperLU::SuperLU>:ENABLE_SUPERLU=1>
       )
-      target_precompile_headers(${target}
-        PUBLIC
-          $<BUILD_INTERFACE:dune/copasi/model/diffusion_reaction_sc.hh>
-          $<BUILD_INTERFACE:dune/copasi/model/diffusion_reaction_mc.hh>
-      )
       target_sources(${target} PRIVATE diffusion_reaction_sc.cc)
       target_sources(${target} PRIVATE diffusion_reaction_mc.cc)
       target_compile_definitions(${target}

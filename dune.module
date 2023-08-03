@@ -8,4 +8,4 @@ Version: 2.0.0-git
 Maintainer: santiago.ospina@iwr.uni-heidelberg.de
 #depending on
 Depends: dune-uggrid (>= 2.9) dune-pdelab (>= 2.9) dune-multidomaingrid (>= 2.8)
-Suggests: dune-testtools dune-randomfield
+Suggests: dune-testtools

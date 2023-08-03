@@ -27,15 +27,6 @@ find_package(TIFF REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(Filesystem)
-find_package(Eigen3)
-
-find_package(SymEngine 0.8.0)
-find_package(ExprTk)
-
-if(NOT (SymEngine_FOUND OR ExprTk_FOUND))
-  set(MUPARSER_RQUIREMENT "REQUIRED") # we need at least one parser!
-endif()
-find_package(muparser ${MUPARSER_RQUIREMENT})
 
 # if standard C++ filesystem is not found, using a fallback is mandatory
 include(CMakeDependentOption)

@@ -30,15 +30,3 @@ target_link_libraries(dune-copasi-common
 )
 
 target_compile_features(dune-copasi-common PUBLIC cxx_std_23)
-
-target_precompile_headers(dune-copasi-common
-  PUBLIC
-    $<BUILD_INTERFACE:dune/common/fvector.hh>
-    $<BUILD_INTERFACE:dune/common/fmatrix.hh>
-    $<BUILD_INTERFACE:dune/common/hybridutilities.hh>
-    $<BUILD_INTERFACE:dune/typetree/treepath.hh>
-    $<BUILD_INTERFACE:dune/grid/yaspgrid.hh>
-    $<BUILD_INTERFACE:dune/pdelab/common/tree_traversal.hh>
-    $<BUILD_INTERFACE:dune/pdelab/common/for_each.hh>
-    $<BUILD_INTERFACE:memory>
-)

@@ -6,7 +6,7 @@
 #include <dune/copasi/parser/factory.hh>
 #include <dune/copasi/parser/parser.hh>
 
-#include <dune/randomfield/randomfield.hh>
+#include <parafields/randomfield.hh>
 
 #include <dune/grid/yaspgrid.hh>
 
@@ -97,7 +97,7 @@ ParserContext::ParserContext(const ParameterTree& config)
       auto seed = sub_config.template get<unsigned int>("seed", 0);
       auto file = sub_config.get("writer.vtk.path", "");
       Hybrid::switchCases(std::index_sequence<1, 2, 3>{}, rmf_dim, [&](auto dim) {
-        auto field = std::make_shared<RandomField::RandomField<RandomFieldTraits<dim>>>(sub_config);
+        auto field = std::make_shared<parafields::RandomField<RandomFieldTraits<dim>>>(sub_config);
         if (seed == 0) {
           field->generate();
         } else {

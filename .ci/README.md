@@ -50,8 +50,8 @@ with target `setup-env`.
 This stage builds, installs and optionally packages `dune-copasi` following the
 [`install`](install) script. Similar to the others, this script expects the options
 file which in turs run `cmake` and its targets. If the environmental variables
-`CPACK_GENERATORS` and `CPACK_PACKAGE_DIRECTORY`, the script will package the
-library with the given generators.
+`CPACK_GENERATORS` and `CPACK_PACKAGE_DIRECTORY` are set, the script will package the
+library with the given generators (e.g. debian packages).
 
 ```bash
 ./install $PDW/../dune-copasi.opts
