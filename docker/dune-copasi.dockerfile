@@ -1,11 +1,43 @@
-ARG BASE_IMAGE=debian:10
+ARG BASE_IMAGE=debian:12
 
-ARG SETUP_BASE_IMAGE=registry.dune-project.org/docker/ci/${BASE_IMAGE}
+# ARG SETUP_BASE_IMAGE=registry.dune-project.org/docker/ci/${BASE_IMAGE}
+ARG SETUP_BASE_IMAGE=${BASE_IMAGE}
 ARG BUILD_BASE_IMAGE=setup-env
 ARG PRODUCTION_BASE_IMAGE=${BASE_IMAGE}
 
 # setup of dune dependencies
 FROM ${SETUP_BASE_IMAGE} AS setup-env
+
+
+RUN rm -f /etc/apt/apt.conf.d/docker-gzip-indexes \
+  && rm -rf /var/lib/apt/lists/*
+RUN export DEBIAN_FRONTEND=noninteractive; \
+  apt-get update && apt-get dist-upgrade --no-install-recommends --yes \
+  && apt-get install --no-install-recommends --yes \
+  build-essential \
+  ca-certificates \
+  cmake \
+  curl \
+  g++-12 \
+  gcc-12 \
+  gcovr \
+  git \
+  git-lfs \
+  libfftw3-dev \
+  libfftw3-mpi-dev \
+  libgtest-dev \
+  libmuparser-dev \
+  libspdlog-dev \
+  libsuitesparse-dev \
+  libsuperlu-dev \
+  libtbb-dev \
+  libtiff-dev \
+  mpi-default-bin \
+  mpi-default-dev \
+  ninja-build \
+  pkg-config \
+  && apt-get clean
+
 
 ARG TOOLCHAIN=clang-6-17
 
@@ -14,6 +46,8 @@ ENV TERM=xterm-256color
 ENV CMAKE_INSTALL_PREFIX=/duneci/install
 ENV SETUP_DUNE_TESTTOOLS=ON
 ENV DUNE_VENDOR_FMT=ON
+# ENV DUNE_OPTS_FILE=/duneci/dune.opts
+ENV DUNE_OPTS_FILE=/duneci/cmake-flags/dune-copasi.opts
 
 COPY --chown=duneci ./dune-copasi.opts /duneci/cmake-flags/
 COPY --chown=duneci ./.ci /duneci/modules/dune-copasi/.ci
@@ -22,12 +56,11 @@ RUN    ln -s /duneci/toolchains/${TOOLCHAIN} /duneci/toolchain \
     && export PATH=/duneci/install/bin:$PATH
 WORKDIR /duneci/modules
 RUN mkdir -p /duneci/modules/dune-copasi/.ci
-RUN ./dune-copasi/.ci/setup_dune /duneci/dune.opts
+RUN ./dune-copasi/.ci/setup_dune $DUNE_OPTS_FILE
 
 # build and install dune-copasi from the setup-env
 FROM ${BUILD_BASE_IMAGE} AS build-env
 
-ENV DUNE_COPASI_SD_EXECUTABLE='ON'
 ENV CPACK_GENERATORS=DEB
 ENV CPACK_PACKAGE_DIRECTORY=/duneci/packages
 
@@ -37,10 +70,10 @@ WORKDIR /duneci/modules
 COPY --chown=duneci ./ /duneci/modules/dune-copasi
 
 # run installer
-RUN ./dune-copasi/.ci/install /duneci/dune.opts
+RUN ./dune-copasi/.ci/install $DUNE_OPTS_FILE
 
 # tests installer
-RUN ./dune-copasi/.ci/test /duneci/dune.opts
+RUN ./dune-copasi/.ci/test $DUNE_OPTS_FILE
 
 # move results to a -lighter- production image
 FROM ${PRODUCTION_BASE_IMAGE} AS production-env
@@ -62,11 +95,10 @@ RUN adduser --disabled-password --home /dunecopasi --uid 50000 dunecopasi
 USER dunecopasi
 WORKDIR /dunecopasi
 
-# run help and expect no error signal
-RUN dune-copasi-md --help
-RUN dune-copasi-sd --help
+# run version command and expect no error signal
+RUN dune-copasi --version
 
 # set default mout point to be /dunecopasi (same as workdir!)
 VOLUME ["/dunecopasi"]
-# run dune-copasi-md by default when running the image
-ENTRYPOINT ["dune-copasi-md"]
+# run dune-copasi by default when running the image
+ENTRYPOINT ["dune-copasi"]

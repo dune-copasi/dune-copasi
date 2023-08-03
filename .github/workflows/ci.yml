@@ -4,7 +4,6 @@ on: push
 
 env:
   DUNE_COPASI_USE_STATIC_DEPS: 'ON'
-  DUNE_COPASI_SD_EXECUTABLE: 'ON'
 
 jobs:
   linux:
