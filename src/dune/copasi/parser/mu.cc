@@ -20,11 +20,15 @@
 #include <string>
 #include <utility>
 
+#ifndef DUNE_COPASI_MUPARSER_MAX_FUNCTIONS
+#define DUNE_COPASI_MUPARSER_MAX_FUNCTIONS 500
+#endif
+
 namespace Dune::Copasi {
 
 namespace {
 
-const std::size_t max_functions = 1000;
+const std::size_t max_functions = DUNE_COPASI_MUPARSER_MAX_FUNCTIONS;
 
 // NOLINTBEGIN(altera-struct-pack-align)
 template<class F>

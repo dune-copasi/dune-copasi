@@ -11,3 +11,5 @@ install(FILES diffusion_reaction_mc_traits.hh
               make_step_operator.hh
         COMPONENT Development
         DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/dune/copasi/model")
+
+add_subdirectory(local_equations)

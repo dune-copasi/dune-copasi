@@ -33,6 +33,13 @@
 #include <fmt/color.h>
 #include <fmt/core.h>
 
+// Generated options for the done-copasi configuration ini-file
+#if __has_include("dune-copasi-config-file-options.hh")
+#include "dune-copasi-config-file-options.hh"
+#else
+static const std::vector<std::array<std::string, 4>> config_file_opts;
+#endif
+
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -49,12 +56,6 @@
 #include <utility>
 #include <vector>
 
-#if __has_include("dune-copasi-config-file-options.hh")
-// Generated options for the done-copasi configuration ini-file
-#include "dune-copasi-config-file-options.hh"
-#else
-static const std::vector<std::array<std::string, 4>> config_file_opts;
-#endif
 
 void
 program_help(std::string_view prog_name, bool long_help)
@@ -69,7 +70,7 @@ program_help(std::string_view prog_name, bool long_help)
     "  --version            - Display the version of this program\n"
     "  --config=<string>    - Specifies a config file in INI format. See Configuration Options\n"
     "  --dump-config        - Dumps configuration in the INI format to stdout\n"
-    "  --<key>=<value>      - Overrides key=value sections of the config file\n\n",
+    "  --{{key}}={{value}}      - Overrides key=value sections of the config file\n\n",
     prog_name);
 
   if (not config_file_opts.empty()) {
@@ -228,12 +229,12 @@ main(int argc, char** argv)
 
         // setup writer
         std::function<void(const State&)> output_writter;
-        auto file = model_config.get("writer.vtk.path", "");
-        if (not file.empty()) {
-          output_writter = [file, model](const auto& state) {
-            model->write_vtk(state, file, true);
-          };
-        }
+        auto vtk_path = model_config.get("writer.vtk.path", "");
+        output_writter = [model_config, vtk_path, model](const auto& state) {
+          if (not vtk_path.empty()) {
+            model->write_vtk(state, vtk_path, true);
+          }
+        };
 
         auto in = model->make_state(std::move(md_grid_ptr), model_config);
         in->time = begin_time;

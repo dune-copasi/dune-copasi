@@ -5,8 +5,6 @@
 #include <dune/common/exceptions.hh>
 #include <dune/common/hybridutilities.hh>
 
-#include <fmt/core.h>
-
 #include <algorithm>
 #include <cassert>
 #include <climits>

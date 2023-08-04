@@ -4,7 +4,7 @@ project(dune-copasi-tests CXX)
 # check if this project is called as its own cmake project (i.e. not as subdirectory)
 if("${CMAKE_SOURCE_DIR}" STREQUAL "${PROJECT_SOURCE_DIR}")
   # ...if so, find dune-copasi as if this were downstream project
-  find_package(dune-copasi REQUIRED IMPORTED COMPONENTS Libraries Development Runtime)
+  find_package(dune-copasi REQUIRED IMPORTED COMPONENTS Development Runtime)
 endif()
 
 add_subdirectory(dune)

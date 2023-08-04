@@ -6,9 +6,10 @@
 #include <dune/copasi/parser/factory.hh>
 #include <dune/copasi/parser/parser.hh>
 
+#if __has_include(<parafields/randomfield.hh>)
 #include <parafields/randomfield.hh>
-
 #include <dune/grid/yaspgrid.hh>
+#endif
 
 #include <dune/common/exceptions.hh>
 #include <dune/common/fvector.hh>
@@ -92,6 +93,7 @@ ParserContext::ParserContext(const ParameterTree& config)
                          (pos - _domain[dist - 1]) / (_domain[dist] - _domain[dist - 1]));
       };
     } else if (type == "random_field") {
+#if __has_include(<parafields/randomfield.hh>)
       spdlog::info("Generating '{}' random field", sub);
       auto rmf_dim = sub_config.template get<std::vector<double>>("grid.extensions").size();
       auto seed = sub_config.template get<unsigned int>("seed", 0);
@@ -146,6 +148,9 @@ ParserContext::ParserContext(const ParameterTree& config)
           };
         }
       });
+#else
+      throw format_exception(NotImplemented{}, "Library was compiled without random fields support");
+#endif
     } else if (type == "cell_data") {
       throw format_exception(NotImplemented{}, "cell data is not implemented");
     } else {

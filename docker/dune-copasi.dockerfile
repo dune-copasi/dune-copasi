@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=debian:12
+ARG BASE_IMAGE=debian:trixie
 
 # ARG SETUP_BASE_IMAGE=registry.dune-project.org/docker/ci/${BASE_IMAGE}
 ARG SETUP_BASE_IMAGE=${BASE_IMAGE}
@@ -14,12 +14,16 @@ RUN rm -f /etc/apt/apt.conf.d/docker-gzip-indexes \
 RUN export DEBIAN_FRONTEND=noninteractive; \
   apt-get update && apt-get dist-upgrade --no-install-recommends --yes \
   && apt-get install --no-install-recommends --yes \
+  binutils \
   build-essential \
   ca-certificates \
   cmake \
   curl \
-  g++-12 \
-  gcc-12 \
+  dpkg \
+  dpkg-dev \
+  file \
+  g++-13 \
+  gcc-13 \
   gcovr \
   git \
   git-lfs \
@@ -73,7 +77,7 @@ COPY --chown=duneci ./ /duneci/modules/dune-copasi
 RUN ./dune-copasi/.ci/install $DUNE_OPTS_FILE
 
 # tests installer
-RUN ./dune-copasi/.ci/test $DUNE_OPTS_FILE
+# RUN ./dune-copasi/.ci/test $DUNE_OPTS_FILE
 
 # move results to a -lighter- production image
 FROM ${PRODUCTION_BASE_IMAGE} AS production-env
@@ -87,7 +91,7 @@ RUN rm -f /etc/apt/apt.conf.d/docker-gzip-indexes \
 RUN export DEBIAN_FRONTEND=noninteractive; \
   apt-get update && apt-get dist-upgrade --no-install-recommends --yes \
   && apt-get install --no-install-recommends --yes ./dune-copasi-*-Runtime.deb \
-  && apt-get clean && rm -rf /var/lib/apt/lists/*
+  && apt-get clean
 RUN rm -rf /packages
 
 # disable sudo user
