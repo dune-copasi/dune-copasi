@@ -22,6 +22,21 @@
 
 namespace Dune::Copasi {
 
+// side effect: the config assings an id to each compartment
+
+/**
+ * @brief Creates a multi domain grid from a config file
+ * From given configuration file with grid and compartment section as described
+ * in the program documentation (--grid.* and --compartment.*), this funcition
+ * will read or create a grid and its sub-domains (or compartments).
+ * Additionally, it will assign a unique subdomain 'id' to each compartment in the
+ * configuration file.
+ *
+ * @tparam MDGrid                   The type of the multidomain-grid
+ * @param config                    The configration file
+ * @param parser_context            A parser context to interpret parsed math expression
+ * @return std::unique_ptr<MDGrid>  Pointer to the resulting grid
+ */
 template<Concept::MultiDomainGrid MDGrid>
 std::unique_ptr<MDGrid>
 make_multi_domain_grid(Dune::ParameterTree& config,
@@ -38,13 +53,13 @@ make_multi_domain_grid(Dune::ParameterTree& config,
   }
 
   auto out_guard = ostream2spdlog();
+  auto& compartments_config = config.sub("compartments");
 
   std::unique_ptr<HostGrid> host_grid_ptr;
   std::unique_ptr<MDGrid> md_grid_ptr;
 
   std::unique_ptr<Dune::MultipleCodimMultipleGeomTypeMapper<typename MDGrid::LeafGridView>> mcmg;
-  std::map<std::size_t, std::string> compartment_names;
-  std::vector<std::function<bool(const Entity&)>> compartment_fncs;
+  std::vector<std::pair<std::string,std::function<bool(const Entity&)>>> compartments;
 
   if (grid_config.hasKey("path")) {
     auto grid_path = grid_config.template get<std::string>("path");
@@ -57,27 +72,25 @@ make_multi_domain_grid(Dune::ParameterTree& config,
 
     host_grid_ptr = host_grid_factory.createGrid();
 
-    // get compartments with fixed id
-    for (const auto& compartment : config.sub("compartments").getSubKeys()) {
-      const auto& compartment_config = config.sub("compartments").sub(compartment, true);
-      if (compartment_config.hasKey("id")) {
-        auto const id = compartment_config.template get<std::size_t>("id");
-        if (compartment_names.contains(id)) {
-          compartment_names[id] += fmt::format(", {}", compartment);
-        } else {
-          compartment_names[id] = compartment;
+    // get compartments for gmsh ids
+    for (const auto& compartment : compartments_config.getSubKeys()) {
+      auto& compartment_config = compartments_config.sub(compartment);
+      const auto& type = compartment_config["type"];
+      if (type == "gmsh_id") {
+        const auto gmsh_id = compartment_config.template get<std::size_t>("gmsh_id");
+        if (gmsh_id == 0) {
+          throw format_exception(IOError{}, "The 'gmsh_id' for comparmet '{}' is 0 which is an invalid index.", compartment);
         }
-        compartment_fncs.resize(id + 1);
-        compartment_fncs[id] = [&gmsh_physical_entity, &mcmg, id](const Entity& entity) {
+        // assign a unique id to the config file
+        compartment_config["id"] = std::to_string(compartments.size());
+        compartments.emplace_back(compartment, [&gmsh_physical_entity, &mcmg, gmsh_id](const Entity& entity) {
           Entity _entity = entity;
           while (_entity.hasFather()) {
             _entity = _entity.father();
           }
           assert(_entity.level() == 0);
-          auto gmhs_id = gmsh_physical_entity[mcmg->index(_entity)];
-          assert(gmhs_id > 0);
-          return id + 1 == static_cast<std::size_t>(gmhs_id);
-        };
+          return gmsh_id == gmsh_physical_entity[mcmg->index(_entity)];
+        });
       }
     }
 
@@ -98,18 +111,14 @@ make_multi_domain_grid(Dune::ParameterTree& config,
     }
   }
 
-  // fix id of other compartments
-  for (const auto& compartment : config.sub("compartments").getSubKeys()) {
-    auto& compartment_config = config.sub("compartments").sub(compartment);
+  // assign ids to dynamically generated compartments
+  for (const auto& compartment : compartments_config.getSubKeys()) {
+    auto& compartment_config = compartments_config.sub(compartment);
+    std::size_t id = compartments.size()+1;
+    // assign a unique id to the config file
+    compartment_config["id"] = std::to_string(id);
+    const auto& type = compartment_config["type"];
     if (not compartment_config.hasKey("id")) {
-      std::size_t id = 0;
-      std::size_t count = 0;
-      while (compartment_names.contains(id = count++)) {
-      }
-      compartment_names[id] = compartment;
-      compartment_config["id"] = std::to_string(id);
-      compartment_fncs.resize(id + 1);
-      const auto& type = compartment_config["type"];
       if (type == "expression") {
         auto parser_type =
           string2parser.at(compartment_config.get("parser_type", default_parser_str));
@@ -128,17 +137,24 @@ make_multi_domain_grid(Dune::ParameterTree& config,
         }
         parser_ptr->set_expression(compartment_config["expression"]);
         parser_ptr->compile();
-        compartment_fncs[id] = [position, parser_ptr](const Entity& entity) {
+        compartments.emplace_back(compartment, [position, parser_ptr](const Entity& entity) {
           (*position) = entity.geometry().center();
           return FloatCmp::ne(std::invoke(*parser_ptr), 0.);
-        };
+        });
       } else {
         throw format_exception(NotImplemented{}, "Not know type '{}' of compartment", type);
       }
     }
   }
 
-  typename MDGrid::MDGridTraits const md_grid_traits(compartment_fncs.size());
+  // check that all compartments have an id
+  for (const auto& compartment : compartments_config.getSubKeys()) {
+    if (not compartments_config.sub(compartment).hasKey("id")) {
+      spdlog::warn("Compartment '{}' were not assigned an 'id'!", compartment);
+    }
+  }
+
+  typename MDGrid::MDGridTraits const md_grid_traits(compartments.size());
   md_grid_ptr = std::make_unique<MDGrid>(std::move(host_grid_ptr), md_grid_traits);
   mcmg = std::make_unique<MultipleCodimMultipleGeomTypeMapper<typename MDGrid::LeafGridView>>(
     md_grid_ptr->leafGridView(), mcmgElementLayout());
@@ -153,8 +169,8 @@ make_multi_domain_grid(Dune::ParameterTree& config,
   md_grid_ptr->startSubDomainMarking();
   std::size_t max_domains_per_entity = 0;
   for (const auto& cell : elements(md_grid_ptr->leafGridView())) {
-    for (std::size_t id = max_domains_per_entity = 0; id != compartment_fncs.size(); ++id) {
-      if (compartment_fncs[id](cell)) {
+    for (std::size_t id = max_domains_per_entity = 0; id != compartments.size(); ++id) {
+      if (compartments[id].second(cell)) {
         ++max_domains_per_entity;
         md_grid_ptr->addToSubDomain(id, cell);
       }
@@ -173,8 +189,8 @@ make_multi_domain_grid(Dune::ParameterTree& config,
 
   std::cout << fmt::format("MultiDomainGrid: ");
   gridinfo(*md_grid_ptr, "    ");
-  for (auto [id, compartment_name] : compartment_names) {
-    std::cout << fmt::format("  SubDomain {{{}: {}}}", id, compartment_name);
+  for (std::size_t id = 0; id != compartments.size(); ++id) {
+    std::cout << fmt::format("  SubDomain {{{}: {}}}", id, compartments[id].first);
     gridinfo(md_grid_ptr->subDomain(id), "      ");
   }
 
