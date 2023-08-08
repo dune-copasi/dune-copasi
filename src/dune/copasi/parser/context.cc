@@ -6,6 +6,8 @@
 #include <dune/copasi/parser/factory.hh>
 #include <dune/copasi/parser/parser.hh>
 
+#include <dune/pdelab/common/trace.hh>
+
 #if __has_include(<parafields/randomfield.hh>)
 #include <parafields/randomfield.hh>
 #include <dune/grid/yaspgrid.hh>
@@ -100,14 +102,18 @@ ParserContext::ParserContext(const ParameterTree& config)
       auto file = sub_config.get("writer.vtk.path", "");
       Hybrid::switchCases(std::index_sequence<1, 2, 3>{}, rmf_dim, [&](auto dim) {
         auto field = std::make_shared<parafields::RandomField<RandomFieldTraits<dim>>>(sub_config);
-        if (seed == 0) {
-          field->generate();
-        } else {
-          field->generate(seed);
+        {
+          TRACE_EVENT("dune", "Parafield::Generate");
+          if (seed == 0) {
+            field->generate();
+          } else {
+            field->generate(seed);
+          }
         }
 
         auto upper_right = sub_config.get("grid.extensions", FieldVector<double, dim>(1.));
         if (not file.empty()) {
+          TRACE_EVENT("dune", "Parafield::Write");
           // make grid for writing it into vtk file
           std::array<int, dim> cells{};
           std::fill_n(std::begin(cells), dim, 1);
