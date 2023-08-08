@@ -140,14 +140,18 @@ main(int argc, char** argv)
   }
 
   spdlog::info("Starting dune-copasi");
+  auto trace_path = config.get("trace.path", "");
 #if HAVE_PERFETTO
   std::unique_ptr<Dune::PDELab::TracingSession> tracing_session;
-  auto trace_path = config.get("trace.path", "");
   if (not trace_path.empty()) {
     tracing_session = [trace_path]() {
       auto ostream_guard = Dune::Copasi::ostream2spdlog();
       return std::make_unique<Dune::PDELab::TracingSession>(trace_path);
     }();
+  }
+#else
+  if (not trace_path.empty()) {
+    splog::warn("This executable cannot generate traces. The 'trace.path' argument will be ignored.");
   }
 #endif
   {
