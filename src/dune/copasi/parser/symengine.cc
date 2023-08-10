@@ -11,8 +11,8 @@
 
 namespace Dune::Copasi {
 
-SymEngineParser::SymEngineParser(Type parser_type = Type::Native)
-  : Parser{}
+SymEngineParser::SymEngineParser(Type parser_type)
+  : Parser{}, _parser_type{parser_type}
 {
 }
 
@@ -20,7 +20,7 @@ void
 SymEngineParser::set_expression(const std::string& expression)
 {
   Parser::set_expression(expression);
-  if (Type::Native == parser_type)
+  if (Type::Native == _parser_type)
     _se_expression = SymEngine::parse(_expression);
   else
     _se_expression = SymEngine::parse_sbml(_expression);

@@ -53,6 +53,7 @@ private:
   using Parser::_symbols;
   using Parser::_variables;
 
+  Type _parser_type;
   std::vector<std::string> _const_symbols;
   mutable std::vector<RangeField> _input;
 
