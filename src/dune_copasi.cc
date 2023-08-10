@@ -151,7 +151,7 @@ main(int argc, char** argv)
   }
 #else
   if (not trace_path.empty()) {
-    splog::warn("This executable cannot generate traces. The 'trace.path' argument will be ignored.");
+    spdlog::warn("This executable cannot generate traces. The 'trace.path' argument will be ignored.");
   }
 #endif
   {
