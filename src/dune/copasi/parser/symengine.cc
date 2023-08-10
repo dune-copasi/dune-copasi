@@ -1,4 +1,7 @@
 #include <dune/copasi/parser/symengine.hh>
+#include <dune/copasi/common/exceptions.hh>
+
+#include <dune/common/exceptions.hh>
 
 #include <symengine/lambda_double.h>
 #include <symengine/parser.h>
@@ -36,7 +39,7 @@ SymEngineParser::define_constant(const std::string& symbol, const RangeField& va
 auto
 SymEngineParser::setup_function_symbol(const std::string& symbol)
 {
-  assert(_se_expression);
+  assert(!_se_expression.is_null());
   for (const auto& basic_func : function_symbols(*_se_expression)) {
     auto func = SymEngine::rcp_dynamic_cast<const SymEngine::FunctionSymbol>(basic_func);
     auto fname = func->get_name();
@@ -162,7 +165,7 @@ SymEngineParser::compile()
     _callbacks.emplace_back([this, &visitor]() { _result = visitor.call(_input); });
 
   } catch (SymEngine::SymEngineException& e) {
-    throw format_exception(IOError{}, e.what());
+    throw format_exception(IOError{}, "{}", e.what());
   }
   _compiled = true;
 }
