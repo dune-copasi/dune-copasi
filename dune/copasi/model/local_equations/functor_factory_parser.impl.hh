@@ -174,7 +174,7 @@ FunctorFactoryParser<dim>::parse_scalar_expression(const ParameterTree& config,
     // try to run the parser once, if compilation is wrong,
     // this will throw outside of the functor
     [[maybe_unused]] auto dummy = std::invoke(*parser_ptr);
-    return [_parser_ptr = std::move(parser_ptr)] noexcept {
+    return [_parser_ptr = std::move(parser_ptr)]() noexcept {
       return Scalar{ std::invoke(*_parser_ptr) };
     };
   }
