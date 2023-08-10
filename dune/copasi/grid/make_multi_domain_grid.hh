@@ -22,8 +22,6 @@
 
 namespace Dune::Copasi {
 
-// side effect: the config assings an id to each compartment
-
 /**
  * @brief Creates a multi domain grid from a config file
  * From given configuration file with grid and compartment section as described
@@ -77,10 +75,7 @@ make_multi_domain_grid(Dune::ParameterTree& config,
       auto& compartment_config = compartments_config.sub(compartment);
       const auto& type = compartment_config["type"];
       if (type == "gmsh_id") {
-        const auto gmsh_id = compartment_config.template get<std::size_t>("gmsh_id");
-        if (gmsh_id == 0) {
-          throw format_exception(IOError{}, "The 'gmsh_id' for comparmet '{}' is 0 which is an invalid index.", compartment);
-        }
+        const auto gmsh_id = compartment_config.template get<int>("gmsh_id");
         // assign a unique id to the config file
         compartment_config["id"] = std::to_string(compartments.size());
         compartments.emplace_back(compartment, [&gmsh_physical_entity, &mcmg, gmsh_id](const Entity& entity) {
@@ -114,11 +109,11 @@ make_multi_domain_grid(Dune::ParameterTree& config,
   // assign ids to dynamically generated compartments
   for (const auto& compartment : compartments_config.getSubKeys()) {
     auto& compartment_config = compartments_config.sub(compartment);
-    std::size_t id = compartments.size()+1;
-    // assign a unique id to the config file
-    compartment_config["id"] = std::to_string(id);
-    const auto& type = compartment_config["type"];
     if (not compartment_config.hasKey("id")) {
+      // assign a unique id to the config file
+      std::size_t id = compartments.size();
+      compartment_config["id"] = std::to_string(id);
+      const auto& type = compartment_config["type"];
       if (type == "expression") {
         auto parser_type =
           string2parser.at(compartment_config.get("parser_type", default_parser_str));
@@ -126,7 +121,7 @@ make_multi_domain_grid(Dune::ParameterTree& config,
         if (parser_context)
           parser_context->add_context(*parser_ptr);
         auto position = std::make_shared<FieldVector<double, MDGrid::dimensionworld>>();
-        std::vector<std::string> dim_name = { "x", "y", "z" };
+        const std::vector<std::string> dim_name = { "x", "y", "z" };
         for (std::size_t i = 0; i != 3; ++i) {
           auto pos_arg = fmt::format("position_{}", dim_name.at(i));
           if (i < MDGrid::dimensionworld) {
@@ -148,6 +143,9 @@ make_multi_domain_grid(Dune::ParameterTree& config,
   }
 
   // check that all compartments have an id
+  if (compartments_config.getSubKeys().size() != compartments.size())  {
+    throw format_exception(InvalidStateException{}, "Compartment ids were setup with wrong number of sub-domains");
+  }
   for (const auto& compartment : compartments_config.getSubKeys()) {
     if (not compartments_config.sub(compartment).hasKey("id")) {
       spdlog::warn("Compartment '{}' were not assigned an 'id'!", compartment);
@@ -181,6 +179,10 @@ make_multi_domain_grid(Dune::ParameterTree& config,
                              " have more than {} domains per entity!",
                              md_grid_traits.maxSubDomainIndex() + 1);
     }
+  }
+
+  if (static_cast<std::size_t>(md_grid_ptr->maxAssignedSubDomainIndex())+1 != compartments.size())  {
+    throw format_exception(InvalidStateException{}, "Grid was set up with wrong number of sub-domains");
   }
 
   md_grid_ptr->preUpdateSubDomains();
