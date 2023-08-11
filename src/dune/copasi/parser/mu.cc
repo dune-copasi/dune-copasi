@@ -44,12 +44,14 @@ using FunctionID0D = FunctionID<typename MuParser::Function0D>;
 using FunctionID1D = FunctionID<typename MuParser::Function1D>;
 using FunctionID2D = FunctionID<typename MuParser::Function2D>;
 using FunctionID3D = FunctionID<typename MuParser::Function3D>;
+using FunctionID4D = FunctionID<typename MuParser::Function4D>;
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
 std::map<std::size_t, std::unique_ptr<FunctionID0D>> _function0d = {};
 std::map<std::size_t, std::unique_ptr<FunctionID1D>> _function1d = {};
 std::map<std::size_t, std::unique_ptr<FunctionID2D>> _function2d = {};
 std::map<std::size_t, std::unique_ptr<FunctionID3D>> _function3d = {};
+std::map<std::size_t, std::unique_ptr<FunctionID4D>> _function4d = {};
 
 // recursive mutex are needed because functions may hold parsers that need to be destructed
 std::recursive_mutex _mutex = {};
@@ -89,6 +91,17 @@ function_wrapper_3d(typename MuParser::RangeField arg0,
   return _function3d[i]->function(arg0, arg1, arg2);
 }
 
+template<std::size_t i>
+typename MuParser::RangeField
+function_wrapper_4d(typename MuParser::RangeField arg0,
+                    typename MuParser::RangeField arg1,
+                    typename MuParser::RangeField arg2,
+                    typename MuParser::RangeField arg3)
+{
+  assert(_function4d[i]);
+  return _function4d[i]->function(arg0, arg1, arg2, arg3);
+}
+
 } // namespace
 
 MuParser::MuParser()
@@ -107,60 +120,52 @@ MuParser::define_constant(const std::string& symbol, const RangeField& value)
   reinterpret_cast<mu::Parser*>(_parser.get())->DefineConst(symbol, value);
 }
 
-void
-MuParser::define_function(const std::string& symbol, const Function0D& function)
+namespace Impl {
+
+template<class FunctionID>
+void define_function(auto parser, const std::string& symbol, auto& function_registry, const auto& function)
 {
   auto guard = std::unique_lock{ _mutex };
   for (std::size_t i = 0; i < max_functions; ++i) {
-    if (not _function0d[i]) {
-      _function0d[i] = std::make_unique<FunctionID0D>(FunctionID0D{ _parser, symbol, function });
+    if (not function_registry[i]) {
+      function_registry[i] = std::make_unique<FunctionID>(FunctionID{ parser, symbol, function });
       return;
     }
   }
   throw format_exception(
     NotImplemented{}, "Maximum number of functions reached: {}", max_functions);
+}
+
+} // namespace Impl
+
+void
+MuParser::define_function(const std::string& symbol, const Function0D& function)
+{
+  Impl::define_function<FunctionID0D>(_parser, symbol, _function0d, function);
 }
 
 void
 MuParser::define_function(const std::string& symbol, const Function1D& function)
 {
-  auto guard = std::unique_lock{ _mutex };
-  for (std::size_t i = 0; i < max_functions; ++i) {
-    if (not _function1d[i]) {
-      _function1d[i] = std::make_unique<FunctionID1D>(FunctionID1D{ _parser, symbol, function });
-      return;
-    }
-  }
-  throw format_exception(
-    NotImplemented{}, "Maximum number of functions reached: {}", max_functions);
+  Impl::define_function<FunctionID1D>(_parser, symbol, _function1d, function);
 }
 
 void
 MuParser::define_function(const std::string& symbol, const Function2D& function)
 {
-  auto guard = std::unique_lock{ _mutex };
-  for (std::size_t i = 0; i < max_functions; ++i) {
-    if (not _function2d[i]) {
-      _function2d[i] = std::make_unique<FunctionID2D>(FunctionID2D{ _parser, symbol, function });
-      return;
-    }
-  }
-  throw format_exception(
-    NotImplemented{}, "Maximum number of functions reached: {}", max_functions);
+  Impl::define_function<FunctionID2D>(_parser, symbol, _function2d, function);
 }
 
 void
 MuParser::define_function(const std::string& symbol, const Function3D& function)
 {
-  auto guard = std::unique_lock{ _mutex };
-  for (std::size_t i = 0; i < max_functions; ++i) {
-    if (not _function3d[i]) {
-      _function3d[i] = std::make_unique<FunctionID3D>(FunctionID3D{ _parser, symbol, function });
-      return;
-    }
-  }
-  throw format_exception(
-    NotImplemented{}, "Maximum number of functions reached: {}", max_functions);
+  Impl::define_function<FunctionID3D>(_parser, symbol, _function3d, function);
+}
+
+void
+MuParser::define_function(const std::string& symbol, const Function4D& function)
+{
+  Impl::define_function<FunctionID4D>(_parser, symbol, _function4d, function);
 }
 
 void
@@ -240,6 +245,7 @@ MuParser::register_functions()
     auto idx_1d = _function1d.find(idx);
     auto idx_2d = _function2d.find(idx);
     auto idx_3d = _function3d.find(idx);
+    auto idx_4d = _function4d.find(idx);
 
     if (idx_0d != end(_function0d) and (idx_0d->second) and (idx_0d->second->parser == _parser)) {
       mu_parser.DefineFun(idx_0d->second->name, function_wrapper_0d<idx>);
@@ -253,6 +259,9 @@ MuParser::register_functions()
     if (idx_3d != end(_function3d) and (idx_3d->second) and idx_3d->second->parser == _parser) {
       mu_parser.DefineFun(idx_3d->second->name, function_wrapper_3d<idx>);
     }
+    if (idx_4d != end(_function4d) and (idx_4d->second) and idx_4d->second->parser == _parser) {
+      mu_parser.DefineFun(idx_4d->second->name, function_wrapper_4d<idx>);
+    }
   });
 }
 
@@ -265,6 +274,7 @@ MuParser::unregister_functions()
     auto idx_1d = _function1d.find(idx);
     auto idx_2d = _function2d.find(idx);
     auto idx_3d = _function3d.find(idx);
+    auto idx_4d = _function4d.find(idx);
 
     if (idx_0d != end(_function0d) and (idx_0d->second) and (idx_0d->second->parser == _parser)) {
       _function0d.erase(idx_0d);
@@ -277,6 +287,9 @@ MuParser::unregister_functions()
     }
     if (idx_3d != end(_function3d) and (idx_3d->second) and idx_3d->second->parser == _parser) {
       _function3d.erase(idx_3d);
+    }
+    if (idx_4d != end(_function4d) and (idx_4d->second) and idx_4d->second->parser == _parser) {
+      _function4d.erase(idx_4d);
     }
   });
 }

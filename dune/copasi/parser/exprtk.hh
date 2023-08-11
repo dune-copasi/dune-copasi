@@ -35,12 +35,14 @@ public:
   using Function1D = typename Parser::Function1D;
   using Function2D = typename Parser::Function2D;
   using Function3D = typename Parser::Function3D;
+  using Function4D = typename Parser::Function4D;
 
 private:
   using FunctionID0D = FunctionID<Function0D>;
   using FunctionID1D = FunctionID<Function1D>;
   using FunctionID2D = FunctionID<Function2D>;
   using FunctionID3D = FunctionID<Function3D>;
+  using FunctionID4D = FunctionID<Function4D>;
 
 public:
   void define_constant(const std::string& symbol, const RangeField& value) override final;
@@ -52,6 +54,8 @@ public:
   void define_function(const std::string& symbol, const Function2D& function) override final;
 
   void define_function(const std::string& symbol, const Function3D& function) override final;
+
+  void define_function(const std::string& symbol, const Function4D& function) override final;
 
   // private: ????
 
@@ -83,6 +87,13 @@ public:
     return ExprTkParser::_function3d[i]->function(arg0, arg1, arg2);
   }
 
+  template<std::size_t i>
+  static RangeField function_wrapper_4d(RangeField arg0, RangeField arg1, RangeField arg2, RangeField arg3)
+  {
+    assert(ExprTkParser::_function4d[i]);
+    return ExprTkParser::_function4d[i]->function(arg0, arg1, arg2, arg3);
+  }
+
   void compile() override final;
 
   [[nodiscard]] RangeField operator()() const noexcept override final;
@@ -104,6 +115,7 @@ private:
   static inline std::map<std::size_t, std::unique_ptr<FunctionID1D>> _function1d = {};
   static inline std::map<std::size_t, std::unique_ptr<FunctionID2D>> _function2d = {};
   static inline std::map<std::size_t, std::unique_ptr<FunctionID3D>> _function3d = {};
+  static inline std::map<std::size_t, std::unique_ptr<FunctionID3D>> _function4d = {};
 
   // recursive mutex are needed because functions may hold parsers that need to be destructed
   static inline std::recursive_mutex _mutex = {};

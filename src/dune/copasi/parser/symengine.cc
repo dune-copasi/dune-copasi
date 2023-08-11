@@ -144,6 +144,20 @@ SymEngineParser::define_function(const std::string& symbol, const Function3D& fu
 }
 
 void
+SymEngineParser::define_function(const std::string& symbol, const Function4D& function)
+{
+  auto args_i = setup_function_symbol(symbol);
+
+  if (size(args_i) != 5)
+    throw format_exception(IOError{}, "Function arguments do not match with defined function");
+
+  _callbacks.emplace_back([args_i, this, function = function]() {
+    // update function return value
+    _input[*args_i[0]] = function(_input[*args_i[1]], _input[*args_i[2]], _input[*args_i[3]], _input[*args_i[4]]);
+  });
+}
+
+void
 SymEngineParser::compile()
 {
   Parser::compile();

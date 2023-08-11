@@ -9,7 +9,14 @@
 #include <string>
 #include <vector>
 
+#ifndef DUNE_COPASI_EXPRTK_MAX_FUNCTIONS
+#define DUNE_COPASI_EXPRTK_MAX_FUNCTIONS 500
+#endif
+
+
 namespace Dune::Copasi {
+
+const std::size_t max_functions = DUNE_COPASI_EXPRTK_MAX_FUNCTIONS;
 
 ExprTkParser::ExprTkParser()
   : Parser{}
@@ -28,52 +35,53 @@ ExprTkParser::define_constant(const std::string& symbol, const RangeField& value
   _symbol_table.add_constant(symbol, value);
 };
 
+namespace Impl {
+
+template<class FunctionID>
+void define_function(auto parser, const std::string& symbol, auto& function_registry, const auto& function)
+{
+  auto guard = std::unique_lock{ _mutex };
+  for (std::size_t i = 0; i < max_functions; ++i) {
+    if (not function_registry[i]) {
+      function_registry[i] = std::make_unique<FunctionID>(FunctionID{ parser, symbol, function });
+      return;
+    }
+  }
+  throw format_exception(
+    NotImplemented{}, "Maximum number of functions reached: {}", max_functions);
+}
+
+} // namespace Impl
+
+
 void
 ExprTkParser::define_function(const std::string& symbol, const Function0D& function)
 {
-  auto guard = std::unique_lock{ _mutex };
-  for (std::size_t i = 0; i < max_functions; ++i)
-    if (not _function0d[i]) {
-      _function0d[i] = std::make_unique<FunctionID0D>(FunctionID0D{ _parser, symbol, function });
-      return;
-    }
-  throw format_exception(NotImplemented, "Maximum number of functions reached [{}]", max_functions);
+  Impl::define_function<FunctionID0D>(_parser, symbol, _function0d, function);
 }
 
 void
 ExprTkParser::define_function(const std::string& symbol, const Function1D& function)
 {
-  auto guard = std::unique_lock{ _mutex };
-  for (std::size_t i = 0; i < max_functions; ++i)
-    if (not _function1d[i]) {
-      _function1d[i] = std::make_unique<FunctionID1D>(FunctionID1D{ _parser, symbol, function });
-      return;
-    }
-  throw format_exception(NotImplemented, "Maximum number of functions reached [{}]", max_functions);
+  Impl::define_function<FunctionID1D>(_parser, symbol, _function1d, function);
 }
 
 void
 ExprTkParser::define_function(const std::string& symbol, const Function2D& function)
 {
-  auto guard = std::unique_lock{ _mutex };
-  for (std::size_t i = 0; i < max_functions; ++i)
-    if (not _function2d[i]) {
-      _function2d[i] = std::make_unique<FunctionID2D>(FunctionID2D{ _parser, symbol, function });
-      return;
-    }
-  throw format_exception(NotImplemented, "Maximum number of functions reached [{}]", max_functions);
+  Impl::define_function<FunctionID2D>(_parser, symbol, _function2d, function);
 }
 
 void
 ExprTkParser::define_function(const std::string& symbol, const Function3D& function)
 {
-  auto guard = std::unique_lock{ _mutex };
-  for (std::size_t i = 0; i < max_functions; ++i)
-    if (not _function3d[i]) {
-      _function3d[i] = std::make_unique<FunctionID3D>(FunctionID3D{ _parser, symbol, function });
-      return;
-    }
-  throw format_exception(NotImplemented, "Maximum number of functions reached [{}]", max_functions);
+  Impl::define_function<FunctionID3D>(_parser, symbol, _function3d, function);
+}
+
+void
+ExprTkParser::define_function(const std::string& symbol, const Function4D& function)
+{
+  Impl::define_function<FunctionID4D>(_parser, symbol, _function4d, function);
 }
 
 void
@@ -109,6 +117,7 @@ ExprTkParser::register_functions()
     auto i1 = _function1d.find(i);
     auto i2 = _function2d.find(i);
     auto i3 = _function3d.find(i);
+    auto i4 = _function4d.find(i);
 
     if (i0 != end(_function0d) and (i0->second) and (i0->second->parser == _parser))
       _symbol_table.add_function(i0->second->name, function_wrapper_0d<i>);
@@ -118,6 +127,8 @@ ExprTkParser::register_functions()
       _symbol_table.add_function(i2->second->name, function_wrapper_2d<i>);
     if (i3 != end(_function3d) and (i3->second) and i3->second->parser == _parser)
       _symbol_table.add_function(i3->second->name, function_wrapper_3d<i>);
+    if (i4 != end(_function4d) and (i4->second) and i4->second->parser == _parser)
+      _symbol_table.add_function(i4->second->name, function_wrapper_4d<i>);
   });
 }
 
@@ -130,6 +141,7 @@ ExprTkParser::unregister_functions()
     auto i1 = _function1d.find(i);
     auto i2 = _function2d.find(i);
     auto i3 = _function3d.find(i);
+    auto i4 = _function4d.find(i);
 
     if (i0 != end(_function0d) and (i0->second) and (i0->second->parser == _parser))
       _function0d.erase(i0);
@@ -139,6 +151,8 @@ ExprTkParser::unregister_functions()
       _function2d.erase(i2);
     if (i3 != end(_function3d) and (i3->second) and i3->second->parser == _parser)
       _function3d.erase(i3);
+    if (i4 != end(_function4d) and (i4->second) and i4->second->parser == _parser)
+      _function4d.erase(i4);
   });
 }
 

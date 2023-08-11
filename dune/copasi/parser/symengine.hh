@@ -30,6 +30,7 @@ public:
   using Function1D = typename Parser::Function1D;
   using Function2D = typename Parser::Function2D;
   using Function3D = typename Parser::Function3D;
+  using Function4D = typename Parser::Function4D;
 
   SymEngineParser(Type parser_type = Type::Native);
 
@@ -43,6 +44,7 @@ public:
   void define_function(const std::string& symbol, const Function1D& function) override final;
   void define_function(const std::string& symbol, const Function2D& function) override final;
   void define_function(const std::string& symbol, const Function3D& function) override final;
+  void define_function(const std::string& symbol, const Function4D& function) override final;
 
   void compile() override final;
 

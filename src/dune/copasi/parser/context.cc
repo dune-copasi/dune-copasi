@@ -165,55 +165,65 @@ ParserContext::ParserContext(const ParameterTree& config)
   }
 }
 
+template<std::size_t arg_size>
+auto make_callable(ParserType parser_type, const std::array<std::string,arg_size>& args, std::string_view expression, auto add_independent_context) {
+  std::shared_ptr sub_parser = make_parser(parser_type);
+
+  // setup storage of arguments and define variables in the parser
+  std::shared_ptr<double[]> arg_vals(new double[args.size()]);
+  for (std::size_t i = 0; i != arg_size; ++i) {
+    sub_parser->define_variable(std::string{ args[i] }, &arg_vals[i]);
+  }
+
+  sub_parser->set_expression(std::string{ expression });
+  add_independent_context(*sub_parser);
+  sub_parser->compile();
+  return [_sub_parser = std::move(sub_parser), _arg_vals = std::move(arg_vals)](auto... args) {
+    auto arg_tuple = std::make_tuple(args...);
+    Hybrid::forEach(std::make_index_sequence<sizeof...(args)>{}, [&](auto i){
+      _arg_vals[i] = std::get<i>(arg_tuple);
+    });
+    return std::invoke(*_sub_parser);
+  };
+}
+
+
+typename Parser::Function0D ParserContext::make_function(ParserType parser_type, const std::array<std::string,0>& args, std::string_view expression) const {
+  return make_callable(parser_type, args, expression, [&](auto& parser){add_independent_context(parser);});
+}
+
+typename Parser::Function1D ParserContext::make_function(ParserType parser_type, const std::array<std::string,1>& args, std::string_view expression) const {
+  return make_callable(parser_type, args, expression, [&](auto& parser){add_independent_context(parser);});
+}
+
+typename Parser::Function2D ParserContext::make_function(ParserType parser_type, const std::array<std::string,2>& args, std::string_view expression) const {
+  return make_callable(parser_type, args, expression, [&](auto& parser){add_independent_context(parser);});
+}
+
+typename Parser::Function3D ParserContext::make_function(ParserType parser_type, const std::array<std::string,3>& args, std::string_view expression) const {
+  return make_callable(parser_type, args, expression, [&](auto& parser){add_independent_context(parser);});
+}
+
+typename Parser::Function4D ParserContext::make_function(ParserType parser_type, const std::array<std::string,4>& args, std::string_view expression) const {
+  return make_callable(parser_type, args, expression, [&](auto& parser){add_independent_context(parser);});
+}
+
 void
 ParserContext::add_context(Parser& parser) const
 {
   add_independent_context(parser);
 
+  // add functions to the parser
   for (const auto& [name, pair] : _functions_expr) {
     const auto& [parser_type, function_expression] = pair;
     auto [args, expr] = parse_function_expression(function_expression);
-
-    std::shared_ptr sub_parser = make_parser(parser_type);
-
-    // setup storage of arguments and define variables in the parser
-    std::shared_ptr<double[]> arg_vals(new double[args.size()]);
-    for (std::size_t i = 0; i != args.size(); ++i) {
-      sub_parser->define_variable(std::string{ args[i] }, &arg_vals[i]);
-    }
-
-    sub_parser->set_expression(std::string{ expr });
-    add_independent_context(*sub_parser);
-    sub_parser->compile();
-    if (args.empty()) {
-      parser.define_function(
-        name, [_sub_parser = std::move(sub_parser)]() { return std::invoke(*_sub_parser); });
-    } else if (args.size() == 1) {
-      parser.define_function(
-        name, [_sub_parser = std::move(sub_parser), _arg_vals = std::move(arg_vals)](auto arg0) {
-          _arg_vals[0] = arg0;
-          return std::invoke(*_sub_parser);
-        });
-    } else if (args.size() == 2) {
-      parser.define_function(name,
-                             [_sub_parser = std::move(sub_parser),
-                              _arg_vals = std::move(arg_vals)](auto arg0, auto arg1) {
-                               _arg_vals[0] = arg0;
-                               _arg_vals[1] = arg1;
-                               return std::invoke(*_sub_parser);
-                             });
-    } else if (args.size() == 3) {
-      parser.define_function(name,
-                             [_sub_parser = std::move(sub_parser),
-                              _arg_vals = std::move(arg_vals)](auto arg0, auto arg1, auto arg2) {
-                               _arg_vals[0] = arg0;
-                               _arg_vals[1] = arg1;
-                               _arg_vals[2] = arg2;
-                               return std::invoke(*_sub_parser);
-                             });
-    } else {
-      throw NotImplemented{};
-    }
+    Hybrid::switchCases(std::make_index_sequence<5>{}, args.size(), [&](auto dim){
+      std::array<std::string,dim> array_args;
+      std::copy_n(args.begin(), dim, array_args.begin());
+      parser.define_function(name, make_function(parser_type, array_args, expr));
+    }, [&](){
+      throw format_exception(NotImplemented{}, "Cannot parse {} function arguments", args.size());
+    });
   }
 }
 

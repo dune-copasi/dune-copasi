@@ -33,6 +33,7 @@ public:
   void define_function(const std::string& symbol, const Function1D& function) final;
   void define_function(const std::string& symbol, const Function2D& function) final;
   void define_function(const std::string& symbol, const Function3D& function) final;
+  void define_function(const std::string& symbol, const Function4D& function) final;
 
   void compile() final;
 

@@ -30,6 +30,7 @@ public:
   using Function1D = std::function<RangeField(RangeField)>;
   using Function2D = std::function<RangeField(RangeField, RangeField)>;
   using Function3D = std::function<RangeField(RangeField, RangeField, RangeField)>;
+  using Function4D = std::function<RangeField(RangeField, RangeField, RangeField, RangeField)>;
 
   virtual void set_expression(const std::string& expression);
 
@@ -43,6 +44,7 @@ public:
   virtual void define_function(const std::string& symbol, const Function1D& function) = 0;
   virtual void define_function(const std::string& symbol, const Function2D& function) = 0;
   virtual void define_function(const std::string& symbol, const Function3D& function) = 0;
+  virtual void define_function(const std::string& symbol, const Function4D& function) = 0;
 
   [[nodiscard]] bool compiled() const;
 
