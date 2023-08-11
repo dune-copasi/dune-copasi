@@ -12,6 +12,7 @@
 #include <dune/common/float_cmp.hh>
 #include <dune/common/parametertree.hh>
 
+#include <fmt/color.h>
 #include <fmt/core.h>
 
 #include <spdlog/spdlog.h>
@@ -104,7 +105,10 @@ public:
 
     // get current time
     TimeQuantity time = _time_const(in);
-    spdlog::info("Time step: {:.2e}s + {:.2e}s -> {:.2e}s", time, dt, time + dt);
+    spdlog::info("Evaluting time step: {:.2e}s + {:.2e}s -> {:.2e}s",
+                 fmt::styled(time, fmt::emphasis::bold),
+                 dt,
+                 fmt::styled(time + dt, fmt::emphasis::bold));
 
     // set stepper with time-stepping parameters
     one_step["duration"] = dt;
