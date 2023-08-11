@@ -5,6 +5,7 @@
 
 #include <dune/copasi/common/exceptions.hh>
 #include <dune/copasi/common/filesystem.hh>
+#include <dune/copasi/parser/context.hh>
 
 #include <dune/pdelab/operator/operator.hh>
 
@@ -16,6 +17,8 @@
 #include <dune/common/parametertree.hh>
 
 #include <any>
+#include <map>
+#include <string>
 #include <memory>
 #include <unordered_map>
 
@@ -86,6 +89,11 @@ struct Model
   [[nodiscard]] virtual std::unique_ptr<PDELab::OneStep<State>> make_step_operator(
     const State&,
     const ParameterTree&) const = 0;
+
+  virtual std::map<std::string, double> reduce(const State&, const ParameterTree&, std::shared_ptr<ParserContext>) const
+  {
+    throw format_exception(NotImplemented{}, "Model reduce has not been implemented");
+  }
 };
 
 } // namespace Dune::Copasi

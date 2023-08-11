@@ -2,6 +2,7 @@
 #define DUNE_COPASI_MODEL_DIFFUSION_REACTION_SINGLE_COMPARTMENT_IMPL_HH
 
 #include <dune/copasi/model/diffusion_reaction_sc.hh>
+#include <dune/copasi/model/reduce.hh>
 #include <dune/copasi/model/interpolate.hh>
 #include <dune/copasi/model/make_initial.hh>
 #include <dune/copasi/model/make_step_operator.hh>
@@ -233,6 +234,20 @@ ModelDiffusionReaction<Traits>::make_step_operator(const State& state,
   type_erased_one_step->get("initial_residual") = residual_ptr;
   type_erased_one_step->get("time") = state.time;
   return type_erased_one_step;
+}
+
+template<class Traits>
+auto
+ModelDiffusionReaction<Traits>::reduce(const State& state, const ParameterTree& config, std::shared_ptr<ParserContext> parser_context) const
+  -> std::map<std::string, double>
+{
+  using CompartmentBasis = PDELab::Basis<CompartmentEntitySet, CompartmentPreBasis>;
+  using CoefficientsBackend = PDELab::ISTLUniformBackend<ScalarQuantity>;
+  using Coefficients = typename CompartmentBasis::template Container<CoefficientsBackend>;
+  const auto& basis = any_cast<const CompartmentBasis&>(state.basis);
+  const auto& coeff = any_cast<const Coefficients&>(state.coefficients);
+
+  return Dune::Copasi::reduce(basis, coeff, state.time, config, std::move(parser_context));
 }
 
 template<class Traits>

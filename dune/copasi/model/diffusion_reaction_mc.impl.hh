@@ -6,6 +6,7 @@
 #include <dune/copasi/local_operator/diffusion_reaction/continuous_galerkin.hh>
 #include <dune/copasi/model/diffusion_reaction_mc.hh>
 #include <dune/copasi/model/diffusion_reaction_sc.hh>
+#include <dune/copasi/model/reduce.hh>
 #include <dune/copasi/model/interpolate.hh>
 #include <dune/copasi/model/make_initial.hh>
 #include <dune/copasi/model/make_step_operator.hh>
@@ -186,6 +187,22 @@ ModelMultiCompartmentDiffusionReaction<Traits>::make_initial(const Grid& grid,
 
 template<class Traits>
 auto
+ModelMultiCompartmentDiffusionReaction<Traits>::reduce(const State& state, const ParameterTree& config, std::shared_ptr<ParserContext> parser_context) const
+  -> std::map<std::string, double>
+{
+  using MultiCompartmentBasis =
+    PDELab::Basis<MultiCompartmentEntitySet, MultiCompartmentPreBasis, TypeTree::HybridTreePath<>>;
+  using CoefficientsBackend = PDELab::ISTLUniformBackend<ScalarQuantity>;
+  using Coefficients = typename MultiCompartmentBasis::template Container<CoefficientsBackend>;
+
+  const auto& basis = any_cast<const MultiCompartmentBasis&>(state.basis);
+  const auto& coeff = any_cast<const Coefficients&>(state.coefficients);
+
+  return Dune::Copasi::reduce(basis, coeff, state.time, config, std::move(parser_context));
+}
+
+template<class Traits>
+auto
 ModelMultiCompartmentDiffusionReaction<Traits>::make_step_operator(
   const State& state,
   const ParameterTree& config) const -> std::unique_ptr<PDELab::OneStep<State>>
@@ -260,24 +277,11 @@ ModelMultiCompartmentDiffusionReaction<Traits>::write_vtk(const State& state,
     Basis<CompartmentEntitySet, MultiCompartmentPreBasis, TypeTree::HybridTreePath<std::size_t>>;
   using MultiCompartmentBasis =
     PDELab::Basis<MultiCompartmentEntitySet, MultiCompartmentPreBasis, TypeTree::HybridTreePath<>>;
-
-  using CoefficientsBackend = PDELab::ISTLUniformBackend<ScalarQuantity>;
-  using Coefficients = typename MultiCompartmentBasis::template Container<CoefficientsBackend>;
-
   using ScalarBasis = PDELab::Basis<CompartmentEntitySet,
                                     MultiCompartmentPreBasis,
                                     TypeTree::HybridTreePath<std::size_t, size_t>>;
-  using CompartmentBasis = PDELab::
-    Basis<CompartmentEntitySet, MultiCompartmentPreBasis, TypeTree::HybridTreePath<std::size_t>>;
-  using MultiCompartmentBasis =
-    PDELab::Basis<MultiCompartmentEntitySet, MultiCompartmentPreBasis, TypeTree::HybridTreePath<>>;
-
   using CoefficientsBackend = PDELab::ISTLUniformBackend<ScalarQuantity>;
   using Coefficients = typename MultiCompartmentBasis::template Container<CoefficientsBackend>;
-
-  using ScalarBasis = PDELab::Basis<CompartmentEntitySet,
-                                    MultiCompartmentPreBasis,
-                                    TypeTree::HybridTreePath<std::size_t, size_t>>;
 
   const auto& basis = any_cast<const MultiCompartmentBasis&>(state.basis);
   const auto& coeff = any_cast<const Coefficients&>(state.coefficients);

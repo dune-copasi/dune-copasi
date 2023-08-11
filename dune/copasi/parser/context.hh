@@ -25,11 +25,12 @@ public:
   typename Parser::Function3D make_function(ParserType, const std::array<std::string,3>&, std::string_view) const;
   typename Parser::Function4D make_function(ParserType, const std::array<std::string,4>&, std::string_view) const;
 
-private:
   // parse functions of the form `arg0, arg1, ...: expr`. Returns a vector of arguments and a string
   // containing the expression
-  static inline std::tuple<std::vector<std::string_view>, std::string_view>
+  static std::tuple<std::vector<std::string_view>, std::string_view>
   parse_function_expression(std::string_view fnc_expr);
+
+private:
 
   void add_independent_context(Parser& parser) const;
 

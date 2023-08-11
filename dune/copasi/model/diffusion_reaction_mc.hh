@@ -76,6 +76,8 @@ public:
 
   void write_vtk(const State&, const fs::path&, bool) const override;
 
+  std::map<std::string, double> reduce(const State&, const ParameterTree&, std::shared_ptr<ParserContext>) const override;
+
 private:
   static MultiCompartmentPreBasis make_multi_compartment_pre_basis(const Grid&,
                                                                    const ParameterTree&);

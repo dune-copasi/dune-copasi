@@ -8,11 +8,13 @@
 #include <dune/copasi/parser/factory.hh>
 
 #include <dune/pdelab/concepts/basis.hh>
+#include <dune/pdelab/common/container_entry.hh>
 
 #include <dune/common/fvector.hh>
 #include <dune/common/indices.hh>
 #include <dune/common/overloadset.hh>
 #include <dune/common/parametertree.hh>
+#include <dune/common/tuplevector.hh>
 
 #include <spdlog/spdlog.h>
 
@@ -254,11 +256,11 @@ public:
     }
   };
 
-  static std::unique_ptr<LocalEquations> make(
+  [[nodiscard]] static std::unique_ptr<LocalEquations> make(
     const PDELab::Concept::LocalBasis auto& lbasis,
-    const ParameterTree& config,
-    const FunctorFactory<dim>& functor_factory,
-    BitFlags<FactoryFalgs> opts = BitFlags<FactoryFalgs>::all_flags())
+    const ParameterTree& config = {},
+    FunctorFactory<dim> const * functor_factory = nullptr,
+    BitFlags<FactoryFalgs> opts = BitFlags<FactoryFalgs>::no_flags())
   {
     auto local_values = std::unique_ptr<LocalEquations>(new LocalEquations{});
 
@@ -285,8 +287,12 @@ public:
               InvalidStateException{}, "\tVariable with name '{}' is repeated", *it);
     });
 
-    if (opts.any())
-      local_values->configure(config, functor_factory, opts);
+    if (opts.any()) {
+      if (not functor_factory) {
+        throw format_exception(InvalidStateException{}, "Equations cannot be configured without a functor factory");
+      }
+      local_values->configure(config, *functor_factory, opts);
+    }
     return local_values;
   }
 
@@ -297,7 +303,7 @@ public:
   {
     return make(lbasis,
                 config,
-                functor_factory,
+                &functor_factory,
                 FactoryFalgs::Reaction | FactoryFalgs::Diffusion | FactoryFalgs::Velocity |
                   FactoryFalgs::Outflow);
   }
@@ -306,7 +312,7 @@ public:
                                                    const ParameterTree& config,
                                                    const FunctorFactory<dim>& functor_factory)
   {
-    return make(lbasis, config, functor_factory, FactoryFalgs::Storage);
+    return make(lbasis, config, &functor_factory, FactoryFalgs::Storage);
   }
 
   template<class Tree>

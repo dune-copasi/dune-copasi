@@ -207,7 +207,7 @@ main(int argc, char** argv)
 
         auto parser_type = string2parser.at(config.get("model.parser_type", default_parser_str));
         auto functor_factory =
-          std::make_shared<FunctorFactoryParser<dim>>(parser_type, std::move(parser_context));
+          std::make_shared<FunctorFactoryParser<dim>>(parser_type, parser_context);
         std::shared_ptr model = make_model<Model>(model_config, functor_factory);
 
         // create time stepper
@@ -231,12 +231,17 @@ main(int argc, char** argv)
           decrease_factor, increase_factor, min_step, max_step
         };
 
-        // setup writer
-        std::function<void(const State&)> output_writter;
+        // setup functor for each step
+        std::function<void(const State&)> on_each_step;
         auto vtk_path = model_config.get("writer.vtk.path", "");
-        output_writter = [model_config, vtk_path, model](const auto& state) {
+        on_each_step = [model_config, vtk_path, model, parser_context](const auto& state) {
+          // write to vtk if requested
           if (not vtk_path.empty()) {
             model->write_vtk(state, vtk_path, true);
+          }
+          // evaluate transform/reduce operations on the model state
+          if (model_config.hasSub("reduce")) {
+            model->reduce(state, model_config.sub("reduce"), parser_context);
           }
         };
 
@@ -245,13 +250,13 @@ main(int argc, char** argv)
 
         // interpolate initial conditions into the model state
         model->interpolate(*in, model->make_initial(*(in->grid), model_config));
-        if (output_writter) {
-          output_writter(*in); // write initial condition
+        if (on_each_step) {
+          on_each_step(*in); // write initial condition
         }
 
         auto step_operator = model->make_step_operator(*in, model_config);
 
-        stepper.evolve(*step_operator, *in, *in, initial_step, end_time, output_writter).or_throw();
+        stepper.evolve(*step_operator, *in, *in, initial_step, end_time, on_each_step).or_throw();
       },
       [config_dim]() {
         Dune::IOError excep;
