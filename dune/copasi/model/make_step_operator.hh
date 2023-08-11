@@ -238,7 +238,7 @@ public:
 private:
   std::shared_ptr<Preconditioner<Domain, Range>> _preconditioner;
   ParameterTree _config;
-  std::string _prec_type, _lin_type;
+  std::string _lin_type, _prec_type;
 };
 
 template<class Coefficients,
