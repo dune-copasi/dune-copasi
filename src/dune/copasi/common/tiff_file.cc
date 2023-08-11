@@ -14,7 +14,7 @@
 namespace Dune::Copasi {
 
 TIFFFile::TIFFFile(const fs::path& filename)
-  : _tiff_file(static_cast<TIFF*>(TIFFOpen(filename.c_str(), "r")))
+  : _tiff_file(static_cast<TIFF*>(TIFFOpen(filename.string().c_str(), "r")))
 {
   TIFF* tiff_file = static_cast<TIFF*>(_tiff_file);
   if (tiff_file == nullptr) {

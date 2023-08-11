@@ -24,6 +24,8 @@ class Constraints : public TypeTree::LeafNode
   {
     std::unique_ptr<LocalDomain<dim>> local_domain;
     fu2::unique_function<FieldVector<double, 1>() const noexcept> constrain_fnc;
+    Data(std::unique_ptr<LocalDomain<dim>> local_domain, fu2::unique_function<FieldVector<double, 1>() const noexcept> constrain_fnc)
+      : local_domain{std::move(local_domain)}, constrain_fnc{std::move(constrain_fnc)} {}
   };
 
 public:

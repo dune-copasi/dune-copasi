@@ -191,11 +191,9 @@ reduce(const Basis& basis,
     auto sty_key = key;
 #endif
     auto verbose = config.sub(key).get("verbose", 1);
-    std::function<void()> report_value = [&](){
-      if (verbose) {
-        spdlog::info("   | {0:>{2}} := {1: .{3}e} |", sty_key, value, max_key_chars, max_val_chars);
-      }
-    };
+    if (verbose) {
+      spdlog::info("   | {0:>{2}} := {1: .{3}e} |", sty_key, value, max_key_chars, max_val_chars);
+    }
 
     if (config.sub(key).hasKey("warn.expression")) {
       auto [args, expr] = parser_context->parse_function_expression(config.sub(key)["warn.expression"]);
@@ -204,9 +202,7 @@ reduce(const Basis& basis,
       auto sub_parser_type = string2parser.at(config.sub(key).get("warn.parser_type", std::string{parser2string.at(parser_type)}));
       auto warn = parser_context->make_function(sub_parser_type, std::array{std::string{args[0]}}, expr);
       if (FloatCmp::ne(warn(value), 0.)) {
-        report_value = [&]() {
-          spdlog::warn("| {0:>{2}} := {1: .{3}e} |", sty_key, value, max_key_chars, max_val_chars);
-        };
+        spdlog::warn("| {0:>{2}} := {1: .{3}e} |", sty_key, value, max_key_chars, max_val_chars);
       }
     }
 
@@ -218,13 +214,9 @@ reduce(const Basis& basis,
       auto error = parser_context->make_function(sub_parser_type, std::array{std::string{args[0]}}, expr);
       if (FloatCmp::ne(error(value), 0.)) {
         do_throw = true;
-        report_value = [&]() {
-          spdlog::error("  | {0:>{2}} := {1: .{3}e} |", sty_key, value, max_key_chars, max_val_chars);
-        };
+        spdlog::error("  | {0:>{2}} := {1: .{3}e} |", sty_key, value, max_key_chars, max_val_chars);
       }
     }
-
-    report_value();
   }
   spdlog::info("   └{0:─^{1}}┘", "", max_key_chars+max_val_chars+13);
 

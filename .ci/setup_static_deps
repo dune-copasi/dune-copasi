@@ -65,9 +65,9 @@ echo "Moving libs to install prefix: ${CMAKE_INSTALL_PREFIX}"
 # copy libs to desired location
 $SUDOCMD mkdir -p "${CMAKE_INSTALL_PREFIX}"
 if [[ "$OS_TARGET" == *"win"* ]]; then
-   $SUDOCMD mv smelibs/* "${CMAKE_INSTALL_PREFIX}"
+   $SUDOCMD mv c/smelibs /c/
 else
-   $SUDOCMD mv opt/smelibs/* "${CMAKE_INSTALL_PREFIX}"
+   $SUDOCMD mv opt/* /opt/
 fi
 
 # set the following flags in your dune opts file

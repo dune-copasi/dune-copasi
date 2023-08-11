@@ -213,9 +213,13 @@ ParserContext::add_context(Parser& parser) const
   add_independent_context(parser);
 
   // add functions to the parser
-  for (const auto& [name, config] : _functions_expr) {
+  for (const auto& name_config_pair : _functions_expr) {
+    const std::string &name{name_config_pair.first};
+    const ParameterTree& config{name_config_pair.second};
     auto parser_type = string2parser.at(config.get("parser_type", default_parser_str));
-    auto [args, expr] = parse_function_expression(config["expression"]);
+    std::vector<std::string_view> args;
+    std::string_view expr;
+    std::tie(args, expr) = parse_function_expression(config["expression"]);
     Hybrid::switchCases(std::make_index_sequence<5>{}, args.size(), [&](auto dim){
       std::array<std::string,dim> array_args;
       std::move(args.begin(), args.end(), array_args.begin());
@@ -260,7 +264,7 @@ ParserContext::add_context(Parser& parser) const
             throw format_exception(IOError{}, "Not known '{}.interpolation.out_of_bounds = {}'", name, ooo);
           }
         } else {
-          throw format_exception(NotImplemented{}, "Cannot interpolate '{}' function with {} arguments", name, dim);
+          throw format_exception(NotImplemented{}, "Cannot interpolate '{}' function with {} arguments", name, dim());
         }
       }
       parser.define_function(name, std::move(fnc));

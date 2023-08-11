@@ -162,7 +162,7 @@ ModelDiffusionReaction<Traits>::make_state(const std::shared_ptr<const Grid>& gr
 }
 
 template<class Traits>
-ModelDiffusionReaction<Traits>::GridFunction
+typename ModelDiffusionReaction<Traits>::GridFunction
 ModelDiffusionReaction<Traits>::make_compartment_function(const std::shared_ptr<const State>& state,
                                                           std::string_view name) const
 {

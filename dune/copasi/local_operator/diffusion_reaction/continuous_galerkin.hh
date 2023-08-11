@@ -59,10 +59,12 @@ class LocalOperatorDiffusionReactionCG
   mutable std::vector<FieldVector<RF, 1>> _phi_i, _phi_o;
 
   using MembraneScalarFunction = typename LocalEquations<dim>::MembraneScalarFunction;
+  using CompartmentNode = typename LocalEquations<dim>::CompartmentNode;
   struct Outflow
   {
-    const typename LocalEquations<dim>::MembraneScalarFunction& outflow;
-    const typename LocalEquations<dim>::CompartmentNode& source;
+    const MembraneScalarFunction& outflow;
+    const CompartmentNode& source;
+    Outflow(const MembraneScalarFunction& outflow, const CompartmentNode& source) : outflow{outflow}, source{source} {}
   };
   mutable std::vector<Outflow> _outflow_i;
   mutable std::vector<Outflow> _outflow_o;

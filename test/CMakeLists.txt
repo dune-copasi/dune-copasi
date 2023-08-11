@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
-project(dune-copasi-tests CXX)
+project(dune-copasi-tests CXX C)
 
 # check if this project is called as its own cmake project (i.e. not as subdirectory)
 if("${CMAKE_SOURCE_DIR}" STREQUAL "${PROJECT_SOURCE_DIR}")

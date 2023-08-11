@@ -186,6 +186,8 @@ public:
     std::vector<CompartmentDiffusionApply> cross_diffusion;
     std::vector<MembraneScalarFunction> outflow;
 
+    CompartmentNode(Scalar& value, Vector& gradient, CompartmentPath path, const std::string& name) : value{value}, gradient{gradient}, path{path}, name{name} {}
+
     const Concept::CompartmentScalarLocalBasisNode auto& to_local_basis_node(
       const PDELab::Concept::LocalBasis auto& lbasis) const
     {
