@@ -41,7 +41,7 @@ make_multi_domain_grid(Dune::ParameterTree& config,
                        std::shared_ptr<const ParserContext> parser_context = {})
 {
   using HostGrid = typename MDGrid::HostGrid;
-  using Entity = typename MDGrid::template Codim<0>::Entity;
+  using HostEntity = typename HostGrid::template Codim<0>::Entity;
 
   const auto& grid_config = config.sub("grid");
   std::size_t const dim = grid_config.get("dimension", std::size_t{ MDGrid::dimensionworld });
@@ -56,8 +56,7 @@ make_multi_domain_grid(Dune::ParameterTree& config,
   std::unique_ptr<HostGrid> host_grid_ptr;
   std::unique_ptr<MDGrid> md_grid_ptr;
 
-  std::unique_ptr<Dune::MultipleCodimMultipleGeomTypeMapper<typename MDGrid::LeafGridView>> mcmg;
-  std::vector<std::pair<std::string,std::function<bool(const Entity&)>>> compartments;
+  std::vector<std::pair<std::string,std::function<bool(const HostEntity&)>>> compartments;
 
   if (grid_config.hasKey("path")) {
     auto grid_path = grid_config.template get<std::string>("path");
@@ -66,9 +65,10 @@ make_multi_domain_grid(Dune::ParameterTree& config,
     auto host_grid_parser = Dune::GmshReaderParser<HostGrid>{ host_grid_factory, false, false };
 
     host_grid_parser.read(grid_path);
-    const auto& gmsh_physical_entity = host_grid_parser.elementIndexMap();
+    auto gmsh_physical_entity = std::make_shared<std::vector<int>>(host_grid_parser.elementIndexMap());
 
     host_grid_ptr = host_grid_factory.createGrid();
+    auto mcmg = MultipleCodimMultipleGeomTypeMapper<typename HostGrid::LeafGridView>(host_grid_ptr->leafGridView(), mcmgElementLayout());
 
     // get compartments for gmsh ids
     for (const auto& compartment : compartments_config.getSubKeys()) {
@@ -78,13 +78,13 @@ make_multi_domain_grid(Dune::ParameterTree& config,
         const auto gmsh_id = compartment_config.template get<int>("gmsh_id");
         // assign a unique id to the config file
         compartment_config["id"] = std::to_string(compartments.size());
-        compartments.emplace_back(compartment, [&gmsh_physical_entity, &mcmg, gmsh_id](const Entity& entity) {
-          Entity _entity = entity;
+        compartments.emplace_back(compartment, [gmsh_physical_entity, mcmg, gmsh_id](const HostEntity& entity) {
+          HostEntity _entity = entity;
           while (_entity.hasFather()) {
             _entity = _entity.father();
           }
           assert(_entity.level() == 0);
-          return gmsh_id == gmsh_physical_entity[mcmg->index(_entity)];
+          return gmsh_id == (*gmsh_physical_entity)[mcmg.index(_entity)];
         });
       }
     }
@@ -132,7 +132,7 @@ make_multi_domain_grid(Dune::ParameterTree& config,
         }
         parser_ptr->set_expression(compartment_config["expression"]);
         parser_ptr->compile();
-        compartments.emplace_back(compartment, [position, parser_ptr](const Entity& entity) {
+        compartments.emplace_back(compartment, [position, parser_ptr](const HostEntity& entity) {
           (*position) = entity.geometry().center();
           return FloatCmp::ne(std::invoke(*parser_ptr), 0.);
         });
@@ -154,8 +154,6 @@ make_multi_domain_grid(Dune::ParameterTree& config,
 
   typename MDGrid::MDGridTraits const md_grid_traits(compartments.size());
   md_grid_ptr = std::make_unique<MDGrid>(std::move(host_grid_ptr), md_grid_traits);
-  mcmg = std::make_unique<MultipleCodimMultipleGeomTypeMapper<typename MDGrid::LeafGridView>>(
-    md_grid_ptr->leafGridView(), mcmgElementLayout());
 
   auto level = grid_config.get("refinement_level", int{ 0 });
   if (level > 0) {
@@ -168,7 +166,7 @@ make_multi_domain_grid(Dune::ParameterTree& config,
   std::size_t max_domains_per_entity = 0;
   for (const auto& cell : elements(md_grid_ptr->leafGridView())) {
     for (std::size_t id = max_domains_per_entity = 0; id != compartments.size(); ++id) {
-      if (compartments[id].second(cell)) {
+      if (compartments[id].second(md_grid_ptr->hostEntity(cell))) {
         ++max_domains_per_entity;
         md_grid_ptr->addToSubDomain(id, cell);
       }
@@ -181,8 +179,11 @@ make_multi_domain_grid(Dune::ParameterTree& config,
     }
   }
 
-  if (static_cast<std::size_t>(md_grid_ptr->maxAssignedSubDomainIndex())+1 != compartments.size())  {
-    throw format_exception(InvalidStateException{}, "Grid was set up with wrong number of sub-domains");
+  auto max_sd_index = static_cast<std::size_t>(md_grid_ptr->maxAssignedSubDomainIndex())+1;
+  if (max_sd_index != compartments.size())  {
+    spdlog::warn("Grid has {} sub-domain{} but config has {} compartment{}",
+      max_sd_index, max_sd_index == 1 ? "" : "s",
+      compartments.size(), compartments.size() == 1 ? "" : "s");
   }
 
   md_grid_ptr->preUpdateSubDomains();
@@ -191,7 +192,7 @@ make_multi_domain_grid(Dune::ParameterTree& config,
 
   std::cout << fmt::format("MultiDomainGrid: ");
   gridinfo(*md_grid_ptr, "    ");
-  for (std::size_t id = 0; id != compartments.size(); ++id) {
+  for (std::size_t id = 0; id != max_sd_index; ++id) {
     std::cout << fmt::format("  SubDomain {{{}: {}}}", id, compartments[id].first);
     gridinfo(md_grid_ptr->subDomain(id), "      ");
   }

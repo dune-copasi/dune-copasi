@@ -75,7 +75,7 @@ ModelMultiCompartmentDiffusionReaction<Traits>::make_multi_compartment_pre_basis
       compartments_config.sub(compartment, true).template get<SubDomainIndex>("id");
 
     if (domain_id > grid.maxAssignedSubDomainIndex())
-      DUNE_THROW(IOError, "\tCompartment ID does not exist in multi-domain grid");
+      throw format_exception(IOError{}, "Compartment '{}' with id '{}' does not exist in multi-domain grid", compartment, domain_id);
 
     CompartmentEntitySet sub_grid_view = grid.subDomain(domain_id).leafGridView();
 
@@ -173,7 +173,7 @@ ModelMultiCompartmentDiffusionReaction<Traits>::make_compartment_function(
         return makeDiscreteGlobalBasisFunction(species_basis, coeff_ptr);
     }
   }
-  DUNE_THROW(RangeError, "State doesn't contain any function with name: " << name);
+  throw format_exception(RangeError{}, "State doesn't contain any function with name: {}", name);
 }
 
 template<class Traits>
@@ -296,10 +296,13 @@ ModelMultiCompartmentDiffusionReaction<Traits>::write_vtk(const State& state,
     std::error_code ec{ 0, std::generic_category() };
     fs::create_directories(path_entry.path(), ec);
     if (ec)
-      DUNE_THROW(IOError,
-                 "\n Category: " << ec.category().name() << '\n'
-                                 << "Value: " << ec.value() << '\n'
-                                 << "Message: " << ec.message() << '\n');
+      throw format_exception(IOError{},
+                             "Category: {}\n"
+                             "Value: {}\n"
+                             "Message: {}",
+                             ec.category().name(),
+                             ec.value(),
+                             ec.message());
   }
 
   spdlog::info("Writing solution for {:.2f}s time stamp", state.time);
@@ -345,8 +348,8 @@ ModelMultiCompartmentDiffusionReaction<Traits>::write_vtk(const State& state,
   timesteps = tmp_timesteps;
 
   if (coeff_ptr.use_count() != 1)
-    DUNE_THROW(
-      InvalidStateException,
+    throw format_exception(
+      InvalidStateException{},
       "Fake shared pointer from coefficient vector may have been leaked outsie of this function!");
 }
 
