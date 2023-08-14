@@ -74,9 +74,6 @@ ModelMultiCompartmentDiffusionReaction<Traits>::make_multi_compartment_pre_basis
     SubDomainIndex domain_id =
       compartments_config.sub(compartment, true).template get<SubDomainIndex>("id");
 
-    if (domain_id > grid.maxAssignedSubDomainIndex())
-      throw format_exception(IOError{}, "Compartment '{}' with id '{}' does not exist in multi-domain grid", compartment, domain_id);
-
     CompartmentEntitySet sub_grid_view = grid.subDomain(domain_id).leafGridView();
 
     CompartmentPreBasis compartment_pre_basis =

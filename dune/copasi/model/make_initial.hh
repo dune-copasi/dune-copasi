@@ -43,9 +43,6 @@ make_initial(const Grid& grid,
       if constexpr (Concept::MultiDomainGrid<Grid>) {
         using SubDomainIndex = typename Grid::SubDomainIndex;
         auto const domain_id = compartment_config.template get<SubDomainIndex>("id");
-        if (domain_id > grid.maxAssignedSubDomainIndex()) {
-          throw format_exception(IOError{}, "Compartment ID does not exist in multi-domain grid");
-        }
         return grid.subDomain(domain_id).leafGridView();
       } else {
         auto const domain_id = compartment_config.template get<std::size_t>("id");

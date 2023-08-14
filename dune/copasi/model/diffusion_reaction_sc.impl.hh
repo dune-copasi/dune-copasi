@@ -81,6 +81,9 @@ ModelDiffusionReaction<Traits>::make_compartment_pre_basis(
 {
   spdlog::info("Setup compartment grid function space");
 
+  if (entity_set.size(0) == 0)
+    spdlog::warn("Compartment '{}' is empty", compartment_name);
+
   std::vector<ScalarPreBasis> scalar_field_pre_basis;
   for (const auto& name : scalar_field_names) {
     scalar_field_pre_basis.push_back(make_scalar_field_pre_basis(entity_set, name));
