@@ -58,6 +58,9 @@ make_multi_domain_grid(Dune::ParameterTree& config,
 
   std::vector<std::pair<std::string,std::function<bool(const HostEntity&)>>> compartments;
 
+  double gmsh_id = std::numeric_limits<double>::max();
+  std::function<void(HostEntity)> update_gmsh_id;
+
   if (grid_config.hasKey("path")) {
     auto grid_path = grid_config.template get<std::string>("path");
     spdlog::info("Reading grid file '{}'", grid_path);
@@ -65,29 +68,19 @@ make_multi_domain_grid(Dune::ParameterTree& config,
     auto host_grid_parser = Dune::GmshReaderParser<HostGrid>{ host_grid_factory, false, false };
 
     host_grid_parser.read(grid_path);
-    auto gmsh_physical_entity = std::make_shared<std::vector<int>>(host_grid_parser.elementIndexMap());
+    auto& gmsh_physical_entity = host_grid_parser.elementIndexMap();
 
     host_grid_ptr = host_grid_factory.createGrid();
     auto mcmg = MultipleCodimMultipleGeomTypeMapper<typename HostGrid::LeafGridView>(host_grid_ptr->leafGridView(), mcmgElementLayout());
 
-    // get compartments for gmsh ids
-    for (const auto& compartment : compartments_config.getSubKeys()) {
-      auto& compartment_config = compartments_config.sub(compartment);
-      const auto& type = compartment_config["type"];
-      if (type == "gmsh_id") {
-        const auto gmsh_id = compartment_config.template get<int>("gmsh_id");
-        // assign a unique id to the config file
-        compartment_config["id"] = std::to_string(compartments.size());
-        compartments.emplace_back(compartment, [gmsh_physical_entity, mcmg, gmsh_id](const HostEntity& entity) {
-          HostEntity _entity = entity;
-          while (_entity.hasFather()) {
-            _entity = _entity.father();
-          }
-          assert(_entity.level() == 0);
-          return gmsh_id == (*gmsh_physical_entity)[mcmg.index(_entity)];
-        });
+    update_gmsh_id = [gmsh_physical_entity, mcmg, &gmsh_id](const HostEntity& entity) {
+      HostEntity _entity = entity;
+      while (_entity.hasFather()) {
+        _entity = _entity.father();
       }
-    }
+      assert(_entity.level() == 0);
+      gmsh_id = gmsh_physical_entity[mcmg.index(_entity)];
+    };
 
   } else {
     std::array<unsigned int, MDGrid::dimensionworld> cells{};
@@ -113,7 +106,7 @@ make_multi_domain_grid(Dune::ParameterTree& config,
       // assign a unique id to the config file
       std::size_t id = compartments.size();
       compartment_config["id"] = std::to_string(id);
-      const auto& type = compartment_config["type"];
+      const auto& type = compartment_config.get("type", "expression");
       if (type == "expression") {
         auto parser_type =
           string2parser.at(compartment_config.get("parser_type", default_parser_str));
@@ -130,10 +123,14 @@ make_multi_domain_grid(Dune::ParameterTree& config,
             parser_ptr->define_constant(pos_arg, 0.);
           }
         }
+        if (update_gmsh_id)
+          parser_ptr->define_variable("gmsh_id", &gmsh_id);
         parser_ptr->set_expression(compartment_config["expression"]);
         parser_ptr->compile();
-        compartments.emplace_back(compartment, [position, parser_ptr](const HostEntity& entity) {
+        compartments.emplace_back(compartment, [position, parser_ptr, update_gmsh_id](const HostEntity& entity) {
           (*position) = entity.geometry().center();
+          if (update_gmsh_id)
+            update_gmsh_id(entity);
           return FloatCmp::ne(std::invoke(*parser_ptr), 0.);
         });
       } else {
