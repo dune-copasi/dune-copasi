@@ -65,15 +65,17 @@ public:
 
   void write_vtk(const State&, const fs::path&, bool = true) const override;
 
-  std::map<std::string, double> reduce(const State&, const ParameterTree&, std::shared_ptr<ParserContext>) const override;
+  std::map<std::string, double> reduce(const State&, const ParameterTree&) const override;
 
   static CompartmentPreBasis make_compartment_pre_basis(const CompartmentEntitySet&,
                                                         std::string_view,
-                                                        const std::vector<std::string>&);
+                                                        const std::vector<std::string>&,
+                                                        const ParameterTree& = {},
+                                                        std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> = nullptr);
 
 private:
-  static ScalarPreBasis make_scalar_field_pre_basis(const CompartmentEntitySet&, std::string_view);
-  static void setup_basis(State&, const Grid&, const ParameterTree&);
+  static ScalarPreBasis make_scalar_field_pre_basis(const CompartmentEntitySet&, std::string_view, const ParameterTree&, std::shared_ptr<const FunctorFactory<Grid::dimensionworld>>);
+  static void setup_basis(State&, const Grid&, const ParameterTree&, std::shared_ptr<const FunctorFactory<Grid::dimensionworld>>);
   static void setup_coefficient_vector(State&);
   static CompartmentEntitySet get_entity_set(const Grid&, std::size_t);
 

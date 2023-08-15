@@ -37,7 +37,7 @@ reduce(const Basis& basis,
                 const auto& coefficients,
                 auto time,
                 const ParameterTree& config,
-                std::shared_ptr<ParserContext> parser_context = nullptr)
+                std::shared_ptr<const FunctorFactory<Basis::EntitySet::GridView::dimension>> functor_factory = nullptr)
 {
   using GridView = typename Basis::EntitySet::GridView;
   constexpr std::size_t dim = GridView::dimension;
@@ -46,12 +46,18 @@ reduce(const Basis& basis,
   if (basis.entitySet().size(0) == 0) {
     return {};
   }
+
+  std::shared_ptr<const ParserContext> parser_context;
+  auto functor_factory_parser = std::dynamic_pointer_cast<const FunctorFactoryParser<GridView::dimension>>(functor_factory);
+  if (functor_factory_parser) {
+    parser_context = functor_factory_parser->parser_context();
+  }
   if (not parser_context) {
-    parser_context = std::make_shared<ParserContext>();
+    parser_context = std::make_shared<const ParserContext>();
   }
 
   auto parser_type = string2parser.at(config.get("parser_type", default_parser_str));
-  auto functor_factory = std::make_shared<FunctorFactoryParser<dim>>(parser_type, parser_context);
+
   auto lbasis = basis.localView();
   PDELab::LocalContainerBuffer lcoeff{basis, coefficients};
 

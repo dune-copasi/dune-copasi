@@ -55,7 +55,8 @@ template<class Traits>
 auto
 ModelMultiCompartmentDiffusionReaction<Traits>::make_multi_compartment_pre_basis(
   const Grid& grid,
-  const ParameterTree& config) -> MultiCompartmentPreBasis
+  const ParameterTree& config,
+  std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory) -> MultiCompartmentPreBasis
 {
   TRACE_EVENT("dune", "Basis::SetUp");
   spdlog::info("Setup grid function space");
@@ -65,7 +66,8 @@ ModelMultiCompartmentDiffusionReaction<Traits>::make_multi_compartment_pre_basis
   std::vector<CompartmentPreBasis> compartment_pre_basis_vec;
 
   std::map<std::string, std::vector<std::string>> compartment2componets;
-  for (const auto& component : config.sub("scalar_field", true).getSubKeys())
+  const auto& scalar_fields_config = config.sub("scalar_field", true);
+  for (const auto& component : scalar_fields_config.getSubKeys())
     compartment2componets[config[fmt::format("scalar_field.{}.compartment", component)]].push_back(component);
 
   for (const auto& compartment : compartments_config.getSubKeys()) {
@@ -78,7 +80,7 @@ ModelMultiCompartmentDiffusionReaction<Traits>::make_multi_compartment_pre_basis
 
     CompartmentPreBasis compartment_pre_basis =
       ModelDiffusionReaction<Traits>::make_compartment_pre_basis(
-        sub_grid_view, compartment, components);
+        sub_grid_view, compartment, components, scalar_fields_config, functor_factory);
     compartment_pre_basis_vec.emplace_back(compartment_pre_basis);
   }
 
@@ -120,7 +122,7 @@ ModelMultiCompartmentDiffusionReaction<Traits>::make_state(const std::shared_ptr
 {
   auto state_ptr = std::make_unique<State>();
   state_ptr->basis = makeBasis(MultiCompartmentEntitySet{ grid->leafGridView() },
-                               make_multi_compartment_pre_basis(*grid, config));
+                               make_multi_compartment_pre_basis(*grid, config, _functor_factory));
   setup_coefficient_vector(*state_ptr);
   state_ptr->grid = grid;
   state_ptr->time = TimeQuantity{ 0. };
@@ -184,7 +186,7 @@ ModelMultiCompartmentDiffusionReaction<Traits>::make_initial(const Grid& grid,
 
 template<class Traits>
 auto
-ModelMultiCompartmentDiffusionReaction<Traits>::reduce(const State& state, const ParameterTree& config, std::shared_ptr<ParserContext> parser_context) const
+ModelMultiCompartmentDiffusionReaction<Traits>::reduce(const State& state, const ParameterTree& config) const
   -> std::map<std::string, double>
 {
   using MultiCompartmentBasis =
@@ -195,7 +197,7 @@ ModelMultiCompartmentDiffusionReaction<Traits>::reduce(const State& state, const
   const auto& basis = any_cast<const MultiCompartmentBasis&>(state.basis);
   const auto& coeff = any_cast<const Coefficients&>(state.coefficients);
 
-  return Dune::Copasi::reduce(basis, coeff, state.time, config, std::move(parser_context));
+  return Dune::Copasi::reduce(basis, coeff, state.time, config, _functor_factory);
 }
 
 template<class Traits>

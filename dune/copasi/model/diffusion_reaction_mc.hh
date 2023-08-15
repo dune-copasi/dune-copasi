@@ -76,12 +76,13 @@ public:
 
   void write_vtk(const State&, const fs::path&, bool) const override;
 
-  std::map<std::string, double> reduce(const State&, const ParameterTree&, std::shared_ptr<ParserContext>) const override;
+  std::map<std::string, double> reduce(const State&, const ParameterTree&) const override;
 
 private:
   static MultiCompartmentPreBasis make_multi_compartment_pre_basis(const Grid&,
-                                                                   const ParameterTree&);
-  static void setup_basis(State&, const Grid&, const ParameterTree&);
+                                                                   const ParameterTree&,
+                                                                   std::shared_ptr<const FunctorFactory<Grid::dimensionworld>>);
+
   static void setup_coefficient_vector(State&);
   static CompartmentEntitySet get_entity_set(const Grid&, std::size_t);
 

@@ -3,7 +3,6 @@
 
 #include <dune/copasi/common/exceptions.hh>
 #include <dune/copasi/common/filesystem.hh>
-#include <dune/copasi/parser/context.hh>
 
 #include <dune/pdelab/operator/operator.hh>
 
@@ -88,7 +87,7 @@ struct Model
     const State&,
     const ParameterTree&) const = 0;
 
-  virtual std::map<std::string, double> reduce(const State&, const ParameterTree&, std::shared_ptr<ParserContext>) const
+  virtual std::map<std::string, double> reduce(const State&, const ParameterTree&) const
   {
     throw format_exception(NotImplemented{}, "Model reduce has not been implemented");
   }

@@ -46,6 +46,8 @@ public:
     const LocalDomain<dim>& /*local_domain*/,
     bool /*is_membrane_expression*/) const override;
 
+  std::shared_ptr<const ParserContext> parser_context() const { return _parser_context; };
+
 private:
   [[nodiscard]] ScalarFunctor parse_scalar_expression(const ParameterTree& /*config*/,
                                                       const LocalDomain<dim>& /*local_values*/,

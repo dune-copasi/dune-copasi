@@ -6,6 +6,7 @@
 #include <dune/copasi/model/interpolate.hh>
 #include <dune/copasi/model/make_initial.hh>
 #include <dune/copasi/model/make_step_operator.hh>
+#include <dune/copasi/model/local_equations/functor_factory_parser.hh>
 
 #include <dune/copasi/common/exceptions.hh>
 #include <dune/copasi/common/ostream_to_spdlog.hh>
@@ -62,7 +63,9 @@ ModelDiffusionReaction<Traits>::interpolate(
 template<class Traits>
 auto
 ModelDiffusionReaction<Traits>::make_scalar_field_pre_basis(const CompartmentEntitySet& entity_set,
-                                                            std::string_view name) -> ScalarPreBasis
+                                                            std::string_view name,
+                                                            const ParameterTree& constrains_config,
+                                                            std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory) -> ScalarPreBasis
 {
   spdlog::info("Setup grid function space for component {}", name);
   auto scalar_field_pre_basis =
@@ -77,7 +80,9 @@ auto
 ModelDiffusionReaction<Traits>::make_compartment_pre_basis(
   const CompartmentEntitySet& entity_set,
   std::string_view compartment_name,
-  const std::vector<std::string>& scalar_field_names) -> CompartmentPreBasis
+  const std::vector<std::string>& scalar_field_names,
+  const ParameterTree& scalar_fields_config,
+  std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory) -> CompartmentPreBasis
 {
   spdlog::info("Setup compartment grid function space");
 
@@ -86,11 +91,11 @@ ModelDiffusionReaction<Traits>::make_compartment_pre_basis(
 
   std::vector<ScalarPreBasis> scalar_field_pre_basis;
   for (const auto& name : scalar_field_names) {
-    scalar_field_pre_basis.push_back(make_scalar_field_pre_basis(entity_set, name));
+    scalar_field_pre_basis.push_back(make_scalar_field_pre_basis(entity_set, name, scalar_fields_config.sub(name).sub("constrain"), functor_factory));
   }
 
   CompartmentPreBasis compartment_pre_basis =
-    composite(CompartmentMergingStrategy{ entity_set }, scalar_field_pre_basis);
+    composite(CompartmentMergingStrategy{ entity_set }, scalar_field_pre_basis );
   compartment_pre_basis.name(compartment_name);
 
   spdlog::info("No. of components on '{}' compartment: {}",
@@ -104,7 +109,8 @@ template<class Traits>
 void
 ModelDiffusionReaction<Traits>::setup_basis(State& state,
                                             const Grid& grid,
-                                            const ParameterTree& config)
+                                            const ParameterTree& config,
+                                            std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory)
 {
   TRACE_EVENT("dune", "Basis::SetUp");
   using CompartmentBasis = PDELab::Basis<CompartmentEntitySet, CompartmentPreBasis>;
@@ -118,13 +124,13 @@ ModelDiffusionReaction<Traits>::setup_basis(State& state,
     grid, compartments_config.sub(compartment, true).template get<std::size_t>("id"));
 
   std::vector<std::string> components;
-  const auto& scalar_field_config = config.sub("scalar_field", true);
-  for (const auto& scalar_field : scalar_field_config.getSubKeys()) {
-    if (scalar_field_config.sub(scalar_field)["compartment"] == compartment) {
+  const auto& scalar_fields_config = config.sub("scalar_field", true);
+  for (const auto& scalar_field : scalar_fields_config.getSubKeys()) {
+    if (scalar_fields_config.sub(scalar_field)["compartment"] == compartment) {
       components.push_back(scalar_field);
     }
   }
-  auto comp_space = make_compartment_pre_basis(entity_set, compartment, components);
+  auto comp_space = make_compartment_pre_basis(entity_set, compartment, components, scalar_fields_config, functor_factory);
   state.basis = CompartmentBasis{ makeBasis(entity_set, comp_space) };
 }
 
@@ -147,7 +153,7 @@ ModelDiffusionReaction<Traits>::make_state(const std::shared_ptr<const Grid>& gr
   -> std::unique_ptr<State>
 {
   auto state_ptr = std::make_unique<State>();
-  setup_basis(*state_ptr, *grid, config);
+  setup_basis(*state_ptr, *grid, config, _functor_factory);
   setup_coefficient_vector(*state_ptr);
   state_ptr->grid = grid;
   state_ptr->time = TimeQuantity{ 0. };
@@ -241,7 +247,7 @@ ModelDiffusionReaction<Traits>::make_step_operator(const State& state,
 
 template<class Traits>
 auto
-ModelDiffusionReaction<Traits>::reduce(const State& state, const ParameterTree& config, std::shared_ptr<ParserContext> parser_context) const
+ModelDiffusionReaction<Traits>::reduce(const State& state, const ParameterTree& config) const
   -> std::map<std::string, double>
 {
   using CompartmentBasis = PDELab::Basis<CompartmentEntitySet, CompartmentPreBasis>;
@@ -250,7 +256,7 @@ ModelDiffusionReaction<Traits>::reduce(const State& state, const ParameterTree& 
   const auto& basis = any_cast<const CompartmentBasis&>(state.basis);
   const auto& coeff = any_cast<const Coefficients&>(state.coefficients);
 
-  return Dune::Copasi::reduce(basis, coeff, state.time, config, std::move(parser_context));
+  return Dune::Copasi::reduce(basis, coeff, state.time, config, _functor_factory);
 }
 
 template<class Traits>
