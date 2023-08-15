@@ -66,11 +66,11 @@ ModelMultiCompartmentDiffusionReaction<Traits>::make_multi_compartment_pre_basis
 
   std::map<std::string, std::vector<std::string>> compartment2componets;
   for (const auto& component : config.sub("scalar_field", true).getSubKeys())
-    compartment2componets[config[fmt::format("scalar_field.{}.compartment", component)]].push_back(
-      component);
+    compartment2componets[config[fmt::format("scalar_field.{}.compartment", component)]].push_back(component);
 
-  for (const auto& [compartment, components] : compartment2componets) {
+  for (const auto& compartment : compartments_config.getSubKeys()) {
     using SubDomainIndex = typename Grid::SubDomainIndex;
+    const auto& components = compartment2componets[compartment];
     SubDomainIndex domain_id =
       compartments_config.sub(compartment, true).template get<SubDomainIndex>("id");
 
