@@ -1,7 +1,7 @@
 #ifndef DUNE_COPASI_CONTEXT_BASE_HH
 #define DUNE_COPASI_CONTEXT_BASE_HH
 
-#include <dune-copasi-config.h>
+#include <dune-copasi-config.hh>
 
 #include <dune/common/classname.hh>
 

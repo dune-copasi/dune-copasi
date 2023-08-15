@@ -1,7 +1,7 @@
 #ifndef DUNE_COPASI_MODEL_LOCAL_EQUATIONS_FUNCTOR_FACTORY_HH
 #define DUNE_COPASI_MODEL_LOCAL_EQUATIONS_FUNCTOR_FACTORY_HH
 
-#include <dune-copasi-config.h>
+#include <dune-copasi-config.hh>
 
 #include <dune/common/fmatrix.hh>
 #include <dune/common/fvector.hh>

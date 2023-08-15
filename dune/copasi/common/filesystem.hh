@@ -1,7 +1,7 @@
 #ifndef DUNE_COPASI_FILESYSTEM_HH
 #define DUNE_COPASI_FILESYSTEM_HH
 
-#include <dune-copasi-config.h>
+#include <dune-copasi-config.hh>
 
 #if HAVE_GHC_FILESYSTEM
 

@@ -1,7 +1,7 @@
 #ifndef DUNE_COPASI_COMMON_BITFLAGS_HH
 #define DUNE_COPASI_COMMON_BITFLAGS_HH
 
-#include <dune-copasi-config.h>
+#include <dune-copasi-config.hh>
 
 #include <bitset>
 #include <climits>

@@ -1,7 +1,7 @@
 #ifndef DUNE_COPASI_GRID_MARK_STRIPES_HH
 #define DUNE_COPASI_GRID_MARK_STRIPES_HH
 
-#include <dune-copasi-config.h>
+#include <dune-copasi-config.hh>
 
 #include <dune/grid/uggrid.hh>
 

@@ -1,7 +1,7 @@
 #ifndef DUNE_COPASI_LOCAL_FINITE_ELEMENT_CACHE_HH
 #define DUNE_COPASI_LOCAL_FINITE_ELEMENT_CACHE_HH
 
-#include <dune-copasi-config.h>
+#include <dune-copasi-config.hh>
 
 #include <dune/geometry/quadraturerules.hh>
 

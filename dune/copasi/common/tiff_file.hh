@@ -1,8 +1,6 @@
 #ifndef DUNE_COPASI_TIFF_FILE_HH
 #define DUNE_COPASI_TIFF_FILE_HH
 
-#include <dune-copasi-config.h>
-
 #include <dune/copasi/common/filesystem.hh>
 
 #include <dune/common/exceptions.hh>

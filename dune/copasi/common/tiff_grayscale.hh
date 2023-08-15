@@ -1,8 +1,6 @@
 #ifndef DUNE_COPASI_TIFF_GRAYSCALE_HH
 #define DUNE_COPASI_TIFF_GRAYSCALE_HH
 
-#include <dune-copasi-config.h>
-
 #include <dune/copasi/common/tiff_file.hh>
 
 #include <functional>

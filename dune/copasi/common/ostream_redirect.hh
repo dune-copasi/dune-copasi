@@ -1,7 +1,7 @@
 #ifndef DUNE_COPASI_COMMON_OSTREAM_REDIRECT_HH
 #define DUNE_COPASI_COMMON_OSTREAM_REDIRECT_HH
 
-#include <dune-copasi-config.h>
+#include <dune-copasi-config.hh>
 
 #include <functional>
 #include <memory>

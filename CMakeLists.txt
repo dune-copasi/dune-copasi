@@ -46,8 +46,8 @@ finalize_dune_project(GENERATE_CONFIG_H_CMAKE)
 # `finalize_dune_project`, otherwise, there will be repeated definitions.
 
 # install generated config in build and install directories as <dune-copasi-config.h>
-file(RENAME "${CMAKE_CURRENT_BINARY_DIR}/config.h" "${CMAKE_CURRENT_BINARY_DIR}/dune-copasi-config.h")
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/dune-copasi-config.h"
+file(RENAME "${CMAKE_CURRENT_BINARY_DIR}/config.h" "${CMAKE_CURRENT_BINARY_DIR}/dune-copasi-config.hh")
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/dune-copasi-config.hh"
         COMPONENT Development
         DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
 )

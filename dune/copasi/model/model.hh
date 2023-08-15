@@ -1,8 +1,6 @@
 #ifndef DUNE_COPASI_MODEL_MODEL_HH
 #define DUNE_COPASI_MODEL_MODEL_HH
 
-#include <dune-copasi-config.h>
-
 #include <dune/copasi/common/exceptions.hh>
 #include <dune/copasi/common/filesystem.hh>
 #include <dune/copasi/parser/context.hh>

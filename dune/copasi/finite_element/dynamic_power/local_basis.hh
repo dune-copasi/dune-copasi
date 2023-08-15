@@ -1,7 +1,7 @@
 #ifndef DUNE_COPASI_DYNAMIC_POWER_LOCAL_BASIS_HH
 #define DUNE_COPASI_DYNAMIC_POWER_LOCAL_BASIS_HH
 
-#include <dune-copasi-config.h>
+#include <dune-copasi-config.hh>
 
 #include <algorithm>
 #include <array>

@@ -1,8 +1,6 @@
 #ifndef DUNE_COPASI_GRID_MAKE_MULTI_DOMAIN_GRID_HH
 #define DUNE_COPASI_GRID_MAKE_MULTI_DOMAIN_GRID_HH
 
-#include <dune-copasi-config.h>
-
 #include <dune/copasi/common/exceptions.hh>
 #include <dune/copasi/common/ostream_to_spdlog.hh>
 #include <dune/copasi/concepts/grid.hh>

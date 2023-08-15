@@ -1,5 +1,3 @@
-#include <dune-copasi-config.h>
-
 #ifndef DUNE_COPASI_GRID_DIMENSION
 #define DUNE_COPASI_GRID_DIMENSION 2
 #endif

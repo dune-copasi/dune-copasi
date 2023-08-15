@@ -1,7 +1,7 @@
 #ifndef DUNE_COPASI_GRID_HAS_SINGLE_GEOMETRY_TYPE_HH
 #define DUNE_COPASI_GRID_HAS_SINGLE_GEOMETRY_TYPE_HH
 
-#include <dune-copasi-config.h>
+#include <dune-copasi-config.hh>
 
 #include <dune/grid/common/capabilities.hh>
 

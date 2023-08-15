@@ -1,7 +1,7 @@
 #ifndef DUNE_COPASI_CONCEPTS_GRID_HH
 #define DUNE_COPASI_CONCEPTS_GRID_HH
 
-#include <dune-copasi-config.h>
+#include <dune-copasi-config.hh>
 
 #include <dune/grid/concepts/grid.hh>
 

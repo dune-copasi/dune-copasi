@@ -1,7 +1,7 @@
 #ifndef DUNE_COPASI_CONCEPTS_COMPARTMENT_TREE_HH
 #define DUNE_COPASI_CONCEPTS_COMPARTMENT_TREE_HH
 
-#include <dune-copasi-config.h>
+#include <dune-copasi-config.hh>
 
 #include <dune/pdelab/concepts/local_basis.hh>
 #include <dune/pdelab/concepts/tree.hh>

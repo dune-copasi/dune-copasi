@@ -1,7 +1,7 @@
 #ifndef DUNE_COPASI_PARSER_PARSER_HH
 #define DUNE_COPASI_PARSER_PARSER_HH
 
-#include <dune-copasi-config.h>
+#include <dune-copasi-config.hh>
 
 #include <functional>
 #include <string>
