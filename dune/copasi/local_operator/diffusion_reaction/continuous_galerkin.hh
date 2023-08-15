@@ -758,9 +758,9 @@ public:
     for (auto [position_f, weight] : quadratureRule(geo_f, 3)) {
       _local_values->position = geo_f.global(position_f);
       auto factor = weight * geo_f.integrationElement(position_f);
-
+      auto normal = intersection.unitOuterNormal(position_f);
       if (local_basis_i and not _outflow_i.empty()) {
-
+        _local_values->normal = normal;
         const auto position_i = intersection.geometryInInside().global(position_f);
         auto jac_i = entity_i.geometry().jacobianInverse(position_i);
         // evaluate basis functions
@@ -800,7 +800,7 @@ public:
       }
 
       if (local_basis_o and not _outflow_o.empty()) {
-
+        _local_values->normal = -normal;
         const auto position_o = intersection.geometryInOutside().global(position_f);
         auto jac_o = entity_o.geometry().jacobianInverse(position_o);
 
@@ -953,9 +953,10 @@ public:
     for (auto [position_f, weight] : quadratureRule(geo_f, 3)) {
       _local_values->position = geo_f.global(position_f);
       auto factor = weight * geo_f.integrationElement(position_f);
+      auto normal = intersection.unitOuterNormal(position_f);
 
       if (local_basis_i and not _outflow_i.empty()) {
-
+        _local_values->normal = normal;
         const auto position_i = intersection.geometryInInside().global(position_f);
         auto jac_i = entity_i.geometry().jacobianInverse(position_i);
         // evaluate basis functions
@@ -1006,7 +1007,7 @@ public:
       }
 
       if (local_basis_o and not _outflow_o.empty()) {
-
+        _local_values->normal = normal;
         const auto position_o = intersection.geometryInOutside().global(position_f);
         auto jac_o = entity_o.geometry().jacobianInverse(position_o);
 
