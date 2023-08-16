@@ -3,26 +3,17 @@
 
 #include <dune/copasi/parser/parser.hh>
 
-#include <exprtk.hpp>
-
 #include <map>
 #include <mutex>
 #include <string>
 #include <vector>
+#include <memory>
 
 namespace Dune::Copasi {
 
 class ExprTkParser final : public Parser
 {
   static const std::size_t max_functions = 100;
-
-  template<class F>
-  struct FunctionID
-  {
-    std::shared_ptr<const exprtk::parser<RangeField>> parser;
-    std::string name;
-    F function;
-  };
 
 public:
   ExprTkParser();
@@ -37,14 +28,6 @@ public:
   using Function3D = typename Parser::Function3D;
   using Function4D = typename Parser::Function4D;
 
-private:
-  using FunctionID0D = FunctionID<Function0D>;
-  using FunctionID1D = FunctionID<Function1D>;
-  using FunctionID2D = FunctionID<Function2D>;
-  using FunctionID3D = FunctionID<Function3D>;
-  using FunctionID4D = FunctionID<Function4D>;
-
-public:
   void define_constant(const std::string& symbol, const RangeField& value) override final;
 
   void define_function(const std::string& symbol, const Function0D& function) override final;
@@ -56,43 +39,6 @@ public:
   void define_function(const std::string& symbol, const Function3D& function) override final;
 
   void define_function(const std::string& symbol, const Function4D& function) override final;
-
-  // private: ????
-
-  template<std::size_t i>
-  static RangeField function_wrapper_0d()
-  {
-    assert(ExprTkParser::_function0d[i]);
-    return ExprTkParser::_function0d[i]->function();
-  }
-
-  template<std::size_t i>
-  static RangeField function_wrapper_1d(RangeField arg0)
-  {
-    assert(ExprTkParser::_function1d[i]);
-    return ExprTkParser::_function1d[i]->function(arg0);
-  }
-
-  template<std::size_t i>
-  static RangeField function_wrapper_2d(RangeField arg0, RangeField arg1)
-  {
-    assert(ExprTkParser::_function2d[i]);
-    return ExprTkParser::_function2d[i]->function(arg0, arg1);
-  }
-
-  template<std::size_t i>
-  static RangeField function_wrapper_3d(RangeField arg0, RangeField arg1, RangeField arg2)
-  {
-    assert(ExprTkParser::_function3d[i]);
-    return ExprTkParser::_function3d[i]->function(arg0, arg1, arg2);
-  }
-
-  template<std::size_t i>
-  static RangeField function_wrapper_4d(RangeField arg0, RangeField arg1, RangeField arg2, RangeField arg3)
-  {
-    assert(ExprTkParser::_function4d[i]);
-    return ExprTkParser::_function4d[i]->function(arg0, arg1, arg2, arg3);
-  }
 
   void compile() override final;
 
@@ -107,18 +53,7 @@ private:
   using Parser::_symbols;
   using Parser::_variables;
 
-  std::shared_ptr<exprtk::parser<RangeField>> _parser;
-  exprtk::expression<RangeField> _tk_expression;
-  exprtk::symbol_table<RangeField> _symbol_table;
-
-  static inline std::map<std::size_t, std::unique_ptr<FunctionID0D>> _function0d = {};
-  static inline std::map<std::size_t, std::unique_ptr<FunctionID1D>> _function1d = {};
-  static inline std::map<std::size_t, std::unique_ptr<FunctionID2D>> _function2d = {};
-  static inline std::map<std::size_t, std::unique_ptr<FunctionID3D>> _function3d = {};
-  static inline std::map<std::size_t, std::unique_ptr<FunctionID3D>> _function4d = {};
-
-  // recursive mutex are needed because functions may hold parsers that need to be destructed
-  static inline std::recursive_mutex _mutex = {};
+  std::shared_ptr<void> _data;
 };
 
 } // namespace Dune::Copasi

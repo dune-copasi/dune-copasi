@@ -5,8 +5,24 @@ if(${SymEngine_FOUND})
 endif()
 
 find_package(ExprTk)
+option(DUNE_COPASI_DISABLE_FETCH_PACKAGE_ExprTk "Disable (internet) fetch package for ExprTk" ON)
+if ((NOT ${ExprTk_FOUND}) AND (NOT ${CMAKE_DISABLE_FIND_PACKAGE_ExprTk}) AND (NOT ${DUNE_COPASI_DISABLE_FETCH_PACKAGE_ExprTk}))
+  include(FetchContent)
+  message("-- Declaring ExprTk")
+  FetchContent_Declare(
+    exprtk
+    GIT_REPOSITORY https://github.com/ArashPartow/exprtk.git
+    GIT_TAG        0.0.2
+  )
+  if(NOT exprtk_POPULATED)
+    message("-- Populating ExprTk")
+    FetchContent_Populate(exprtk)
+    set(ExprTk_INCLUDE_DIRS "${exprtk_SOURCE_DIR}")
+    set(ExprTk_FOUND ON)
+  endif()
+endif()
 if(${ExprTk_FOUND})
-  set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}\nfind_package(ExprTk REQUIRED)")
+  set(DUNE_COPASI_EXPRTK_MAX_FUNCTIONS 500 CACHE STRING "Maximum number of functions that ExprTk can store in its context")
 endif()
 
 if(NOT (SymEngine_FOUND OR ExprTk_FOUND))
@@ -56,7 +72,6 @@ target_link_libraries(dune-copasi-parser
     Dune::Copasi::Common
   PRIVATE
     $<TARGET_NAME_IF_EXISTS:parafields::parafields>
-    $<TARGET_NAME_IF_EXISTS:ExprTk::ExprTk>
     $<TARGET_NAME_IF_EXISTS:muparser::muparser>
     $<$<BOOL:${SymEngine_FOUND}>:${SYMENGINE_LIBRARIES}>
   )
@@ -66,7 +81,7 @@ target_sources(dune-copasi-parser
     factory.cc
     context.cc
     parser.cc
-    $<$<TARGET_EXISTS:ExprTk::ExprTk>:${CMAKE_CURRENT_SOURCE_DIR}/exprtk.cc>
+    $<$<BOOL:${ExprTk_FOUND}>:${CMAKE_CURRENT_SOURCE_DIR}/exprtk.cc>
     $<$<TARGET_EXISTS:muparser::muparser>:${CMAKE_CURRENT_SOURCE_DIR}/mu.cc>
     $<$<BOOL:${SymEngine_FOUND}>:${CMAKE_CURRENT_SOURCE_DIR}/symengine.cc>
 )
@@ -74,11 +89,13 @@ target_sources(dune-copasi-parser
 target_include_directories(dune-copasi-parser
   PRIVATE
     $<$<BOOL:${SymEngine_FOUND}>:${SYMENGINE_INCLUDE_DIRS}>
+    $<$<BOOL:${ExprTk_FOUND}>:${ExprTk_INCLUDE_DIRS}>
 )
 
 target_compile_definitions(dune-copasi-parser
   PRIVATE
     $<$<TARGET_EXISTS:muparser::muparser>:DUNE_COPASI_MUPARSER_MAX_FUNCTIONS=${DUNE_COPASI_MUPARSER_MAX_FUNCTIONS}>
+    $<$<BOOL:${ExprTk_FOUND}>:DUNE_COPASI_EXPRTK_MAX_FUNCTIONS=${DUNE_COPASI_EXPRTK_MAX_FUNCTIONS}>
 )
 
 # target configuration for downstream projects

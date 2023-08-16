@@ -42,9 +42,9 @@
 
   Once done this will define
 
-  ExprTk_FOUND - system has eigen lib with correct version
-  ExprTk_INCLUDE_DIRS - the eigen include directory
-  ExprTk_VERSION - eigen version
+  ExprTk_FOUND - system has exprtk lib with correct version
+  ExprTk_INCLUDE_DIRS - the exprtk include directory
+  ExprTk_VERSION - exprtk version
 
   And the following imported target:
 
