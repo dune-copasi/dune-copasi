@@ -34,29 +34,26 @@ if(${muparser_FOUND})
   set(DUNE_COPASI_MUPARSER_MAX_FUNCTIONS 500 CACHE STRING "Maximum number of functions that muparser can store in its context")
 endif()
 
-option(DUNE_COPASI_USE_PARAFIELDS "Use parafields (random field generator) for the dune-copasi parsers" ON)
-if(${DUNE_COPASI_USE_PARAFIELDS})
-  find_package(parafields QUIET)
-  # ... library not installed, we provide it from git
-  if (NOT parafields_FOUND)
-    include(FetchContent)
-    message("-- Declaring ParaFields")
-    FetchContent_Declare(
-      parafields
-      GIT_REPOSITORY https://github.com/parafields/parafields-core.git
-      GIT_TAG        1e276ec12e23dbbf8f0858dae12076e94e5fae08
-    )
+find_package(parafields)
+option(DUNE_COPASI_DISABLE_FETCH_PACKAGE_parafields "Disable (internet) fetch package for parafields" OFF)
+if((NOT ${parafields_FOUND}) AND (NOT ${CMAKE_DISABLE_FIND_PACKAGE_parafields}) AND (NOT ${DUNE_COPASI_DISABLE_FETCH_PACKAGE_parafields}))
+  include(FetchContent)
+  message("-- Declaring ParaFields")
+  FetchContent_Declare(
+    parafields
+    GIT_REPOSITORY https://github.com/parafields/parafields-core.git
+    GIT_TAG        1e276ec12e23dbbf8f0858dae12076e94e5fae08
+  )
 
-    if(NOT parafields_POPULATED)
-      message("-- Populating ParaFields")
-      FetchContent_Populate(parafields)
-      add_subdirectory("${parafields_SOURCE_DIR}" "${parafields_BINARY_DIR}")
-      set(parafields_FOUND ON)
-    endif()
+  if(NOT parafields_POPULATED)
+    message("-- Populating ParaFields")
+    FetchContent_Populate(parafields)
+    add_subdirectory("${parafields_SOURCE_DIR}" "${parafields_BINARY_DIR}")
+    set(parafields_FOUND ON)
   endif()
-  if(${parafields_FOUND})
-    set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}\nfind_package(parafields REQUIRED)")
-  endif()
+endif()
+if(${parafields_FOUND})
+  set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}\nfind_package(parafields REQUIRED)")
 endif()
 
 set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}" PARENT_SCOPE)
