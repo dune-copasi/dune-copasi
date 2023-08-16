@@ -105,7 +105,7 @@ function_wrapper_4d(typename MuParser::RangeField arg0,
 } // namespace
 
 MuParser::MuParser()
-  : _parser{ new mu::Parser{}, [](void* ptr) { delete reinterpret_cast<mu::Parser*>(ptr); } }
+  : _parser{ new mu::Parser{}, [](void* ptr) { delete static_cast<mu::Parser*>(ptr); } }
 {
 }
 
@@ -117,7 +117,7 @@ MuParser::~MuParser()
 void
 MuParser::define_constant(const std::string& symbol, const RangeField& value)
 {
-  reinterpret_cast<mu::Parser*>(_parser.get())->DefineConst(symbol, value);
+  static_cast<mu::Parser*>(_parser.get())->DefineConst(symbol, value);
 }
 
 namespace Impl {
@@ -174,7 +174,7 @@ MuParser::compile()
   assert(not _compiled);
   assert(size(_symbols) == size(_variables));
 
-  auto& mu_parser = *reinterpret_cast<mu::Parser*>(_parser.get());
+  auto& mu_parser = *static_cast<mu::Parser*>(_parser.get());
 
   // notice that we are casting away the constness of the variable because
   // that's muParser signature. In practice, this means that the muParser
@@ -216,7 +216,7 @@ MuParser::operator()() const noexcept
 {
   try {
     assert(_compiled);
-    return reinterpret_cast<mu::Parser*>(_parser.get())->Eval();
+    return static_cast<mu::Parser*>(_parser.get())->Eval();
   } catch (mu::Parser::exception_type& e) {
     spdlog::error("Evaluating muParser expression failed:\n"
                   "  Parsed expression:   {}\n"
@@ -239,7 +239,7 @@ void
 MuParser::register_functions()
 {
   auto indices = std::make_index_sequence<max_functions>{};
-  auto& mu_parser = *reinterpret_cast<mu::Parser*>(_parser.get());
+  auto& mu_parser = *static_cast<mu::Parser*>(_parser.get());
   Dune::Hybrid::forEach(indices, [&, guard = std::unique_lock{ _mutex }](auto idx) {
     auto idx_0d = _function0d.find(idx);
     auto idx_1d = _function1d.find(idx);
