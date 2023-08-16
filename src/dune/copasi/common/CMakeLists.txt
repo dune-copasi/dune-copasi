@@ -35,11 +35,28 @@ if(DUNE_USE_FALLBACK_FILESYSTEM)
   endif()
 endif()
 
+# The function2 library provides an alternative to std::move_only_function
+# (which otherwise requires c++23 in libstdc++ and is not yet implemented in libc++)
+include(FetchContent)
+message("-- Declaring function2")
+FetchContent_Declare(
+        function2
+        GIT_REPOSITORY https://github.com/Naios/function2
+        GIT_TAG        4.2.3
+)
+if(NOT function2_POPULATED)
+  message("-- Populating function2")
+  FetchContent_Populate(function2)
+  add_subdirectory("${function2_SOURCE_DIR}" "${function2_BINARY_DIR}")
+endif()
+
 # include dependencies in config file
 set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}
 find_package(TIFF REQUIRED)
 find_package(spdlog REQUIRED)
-find_package(fmt REQUIRED)")
+find_package(fmt REQUIRED)
+find_package(function2 REQUIRED)
+")
 
 if(${DUNE_USE_FALLBACK_FILESYSTEM})
   set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}\nfind_package(ghc_filesystem REQUIRED)")
@@ -75,6 +92,7 @@ target_compile_definitions(dune-copasi-common
 target_link_libraries(dune-copasi-common
   PUBLIC
     $<TARGET_NAME_IF_EXISTS:ghcFilesystem::ghc_filesystem>
+    function2::function2
   PRIVATE
     TIFF::TIFF
   INTERFACE
@@ -83,7 +101,7 @@ target_link_libraries(dune-copasi-common
     ${DUNE_LIBS}
 )
 
-target_compile_features(dune-copasi-common PUBLIC cxx_std_23)
+target_compile_features(dune-copasi-common PUBLIC cxx_std_20)
 
 # target configuration for downstream projects
 install(TARGETS dune-copasi-common EXPORT dune-copasi-targets ARCHIVE COMPONENT Development)

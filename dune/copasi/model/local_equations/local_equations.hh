@@ -16,6 +16,7 @@
 #include <dune/common/parametertree.hh>
 #include <dune/common/tuplevector.hh>
 
+#include <function2/function2.hpp>
 #include <spdlog/spdlog.h>
 
 #include <functional>
@@ -94,11 +95,11 @@ public:
   class MembraneNode;
 
   template<class Signature>
-  struct CompartmentPartialDerivative : public std::move_only_function<Signature>
+  struct CompartmentPartialDerivative : public fu2::unique_function<Signature>
   {
-    CompartmentPartialDerivative(std::move_only_function<Signature>&& callable,
+    CompartmentPartialDerivative(fu2::unique_function<Signature>&& callable,
                                  const CompartmentNode& _wrt)
-      : std::move_only_function<Signature>{ std::move(callable) }
+      : fu2::unique_function<Signature>{ std::move(callable) }
       , wrt{ _wrt }
     {
     }
@@ -106,11 +107,11 @@ public:
   };
 
   template<class Signature>
-  struct MembranePartialDerivative : public std::move_only_function<Signature>
+  struct MembranePartialDerivative : public fu2::unique_function<Signature>
   {
-    MembranePartialDerivative(std::move_only_function<Signature>&& callable,
+    MembranePartialDerivative(fu2::unique_function<Signature>&& callable,
                               const MembraneNode& _wrt)
-      : std::move_only_function<Signature>{ std::move(callable) }
+      : fu2::unique_function<Signature>{ std::move(callable) }
       , wrt{ _wrt }
     {
     }
@@ -118,13 +119,13 @@ public:
   };
 
   template<class Signature>
-  struct CompartmentDifferentiableFunction : public std::move_only_function<Signature>
+  struct CompartmentDifferentiableFunction : public fu2::unique_function<Signature>
   {
     std::vector<CompartmentPartialDerivative<Signature>> compartment_jacobian;
   };
 
   template<class Signature>
-  struct MembraneDifferentiableFunction : public std::move_only_function<Signature>
+  struct MembraneDifferentiableFunction : public fu2::unique_function<Signature>
   {
     std::vector<CompartmentPartialDerivative<Signature>> compartment_jacobian;
     std::vector<MembranePartialDerivative<Signature>> membrane_jacobian;
@@ -144,7 +145,7 @@ public:
     : public CompartmentDifferentiableFunction<Vector(Vector) const DUNE_COPASI_FUNCTOR_NOEXCEPT>
   {
     CompartmentDiffusionApply(
-      std::move_only_function<Vector(Vector) const DUNE_COPASI_FUNCTOR_NOEXCEPT>&& callable,
+      fu2::unique_function<Vector(Vector) const DUNE_COPASI_FUNCTOR_NOEXCEPT>&& callable,
       const CompartmentNode& _wrt)
       : CompartmentDifferentiableFunction<Vector(
           Vector) const DUNE_COPASI_FUNCTOR_NOEXCEPT>{ std::move(callable) }
@@ -158,7 +159,7 @@ public:
     : public MembraneDifferentiableFunction<Vector(Vector) const DUNE_COPASI_FUNCTOR_NOEXCEPT>
   {
     MembraneDiffusionApply(
-      std::move_only_function<Vector(Vector) const DUNE_COPASI_FUNCTOR_NOEXCEPT>&& callable,
+      fu2::unique_function<Vector(Vector) const DUNE_COPASI_FUNCTOR_NOEXCEPT>&& callable,
       const MembraneNode& _wrt)
       : MembraneDifferentiableFunction<Vector(Vector)
                                          const DUNE_COPASI_FUNCTOR_NOEXCEPT>{ std::move(callable) }
@@ -467,12 +468,12 @@ private:
 
     auto make_functor = overload(
       [&](std::string_view prefix, const ParameterTree& config, bool membrane_expression, ScalarTag)
-        -> std::move_only_function<Scalar() const DUNE_COPASI_FUNCTOR_NOEXCEPT> {
+        -> fu2::unique_function<Scalar() const DUNE_COPASI_FUNCTOR_NOEXCEPT> {
         return functor_factory.make_scalar(
           prefix, config, std::as_const(*this), membrane_expression);
       },
       [&](std::string_view prefix, const ParameterTree& config, bool membrane_expression, VectorTag)
-        -> std::move_only_function<Vector() const DUNE_COPASI_FUNCTOR_NOEXCEPT> {
+        -> fu2::unique_function<Vector() const DUNE_COPASI_FUNCTOR_NOEXCEPT> {
         return functor_factory.make_vector(
           prefix, config, std::as_const(*this), membrane_expression);
       },
@@ -480,7 +481,7 @@ private:
           const ParameterTree& config,
           bool membrane_expression,
           TensorApplyTag)
-        -> std::move_only_function<Vector(Vector) const DUNE_COPASI_FUNCTOR_NOEXCEPT> {
+        -> fu2::unique_function<Vector(Vector) const DUNE_COPASI_FUNCTOR_NOEXCEPT> {
         return functor_factory.make_tensor_apply(
           prefix, config, std::as_const(*this), membrane_expression);
       });

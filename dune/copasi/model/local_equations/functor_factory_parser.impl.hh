@@ -124,7 +124,7 @@ FunctorFactoryParser<dim>::parse_scalar_expression(const ParameterTree& config,
   }
   if (std::regex_match(expression, Impl::float_regex)) {
     double value = std::stod(expression);
-    return [_value = value] DUNE_COPASI_FUNCTOR_NOEXCEPT { return Scalar{ _value }; };
+    return [_value = value]() DUNE_COPASI_FUNCTOR_NOEXCEPT { return Scalar{ _value }; };
   } else {
     auto parser_type =
       string2parser.at(config.get("parser_type", std::string{ parser2string.at(_parser_type) }));

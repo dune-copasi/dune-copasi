@@ -3,6 +3,8 @@
 
 #include <dune-copasi-config.hh>
 
+#include <function2/function2.hpp>
+
 #include <functional>
 #include <memory>
 #include <ostream>
@@ -45,7 +47,7 @@ class OStreamRedirect final : public std::stringbuf
 
   //! internal constructor of the redirection object
   OStreamRedirect(std::ostream& ostream,
-                  std::move_only_function<void(std::string_view)> redirection,
+                  fu2::unique_function<void(std::string_view)> redirection,
                   bool line_buffered);
 
 public:
@@ -63,7 +65,7 @@ public:
    */
   [[nodiscard]] static std::unique_ptr<OStreamRedirect> make(
     std::ostream& ostream,
-    std::move_only_function<void(std::string_view)> redirection,
+    fu2::unique_function<void(std::string_view)> redirection,
     bool line_buffered = true);
 
   OStreamRedirect(const OStreamRedirect& other) = delete;
@@ -76,7 +78,7 @@ private:
   int sync() override;
   std::ostream* _ostream;
   std::streambuf* _ostream_buffer;
-  std::move_only_function<void(std::string_view)> _redirection;
+  fu2::unique_function<void(std::string_view)> _redirection;
   bool _line_buffered;
 };
 

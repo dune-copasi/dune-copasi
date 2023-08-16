@@ -14,6 +14,7 @@
 
 #include <dune/common/float_cmp.hh>
 
+#include <function2/function2.hpp>
 #include <spdlog/spdlog.h>
 
 #include <fmt/color.h>
@@ -85,7 +86,7 @@ reduce(const Basis& basis,
 
   std::map<std::string, double> values;
   double factor = 0.;
-  std::vector<std::move_only_function<void() const>> evals;
+  std::vector<fu2::unique_function<void() const>> evals;
   // configure parsers of the evaluation/reduction passes
   for (auto key : config.getSubKeys()) {
     if (config.hasKey(key + ".evaluation.expression")) {
@@ -93,7 +94,7 @@ reduce(const Basis& basis,
       if (not evaluation)
         continue;
       values[key] = 0.;
-      std::move_only_function<double(double, double, double) const> reduction = [](auto init, auto val, auto weight) { return init + val*weight; };
+      fu2::unique_function<double(double, double, double) const> reduction = [](auto init, auto val, auto weight) { return init + val*weight; };
       if (config.hasKey(key + ".reduction.expression")) {
         auto [args, expr] = parser_context->parse_function_expression(config.sub(key).sub("reduction")["expression"]);
         if (args.size() != 3)

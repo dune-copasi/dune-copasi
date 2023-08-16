@@ -1,6 +1,8 @@
 
 #include <dune/copasi/common/ostream_redirect.hh>
 
+#include <function2/function2.hpp>
+
 #include <cstring>
 #include <functional>
 #include <ios>
@@ -13,7 +15,7 @@
 namespace Dune::Copasi {
 
 OStreamRedirect::OStreamRedirect(std::ostream& ostream,
-                                 std::move_only_function<void(std::string_view)> redirection,
+                                 fu2::unique_function<void(std::string_view)> redirection,
                                  bool line_buffered)
   : _ostream{ &ostream }
   , _ostream_buffer{ _ostream->rdbuf(this) } // redirect output stream buffer to this object
@@ -41,7 +43,7 @@ OStreamRedirect::~OStreamRedirect()
 
 [[nodiscard]] auto
 OStreamRedirect::make(std::ostream& ostream,
-                      std::move_only_function<void(std::string_view)> redirection,
+                      fu2::unique_function<void(std::string_view)> redirection,
                       bool line_buffered) -> std::unique_ptr<OStreamRedirect>
 {
   auto* ptr = new OStreamRedirect{ ostream, std::move(redirection), line_buffered };

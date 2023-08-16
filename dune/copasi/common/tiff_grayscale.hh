@@ -3,6 +3,8 @@
 
 #include <dune/copasi/common/tiff_file.hh>
 
+#include <function2/function2.hpp>
+
 #include <functional>
 #include <queue>
 
@@ -60,7 +62,7 @@ class TIFFGrayscale
     TIFFFile const* _tiff_ptr;
     std::size_t _row;
     std::size_t _max;
-    std::move_only_function<std::size_t(std::size_t) const DUNE_COPASI_FUNCTOR_NOEXCEPT>
+    fu2::unique_function<std::size_t(std::size_t) const DUNE_COPASI_FUNCTOR_NOEXCEPT>
       _read_col{};
   };
 

@@ -7,6 +7,8 @@
 #include <dune/common/fvector.hh>
 #include <dune/common/parametertree.hh>
 
+#include <function2/function2.hpp>
+
 #include <functional>
 #include <string>
 
@@ -25,10 +27,10 @@ public:
   using Vector = FieldVector<double, dim>;
   using Tensor = FieldMatrix<double, dim, dim>;
 
-  using ScalarFunctor = std::move_only_function<Scalar() const DUNE_COPASI_FUNCTOR_NOEXCEPT>;
-  using VectorFunctor = std::move_only_function<Vector() const DUNE_COPASI_FUNCTOR_NOEXCEPT>;
+  using ScalarFunctor = fu2::unique_function<Scalar() const DUNE_COPASI_FUNCTOR_NOEXCEPT>;
+  using VectorFunctor = fu2::unique_function<Vector() const DUNE_COPASI_FUNCTOR_NOEXCEPT>;
   using TensorApplyFunctor =
-    std::move_only_function<Vector(Vector) const DUNE_COPASI_FUNCTOR_NOEXCEPT>;
+    fu2::unique_function<Vector(Vector) const DUNE_COPASI_FUNCTOR_NOEXCEPT>;
 
   FunctorFactory() = default;
   FunctorFactory(const FunctorFactory&) = delete;
