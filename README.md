@@ -4,6 +4,8 @@
 
 # DuneCopasi
 
+**WARNING**: This repository is in an ongoing refactor for version 2.0, check out the releases for stable versions!
+
 Solver for reaction-diffusion systems in multiple compartments
 
  * Solve a different reaction-diffusion system for each comartment
