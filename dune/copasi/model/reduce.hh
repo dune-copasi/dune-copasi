@@ -40,8 +40,7 @@ reduce(const Basis& basis,
                 const ParameterTree& config,
                 std::shared_ptr<const FunctorFactory<Basis::EntitySet::GridView::dimension>> functor_factory = nullptr)
 {
-  using GridView = typename Basis::EntitySet::GridView;
-  constexpr std::size_t dim = GridView::dimension;
+  constexpr std::size_t dim = Basis::EntitySet::GridView::dimension;
   TRACE_EVENT("dune", "Reduce");
 
   if (basis.entitySet().size(0) == 0) {
@@ -49,7 +48,7 @@ reduce(const Basis& basis,
   }
 
   std::shared_ptr<const ParserContext> parser_context;
-  auto functor_factory_parser = std::dynamic_pointer_cast<const FunctorFactoryParser<GridView::dimension>>(functor_factory);
+  auto functor_factory_parser = std::dynamic_pointer_cast<const FunctorFactoryParser<dim>>(functor_factory);
   if (functor_factory_parser) {
     parser_context = functor_factory_parser->parser_context();
   }
