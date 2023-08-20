@@ -288,9 +288,10 @@ make_step_operator(const ParameterTree& config,
 
   if (is_linear) {
     std::optional<RKCoefficients> coeff_zero;
+    std::shared_ptr<PDELab::Operator<RKCoefficients, RKResidual>> derivative;
     auto linear_runge_kutta_inverse =
       std::make_unique<PDELab::OperatorAdapter<RKResidual, RKCoefficients>>(
-        [coeff_zero, linear_solver](PDELab::Operator<RKResidual, RKCoefficients>& self,
+        [coeff_zero, linear_solver, derivative](PDELab::Operator<RKResidual, RKCoefficients>& self,
                                     RKResidual& b,
                                     RKCoefficients& x) mutable {
           TRACE_EVENT("dune", "LinearSolver::DefectCorrection");
@@ -302,13 +303,14 @@ make_step_operator(const ParameterTree& config,
 
           if (not coeff_zero) {
             coeff_zero.emplace(x);
-            PDELab::forEachContainerEntry(*coeff_zero, []<class T>(T& v, auto) { v = T{ 0 }; });
+            PDELab::forEachContainerEntry(*coeff_zero, []<class T>(T& v) { v = T{ 0 }; });
           }
 
           RKCoefficients z = *coeff_zero;
 
-          if (not linear_solver->hasKey("forward"))
-            linear_solver->get("forward") = forward.derivative(x);
+          // set jacobian to the linear solver (note that we reuse the same matrix between timesteps)
+          linear_solver->get("forward") = derivative = forward.derivative(x, derivative);
+
           // compute correction
           auto error_condition = linear_solver->apply(b, z);
 
