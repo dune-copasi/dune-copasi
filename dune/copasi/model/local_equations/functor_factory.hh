@@ -27,10 +27,10 @@ public:
   using Vector = FieldVector<double, dim>;
   using Tensor = FieldMatrix<double, dim, dim>;
 
-  using ScalarFunctor = fu2::unique_function<Scalar() const DUNE_COPASI_FUNCTOR_NOEXCEPT>;
-  using VectorFunctor = fu2::unique_function<Vector() const DUNE_COPASI_FUNCTOR_NOEXCEPT>;
+  using ScalarFunctor = fu2::unique_function<Scalar() const noexcept>;
+  using VectorFunctor = fu2::unique_function<Vector() const noexcept>;
   using TensorApplyFunctor =
-    fu2::unique_function<Vector(Vector) const DUNE_COPASI_FUNCTOR_NOEXCEPT>;
+    fu2::unique_function<Vector(Vector) const noexcept>;
 
   FunctorFactory() = default;
   FunctorFactory(const FunctorFactory&) = delete;

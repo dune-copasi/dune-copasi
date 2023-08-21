@@ -132,23 +132,23 @@ public:
   };
 
   using CompartmentScalarFunction =
-    CompartmentDifferentiableFunction<Scalar() const DUNE_COPASI_FUNCTOR_NOEXCEPT>;
+    CompartmentDifferentiableFunction<Scalar() const noexcept>;
   using MembraneScalarFunction =
-    MembraneDifferentiableFunction<Scalar() const DUNE_COPASI_FUNCTOR_NOEXCEPT>;
+    MembraneDifferentiableFunction<Scalar() const noexcept>;
 
   using CompartmentVectorFunction =
-    CompartmentDifferentiableFunction<Vector() const DUNE_COPASI_FUNCTOR_NOEXCEPT>;
+    CompartmentDifferentiableFunction<Vector() const noexcept>;
   using MembraneVectorFunction =
-    MembraneDifferentiableFunction<Vector() const DUNE_COPASI_FUNCTOR_NOEXCEPT>;
+    MembraneDifferentiableFunction<Vector() const noexcept>;
 
   struct CompartmentDiffusionApply
-    : public CompartmentDifferentiableFunction<Vector(Vector) const DUNE_COPASI_FUNCTOR_NOEXCEPT>
+    : public CompartmentDifferentiableFunction<Vector(Vector) const noexcept>
   {
     CompartmentDiffusionApply(
-      fu2::unique_function<Vector(Vector) const DUNE_COPASI_FUNCTOR_NOEXCEPT>&& callable,
+      fu2::unique_function<Vector(Vector) const noexcept>&& callable,
       const CompartmentNode& _wrt)
       : CompartmentDifferentiableFunction<Vector(
-          Vector) const DUNE_COPASI_FUNCTOR_NOEXCEPT>{ std::move(callable) }
+          Vector) const noexcept>{ std::move(callable) }
       , wrt{ _wrt }
     {
     }
@@ -156,13 +156,13 @@ public:
   };
 
   struct MembraneDiffusionApply
-    : public MembraneDifferentiableFunction<Vector(Vector) const DUNE_COPASI_FUNCTOR_NOEXCEPT>
+    : public MembraneDifferentiableFunction<Vector(Vector) const noexcept>
   {
     MembraneDiffusionApply(
-      fu2::unique_function<Vector(Vector) const DUNE_COPASI_FUNCTOR_NOEXCEPT>&& callable,
+      fu2::unique_function<Vector(Vector) const noexcept>&& callable,
       const MembraneNode& _wrt)
       : MembraneDifferentiableFunction<Vector(Vector)
-                                         const DUNE_COPASI_FUNCTOR_NOEXCEPT>{ std::move(callable) }
+                                         const noexcept>{ std::move(callable) }
       , wrt{ _wrt }
     {
     }
@@ -468,12 +468,12 @@ private:
 
     auto make_functor = overload(
       [&](std::string_view prefix, const ParameterTree& config, bool membrane_expression, ScalarTag)
-        -> fu2::unique_function<Scalar() const DUNE_COPASI_FUNCTOR_NOEXCEPT> {
+        -> fu2::unique_function<Scalar() const noexcept> {
         return functor_factory.make_scalar(
           prefix, config, std::as_const(*this), membrane_expression);
       },
       [&](std::string_view prefix, const ParameterTree& config, bool membrane_expression, VectorTag)
-        -> fu2::unique_function<Vector() const DUNE_COPASI_FUNCTOR_NOEXCEPT> {
+        -> fu2::unique_function<Vector() const noexcept> {
         return functor_factory.make_vector(
           prefix, config, std::as_const(*this), membrane_expression);
       },
@@ -481,7 +481,7 @@ private:
           const ParameterTree& config,
           bool membrane_expression,
           TensorApplyTag)
-        -> fu2::unique_function<Vector(Vector) const DUNE_COPASI_FUNCTOR_NOEXCEPT> {
+        -> fu2::unique_function<Vector(Vector) const noexcept> {
         return functor_factory.make_tensor_apply(
           prefix, config, std::as_const(*this), membrane_expression);
       });

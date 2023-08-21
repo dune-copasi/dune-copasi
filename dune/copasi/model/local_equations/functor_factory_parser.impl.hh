@@ -74,7 +74,7 @@ FunctorFactoryParser<dim>::make_tensor_apply(std::string_view prefix,
   if (type == "scalar") {
     if (auto parser = parse_scalar_expression(config, local_values, is_membrane_expression)) {
       return [parser = std::move(parser)](Vector vec)
-               DUNE_COPASI_FUNCTOR_NOEXCEPT { return parser()[0] * vec; };
+               noexcept { return parser()[0] * vec; };
     }
     return nullptr;
   } else if (type == "tensor") {
@@ -95,7 +95,7 @@ FunctorFactoryParser<dim>::make_tensor_apply(std::string_view prefix,
     }
 
     // move parsers into a lambda that evaluates matrix-vector product
-    return { [_tensor_parser = std::move(tensor_parser)](Vector in) DUNE_COPASI_FUNCTOR_NOEXCEPT {
+    return { [_tensor_parser = std::move(tensor_parser)](Vector in) noexcept {
       Vector out;
       for (std::size_t i = 0; i != dim; ++i) {
         out[i] = 0.;
@@ -124,7 +124,7 @@ FunctorFactoryParser<dim>::parse_scalar_expression(const ParameterTree& config,
   }
   if (std::regex_match(expression, Impl::float_regex)) {
     double value = std::stod(expression);
-    return [_value = value]() DUNE_COPASI_FUNCTOR_NOEXCEPT { return Scalar{ _value }; };
+    return [_value = value]() noexcept { return Scalar{ _value }; };
   } else {
     auto parser_type =
       string2parser.at(config.get("parser_type", std::string{ parser2string.at(_parser_type) }));
