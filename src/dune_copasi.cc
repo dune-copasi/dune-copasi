@@ -94,7 +94,7 @@ program_help(std::string_view prog_name, bool long_help)
 int
 main(int argc, char** argv)
 {
-  const fs::path prog_path = argv[0];
+  const Dune::Copasi::fs::path prog_path = argv[0];
 
   int end_code = 0;
   Dune::ParameterTree config;
@@ -123,15 +123,19 @@ main(int argc, char** argv)
     auto is_config = [](std::string_view opt) { return opt.starts_with("--config="); };
     if (auto cfg_it = std::ranges::find_if(cmd_args, is_config); cfg_it != cmd_args.end()) {
       auto cfg_file = std::string{ *cfg_it }.substr(9);
+      if (not exists(Dune::Copasi::fs::path{cfg_file})) {
+        throw Dune::Copasi::format_exception(Dune::IOError{}, "Configuration file '{}' does not exsits", cfg_file);
+      }
       if (not dump_config) {
         spdlog::info("Reading configuration file '{}'", cfg_file);
       }
       Dune::ParameterTreeParser::readINITree(cfg_file, config);
     }
     Dune::ParameterTreeParser::readNamedOptions(cmd_args.size(), cmd_args.data(), config, {});
-  } catch (...) {
-    spdlog::error("Invalid arguments!\n");
-    program_help(prog_path.filename().string(), false);
+  } catch (Dune::Exception& e) {
+    spdlog::error("Invalid arguments!");
+    spdlog::error("{}", e.what());
+    spdlog::error("dune-copasi finished with some errors :(");
     return 1;
   }
   if (dump_config) {
