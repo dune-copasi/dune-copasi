@@ -6,6 +6,7 @@
 #include <dune/copasi/concepts/grid.hh>
 #include <dune/copasi/model/local_equations/functor_factory.hh>
 #include <dune/copasi/model/model.hh>
+#include <dune/copasi/model/constraints.hh>
 
 #include <dune/pdelab/basis/merging_strategy.hh>
 #include <dune/pdelab/basis/prebasis/composite.hh>
@@ -44,7 +45,7 @@ public:
   using MultiCompartmentMergingStrategy = typename Traits::MultiCompartmentMergingStrategy;
 
   using ScalarPreBasis =
-    PDELab::PreBasis<ScalarMergingStrategy, ScalarFiniteElementMap, PDELab::Unconstrained>;
+    PDELab::PreBasis<ScalarMergingStrategy, ScalarFiniteElementMap, Constraints<Grid::dimensionworld>>;
   using CompartmentPreBasis = PDELab::PreBasisVector<CompartmentMergingStrategy, ScalarPreBasis>;
   using MultiCompartmentPreBasis =
     PDELab::PreBasisVector<MultiCompartmentMergingStrategy, CompartmentPreBasis>;

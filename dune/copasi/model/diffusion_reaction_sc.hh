@@ -3,6 +3,7 @@
 
 // file: diffusion reaction for single compartment models
 
+#include <dune/copasi/model/constraints.hh>
 #include <dune/copasi/model/local_equations/functor_factory.hh>
 #include <dune/copasi/model/model.hh>
 
@@ -35,7 +36,7 @@ public:
   using ScalarFiniteElementMap = typename Traits::ScalarFiniteElementMap;
   using ScalarMergingStrategy = typename Traits::ScalarMergingStrategy;
   using ScalarPreBasis =
-    PDELab::PreBasis<ScalarMergingStrategy, ScalarFiniteElementMap, PDELab::Unconstrained>;
+    PDELab::PreBasis<ScalarMergingStrategy, ScalarFiniteElementMap, Constraints<Grid::dimensionworld>>;
   using CompartmentMergingStrategy = typename Traits::CompartmentMergingStrategy;
   using CompartmentPreBasis = PDELab::PreBasisVector<CompartmentMergingStrategy, ScalarPreBasis>;
   using ResidualQuantity = ScalarQuantity;

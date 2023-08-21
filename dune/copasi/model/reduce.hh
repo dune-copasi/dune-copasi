@@ -89,7 +89,7 @@ reduce(const Basis& basis,
   // configure parsers of the evaluation/reduction passes
   for (auto key : config.getSubKeys()) {
     if (config.hasKey(key + ".evaluation.expression")) {
-      auto evaluation = functor_factory->make_scalar(key + ".evaluation", config.sub(key).sub("evaluation"), *leqs, false);
+      auto evaluation = functor_factory->make_scalar(key + ".evaluation", config.sub(key).sub("evaluation"), *leqs);
       if (not evaluation)
         continue;
       values[key] = 0.;

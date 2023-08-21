@@ -367,11 +367,10 @@ public:
 
     const auto& entity = ltrial.element();
     const auto& geo = entity.geometry();
-    auto es = _test_basis.entitySet();
 
     _local_values->time = time;
     _local_values->entity_volume = geo.volume();
-    _local_values->cell_index = es.indexSet().index(entity);
+    _local_values->in_volume = 1;
 
     const auto& trial_finite_element = firstCompartmentFiniteElement(ltrial.tree());
 
@@ -447,6 +446,7 @@ public:
     }
 
     _local_values->clear();
+    _local_values->in_volume = 0;
   }
 
   /**
@@ -508,11 +508,10 @@ public:
 
     const auto& entity = ltrial.element();
     const auto& geo = entity.geometry();
-    auto es = _test_basis.entitySet();
 
     _local_values->time = time;
     _local_values->entity_volume = geo.volume();
-    _local_values->cell_index = es.indexSet().index(entity);
+    _local_values->in_volume = 1;
 
     const auto& trial_finite_element = firstCompartmentFiniteElement(ltrial.tree());
 
@@ -650,6 +649,7 @@ public:
     }
 
     _local_values->clear();
+    _local_values->in_volume = 1;
   }
 
   template<PDELab::Concept::LocalBasis LocalBasisTrial, PDELab::Concept::LocalBasis LocalBasisTest>
@@ -681,6 +681,7 @@ public:
 
     _local_values->time = time;
     _local_values->entity_volume = geo_f.volume();
+    _local_values->in_boundary = not (_local_values->in_skeleton = double(intersection.neighbor()));
 
     using LocalBasis =
       std::decay_t<decltype(firstCompartmentFiniteElement(ltrial_in.tree()).localBasis())>;
@@ -840,6 +841,7 @@ public:
     }
 
     _local_values->clear();
+    _local_values->in_boundary = _local_values->in_skeleton = 0;
   }
 
   void localAssembleJacobianSkeleton(
@@ -873,6 +875,7 @@ public:
 
     _local_values->time = time;
     _local_values->entity_volume = geo_f.volume();
+    _local_values->in_boundary = not (_local_values->in_skeleton = double(intersection.neighbor()));
 
     using LocalBasis =
       std::decay_t<decltype(firstCompartmentFiniteElement(ltrial_in.tree()).localBasis())>;
@@ -1057,6 +1060,7 @@ public:
     }
 
     _local_values->clear();
+    _local_values->in_boundary = _local_values->in_skeleton = 0;
   }
 
   void localAssembleJacobianSkeletonApply(

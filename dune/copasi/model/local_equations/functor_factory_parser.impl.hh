@@ -26,9 +26,9 @@ auto
 FunctorFactoryParser<dim>::make_scalar(std::string_view /*prefix*/,
                                        const ParameterTree& config,
                                        const LocalDomain<dim>& local_values,
-                                       bool is_membrane_expression) const -> ScalarFunctor
+                                       int codim) const -> ScalarFunctor
 {
-  return parse_scalar_expression(config, local_values, is_membrane_expression);
+  return parse_scalar_expression(config, local_values, codim);
 }
 
 template<std::size_t dim>
@@ -36,7 +36,7 @@ auto
 FunctorFactoryParser<dim>::make_vector(std::string_view /*prefix*/,
                                        const ParameterTree& config,
                                        const LocalDomain<dim>& local_values,
-                                       bool is_membrane_expression) const -> VectorFunctor
+                                       int codim) const -> VectorFunctor
 {
   // create one parser for each entry of the vector
   std::array<ScalarFunctor, dim> vector_parser;
@@ -44,7 +44,7 @@ FunctorFactoryParser<dim>::make_vector(std::string_view /*prefix*/,
   std::vector<std::string> dim_name = { "x", "y", "z" };
   for (std::size_t i = 0; i != dim; ++i) {
     is_active |= bool(vector_parser[i] = parse_scalar_expression(
-                        config.sub(dim_name.at(i), true), local_values, is_membrane_expression));
+                        config.sub(dim_name.at(i), true), local_values, codim));
   }
   if (not is_active) {
     return nullptr;
@@ -65,14 +65,14 @@ auto
 FunctorFactoryParser<dim>::make_tensor_apply(std::string_view prefix,
                                              const ParameterTree& config,
                                              const LocalDomain<dim>& local_values,
-                                             bool is_membrane_expression) const
+                                             int codim) const
   -> TensorApplyFunctor
 {
   // diffusion apply parser
   std::vector<std::string> dim_name = { "x", "y", "z" };
   std::string type = config.get("type", "scalar");
   if (type == "scalar") {
-    if (auto parser = parse_scalar_expression(config, local_values, is_membrane_expression)) {
+    if (auto parser = parse_scalar_expression(config, local_values, codim)) {
       return [parser = std::move(parser)](Vector vec)
                noexcept { return parser()[0] * vec; };
     }
@@ -87,7 +87,7 @@ FunctorFactoryParser<dim>::make_tensor_apply(std::string_view prefix,
           is_active |= bool(tensor_parser[i][j] = parse_scalar_expression(
                               config.sub(dim_name.at(i) + dim_name.at(j)),
                               local_values,
-                              is_membrane_expression));
+                              codim));
       }
     }
     if (not is_active) {
@@ -115,10 +115,10 @@ template<std::size_t dim>
 auto
 FunctorFactoryParser<dim>::parse_scalar_expression(const ParameterTree& config,
                                                    const LocalDomain<dim>& local_values,
-                                                   bool is_membrane_expression) const
+                                                   int codim) const
   -> ScalarFunctor
 {
-  const auto& expression = config["expression"];
+  auto expression = config.get("expression", std::string{});
   if (expression.empty() or std::regex_match(expression, Impl::zero_regex)) {
     return nullptr;
   }
@@ -132,18 +132,20 @@ FunctorFactoryParser<dim>::parse_scalar_expression(const ParameterTree& config,
     auto parser_ptr = make_parser(parser_type);
     parser_ptr->define_variable("time", &(local_values.time));
     parser_ptr->define_variable("entity_volume", &(local_values.entity_volume));
-    if (not is_membrane_expression)
-      parser_ptr->define_variable("cell_index", &(local_values.cell_index));
+    parser_ptr->define_variable("in_volume", &(local_values.in_volume));
+    parser_ptr->define_variable("in_boundary", &(local_values.in_boundary));
+    parser_ptr->define_variable("in_skeleton", &(local_values.in_skeleton));
+    parser_ptr->define_constant("null", std::numeric_limits<double>::max());
     for (std::size_t i = 0; i != 3; ++i) {
       auto pos_arg = fmt::format("position_{}", dim_name.at(i));
       auto norm_arg = fmt::format("normal_{}", dim_name.at(i));
       if (i < dim) {
         parser_ptr->define_variable(pos_arg, &(local_values.position)[i]);
-        if (is_membrane_expression)
+        if (codim == 1)
           parser_ptr->define_variable(norm_arg, &(local_values.normal)[i]);
       } else {
         parser_ptr->define_constant(pos_arg, 0.);
-        if (is_membrane_expression)
+        if (codim == 1)
           parser_ptr->define_constant(norm_arg, 0.);
       }
     }

@@ -61,7 +61,7 @@ make_initial(const Grid& grid,
       }
       auto local_domain = std::make_shared<LocalDomain<Grid::dimensionworld>>();
       local_domain->time = time;
-      auto fcn = functor_factory.make_scalar(prefix, config.sub(prefix), *local_domain, false);
+      auto fcn = functor_factory.make_scalar(prefix, config.sub(prefix), *local_domain);
       if (not fcn) {
         continue;
       }

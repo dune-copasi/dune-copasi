@@ -33,7 +33,9 @@ struct LocalDomain
   FieldVector<double, dim> normal;
   double time = 0.;
   double entity_volume = 0.;
-  double cell_index = 0.;
+  double in_volume = 0;
+  double in_boundary = 0;
+  double in_skeleton = 0;
   virtual ~LocalDomain() {}
 };
 
@@ -467,23 +469,23 @@ private:
     using TensorApplyTag = index_constant<2>;
 
     auto make_functor = overload(
-      [&](std::string_view prefix, const ParameterTree& config, bool membrane_expression, ScalarTag)
+      [&](std::string_view prefix, const ParameterTree& config, int codim, ScalarTag)
         -> fu2::unique_function<Scalar() const noexcept> {
         return functor_factory.make_scalar(
-          prefix, config, std::as_const(*this), membrane_expression);
+          prefix, config, std::as_const(*this), codim);
       },
-      [&](std::string_view prefix, const ParameterTree& config, bool membrane_expression, VectorTag)
+      [&](std::string_view prefix, const ParameterTree& config, int codim, VectorTag)
         -> fu2::unique_function<Vector() const noexcept> {
         return functor_factory.make_vector(
-          prefix, config, std::as_const(*this), membrane_expression);
+          prefix, config, std::as_const(*this), codim);
       },
       [&](std::string_view prefix,
           const ParameterTree& config,
-          bool membrane_expression,
+          int codim,
           TensorApplyTag)
         -> fu2::unique_function<Vector(Vector) const noexcept> {
         return functor_factory.make_tensor_apply(
-          prefix, config, std::as_const(*this), membrane_expression);
+          prefix, config, std::as_const(*this), codim);
       });
 
     auto set_differentiable_function = overload(
@@ -492,7 +494,7 @@ private:
                            const ParameterTree& function_config,
                            auto range_tag) {
         function = CompartmentDifferentiableFunction<Signature>{ make_functor(
-          prefix, function_config, false, range_tag) };
+          prefix, function_config, 0, range_tag) };
         std::set<std::string_view> debug_set;
         const auto& jac_config = function_config.sub("jacobian");
         for (const auto& compartment_fncs_jac : _nodes[Indices::_0])
@@ -501,7 +503,7 @@ private:
               if (auto jac =
                     make_functor(fmt::format("{}.jacobian.{}", prefix, component_fncs_jac.name),
                                  jac_config.sub(component_fncs_jac.name),
-                                 false,
+                                 0,
                                  range_tag)) {
                 function.compartment_jacobian.emplace_back(std::move(jac), component_fncs_jac);
                 debug_set.insert(component_fncs_jac.name);
@@ -514,7 +516,7 @@ private:
                            const ParameterTree& function_config,
                            auto range_tag) {
         function = MembraneDifferentiableFunction<Signature>{ make_functor(
-          prefix, function_config, true, range_tag) };
+          prefix, function_config, 1, range_tag) };
         const auto& jac_config = function_config.sub("jacobian");
         for (const auto& compartment_fncs_jac : _nodes[Indices::_0])
           for (const auto& component_fncs_jac : compartment_fncs_jac)
@@ -522,7 +524,7 @@ private:
               if (auto jac =
                     make_functor(fmt::format("{}.jacobian.{}", prefix, component_fncs_jac.name),
                                  jac_config.sub(component_fncs_jac.name),
-                                 true,
+                                 1,
                                  range_tag))
                 function.compartment_jacobian.emplace_back(std::move(jac), component_fncs_jac);
         for (const auto& membrane_fncs_jac : _nodes[Indices::_1])
@@ -531,7 +533,7 @@ private:
               if (auto jac =
                     make_functor(fmt::format("{}.jacobian.{}", prefix, component_fncs_jac.name),
                                  jac_config.sub(component_fncs_jac.name),
-                                 true,
+                                 1,
                                  range_tag))
                 function.membrane_jacobian.emplace_back(std::move(jac), component_fncs_jac);
       });
