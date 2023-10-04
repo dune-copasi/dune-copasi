@@ -101,12 +101,18 @@ public:
     TRACE_EVENT("dune", "TimeStep", timestamp);
     TRACE_COUNTER("dune", "Stepper::ΔTime", timestamp, dt);
 
-    // get current time
     TimeQuantity time = _time_const(in);
+#if FMT_VERSION >= 90000
+    auto sty_time = fmt::styled(time, fmt::emphasis::bold);
+    auto sty_next_time = fmt::styled(time + dt, fmt::emphasis::bold);
+#else
+    auto sty_time = time;
+    auto sty_next_time = time + dt;
+#endif
     spdlog::info("Evaluating time step: {:.2e}s + {:.2e}s -> {:.2e}s",
-                 fmt::styled(time, fmt::emphasis::bold),
+                 sty_time,
                  dt,
-                 fmt::styled(time + dt, fmt::emphasis::bold));
+                 sty_next_time);
 
     // set stepper with time-stepping parameters
     one_step["duration"] = dt;

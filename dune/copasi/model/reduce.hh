@@ -185,7 +185,11 @@ reduce(const Basis& basis,
       value = transformation(value);
     }
 
+#if FMT_VERSION >= 90000
     auto sty_key = fmt::styled(key, fmt::emphasis::bold);
+#else
+    auto sty_key = key;
+#endif
     auto verbose = config.sub(key).get("verbose", 1);
     std::function<void()> report_value = [&](){
       if (verbose) {
