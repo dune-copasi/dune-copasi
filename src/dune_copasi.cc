@@ -124,7 +124,7 @@ main(int argc, char** argv)
     if (auto cfg_it = std::ranges::find_if(cmd_args, is_config); cfg_it != cmd_args.end()) {
       auto cfg_file = std::string{ *cfg_it }.substr(9);
       if (not exists(Dune::Copasi::fs::path{cfg_file})) {
-        throw Dune::Copasi::format_exception(Dune::IOError{}, "Configuration file '{}' does not exsits", cfg_file);
+        throw Dune::Copasi::format_exception(Dune::IOError{}, "Configuration file '{}' does not exist", cfg_file);
       }
       if (not dump_config) {
         spdlog::info("Reading configuration file '{}'", cfg_file);

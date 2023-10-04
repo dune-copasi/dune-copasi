@@ -12,7 +12,7 @@ _Fill this in_
 - [ ] Added/Updated tests
 - [ ] Added/Updated documentation
 - [ ] Pipelines passing <!-- please check for new warnings -->
-<!-- change all occurences of <branch> for your branch name and uncomment
+<!-- change all occurrences of <branch> for your branch name and uncomment
    - [ ] [![Build Status](https://gitlab.dune-project.org/copasi/dune-copasi/badges/<branch>/pipeline.svg)](https://gitlab.dune-project.org/copasi/dune-copasi/pipelines)
    - [ ] [![Build Status](https://travis-ci.org/dune-copasi/dune-copasi.svg?branch=<branch>)](https://travis-ci.org/dune-copasi/dune-copasi/branches)
    - [ ] [https://ci.appveyor.com/api/projects/status/e7w7u5dt50kue5sb/branch/<branch>?svg=true](https://ci.appveyor.com/api/projects/status/e7w7u5dt50kue5sb/branch/<branch>?svg=true)
@@ -41,7 +41,7 @@ Briefly explain __how__ you achieved the proposal of the task.
 MR are supposed to evolve with code.
 
 IMPORTANT: Make sure to set the merge request as Work In Progress (WIP) or Draft
-until you want to get the MR to be reviewed by a mantainer.
+until you want to get the MR to be reviewed by a maintainer.
 
 It is not necessary to fill everything while the MR is in WIP. Feel free to fill
 the required information as you get the feature ready by editing the initial

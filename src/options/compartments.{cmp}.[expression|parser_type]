@@ -8,7 +8,7 @@ expression=<math-expr>
     'compartements.top.expression=\"position_y > 0.5\"' defines a compartment '{cmp}' with
     name 'top' that is only defined for the top half of an square grid.
     If the grid was read from a gmsh file (i.e., 'grid.path=path/to/gmsh/file'), the parser
-    will aditionally know the `gmsh_id` for each of entity. For example, an expression of the form
+    will additionally know the `gmsh_id` for each of entity. For example, an expression of the form
     'compartements.gmsh_domain.expression = (gmsh_id == 2)' will be a compartment with name
     'gmsh_domain' with entities that have a gmsh id equal to '2'.
 

@@ -118,6 +118,7 @@ code_spelling:
   image: registry.dune-project.org/docker/ci/debian:11
   script:
   - codespell
+    --skip=./doc/docusaurus/yarn.lock
 
 # debian gcc
 setup:debian_gcc:

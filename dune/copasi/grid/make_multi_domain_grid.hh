@@ -29,7 +29,7 @@ namespace Dune::Copasi {
  * configuration file.
  *
  * @tparam MDGrid                   The type of the multidomain-grid
- * @param config                    The configration file
+ * @param config                    The configuration file
  * @param parser_context            A parser context to interpret parsed math expression
  * @return std::unique_ptr<MDGrid>  Pointer to the resulting grid
  */

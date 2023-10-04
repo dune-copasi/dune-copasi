@@ -75,7 +75,7 @@ make_model(
   if (not config.hasSub("scalar_field")) {
     throw format_exception(IOError{}, "A model must have an 'scalar_field' section");
   }
-  // find the numer of compartments
+  // find the number of compartments
   if (config.hasSub("scalar_field")) {
   }
   for (const auto& component : config.sub("scalar_field", true).getSubKeys()) {
@@ -91,7 +91,7 @@ make_model(
   std::unique_ptr<Model> model;
 
   if (compartments.size() == 1) {
-    // unroll static swtich case for dynamic order case
+    // unroll static switch case for dynamic order case
     Dune::Hybrid::switchCases(
       fem_orders,
       config_fem_order,
@@ -108,7 +108,7 @@ make_model(
       } /*,
       not_know_order */);
   } else {
-    // unroll static swtich case for dynamic order case
+    // unroll static switch case for dynamic order case
     Dune::Hybrid::switchCases(
       fem_orders,
       config_fem_order,

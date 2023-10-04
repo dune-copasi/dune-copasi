@@ -103,7 +103,7 @@ public:
 
     // get current time
     TimeQuantity time = _time_const(in);
-    spdlog::info("Evaluting time step: {:.2e}s + {:.2e}s -> {:.2e}s",
+    spdlog::info("Evaluating time step: {:.2e}s + {:.2e}s -> {:.2e}s",
                  fmt::styled(time, fmt::emphasis::bold),
                  dt,
                  fmt::styled(time + dt, fmt::emphasis::bold));
