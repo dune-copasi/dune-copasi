@@ -1,6 +1,7 @@
 ---
 
 stages:
+  - check
   - setup
   - build
   - deploy
@@ -110,6 +111,13 @@ stages:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
     - if: '$CI_COMMIT_BRANCH == "latest"'
   <<: *dind_docker_tags
+
+code_spelling:
+  stage: check
+  tags: [duneci]
+  image: registry.dune-project.org/docker/ci/debian:11
+  script:
+  - codespell
 
 # debian gcc
 setup:debian_gcc:
