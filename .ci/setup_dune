@@ -59,9 +59,6 @@ for module in common geometry grid istl localfunctions; do
   eval SETUP_dune_${module}_REPO=\"https://gitlab.dune-project.org/core/dune-${module}.git\"
 done
 
-# c++23 compatibility
-SETUP_dune_grid_BRANCH="c57a065ea63fbc30d850a4cfec0070be0231e6ab"
-
 for module in functions uggrid typetree; do
   eval SETUP_dune_${module}_BRANCH=\"master\"
   eval SETUP_dune_${module}_REPO=\"https://gitlab.dune-project.org/staging/dune-${module}.git\"

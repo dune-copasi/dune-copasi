@@ -43,7 +43,7 @@ RUN export DEBIAN_FRONTEND=noninteractive; \
   && apt-get clean
 
 
-ARG TOOLCHAIN=clang-6-17
+# ARG TOOLCHAIN=clang-6-17
 
 ENV PATH=/duneci/install/bin:$PATH
 ENV TERM=xterm-256color

@@ -47,7 +47,13 @@ FetchContent_Declare(
 if(NOT function2_POPULATED)
   message("-- Populating function2")
   FetchContent_Populate(function2)
-  add_subdirectory("${function2_SOURCE_DIR}" "${function2_BINARY_DIR}")
+  add_library(function2 INTERFACE)
+  install(DIRECTORY ${function2_SOURCE_DIR}/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dune/external/function2)
+  target_include_directories(function2
+    INTERFACE
+      $<BUILD_INTERFACE:${function2_SOURCE_DIR}/include>
+      $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/dune/external/function2>)
+  install(TARGETS function2 EXPORT dune-copasi-targets ARCHIVE COMPONENT Development)
 endif()
 
 # include dependencies in config file
@@ -55,13 +61,12 @@ set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}
 find_package(TIFF REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
-find_package(function2 REQUIRED)
 ")
 
 if(${DUNE_USE_FALLBACK_FILESYSTEM})
   set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}\nfind_package(ghc_filesystem REQUIRED)")
 else()
-  set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}\nfind_package(ghc_filesystem REQUIRED)")
+  set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}\nfind_package(Filesystem REQUIRED)")
 endif()
 
 set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}" PARENT_SCOPE)
@@ -92,7 +97,7 @@ target_compile_definitions(dune-copasi-common
 target_link_libraries(dune-copasi-common
   PUBLIC
     $<TARGET_NAME_IF_EXISTS:ghcFilesystem::ghc_filesystem>
-    function2::function2
+    function2
   PRIVATE
     TIFF::TIFF
   INTERFACE

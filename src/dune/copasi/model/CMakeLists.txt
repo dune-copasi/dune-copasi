@@ -14,8 +14,8 @@ target_compile_definitions(dune-copasi-model
     $<$<TARGET_EXISTS:SuperLU::SuperLU>:ENABLE_SUPERLU=1>
 )
 
-set(DUNE_COPASI_GRID_DIMENSIONS 1 2 3 CACHE STRING "List of grid dimension for models")
-set(DUNE_COPASI_PRECOMPILED_MODE OFF CACHE BOOL "If dune-copasi should be pre-compile object libraries for model classes")
+set(DUNE_COPASI_GRID_DIMENSIONS 2 CACHE STRING "List of grid dimension for models")
+set(DUNE_COPASI_PRECOMPILED_MODE ON CACHE BOOL "If dune-copasi should be pre-compile object libraries for model classes")
 
 foreach(dim ${DUNE_COPASI_GRID_DIMENSIONS})
   set(DUNE_COPASI_${dim}D_FEM_ORDERS 1 CACHE STRING "List of polynomial order Pk of the finite elements for the ${dim}D library")

@@ -16,31 +16,31 @@ stages:
 
 .global_variables: &global_variables
   DUNECONTROL: dunecontrol
-  BASE_IMAGE_VERSION: v1.1.0-git
+  BASE_IMAGE_VERSION: v2.0.0-git
   CPACK_GENERATORS: 'DEB'
   CPACK_PACKAGE_DIRECTORY: $CI_PROJECT_DIR/tmp
 
 .docker_variables: &docker_variables
   DOCKER_BUILDKIT: 1
-  DOCKER_IMAGE: docker:19.03.1
+  DOCKER_IMAGE: docker:24.0.6-dind
   DOCKER_HOST: tcp://docker:2375/
   DOCKER_DRIVER: overlay2
   DOCKER_TLS_CERTDIR: ""
 
 .debian_gcc: &debian_gcc
   <<: *global_variables
-  TOOLCHAIN: gcc-8-17
+  # TOOLCHAIN: gcc-8-17
   DUNECI_OS: debian
-  BASE_IMAGE: debian:10
+  BASE_IMAGE: debian:trixie
   DEPENDENCIES_IMAGE: ${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${TOOLCHAIN}-${BASE_IMAGE_VERSION}
 
-.debian_clang: &debian_clang
-  <<: *global_variables
-  TOOLCHAIN: clang-6-17
-  DUNECI_OS: debian
-  BASE_IMAGE: debian:10
-  DEPENDENCIES_IMAGE: ${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${TOOLCHAIN}-${BASE_IMAGE_VERSION}
-  MASTER_IMAGE: "true"
+# .debian_clang: &debian_clang
+#   <<: *global_variables
+#   TOOLCHAIN: clang-6-17
+#   DUNECI_OS: debian
+#   BASE_IMAGE: debian:10
+#   DEPENDENCIES_IMAGE: ${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${TOOLCHAIN}-${BASE_IMAGE_VERSION}
+#   MASTER_IMAGE: "true"
 
 .setup: &setup
   image: ${DOCKER_IMAGE}
@@ -66,8 +66,8 @@ stages:
   image: ${DEPENDENCIES_IMAGE}
   stage: build
   script:
-    - ./.ci/install /duneci/dune.opts
-    - ./.ci/test /duneci/dune.opts
+    - ./.ci/install dune-copasi.opts
+    # - ./.ci/test dune-copasi.opts
     - mkdir -p packages
     - mv tmp/dune-copasi-*-Runtime.deb packages/dune-copasi-runtime.deb
   <<: *default_tags
@@ -142,24 +142,24 @@ deploy:debian_gcc:
   dependencies:
     - build:debian_gcc
 
-# debian clang
-setup:debian_clang:
-  variables:
-    <<: *docker_variables
-    <<: *debian_clang
-  <<: *setup
+# # debian clang
+# setup:debian_clang:
+#   variables:
+#     <<: *docker_variables
+#     <<: *debian_clang
+#   <<: *setup
 
-build:debian_clang:
-  variables:
-    <<: *debian_clang
-  <<: *build
-  dependencies:
-    - setup:debian_clang
+# build:debian_clang:
+#   variables:
+#     <<: *debian_clang
+#   <<: *build
+#   dependencies:
+#     - setup:debian_clang
 
-deploy:debian_clang:
-  variables:
-    <<: *docker_variables
-    <<: *debian_clang
-  <<: *deploy
-  dependencies:
-    - build:debian_clang
+# deploy:debian_clang:
+#   variables:
+#     <<: *docker_variables
+#     <<: *debian_clang
+#   <<: *deploy
+#   dependencies:
+#     - build:debian_clang
