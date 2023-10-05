@@ -21,10 +21,9 @@ USER dunecopasi
 WORKDIR /dunecopasi
 
 # run help and expect no error signal
-RUN dune-copasi-md --help
-RUN dune-copasi-sd --help
+RUN dune-copasi --help
 
 # set default mout point to be /dunecopasi (same as workdir!)
 VOLUME ["/dunecopasi"]
 # run dune-copasi-md by default when running the image
-ENTRYPOINT ["dune-copasi-md"]
+ENTRYPOINT ["dune-copasi"]
