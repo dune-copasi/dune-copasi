@@ -76,16 +76,17 @@ program_help(std::string_view prog_name, bool long_help)
   if (not config_file_opts.empty()) {
     fmt::print("Configuration Options:\n\n");
     for (auto [key, type, short_doc, long_doc] : config_file_opts) {
+      auto key_stg = "--" + key;
 #if FMT_VERSION >= 90000
-      auto sty_dash = fmt::styled("--" + key, fmt::emphasis::bold);
-      auto sty_time = fmt::styled(type, fmt::emphasis::italic);
+      auto sty_key = fmt::styled(key_stg, fmt::emphasis::bold);
+      auto sty_type = fmt::styled(type, fmt::emphasis::italic);
       auto sty_short_doc = fmt::styled(short_doc, fmt::fg(fmt::color::dark_gray));
 #else
-      auto sty_dash = "--";
-      auto sty_time = type;
-      auto sty_short_doc = short_doc;
+      auto& sty_key = key_stg;
+      auto& sty_type = type;
+      auto& sty_short_doc = short_doc;
 #endif
-      fmt::print("  {}={}\n     {}\n", sty_dash, sty_time, sty_short_doc);
+      fmt::print("  {}={}\n     {}\n", sty_key, sty_type, sty_short_doc);
       if (long_help and not long_doc.empty()) {
         std::istringstream iss(long_doc);
         for (std::string line; std::getline(iss, line);) {
