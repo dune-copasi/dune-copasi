@@ -102,17 +102,18 @@ public:
     TRACE_COUNTER("dune", "Stepper::ΔTime", timestamp, dt);
 
     TimeQuantity time = _time_const(in);
+    TimeQuantity time_next = time + dt;
 #if FMT_VERSION >= 90000
     auto sty_time = fmt::styled(time, fmt::emphasis::bold);
-    auto sty_next_time = fmt::styled(time + dt, fmt::emphasis::bold);
+    auto sty_time_next = fmt::styled(time_next, fmt::emphasis::bold);
 #else
-    auto sty_time = time;
-    auto sty_next_time = time + dt;
+    auto& sty_time = time;
+    auto& sty_time_next = time_next;
 #endif
     spdlog::info("Evaluating time step: {:.2e}s + {:.2e}s -> {:.2e}s",
                  sty_time,
                  dt,
-                 sty_next_time);
+                 sty_time_next);
 
     // set stepper with time-stepping parameters
     one_step["duration"] = dt;
@@ -122,7 +123,7 @@ public:
     auto error = one_step.apply(in, out);
 
     if (not error) {
-      _time_mut(out) = time + dt; // set new time in resulting state
+      _time_mut(out) = time_next; // set new time in resulting state
     } else {
       spdlog::warn("Time step failed: {}", error.message());
     }
