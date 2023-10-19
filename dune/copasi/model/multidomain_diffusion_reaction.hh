@@ -1,18 +1,24 @@
 #ifndef DUNE_COPASI_MODEL_MULTIDOMAIN_DIFFUSION_REACTION_HH
 #define DUNE_COPASI_MODEL_MULTIDOMAIN_DIFFUSION_REACTION_HH
 
+#ifndef DUNE_COPASI_HAVE_MEMBRANE_SPACE
+#define DUNE_COPASI_HAVE_MEMBRANE_SPACE 0
+#endif
+
 #include <dune/copasi/common/enum.hh>
 #include <dune/copasi/concepts/grid.hh>
 #include <dune/copasi/grid/multidomain_entity_transformation.hh>
 #include <dune/copasi/local_operator/diffusion_reaction/multidomain.hh>
-#include <dune/copasi/model/base.hh>
 #include <dune/copasi/model/diffusion_reaction.cc>
 #include <dune/copasi/model/diffusion_reaction.hh>
 
-#include <dune/pdelab/backend/istl.hh>
-#include <dune/pdelab/backend/istl/novlpistlsolverbackend.hh>
-#include <dune/pdelab/gridfunctionspace/dynamicpowergridfunctionspace.hh>
-#include <dune/pdelab/gridfunctionspace/vtk.hh>
+#include <dune/copasi/finite_element_map/intersection.hh>
+
+// #include <dune/pdelab/backend/istl.hh>
+// #include <dune/pdelab/backend/istl/novlpistlsolverbackend.hh>
+// #include <dune/pdelab/gridfunctionspace/dynamicpowergridfunctionspace.hh>
+// #include <dune/pdelab/gridfunctionspace/vtk.hh>
+
 
 #include <dune/common/parametertree.hh>
 
@@ -20,70 +26,21 @@
 
 namespace Dune::Copasi {
 
-/**
- * @brief      Traits for diffusion reaction models in multigrid domains
- *
- * @tparam     G         Grid
- * @tparam     FEMorder  Order of the finite element method
- * @tparam     OT        PDELab ordering tag
- * @tparam     JMS        Jacobian method for single domain operator (interior)
- * @tparam     JMM        Jacobian method for multidomain operator (interface)
- */
-template<class G,
-         int FEMorder = 1,
-         class OT = PDELab::EntityBlockedOrderingTag,
-         JacobianMethod JMS = JacobianMethod::Analytical,
-         JacobianMethod JMM = JacobianMethod::Analytical>
-struct ModelMultiDomainPkDiffusionReactionTraits
+
+template<Dune::Concept::Grid G, std::size_t Order = 1, bool MultiThread = 1>
+struct ModelMultiDomainDiffusionReactionPkTraits : public ModelDiffusionPkReactionTraits<G, typename G::SubDomainGrid::LeafGridView, Order, MultiThread>
 {
-  using Grid = G;
+  using EntitySet = std::conditional_t<MultiThread, Assembler::EntitySetThreadPool<typename G::LeafGridView>, typename G::LeafGridView>;
+  using MultiCompartmentMergingStrategy = Assembler::Lexicographic<false>;
 
-  // Check grid template
-  static_assert(Concept::isMultiDomainGrid<Grid>(),
-                "Provided grid type is not a multidomain grid");
+#if DUNE_COPASI_HAVE_MEMBRANE_SPACE
+  using SkeletonFiniteElementMap = PDELab::fem::PkLocalFiniteElementMapBase<EntitySet,double,double,Order,EntitySet::dimension-1>;
+  using MembraneSpeciesFiniteElementMap = IntersectionLocalFiniteElementMap<SkeletonFiniteElementMap, EntitySet>;
+  using MultiCompartmentMembraneMergingStrategy = Assembler::Lexicographic<false>; // top level blocking
+#endif
 
-  static_assert(Concept::isSubDomainGrid<typename Grid::SubDomainGrid>());
-
-  using OrderingTag = OT;
-
-  static constexpr JacobianMethod jacobian_method_interior = JMS;
-  static constexpr JacobianMethod jacobian_method_interface = JMM;
-
-  using SubModelTraits =
-    ModelPkDiffusionReactionTraits<Grid,
-                                   typename Grid::SubDomainGrid::LeafGridView,
-                                   FEMorder,
-                                   OrderingTag,
-                                   jacobian_method_interior>;
 };
 
-template<class G,
-         int FEMorder = 1,
-         class OT = PDELab::EntityBlockedOrderingTag,
-         JacobianMethod JMS = JacobianMethod::Analytical,
-         JacobianMethod JMM = JacobianMethod::Analytical>
-struct ModelMultiDomainP0PkDiffusionReactionTraits
-{
-  using Grid = G;
-
-  // Check grid template
-  static_assert(Concept::isMultiDomainGrid<Grid>(),
-                "Provided grid type is not a multidomain grid");
-
-  static_assert(Concept::isSubDomainGrid<typename Grid::SubDomainGrid>());
-
-  using OrderingTag = OT;
-
-  static constexpr JacobianMethod jacobian_method_interior = JMS;
-  static constexpr JacobianMethod jacobian_method_interface = JMM;
-
-  using SubModelTraits =
-    ModelP0PkDiffusionReactionTraits<Grid,
-                                     typename Grid::SubDomainGrid::LeafGridView,
-                                     FEMorder,
-                                     OrderingTag,
-                                     jacobian_method_interior>;
-};
 
 /**
  * @brief      Class for diffusion-reaction models in multigrid domains.
@@ -91,7 +48,7 @@ struct ModelMultiDomainP0PkDiffusionReactionTraits
  * @tparam     Traits  Class that define static policies on the model
  */
 template<class Traits_>
-class ModelMultiDomainDiffusionReaction : public ModelBase
+class ModelMultiDomainDiffusionReaction
 {
 public:
   using Traits = Traits_;
@@ -99,100 +56,124 @@ public:
 private:
   using Grid = typename Traits::Grid;
 
-  using OT = typename Traits::OrderingTag;
+  //! Type for the set of grid entities that define a compartment (e.g. a grid view)
+  using CompartmentEntitySet = typename Traits::CompartmentEntitySet;
 
-  using SubDomainGridView = typename Grid::SubDomainGrid::LeafGridView;
-
-  using SubModel = ModelDiffusionReaction<typename Traits::SubModelTraits>;
+  using SubModel = ModelDiffusionReaction<Traits>;
 
   //! Grid view
-  using GridView = typename Grid::LeafGridView;
-  using GV = GridView;
-
-  //! Domain field
-  using DF = typename Grid::ctype;
-
-  //! Range field
-  using RF = double;
-
-  //! Constraints builder
-  using CON = PDELab::ConformingDirichletConstraints;
-
-  //! Leaf vector backend
-  using LVBE = PDELab::ISTL::VectorBackend<>;
-
-  //! Leaf grid function space
-  using LGFS = typename SubModel::LGFS;
+  using EntitySet = typename Traits::EntitySet;
 
   //! SubDomain grid function space
-  using SDGFS = typename SubModel::GFS;
+  using CompartmentSpace = typename SubModel::CompartmentSpace;
 
-  //! Vector backend
-  using VBE = typename LGFS::Traits::Backend;
-  using GFS = PDELab::DynamicPowerGridFunctionSpace<SDGFS, VBE>;
+  using CompartmentMergingStrategy = typename SubModel::CompartmentMergingStrategy;
 
-  //! Coefficient vector
-  using X = PDELab::Backend::Vector<GFS, RF>;
+  // Choose a merging strategy for the degrees of freedom on the species between different compartment
+  using MultiCompartmentMergingStrategy = typename Traits::MultiCompartmentMergingStrategy;
+  using MultiCompartmentSpace = Assembler::VectorDiscreteFunctionSpace<MultiCompartmentMergingStrategy, CompartmentSpace>;  // TODO: Use assembler GV to update persistent regions
 
-  //! Constraints container
-  using CC = typename GFS::template ConstraintsContainer<RF>::Type;
+  //! Membranes!
+#if DUNE_COPASI_HAVE_MEMBRANE_SPACE
+  static constexpr auto compartments_path = Assembler::multiIndex(Indices::_0);
+  using SkeletonFiniteElementMap = typename Traits::SkeletonFiniteElementMap;
+  using MembraneSpeciesFiniteElementMap = typename Traits::MembraneSpeciesFiniteElementMap;
+  using MembraneSpeciesMergingStrategy = Assembler::EntityGrouping<EntitySet, false>;
+  using MembraneSpeciesSpace = Assembler::LeafDiscreteFunctionSpace<MembraneSpeciesMergingStrategy, MembraneSpeciesFiniteElementMap, PDELab::NoConstraints>;
 
-  //! Local operator
-  using LOP = LocalOperatorMultiDomainDiffusionReaction<
-    Grid,
-    typename Traits::SubModelTraits::LocalOperator,
-    Traits::jacobian_method_interface>;
+  using MembraneMergingStrategy = Assembler::EntityGrouping<EntitySet, CompartmentMergingStrategy::Blocked>;
+  using MembraneSpace = Assembler::VectorDiscreteFunctionSpace<MembraneMergingStrategy, MembraneSpeciesSpace>;
 
-  //! Temporal local operator
-  using TLOP = TemporalLocalOperatorMultiDomainDiffusionReaction<
-    Grid,
-    typename Traits::SubModelTraits::TemporalLocalOperator,
-    Traits::jacobian_method_interface>;
+  // membranes and compartments should always have same blocking 
+  using MultiMembraneMergingStrategy = MultiCompartmentMergingStrategy;
+  using MultiMembraneSpace = Assembler::VectorDiscreteFunctionSpace<MultiMembraneMergingStrategy, MembraneSpace>;
 
-  //! Matrix backend
-  using MBE = Dune::PDELab::ISTL::BCRSMatrixBackend<>;
+  using MultiCompartmentMembraneMergingStrategy = typename Traits::MultiCompartmentMembraneMergingStrategy;
+  using MultiCompartmentMembraneSpace = Assembler::TupleDiscreteFunctionSpace<MultiCompartmentMembraneMergingStrategy, MultiCompartmentSpace, MultiMembraneSpace>;
 
-  //! Spatial grid operator
-  using GOS =
-    Dune::PDELab::GridOperator<GFS, GFS, LOP, MBE, RF, RF, RF, CC, CC>;
+  // Create the final space with the options above
+  using Space = Assembler::DiscreteFunctionSpace<MultiCompartmentMembraneSpace, EntitySet>;
+#else
+  static constexpr auto compartments_path = Assembler::multiIndex();
+  using Space = Assembler::DiscreteFunctionSpace<MultiCompartmentSpace, EntitySet>;
+#endif
 
-  //! Temporal grid operator
-  using GOT =
-    Dune::PDELab::GridOperator<GFS, GFS, TLOP, MBE, RF, RF, RF, CC, CC>;
+ // Choose a quantity type to represent the species (e.g. double)
+  using SpeciesQuantity = double; // TODO use units
 
-  //! Instationary grid operator
-  using GOI = Dune::PDELab::OneStepGridOperator<GOS, GOT>;
+  // Choose a backend whose containers have the same value: SpeciesQuantity
+  // (e.g. a flat space container may give Dune::BlockVector<SpeciesQuantity> or std::vector<SpeciesQuantity>)
+  using CoefficientsBackend = Assembler::ISTLUniformBackend<SpeciesQuantity>;
+  // Extract container according to the backend and the space blocking strategy
+  // (e.g. Dune::BlockVector<Dune::FieldVector<SpeciesQuantity,2>> or std::vector<std::array<SpeciesQuantity,2>>)
+  using Coefficients = typename Space::template Container<CoefficientsBackend>;
 
-  //! Entity transformation between grids
-  using EntityTransformation =
-    Dune::Copasi::MultiDomainEntityTransformation<Grid>;
+  // Choose a quantity type to represent the residual (e.g. double)
+  using ResidualQuantity = double; // TODO use units
+  using ResidualBackend = Assembler::ISTLUniformBackend<ResidualQuantity>;
+  using Residual = typename Space::template Container<ResidualBackend>;
 
-  using DataHandler =
-    PDELab::vtk::DGFTreeCommonData<const GFS,
-                                   const X,
-                                   PDELab::vtk::DefaultPredicate,
-                                   SubDomainGridView,
-                                   EntityTransformation>;
+  using Time = double;
 
-  using ComponentLFS =
-    typename PDELab::LocalFunctionSpace<GFS>::ChildType::ChildType;
+  using StepOperator = Assembler::OneStepOperator<Coefficients, Time, Time>;
 
-  using ComponentGridFunction = PDELab::vtk::
-    DGFTreeLeafFunction<ComponentLFS, DataHandler, SubDomainGridView>;
+
+//   //! Local operator
+//   using LOP = LocalOperatorMultiDomainDiffusionReaction<
+//     Grid,
+//     typename Traits::SubModelTraits::LocalOperator,
+//     Traits::jacobian_method_interface>;
+
+//   //! Temporal local operator
+//   using TLOP = TemporalLocalOperatorMultiDomainDiffusionReaction<
+//     Grid,
+//     typename Traits::SubModelTraits::TemporalLocalOperator,
+//     Traits::jacobian_method_interface>;
+
+//   //! Matrix backend
+//   using MBE = Dune::PDELab::ISTL::BCRSMatrixBackend<>;
+
+//   //! Spatial grid operator
+//   using GOS =
+//     Dune::PDELab::GridOperator<GFS, GFS, LOP, MBE, RF, RF, RF, CC, CC>;
+
+//   //! Temporal grid operator
+//   using GOT =
+//     Dune::PDELab::GridOperator<GFS, GFS, TLOP, MBE, RF, RF, RF, CC, CC>;
+
+//   //! Instationary grid operator
+//   using GOI = Dune::PDELab::OneStepGridOperator<GOS, GOT>;
+
+//   //! Entity transformation between grids
+//   using EntityTransformation =
+//     Dune::Copasi::MultiDomainEntityTransformation<Grid>;
+
+//   using DataHandler =
+//     PDELab::vtk::DGFTreeCommonData<const GFS,
+//                                    const X,
+//                                    PDELab::vtk::DefaultPredicate,
+//                                    SubDomainGridView,
+//                                    EntityTransformation>;
+
+//   using ComponentLFS =
+//     typename PDELab::LocalFunctionSpace<GFS>::ChildType::ChildType;
+
+//   using ComponentGridFunction = PDELab::vtk::
+//     DGFTreeLeafFunction<ComponentLFS, DataHandler, SubDomainGridView>;
 
 public:
 
   //! Model state structure
-  using State = Dune::Copasi::ModelState<Grid, GFS, X>;
+  using State = Dune::Copasi::ModelState<Grid, Space, Coefficients>;
 
   //! Constant model state structure
-  using ConstState = Dune::Copasi::ConstModelState<Grid, GFS, X>;
+  using ConstState = typename State::Const;
 
-  //! Grid operator type
-  using StationaryGridOperator = GOS;
+//   //! Grid operator type
+//   using StationaryGridOperator = GOS;
 
-  //! Grid operator type
-  using InstationaryGridOperator = GOI;
+//   //! Grid operator type
+//   using InstationaryGridOperator = GOI;
 
   /**
    * @brief      Constructs a new instance.
@@ -208,31 +189,24 @@ public:
                                     BitFlags<ModelSetup::Stages> setup_policy =
                                       BitFlags<ModelSetup::Stages>::all_flags());
 
-  /**
-   * @brief      Destroys the object.
-   */
-  ~ModelMultiDomainDiffusionReaction();
+//   /**
+//    * @brief      Destroys the object.
+//    */
+//   ~ModelMultiDomainDiffusionReaction();
 
   /**
    * @brief      Get mutable model state
    *
    * @return     Model state
    */
-  State state() { return _state; }
-
-  /**
-   * @brief      Get constat model state
-   *
-   * @return     Constant model state
-   */
-  ConstState const_state() const { return _state; }
+  State& state() { return _state; }
 
   /**
    * @brief      Get the model state
    *
    * @return     Model state
    */
-  ConstState state() const { return const_state(); }
+  ConstState state() const { return _state; }
 
   /**
    * @brief Sets model internal state
@@ -244,15 +218,6 @@ public:
     if (not state)
       DUNE_THROW(InvalidStateException,"State must be valid");
     _state = state;
-    if (_state.grid_function_space != state.grid_function_space)
-    {
-      if (_constraints)
-        setup_constraints();
-      if (_local_operator)
-        setup_local_operator();
-      if (_grid_operator)
-        setup_grid_operator();
-    }
   }
 
   /**
@@ -281,84 +246,77 @@ public:
    * variable
    */
   template<class GF>
-  void set_initial(
-    const std::vector<std::vector<std::shared_ptr<GF>>>& initial);
+  void interpolate(State& state,
+    const std::map<std::array<std::string, 2>, GF>& initial);
 
-  /**
-   * @brief      Gets a grid function for a given component, a sub domain, and a
-   * state.
-   * @details    The resulting grid function is persistent w.r.t the grid.
-   *             This means that the grid function will be valid and will
-   * contain exaclty the same data even if the model is modified in any form.
-   * The only exception to this is when the grid is modified.
-   *
-   * @param[in]  state  The model state
-   * @param[in]  domain  The domain
-   * @param[in]  comp    The component
-   *
-   * @return     The grid function.
-   */
-  std::shared_ptr<ComponentGridFunction> get_grid_function(
-    const ConstState& state,
-    std::size_t domain,
-    std::size_t comp) const;
+//   /**
+//    * @brief      Gets a grid function for a given component, a sub domain, and a
+//    * state.
+//    * @details    The resulting grid function is persistent w.r.t the grid.
+//    *             This means that the grid function will be valid and will
+//    * contain exaclty the same data even if the model is modified in any form.
+//    * The only exception to this is when the grid is modified.
+//    *
+//    * @param[in]  state  The model state
+//    * @param[in]  domain  The domain
+//    * @param[in]  comp    The component
+//    *
+//    * @return     The grid function.
+//    */
+//   std::shared_ptr<ComponentGridFunction> get_grid_function(
+//     const ConstState& state,
+//     std::size_t domain,
+//     std::size_t comp) const;
 
-  /**
-   * @brief      Gets a grid function for a given component, and a sub domain at
-   * the current state of the model.
-   * @details    The resulting grid function is persistent w.r.t the grid.
-   *             This means that the grid function will be valid and will
-   * contain exaclty the same data even if the model is modified in any form.
-   * The only exception to this is when the grid is modified.
-   *
-   * @param[in]  domain  The domain
-   * @param[in]  comp    The component
-   *
-   * @return     The grid function.
-   */
-  std::shared_ptr<ComponentGridFunction> get_grid_function(
-    std::size_t domain,
-    std::size_t comp) const;
+//   /**
+//    * @brief      Gets a grid function for a given component, and a sub domain at
+//    * the current state of the model.
+//    * @details    The resulting grid function is persistent w.r.t the grid.
+//    *             This means that the grid function will be valid and will
+//    * contain exaclty the same data even if the model is modified in any form.
+//    * The only exception to this is when the grid is modified.
+//    *
+//    * @param[in]  domain  The domain
+//    * @param[in]  comp    The component
+//    *
+//    * @return     The grid function.
+//    */
+//   std::shared_ptr<ComponentGridFunction> get_grid_function(
+//     std::size_t domain,
+//     std::size_t comp) const;
 
-  /**
-   * @brief      Gets a grid function for each component, and each sub domain.
-   * @details    The resulting grid functions are persistent w.r.t the grid.
-   *             This means that the grid functions will be valid and will
-   * contain exaclty the same data even if the model is modified in any form.
-   * The only exception to this is when the grid is modified.
-   *
-   * @param[in]  state  The model state
-   *
-   * @return     The grid functions.
-   */
-  std::vector<std::vector<std::shared_ptr<ComponentGridFunction>>>
-  get_grid_functions(const ConstState& state) const;
+//   /**
+//    * @brief      Gets a grid function for each component, and each sub domain.
+//    * @details    The resulting grid functions are persistent w.r.t the grid.
+//    *             This means that the grid functions will be valid and will
+//    * contain exaclty the same data even if the model is modified in any form.
+//    * The only exception to this is when the grid is modified.
+//    *
+//    * @param[in]  state  The model state
+//    *
+//    * @return     The grid functions.
+//    */
+//   std::vector<std::vector<std::shared_ptr<ComponentGridFunction>>>
+//   get_grid_functions(const ConstState& state) const;
 
-  /**
-   * @brief      Gets a grid function for each component, and each sub domain at
-   * the current state of the model.
-   * @details    The resulting grid functions are persistent w.r.t the grid.
-   *             This means that the grid functions will be valid and will
-   * contain exaclty the same data even if the model is modified in any form.
-   * The only exception to this is when the grid is modified.
-   *
-   * @param[in]  state  The model state
-   *
-   * @return     The grid functions.
-   */
-  std::vector<std::vector<std::shared_ptr<ComponentGridFunction>>>
-  get_grid_functions() const;
+//   /**
+//    * @brief      Gets a grid function for each component, and each sub domain at
+//    * the current state of the model.
+//    * @details    The resulting grid functions are persistent w.r.t the grid.
+//    *             This means that the grid functions will be valid and will
+//    * contain exaclty the same data even if the model is modified in any form.
+//    * The only exception to this is when the grid is modified.
+//    *
+//    * @param[in]  state  The model state
+//    *
+//    * @return     The grid functions.
+//    */
+//   std::vector<std::vector<std::shared_ptr<ComponentGridFunction>>>
+//   get_grid_functions() const;
 
-  //! warning this is not completely const correct. grid operators may modify local operators and thus the model on certain calls
-  std::shared_ptr<StationaryGridOperator> get_stationary_grid_operator() const
+  std::unique_ptr<StepOperator> make_step_operator(const ConstState& state, const ParameterTree&) const
   {
-    return _spatial_grid_operator;
-  }
-
-  //! warning this is not completely const correct. grid operators may modify local operators and thus the model on certain calls
-  std::shared_ptr<InstationaryGridOperator> get_instationary_grid_operator() const
-  {
-    return _grid_operator;
+    return setup_step_operator(state);
   }
 
 protected:
@@ -371,35 +329,32 @@ protected:
   void setup(BitFlags<ModelSetup::Stages> setup_policy);
 
 private:
-  void setup_grid_function_space();
-  void setup_coefficient_vector();
-  void setup_initial_condition();
-  void setup_constraints();
-  auto setup_local_operator(std::size_t) const;
-  void setup_local_operator();
-  void setup_grid_operator();
-  void setup_solvers();
-  void setup_vtk_writer();
+  void setup_grid_function_space(State& state);
+  void setup_coefficient_vector(State& state);
+  void setup_initial_condition(State& state);
+//   void setup_constraints();
+//   auto setup_local_operator(std::size_t) const;
+//   void setup_local_operator();
+  std::unique_ptr<StepOperator> setup_step_operator(const ConstState&) const;
+//   void setup_solvers();
+  void setup_vtk_writer(State& state);
 
-  auto get_data_handler(const ConstState&) const;
+//   auto get_data_handler(const ConstState&) const;
 
-  using ModelBase::_logger;
+//   using ModelBase::_logger;
 
 private:
 
   ParameterTree _config;
-  GV _grid_view;
+  Logging::Logger _logger;
   State _state;
-  std::shared_ptr<Grid> _grid;
 
-  std::unique_ptr<CC> _constraints;
-  std::shared_ptr<LOP> _local_operator;
-  std::shared_ptr<TLOP> _temporal_local_operator;
-  std::shared_ptr<GOS> _spatial_grid_operator;
-  std::shared_ptr<GOT> _temporal_grid_operator;
-  std::shared_ptr<GOI> _grid_operator;
+  std::shared_ptr<StepOperator> _step_operator;
 
-  std::size_t _domains;
+#if DUNE_COPASI_HAVE_MEMBRANE_SPACE
+  using SubDomainIndex = typename Grid::SubDomainIndex;
+  std::vector<std::array<SubDomainIndex,2>> _membrane_map;
+#endif
 };
 
 } // namespace Dune::Copasi

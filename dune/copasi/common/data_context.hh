@@ -1,6 +1,8 @@
 #ifndef DUNE_COPASI_CONTEXT_BASE_HH
 #define DUNE_COPASI_CONTEXT_BASE_HH
 
+#include <dune/common/classname.hh>
+
 #include <type_traits>
 
 /**

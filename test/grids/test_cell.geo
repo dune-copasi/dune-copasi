@@ -1,5 +1,5 @@
 // Refinement value
-lc = 1e-1;
+lc = 100;
 
 // Cell and nucleioid points
 Point(1) = {-2, 0, 0, lc};

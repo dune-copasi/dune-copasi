@@ -29,7 +29,7 @@ struct TIFFFile
   void* malloc_scanline() const;
 
   //! Deallocates tiff type pointers
-  void free(void* ptr) const;
+  static void free(void* ptr);
 
   //! Reads one line on the buffer for a given row
   void read_scanline(void* ptr, std::size_t row) const;

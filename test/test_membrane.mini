@@ -1,14 +1,15 @@
-# Test: Compare a simple multidomain diffusion-reaction problem with respect
-#   to a reference solution produced by stable versions of the program
+# Test: Test membrane reactions
 
 import default_logging.ini
 import default_time_stepping.ini
 
-__name = test_cell
+__name = test_membrane
+_F = 0.029
+_k = 0.057
 
 [grid]
 dimension = 2
-file = grids/test_cell_coarse.msh
+file = grids/test_cell.msh
 initial_level = 0
 
 [model]
@@ -33,37 +34,31 @@ file_path = {__name}
 
 ############################ Model for cell ############################
 [model.cell.initial]
-u = 10
-
 [model.cell.reaction]
-u = -5*u
-
 [model.cell.reaction.jacobian]
-du__du = -5
-
 [model.cell.diffusion]
-u = 1.
-
 [model.cell.boundary.nucleus.outflow]
-u = w-u
-
 [model.cell.boundary.nucleus.outflow.jacobian]
-du__du = -1
-du__dw = 1
 
 # membrane species
 
 [model.cell.boundary.nucleus.initial]
-m = 10
+u = 10
+v = 10
 
 [model.cell.boundary.nucleus.reaction]
-m = 100
+u = -u*v^2 + {_F}*(1-u)
+v = u*v^2 - {_F}*(1-{_k})*v
 
 [model.cell.boundary.nucleus.reaction.jacobian]
-dm__dm = 0
+du__du = -v^2 - {_F}
+du__dv = -2*u*v
+dv__dv = 2*u*v - {_F}*(1-{_k})
+dv__du = v^2
 
 [model.cell.boundary.nucleus.diffusion]
-m = 1
+u = 1e-5
+v = 0.4*1e-5
 
 # membrane boundary species
 
@@ -82,31 +77,11 @@ b = 1
 
 ############################ Model for nucleus ############################
 [model.nucleus.initial]
-v = 10
-w = 5
-
 [model.nucleus.reaction]
-v = -10*w
-w = -w*v
-
 [model.nucleus.reaction.jacobian]
-dv__dw = -10
-dv__dv = 0
-dw__dw = -v
-dw__dv = -w
-
 [model.nucleus.diffusion]
-v = 1.
-w = 1.
-
 [model.nucleus.boundary.cell.outflow]
-v = 0
-w = u-w
-
 [model.nucleus.boundary.cell.outflow.jacobian]
-dw__dw = -1
-dw__du = 1
-
 ######################### Compare with reference vtk #########################
 [wrapper.vtkcompare]
 name = {__name}/{__name}-cell-00005 {__name}/{__name}-nucleus-00005

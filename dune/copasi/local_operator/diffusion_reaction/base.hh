@@ -1,7 +1,12 @@
 #ifndef DUNE_COPASI_LOCAL_OPERATOR_DIFFUSION_REACTION_BASE_HH
 #define DUNE_COPASI_LOCAL_OPERATOR_DIFFUSION_REACTION_BASE_HH
 
-#include <dune/copasi/common/pdelab_expression_adapter.hh>
+
+#include <dune/copasi/common/parser_to_grid_function.hh>
+
+#include <dune/assembler/common/trace.hh>
+#include <dune/assembler/common/multiindex.hh>
+#include <dune/assembler/concepts/discrete_function_space.hh>
 
 #include <dune/pdelab/common/quadraturerules.hh>
 
@@ -14,12 +19,9 @@ namespace Dune::Copasi {
  * @tparam     ES     EntitySet
  * @tparam     LBT    Local basis traits
  */
-template<class ES, class LBT>
+template<Assembler::Concept::DiscreteFunctionSpace Space, class LBT>
 struct LocalOperatorDiffusionReactionBase
 {
-  //! entity set
-  using EntitySet = ES;
-
   //! local basis
   using LocalBasisTraits = LBT;
 
@@ -39,7 +41,7 @@ struct LocalOperatorDiffusionReactionBase
   using Jacobian = typename LocalBasisTraits::JacobianType;
 
   //! Adapter for dynamic expressions
-  using ExpressionAdapter = ExpressionToGridFunctionAdapter<EntitySet, RF>;
+  using ExpressionAdapter = ParserToGridFunctionAdapter<typename Space::EntitySet, RF>;
 
   //! world dimension
   static constexpr int dim = LocalBasisTraits::dimDomain;
@@ -52,16 +54,14 @@ struct LocalOperatorDiffusionReactionBase
 
   ParameterTree _config;
 
-  EntitySet _entity_set;
-
-  //! components
-  std::size_t _components;
-
-  std::vector<std::unique_ptr<ExpressionAdapter>> _diffusion_gf;
-  mutable std::vector<std::unique_ptr<ExpressionAdapter>> _reaction_gf;
-  mutable std::vector<std::unique_ptr<ExpressionAdapter>> _jacobian_gf;
+  Space _space;
 
   Logging::Logger _logger;
+
+  std::vector<std::unique_ptr<ExpressionAdapter>> _diffusion_gf;
+  std::vector<std::unique_ptr<ExpressionAdapter>> _reaction_gf;
+  std::vector<std::unique_ptr<ExpressionAdapter>> _jacobian_gf;
+  mutable std::vector<RF> _u;
 
   std::vector<std::vector<std::size_t>> _component_pattern;
 
@@ -76,85 +76,118 @@ struct LocalOperatorDiffusionReactionBase
    * @param[in]  finite_element  The local finite element
    * @param[in]  rule_order      order of the quadrature rule
    */
-  LocalOperatorDiffusionReactionBase(const ParameterTree& config,
-                                     const EntitySet& entity_set)
+  LocalOperatorDiffusionReactionBase(const Space& space,
+                                     const ParameterTree& config)
     : _config(config)
-    , _entity_set(entity_set)
-    , _components(config.sub("reaction").getValueKeys().size())
+    , _space(space)
     , _logger(Logging::Logging::componentLogger({}, "model"))
   {
-    assert(_components == _config.sub("diffusion").getValueKeys().size());
-    assert((_components * _components) == _config.sub("reaction.jacobian").getValueKeys().size());
+    assert(_space.degree() == _config.sub("diffusion").getValueKeys().size());
+    assert((_space.degree() * _space.degree()) == _config.sub("reaction.jacobian").getValueKeys().size());
     create_pattern_and_gf_expressions();
   }
 
   LocalOperatorDiffusionReactionBase(const LocalOperatorDiffusionReactionBase& other)
-    : LocalOperatorDiffusionReactionBase(other._config, other._entity_set)
+    : LocalOperatorDiffusionReactionBase(other._space, other._config)
   {}
+
+  LocalOperatorDiffusionReactionBase(LocalOperatorDiffusionReactionBase&& other)
+    : _config(std::move(other._config))
+    , _space(std::move(other._space))
+    , _logger(std::move(other._logger))
+    , _diffusion_gf(std::move(other._diffusion_gf))
+    , _reaction_gf(std::move(other._reaction_gf))
+    , _jacobian_gf(std::move(other._jacobian_gf))
+    , _u(std::move(other._u))
+    , _component_pattern(std::move(other._component_pattern))
+  {}
+
+  LocalOperatorDiffusionReactionBase& operator=(const LocalOperatorDiffusionReactionBase& other) {
+    _config = other._config;
+    _space = other._space;
+    _logger = other._logger;
+    create_pattern_and_gf_expressions();
+    return *this;
+  }
+
+  LocalOperatorDiffusionReactionBase& operator=(LocalOperatorDiffusionReactionBase&& other) {
+    _config = std::move(other._config);
+    _space = std::move(other._space);
+    _logger = std::move(other._logger);
+    _diffusion_gf = std::move(other._diffusion_gf);
+    _reaction_gf = std::move(other._reaction_gf);
+    _jacobian_gf = std::move(other._jacobian_gf);
+    _u = std::move(other._u);
+    _component_pattern = std::move(other._component_pattern);
+    return *this;
+  }
 
   void create_pattern_and_gf_expressions()
   {
+    TRACE_EVENT("dune", "LocalOperator::ParserSetUp");
     _logger.trace("creating pattern and grid function expressions"_fmt);
 
-    _diffusion_gf.resize(_components);
-    _reaction_gf.resize(_components);
-    _jacobian_gf.resize(_components * _components);
+    _u.resize(_space.degree());
+    _diffusion_gf.resize(_space.degree());
+    _reaction_gf.resize(_space.degree());
+    _jacobian_gf.resize(_space.degree() * _space.degree());
 
     auto diffusion_config = _config.sub("diffusion");
     auto reaction_config = _config.sub("reaction");
     auto jacobian_config = _config.sub("reaction.jacobian");
 
-    auto diffusion_keys = diffusion_config.getValueKeys();
-    auto reaction_keys = reaction_config.getValueKeys();
-    auto jacobian_keys = jacobian_config.getValueKeys();
+    auto add_u = [&](auto& parser){
+      for (std::size_t comp = 0; comp != _space.degree(); ++comp) {
+        auto comp_space = _space.subSpace(Assembler::multiIndex(comp));
+        parser.define_variable(comp_space.name(), &_u[comp]);
+      }
+    };
 
-    std::sort(diffusion_keys.begin(), diffusion_keys.end());
-    std::sort(reaction_keys.begin(), reaction_keys.end());
-    std::sort(jacobian_keys.begin(), jacobian_keys.end());
+    _component_pattern.assign(_space.degree(), {});
 
-    assert(diffusion_keys.size() == reaction_keys.size());
-    for (size_t i = 0; i < diffusion_keys.size(); i++)
-      assert(diffusion_keys[i] == reaction_keys[i]);
-
-    _component_pattern.assign(_components, {});
-    for (std::size_t k = 0; k < _components; k++) {
-      std::string var = reaction_keys[k];
+    for (std::size_t comp_i = 0; comp_i !=  _space.degree(); ++comp_i) {
+      auto comp_space_i = _space.subSpace(Assembler::multiIndex(comp_i));
+      std::string var = comp_space_i.name();
 
       std::string d_eq = diffusion_config.template get<std::string>(var);
       std::string r_eq = reaction_config.template get<std::string>(var);
 
-      _diffusion_gf[k] =
-        std::make_unique<ExpressionAdapter>(_entity_set, d_eq);
-      _reaction_gf[k] =
-        std::make_unique<ExpressionAdapter>(_entity_set, r_eq, true, reaction_keys);
+      _diffusion_gf[comp_i] = std::make_unique<ExpressionAdapter>(_space.entitySet(), make_parser());
+      _diffusion_gf[comp_i]->parser().set_expression(d_eq);
+      _diffusion_gf[comp_i]->parser().compile();
 
-      for (std::size_t l = 0; l < _components; l++) {
-        const auto j = _components * k + l;
-        std::string j_eq =
-          jacobian_config.template get<std::string>(jacobian_keys[j]);
+      _reaction_gf[comp_i] = std::make_unique<ExpressionAdapter>(_space.entitySet(), make_parser());
+      _reaction_gf[comp_i]->parser().set_expression(r_eq);
+      add_u(_reaction_gf[comp_i]->parser());
+      _reaction_gf[comp_i]->parser().compile();
 
-        _jacobian_gf[j] =
-          std::make_unique<ExpressionAdapter>(_entity_set, j_eq, true, reaction_keys);
-        if (k == l) {
-          _component_pattern[k].push_back(l);
-          continue;
-        }
+      _component_pattern[comp_i].push_back(comp_i);
 
-        bool do_pattern = true;
-        do_pattern &= (j_eq != "0");
-        do_pattern &= (j_eq != "0.0");
-        do_pattern &= (j_eq != ".0");
-        do_pattern &= (j_eq != "0.");
-        if (do_pattern)
-          _component_pattern[k].push_back(l);
+      for (std::size_t comp_j = 0; comp_j != _space.degree(); ++comp_j) {
+        auto comp_space_j = _space.subSpace(Assembler::multiIndex(comp_j));
+        const auto jac_index = _space.degree() * comp_i + comp_j;
+        std::string j_eq = jacobian_config.template get<std::string>(fmt::format("d{}__d{}", comp_space_i.name(), comp_space_j.name()));
+
+        _jacobian_gf[jac_index] = std::make_unique<ExpressionAdapter>(_space.entitySet(), make_parser());
+        _jacobian_gf[jac_index]->parser().set_expression(j_eq);
+        add_u(_jacobian_gf[jac_index]->parser());
+        _jacobian_gf[jac_index]->parser().compile();
+
+        if (r_eq.find(comp_space_j.name()) != std::string::npos)
+          _component_pattern[comp_i].push_back(comp_j);
       }
+      std::sort(begin(_component_pattern[comp_i]), end(_component_pattern[comp_i]));
     }
 
     // log compartment pattern
     _logger.debug("Compartment jacobian pattern:"_fmt);
-    for (std::size_t k = 0; k != _component_pattern.size(); ++k)
-      for (auto l : _component_pattern[k])
-      _logger.debug(2, "{} -> {}"_fmt, diffusion_keys[k], diffusion_keys[l]);
+    for (std::size_t comp_i = 0; comp_i != _component_pattern.size(); ++comp_i) {
+      auto comp_space_i = _space.subSpace(Assembler::multiIndex(comp_i));
+      for (auto comp_j : _component_pattern[comp_i]) {
+        auto comp_space_j = _space.subSpace(Assembler::multiIndex(comp_j));
+        _logger.debug(2, "{} -> {}"_fmt, comp_space_i.name(), comp_space_j.name());
+      }
+    }
   }
 
   /**
@@ -166,13 +199,13 @@ struct LocalOperatorDiffusionReactionBase
   {
     for (auto& gf : _jacobian_gf)
       if (gf)
-        gf->set_time(t);
+        gf->setTime(t);
     for (auto& gf : _reaction_gf)
       if (gf)
-        gf->set_time(t);
+        gf->setTime(t);
     for (auto& gf : _diffusion_gf)
       if (gf)
-        gf->set_time(t);
+        gf->setTime(t);
   }
 };
 

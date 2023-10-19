@@ -41,7 +41,7 @@ u = {_gauss_eq}
 u = 0
 
 [model.domain.reaction.jacobian]
-du_du = 0
+du__du = 0
 
 [model.domain.diffusion]
 u = {_diffusion}

@@ -37,7 +37,7 @@ u = {_initial}
 u = {_grow_rate}*u
 
 [model.domain.reaction.jacobian]
-du_du = {_grow_rate}
+du__du = {_grow_rate}
 
 [model.domain.diffusion]
 u = 0.

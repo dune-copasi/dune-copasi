@@ -2,7 +2,6 @@
 #include <dune/copasi/config.h>
 #endif
 
-#include <dune/copasi/common/enum.hh>
 #include <dune/copasi/common/stepper.hh>
 #include <dune/copasi/grid/mark_stripes.hh>
 #include <dune/copasi/grid/multidomain_gmsh_reader.hh>
@@ -20,7 +19,11 @@
 
 #include <dune/grid/multidomaingrid.hh>
 
-#include <dune/grid/uggrid.hh>
+#include <dune/alugrid/grid.hh>
+// #include <dune/grid/uggrid.hh>
+
+// #if HAVE_ALBERTA
+#include <dune/grid/albertagrid.hh>
 
 #include <dune/logging/logging.hh>
 
@@ -30,8 +33,43 @@
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>
 
-#include <ctime>
 #include <vector>
+#include <string>
+#include <iostream>
+#include <chrono>
+
+#include <unistd.h>
+#include <fcntl.h>
+
+std::unique_ptr<perfetto::TracingSession> StartTracing() {
+  perfetto::TraceConfig cfg;
+  cfg.add_buffers()->set_size_kb(1024*100);
+  auto* ds_cfg = cfg.add_data_sources()->mutable_config();
+  ds_cfg->set_name("track_event");
+
+  auto tracing_session = perfetto::Tracing::NewTrace();
+  tracing_session->Setup(cfg);
+  tracing_session->StartBlocking();
+  return tracing_session;
+}
+
+void StopTracing(std::unique_ptr<perfetto::TracingSession> tracing_session) {
+  // Make sure the last event is closed for this example.
+  perfetto::TrackEvent::Flush();
+
+  // Stop tracing and read the trace data.
+  tracing_session->StopBlocking();
+  std::vector<char> trace_data(tracing_session->ReadTraceBlocking());
+
+  // Write the result into a file.
+  // Note: To save memory with longer traces, you can tell Perfetto to write
+  // directly into a file by passing a file descriptor into Setup() above.
+  std::ofstream output;
+  output.open("dune-copasi-md.pftrace", std::ios::out | std::ios::binary);
+  output.write(&trace_data[0], std::streamsize(trace_data.size()));
+  output.close();
+  PERFETTO_LOG("Trace written in dune-copasi-md.pftrace file.");
+}
 
 static std::string string_help =
   "Usage: dune-copasi-md CONFIG_FILE\n"
@@ -43,6 +81,22 @@ static std::string string_help =
 int
 main(int argc, char** argv)
 {
+  perfetto::TracingInitArgs args;
+  args.backends |= perfetto::kInProcessBackend;
+  // args.backends |= perfetto::kSystemBackend;
+  perfetto::Tracing::Initialize(args);
+  perfetto::TrackEvent::Register();
+
+  auto tracing_session = StartTracing();
+
+  // Give a custom name for the traced process.
+  perfetto::ProcessTrack process_track = perfetto::ProcessTrack::Current();
+  perfetto::protos::gen::TrackDescriptor desc = process_track.Serialize();
+  desc.mutable_process()->set_process_name("Main");
+  perfetto::TrackEvent::SetTrackDescriptor(process_track, desc);
+
+  TRACE_EVENT_BEGIN("dune", "Main");
+
   std::vector<std::string> cmd_line_args(argv, argv+argc);
 
   if (cmd_line_args.size() != 2) {
@@ -67,7 +121,7 @@ main(int argc, char** argv)
   Dune::ParameterTreeParser::readINITree(config_filename, config);
 
   // initialize loggers
-  auto comm = mpi_helper.getCollectiveCommunication();
+  auto comm = mpi_helper.getCommunication();
   Dune::Logging::Logging::init(comm, config.sub("logging"));
   auto log = Dune::Logging::Logging::logger(config);
   using namespace Dune::Literals;
@@ -88,8 +142,8 @@ main(int argc, char** argv)
       log.detail(2, "{}"_fmt, line);
     log.detail(2, "----"_fmt);
 
-    int order = config.template get<int>("model.order");
-    int dim = config.template get<int>("grid.dimension");
+    std::size_t order = config.template get<std::size_t>("model.order");
+    std::size_t dim = config.template get<std::size_t>("grid.dimension");
 
     if (dim != 2 and dim != 3)
       DUNE_THROW(Dune::IOError, "Only 2D and 3D grids are alloed!");
@@ -97,8 +151,9 @@ main(int argc, char** argv)
     // lambda that instantiates and evolves a multidomain model
     auto evolve_model = [](const auto& config, auto dim, auto order) {
       using namespace Dune::Copasi;
-
+      // using HostGrid = Dune::AlbertaGrid<dim>; // HELP Multidomain grid fails if dim!=dimw!
       using HostGrid = Dune::UGGrid<dim>;
+      // using HostGrid = Dune::ALUGrid<dim,dim,Dune::simplex,Dune::conforming>;
       using MDGTraits = Dune::mdgrid::DynamicSubDomainCountTraits<dim, 1>;
       using Grid = Dune::mdgrid::MultiDomainGrid<HostGrid, MDGTraits>;
 
@@ -113,17 +168,17 @@ main(int argc, char** argv)
       auto grid_log = Dune::Logging::Logging::componentLogger({}, "grid");
       grid_log.detail("Applying refinement of level: {}"_fmt, level);
 
-      for (int i = 1; i <= level; i++) {
-        mark_stripes(*host_grid_ptr);
-        md_grid_ptr->preAdapt();
-        md_grid_ptr->adapt();
-        md_grid_ptr->postAdapt();
-      }
+      md_grid_ptr->globalRefine(level);
+      // for (int i = 1; i <= level; i++) {
+      //   // mark_stripes(*host_grid_ptr);
+      //   md_grid_ptr->preAdapt();
+      //   md_grid_ptr->adapt();
+      //   md_grid_ptr->postAdapt();
+      // }
 
       auto& model_config = config.sub("model", true);
-      using Traits = ModelMultiDomainP0PkDiffusionReactionTraits<Grid, order>;
-      ModelMultiDomainDiffusionReaction<Traits> model(md_grid_ptr,
-                                                      model_config);
+      using Traits = ModelMultiDomainDiffusionReactionPkTraits<Grid, /*order*/ 1, true>;
+      ModelMultiDomainDiffusionReaction<Traits> model(md_grid_ptr, model_config);
 
       // setup writer
       auto file = model_config.get("writer.file_path", "");
@@ -139,7 +194,11 @@ main(int argc, char** argv)
       auto initial_step = timestep_config.template get<double>("initial_step");
       auto stepper = Dune::Copasi::make_default_stepper(timestep_config);
 
-      stepper.evolve(model, initial_step, end_time, write_output);
+      auto in = model.state();
+      auto step_operator = model.make_step_operator(in, {});
+
+      auto out = in;
+      stepper.evolve(*step_operator, in, out, initial_step, end_time, write_output);
     };
 
     // maximum polynomial order instantiated
@@ -183,5 +242,8 @@ main(int argc, char** argv)
     log.notice("dune-copasi(md) finished with some errors :("_fmt);
   else
     log.notice("dune-copasi(md) successfully finished :)"_fmt);
+
+  TRACE_EVENT_END("dune");
+  StopTracing(std::move(tracing_session));
   return end_code;
 }

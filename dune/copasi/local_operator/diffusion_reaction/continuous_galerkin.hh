@@ -8,12 +8,9 @@
 
 #include <dune/assembler/common/tree_traversal.hh>
 
-#include <dune/pdelab/localoperator/pattern.hh>
 #include <dune/pdelab/localoperator/flags.hh>
 #include <dune/pdelab/localoperator/idefault.hh>
-#include <dune/pdelab/common/quadraturerules.hh>
 
-#include <dune/geometry/referenceelements.hh>
 #include <dune/geometry/type.hh>
 
 #include <dune/common/fvector.hh>
@@ -28,36 +25,32 @@ namespace Dune::Copasi {
  *             entities contained in the entity set. The local finite element is
  *             used for caching shape function evaluations.
  *
- * @tparam     ES    Entity Set
+ * @tparam     Space    Space
  * @tparam     LBT   Local basis traits
  */
-template<class ES, class LBT>
+template<Assembler::Concept::DiscreteFunctionSpace Space, class LBT>
 class LocalOperatorDiffusionReactionCG
   : public Dune::PDELab::LocalOperatorDefaultFlags
   , public Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>
-  , protected LocalOperatorDiffusionReactionBase<ES,LBT>
+  , protected LocalOperatorDiffusionReactionBase<Space,LBT>
 {
-  using EntitySet = ES;
-
-  using LOPBase = LocalOperatorDiffusionReactionBase<ES,LBT>;
+  using LOPBase = LocalOperatorDiffusionReactionBase<Space,LBT>;
 
   using RF = typename LOPBase::RF;
   using DF = typename LOPBase::DF;
   using LOPBase::_component_pattern;
-  using LOPBase::_components;
   using LOPBase::dim;
+  using LOPBase::_u;
   using LOPBase::_diffusion_gf;
   using LOPBase::_reaction_gf;
   using LOPBase::_jacobian_gf;
 
   mutable LocalBasisCache<LBT> _fe_cache;
-  mutable LocalBasisCache<LBT> _test_cache;
 
-  mutable DynamicVector<RF> _u;
-  mutable DynamicVector<RF> _diffusion;
-  mutable DynamicVector<RF> _reaction;
-  mutable DynamicVector<RF> _jacobian;
-  mutable DynamicVector<FieldVector<RF, dim>> _gradphi;
+  mutable std::vector<RF> _diffusion;
+  mutable std::vector<RF> _reaction;
+  mutable std::vector<RF> _jacobian;
+  mutable std::vector<FieldVector<RF, dim>> _gradphi;
 
 public:
 
@@ -79,19 +72,18 @@ public:
    * @todo       Make integration order variable depending on user requirements
    *             and polynomail order of the local finite element
    *
-   * @param[in]  entity_set      The entity set where this local operator is valid
+   * @param[in]  space
    * @param[in]  config          The configuration tree
    * @param[in]  finite_element  The local finite element
    */
-  LocalOperatorDiffusionReactionCG(EntitySet entity_set,
+  LocalOperatorDiffusionReactionCG(const Space& space,
                                    const ParameterTree& config)
-    : LOPBase(config,entity_set)
+    : LOPBase(space, config)
     , _fe_cache()
   {
-    _u.resize(_components);
-    _diffusion.resize(_components);
-    _reaction.resize(_components);
-    _jacobian.resize(_components*_components);
+    _diffusion.resize(_diffusion_gf.size());
+    _reaction.resize(_diffusion_gf.size());
+    _jacobian.resize(_diffusion_gf.size()*_diffusion_gf.size());
   }
 
   void setTime(double t)
@@ -126,6 +118,17 @@ public:
             pattern.addLink(lfsv.child(k), i, lfsu.child(l), j);
   }
 
+  template<class R, class X>
+  struct PseudoJacobian {
+    void accumulate(const auto& ltest, auto test_dof, const auto& ltrial, auto trial_dof, auto value) {
+      _r.accumulate(ltest, test_dof, _z(ltrial, trial_dof) * value);
+    }
+
+    R& _r;
+    const X& _z;
+  };
+
+
   /**
    * @brief      The jacobian volume integral for matrix free operations
    *
@@ -149,89 +152,10 @@ public:
                               const X& x,
                               const X& z,
                               const LFSV& lfsv,
-                              R& r) const
+                              R& r)
   {
-    // assume we receive a power local finite element!
-    auto x_coeff_local = [&](const std::size_t& component,
-                             const std::size_t& dof) {
-      return x(lfsu.child(component), dof);
-    };
-    auto z_coeff_local = [&](const std::size_t& component,
-                             const std::size_t& dof) {
-      return z(lfsu.child(component), dof);
-    };
-
-    auto accumulate = [&](const std::size_t& component,
-                          const std::size_t& dof,
-                          const auto& value) {
-      r.accumulate(lfsu.child(component), dof, value);
-    };
-
-    // get geometry
-    const auto& geo = entity.geometry();
-
-    // TODO: check geometry type
-    const auto& trial_finite_element = lfsu.child(0).finiteElement();
-
-    _fe_cache.bind(trial_finite_element);
-    _gradphi.resize(trial_finite_element.size());
-
-    const auto& rule = _fe_cache.rule();
-
-    assert(geo.affine());
-    const FieldMatrix<DF, dim, dim>& jac = geo.jacobianInverseTransposed( rule[0].position());
-
-    // loop over quadrature points
-    for (std::size_t q = 0; q != rule.size(); ++q) {
-      const auto& position = rule[q].position();
-
-      std::fill(_u.begin(), _u.end(), 0.);
-      std::fill(_diffusion.begin(), _diffusion.end(), 0.);
-      std::fill(_reaction.begin(), _reaction.end(), 0.);
-      std::fill(_gradphi.begin(), _gradphi.end(), 0.);
-
-      const auto& phi = _fe_cache.evaluateFunction(q);
-      const auto& jacphi = _fe_cache.evaluateJacobian(q);
-
-      for (std::size_t i=0; i != _gradphi.size(); ++i)
-        jac.mv(jacphi[i][0], _gradphi[i]);
-
-      // galerkin!
-      const auto& psi = phi;
-      const auto& gradpsi = _gradphi;
-
-      // get diffusion coefficient
-      for (std::size_t k = 0; k != _components; ++k)
-        _diffusion_gf[k]->evaluate(entity, position, _diffusion[k]);
-
-      // evaluate concentrations at quadrature point
-      for (std::size_t comp = 0; comp != _components; ++comp)
-        for (std::size_t dof = 0; dof != phi.size(); ++dof)
-          _u[comp] += x_coeff_local(comp, dof) * phi[dof];
-
-      RF factor = rule[q].weight() * geo.integrationElement(position);
-
-      // contribution for each component
-      for (std::size_t k = 0; k < _components; k++) {
-        // get reaction term
-        _reaction_gf[k]->update(_u);
-        _reaction_gf[k]->evaluate(entity, position, _reaction[k]);
-        // compute gradient u_h
-        FieldVector<RF, dim> graduh(.0);
-        for (std::size_t d = 0; d != dim; ++d)
-          for (std::size_t j = 0; j != _gradphi.size(); ++j)
-            graduh[d] += _gradphi[j][d] * z_coeff_local(k, j);
-
-        // scalar products
-        for (std::size_t i = 0; i != psi.size(); ++i) // test func. loop
-        {
-          auto rhs = -_reaction[k] * psi[i];
-          for (std::size_t d = 0; d != dim; ++d) // rows of grad
-            rhs += _diffusion[k] * gradpsi[i][d] * graduh[d];
-          accumulate(k, i, rhs * factor);
-        }
-      }
-    }
+    PseudoJacobian<R,X> mat{r,z};
+    jacobian_volume(entity, lfsu, x, lfsv, mat);
   }
 
   /**
@@ -254,22 +178,10 @@ public:
                        const LFSU& lfsu,
                        const X& x,
                        const LFSV& lfsv,
-                       M& mat) const
+                       M& mat)
   {
-    // assume we receive a power local finite element!
-    auto x_coeff_local = [&](const std::size_t& component,
-                             const std::size_t& dof) {
-      return x(lfsu.child(component), dof);
-    };
-
-    auto accumulate = [&](const std::size_t& component_i,
-                          const std::size_t& dof_i,
-                          const std::size_t& component_j,
-                          const std::size_t& dof_j,
-                          const auto& value) {
-      mat.accumulate(
-        lfsv.child(component_i), dof_i, lfsu.child(component_j), dof_j, value);
-    };
+    if (lfsu.degree() == 0)
+      return;
 
     // get geometry
     const auto& geo = entity.geometry();
@@ -283,7 +195,7 @@ public:
     const auto& rule = _fe_cache.rule();
 
     assert(geo.affine());
-    const FieldMatrix<DF, dim, dim>& jac = geo.jacobianInverseTransposed( rule[0].position());
+    const FieldMatrix<DF, dim, dim>& jac = geo.jacobianInverse( rule[0].position() );
 
     // loop over quadrature points
     for (std::size_t q = 0; q != rule.size(); ++q) {
@@ -298,147 +210,41 @@ public:
       std::fill(_gradphi.begin(), _gradphi.end(), 0.);
 
       // get diffusion coefficient
-      for (std::size_t k = 0; k < lfsv.degree(); k++)
+      for (std::size_t k = 0; k != lfsv.degree(); ++k)
         _diffusion_gf[k]->evaluate(entity, position, _diffusion[k]);
 
       // evaluate concentrations at quadrature point
-      for (std::size_t comp = 0; comp < lfsu.degree(); comp++)
-        for (std::size_t dof = 0; dof < lfsu.child(comp).size(); dof++) //  ansatz func. loop
-          _u[comp] += x_coeff_local(comp, dof) * phi[dof];
+      for (std::size_t comp = 0; comp != lfsu.degree(); ++comp)
+        for (std::size_t dof = 0; dof != lfsu.child(comp).size(); ++dof)
+          _u[comp] += x(lfsu.child(comp), dof) * phi[dof];
+
+      for (std::size_t dof=0; dof != _gradphi.size(); ++dof)
+        _gradphi[dof] = (jacphi[dof] * jac)[0]; // assert (1 x dim)
 
       RF factor = rule[q].weight() * geo.integrationElement(position);
-
-      for (std::size_t i=0; i != _gradphi.size(); ++i)
-        jac.mv(jacphi[i][0], _gradphi[i]);
-
       const auto& gradpsi = _gradphi;
       const auto& psi = phi;
 
-      for (std::size_t k = 0; k != lfsv.degree(); ++k) {
+      for (std::size_t comp_i = 0; comp_i != lfsv.degree(); ++comp_i) {
         // diffusion part
-        for (std::size_t m = 0; m != lfsv.child(k).size(); ++m) {
-          std::size_t l = k;
-          for (std::size_t n = 0; n != lfsu.child(l).size(); ++n) {
-            double ldiff = 0.;
-            for (std::size_t d = 0; d < dim; d++)
-              ldiff += _diffusion[k] * _gradphi[m][d] * gradpsi[n][d];
-            accumulate(k, m, l, n, ldiff * factor);
+        for (std::size_t dof_i = 0; dof_i != lfsv.child(comp_i).size(); ++dof_i) {
+          std::size_t comp_j = comp_i;
+          for (std::size_t dof_j = 0; dof_j != lfsu.child(comp_j).size(); ++dof_j) {
+            mat.accumulate(lfsv.child(comp_i), dof_i, lfsu.child(comp_j), dof_j, _diffusion[comp_i] * dot(_gradphi[dof_i], gradpsi[dof_j]) * factor);
           }
         }
 
         // reaction part
-        for (std::size_t l : _component_pattern[k]) {
-          const auto j = _components * k + l;
+        for (std::size_t comp_j : _component_pattern[comp_i]) {
           // evaluate reaction term
-          _jacobian_gf[j]->update(_u);
-          _jacobian_gf[j]->evaluate(entity, position, _jacobian[j]);
-          for (std::size_t m = 0; m != lfsv.child(k).size(); ++m) {
-            for (std::size_t n = 0; n != lfsu.child(l).size(); ++n) {
-              accumulate(k, m, l, n, -_jacobian[j] * phi[m] * psi[n] * factor);
-            }
-          }
+          const auto jac_index = lfsv.degree() * comp_i + comp_j;
+          _jacobian_gf[jac_index]->evaluate(entity, position, _jacobian[jac_index]);
+          for (std::size_t dof_i = 0; dof_i != lfsv.child(comp_i).size(); ++dof_i)
+            for (std::size_t dof_j = 0; dof_j != lfsu.child(comp_j).size(); ++dof_j)
+              mat.accumulate(lfsv.child(comp_i), dof_i, lfsu.child(comp_j), dof_j, -_jacobian[jac_index] * phi[dof_i] * psi[dof_j] * factor);
         }
       }
     }
-  }
-
-  /**
-   * @brief      The volume integral
-   *
-   * @param[in]  eg    The entity
-   * @param[in]  lfsu  The trial local function space
-   * @param[in]  x     The local coefficient vector
-   * @param[in]  lfsv  The test local function space
-   * @param      r     The local residual vector
-   *
-   * @tparam     EG    The entity
-   * @tparam     LFSU  The trial local function space
-   * @tparam     X     The local coefficient vector type
-   * @tparam     LFSV  The test local function space
-   * @tparam     R     The local residual vector
-   */
-  template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
-  void alpha_volume(const EG& eg,
-                    const LFSU& lfsu,
-                    const X& x,
-                    const LFSV& lfsv,
-                    R& r) const
-  {
-    jacobian_apply_volume(eg, lfsu, x, x, lfsv, r);
-  }
-};
-
-/**
- * @brief      This class describes a PDELab local operator for temporal part
- *             for diffusion reaction systems.
- * @details    This class describre the operatrions for local integrals required
- *             for diffusion reaction system. The operator is only valid for
- *             entities contained in the entity set. The local finite element is
- *             used for caching shape function evaluations.
- *
- * @tparam     ES    Entity Set
- * @tparam     LBT   Local Finite Element
- */
-template<class ES, class LBT>
-class TemporalLocalOperatorDiffusionReactionCG
-  : public Dune::PDELab::LocalOperatorDefaultFlags
-  , public Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>
-  , protected LocalOperatorDiffusionReactionBase<ES,LBT>
-{
-  //! entity set
-  using EntitySet = ES;
-
-  using LOPBase = LocalOperatorDiffusionReactionBase<ES,LBT>;
-
-  using RF = typename LOPBase::RF;
-  using LOPBase::_components;
-  using LOPBase::dim;
-
-
-public:
-  //! pattern assembly flags
-  static constexpr bool doPatternVolume = true;
-
-  //! residual assembly flags
-  static constexpr bool doAlphaVolume = true;
-
-  template<class Entity, typename LFSU, typename LFSV, typename LocalPattern>
-  void pattern_volume(const Entity& entity,
-                      const LFSU& lfsu,
-                      const LFSV& lfsv,
-                      LocalPattern& pattern) const
-  {
-    Assembler::forEachLeafNode(lfsv, [&](auto& lfsv_leaf, auto){
-      Assembler::forEachLeafNode(lfsu, [&](auto& lfsu_leaf, auto){
-        for (size_t i=0; i != lfsv_leaf.size(); ++i)
-          for (size_t j=0; j != lfsu_leaf.size(); ++j)
-            pattern.addLink(lfsv_leaf,i,lfsu_leaf,j);
-      });
-    });
-  }
-
-
-  /**
-   * @brief      Constructs a new instance.
-   *
-   * @todo       Make integration order variable depending on user requirements
-   *             and polynomail order of the local finite element
-   *
-   * @param[in]  entity_set       The entity set where this local operator is
-   *                             valid
-   * @param[in]  config          The configuration tree
-   * @param[in]  finite_element  The local finite element
-   */
-  TemporalLocalOperatorDiffusionReactionCG(
-    EntitySet entity_set,
-    const ParameterTree& config)
-    : LOPBase(config,entity_set)
-  {}
-
-  void setTime(double t)
-  {
-    Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>::setTime(t);
-    LOPBase::setTime(t);
   }
 
   /**
@@ -461,47 +267,174 @@ public:
                     const LFSU& lfsu,
                     const X& x,
                     const LFSV& lfsv,
-                    R& r) const
+                    R& r)
   {
-    auto x_coeff_local = [&](const std::size_t& component,
-                             const std::size_t& dof) {
-      return x(lfsu.child(component), dof);
-    };
-    auto accumulate = [&](const std::size_t& component,
-                          const std::size_t& dof,
-                          const auto& value) {
-      r.accumulate(lfsu.child(component), dof, value);
-    };
+    if (lfsu.degree() == 0)
+      return;
 
+    // get geometry
     const auto& geo = entity.geometry();
 
     // TODO: check geometry type
     const auto& trial_finite_element = lfsu.child(0).finiteElement();
 
     _fe_cache.bind(trial_finite_element);
+    _gradphi.resize(trial_finite_element.size());
 
-    // TODO: check geometry type
     const auto& rule = _fe_cache.rule();
+
+    assert(geo.affine());
+    const FieldMatrix<DF, dim, dim>& jac = geo.jacobianInverse( rule[0].position() );
 
     // loop over quadrature points
     for (std::size_t q = 0; q != rule.size(); ++q) {
       const auto& position = rule[q].position();
 
-      // get Jacobian and determinant
-      RF factor = rule[q].weight() * geo.integrationElement(position);
+      std::fill(_u.begin(), _u.end(), 0.);
+      std::fill(_diffusion.begin(), _diffusion.end(), 0.);
+      std::fill(_reaction.begin(), _reaction.end(), 0.);
+      std::fill(_gradphi.begin(), _gradphi.end(), 0.);
 
+      const auto& phi = _fe_cache.evaluateFunction(q);
+      const auto& jacphi = _fe_cache.evaluateJacobian(q);
+
+      for (std::size_t dof=0; dof != _gradphi.size(); ++dof)
+        _gradphi[dof] = (jacphi[dof] * jac)[0]; // assert (1 x dim)
+
+      // galerkin!
+      const auto& psi = phi;
+      const auto& gradpsi = _gradphi;
+
+      // evaluate concentrations at quadrature point
+      for (std::size_t comp = 0; comp != lfsu.degree(); ++comp)
+        for (std::size_t dof = 0; dof != phi.size(); ++dof)
+          _u[comp] += x(lfsu.child(comp), dof) * phi[dof];
+
+      auto factor = rule[q].weight() * geo.integrationElement(position);
+
+      // contribution for each component
+      for (std::size_t comp = 0; comp != lfsv.degree(); ++comp) {
+        _reaction_gf[comp]->evaluate(entity, position, _reaction[comp]);
+        _diffusion_gf[comp]->evaluate(entity, position, _diffusion[comp]);
+        // compute gradient u_h
+        FieldVector<RF, dim> graduh(.0);
+        for (std::size_t dof = 0; dof != _gradphi.size(); ++dof)
+          graduh += _gradphi[dof] * x(lfsu.child(comp), dof);
+
+        // scalar products
+        for (std::size_t dof = 0; dof != psi.size(); ++dof) {
+          r.accumulate(lfsv.child(comp), dof, (_diffusion[comp] * dot(gradpsi[dof], graduh) - _reaction[comp] * psi[dof]) * factor);
+        }
+      }
+    }
+  }
+};
+
+/**
+ * @brief      This class describes a PDELab local operator for temporal part
+ *             for diffusion reaction systems.
+ * @details    This class describre the operatrions for local integrals required
+ *             for diffusion reaction system. The operator is only valid for
+ *             entities contained in the entity set. The local finite element is
+ *             used for caching shape function evaluations.
+ *
+ * @tparam     ES    Entity Set
+ * @tparam     LBT   Local Finite Element
+ */
+template<Assembler::Concept::DiscreteFunctionSpace Space, class LBT>
+class TemporalLocalOperatorDiffusionReactionCG
+  : public Dune::PDELab::LocalOperatorDefaultFlags
+  , public Dune::PDELab::InstationaryLocalOperatorDefaultMethods<double>
+{
+  using LocalBasisTraits = LBT;
+  using RF = typename LocalBasisTraits::RangeFieldType;
+  static constexpr int dim = LocalBasisTraits::dimDomain;
+
+
+public:
+  //! pattern assembly flags
+  static constexpr bool doPatternVolume = true;
+
+  //! residual assembly flags
+  static constexpr bool doAlphaVolume = true;
+
+ /**
+   * @brief      Constructs a new instance.
+   *
+   * @todo       Make integration order variable depending on user requirements
+   *             and polynomail order of the local finite element
+   *
+   * @param[in]  space
+   *                             valid
+   * @param[in]  config          The configuration tree
+   * @param[in]  finite_element  The local finite element
+   */
+  TemporalLocalOperatorDiffusionReactionCG(
+    const Space& space,
+    const ParameterTree& config)
+  {}
+
+  template<class Entity, typename LFSU, typename LFSV, typename LocalPattern>
+  void pattern_volume(const Entity& entity,
+                      const LFSU& lfsu,
+                      const LFSV& lfsv,
+                      LocalPattern& pattern) const
+  {
+    assert(lfsv.degree() == lfsu.degree());
+    for (std::size_t k = 0; k != lfsv.degree(); ++k)
+      for (std::size_t i = 0; i != lfsu.child(k).size(); ++i)
+        for (std::size_t j = 0; j != lfsv.child(k).size(); ++j)
+          pattern.addLink(lfsv.child(k), i, lfsu.child(k), j);
+  }
+
+  void setTime(double t)
+  {
+  }
+
+  /**
+   * @brief      The volume integral
+   *
+   * @param[in]  eg    The entity
+   * @param[in]  lfsu  The trial local function space
+   * @param[in]  x     The local coefficient vector
+   * @param[in]  lfsv  The test local function space
+   * @param      r     The local residual vector
+   *
+   * @tparam     EG    The entity
+   * @tparam     LFSU  The trial local function space
+   * @tparam     X     The local coefficient vector type
+   * @tparam     LFSV  The test local function space
+   * @tparam     R     The local residual vector
+   */
+  template<typename EG, typename LFSU, typename X, typename LFSV, typename R>
+  void alpha_volume(const EG& entity,
+                    const LFSU& lfsu,
+                    const X& x,
+                    const LFSV& lfsv,
+                    R& r)
+  {
+    if (lfsu.degree() == 0)
+      return;
+
+    const auto& geo = entity.geometry();
+    const auto& trial_finite_element = lfsu.child(0).finiteElement();
+    _fe_cache.bind(trial_finite_element);
+    const auto& rule = _fe_cache.rule();
+
+    // loop over quadrature points
+    for (std::size_t q = 0; q != rule.size(); ++q) {
+      const auto& position = rule[q].position();
+      auto factor = rule[q].weight() * geo.integrationElement(position);
       const auto& phi = _fe_cache.evaluateFunction(q);
 
       // contribution for each component
-      for (std::size_t k = 0; k != lfsv.degree(); ++k) // loop over components
-      {
-        // compute value of component
+      for (std::size_t comp = 0; comp != lfsv.degree(); ++comp){
         double u = 0.0;
-        for (std::size_t j = 0; j < lfsu.child(k).size(); j++) // ansatz func. loop
-          u += x_coeff_local(k, j) * phi[j];
+        for (std::size_t dof = 0; dof != lfsu.child(comp).size(); ++dof)
+          u += x(lfsu.child(comp), dof) * phi[dof];
 
-        for (std::size_t i = 0; i < lfsv.child(k).size(); i++) // test func. loop
-          accumulate(k, i, u * phi[i] * factor);
+        for (std::size_t dof = 0; dof != lfsv.child(comp).size(); ++dof)
+          r.accumulate(lfsv.child(comp), dof, u * phi[dof] * factor);
       }
     }
   }
@@ -526,43 +459,28 @@ public:
                        const LFSU& lfsu,
                        const X& x,
                        const LFSV& lfsv,
-                       M& mat) const
+                       M& mat)
   {
-    auto accumulate = [&](const std::size_t& component_i,
-                          const std::size_t& dof_i,
-                          const std::size_t& component_j,
-                          const std::size_t& dof_j,
-                          const auto& value) {
-      mat.accumulate(
-        lfsv.child(component_i), dof_i, lfsu.child(component_j), dof_j, value);
-    };
+    if (lfsu.degree() == 0)
+      return;
 
-    // get geometry
     const auto& geo = eg.geometry();
-
-    // TODO: check geometry type
     const auto& trial_finite_element = lfsu.child(0).finiteElement();
-
     _fe_cache.bind(trial_finite_element);
-
-    // TODO: check geometry type
     const auto& rule = _fe_cache.rule();
 
     // loop over quadrature points
     for (std::size_t q = 0; q != rule.size(); ++q) {
       const auto& position = rule[q].position();
 
-      // get Jacobian and determinant
-      RF factor = rule[q].weight() * geo.integrationElement(position);
-
+      auto factor = rule[q].weight() * geo.integrationElement(position);
       const auto& phi = _fe_cache.evaluateFunction(q);
 
       // integrate mass matrix
-      for (std::size_t k = 0; k < _components; k++) // loop over components
-      {
-        for (std::size_t i = 0; i != lfsv.child(k).size(); ++i)
-          for (std::size_t j = 0; j != lfsu.child(k).size(); ++j)
-            accumulate(k, i, k, j, phi[i] * phi[j] * factor);
+      for (std::size_t comp = 0; comp != lfsv.degree(); ++comp) {
+        for (std::size_t dof_i = 0; dof_i != lfsv.child(comp).size(); ++dof_i)
+          for (std::size_t dof_j = 0; dof_j != lfsu.child(comp).size(); ++dof_j)
+            mat.accumulate(lfsv.child(comp), dof_i, lfsu.child(comp), dof_j, phi[dof_i] * phi[dof_j] * factor);
       }
     }
   }
@@ -592,7 +510,7 @@ public:
                              const X& x,
                              const X& z,
                              const LFSV& lfsv,
-                             R& r) const
+                             R& r)
   {
     alpha_volume(eg, lfsu, z, lfsv, r);
   }

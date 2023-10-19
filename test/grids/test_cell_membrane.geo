@@ -52,6 +52,6 @@ Point{4} In Surface{3};
 
 membrane_size = DefineNumber[ 20, Name "Parameters/membrane_size" ];
 
-Transfinite Curve {5, 6, 4, 3} = membrane_size Using Progression 1;
+// Transfinite Curve {5, 6, 4, 3} = membrane_size Using Progression 1;
 
-Recombine Surface {2};
+// Recombine Surface {2};

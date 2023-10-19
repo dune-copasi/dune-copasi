@@ -1,118 +1,75 @@
 #ifndef DUNE_COPASI_MODEL_STATE_HH
 #define DUNE_COPASI_MODEL_STATE_HH
 
+#include <dune/copasi/common/filesystem.hh>
+
+#include <dune/pdelab/backend/interface.hh>
+
 #include <dune/common/exceptions.hh>
 
-#include <dune/copasi/common/filesystem.hh>
 #include <limits>
 #include <memory>
 
 namespace Dune::Copasi {
 
-/// forward declaration of model state
-template<class G, class GFS, class X>
-struct ModelState;
-
-/**
- * @brief      Constant model state container
- *
- * @tparam     G     Grid type
- * @tparam     GFS   Grid function space type
- * @tparam     X     Coefficients vector
- */
-template<class G, class GFS, class X>
-struct ConstModelState
-{
-  //! Grid
-  using Grid = const G;
-
-  //! Grid function space
-  using GridFunctionSpace = const GFS;
-
-  //! Coefficients vector
-  using Coefficients = const X;
-
-  std::shared_ptr<const Grid> grid;
-  std::shared_ptr<const GridFunctionSpace> grid_function_space;
-  std::shared_ptr<const Coefficients> coefficients;
-  const double time = std::numeric_limits<double>::quiet_NaN();
-  std::function<
-    void(const ConstModelState&, const fs::path&, bool)>
-    writer;
-  std::function<void(ModelState<G, GFS, X>&, const fs::path&)>
-    reader;
-
-  /**
-   * @brief      Constructor from non-const state
-   *
-   * @param[in]  model_state     Non-const state
-   */
-  ConstModelState(const ModelState<G, GFS, X>& model_state)
-    : grid(model_state.grid)
-    , grid_function_space(model_state.grid_function_space)
-    , coefficients(model_state.coefficients)
-    , time(model_state.time)
-    , writer(model_state.writer)
-    , reader(model_state.reader)
-  {}
-
-  /**
-   * @brief      Write the model state into a file
-   *
-   * @param[in]  path     The path to write file
-   * @param[in]  append   True if write should apppend file to older state write
-   */
-  void write(const fs::path& path, bool append) const
-  {
-    if (not writer)
-      DUNE_THROW(Dune::InvalidStateException, "ModelState writer is not setup");
-    writer(*this, path, append);
-  }
-
-  /**
-   * @brief      implicit conversion to bool
-   * @details    A vaild state contains a grid, a grid function space and
-   *             coefficients
-   */
-  operator bool() const
-  {
-    return grid and grid_function_space and coefficients;
-  }
-};
-
 /**
  * @brief      Model state container
  *
  * @tparam     G     Grid type
- * @tparam     GFS   Grid function space type
- * @tparam     X     Coefficients vector
+ * @tparam     S     Space type
+ * @tparam     X     Coefficients type
  */
-template<class G, class GFS, class X>
+template<class G, class S, class C, class TP = double>
 struct ModelState
 {
   //! Grid
   using Grid = G;
 
   //! Grid function space
-  using GridFunctionSpace = GFS;
+  using Space = S;
 
   //! Coefficients vector
-  using Coefficients = X;
+  using Coefficients = C;
 
-  std::shared_ptr<Grid> grid;
-  std::shared_ptr<GridFunctionSpace> grid_function_space;
-  std::shared_ptr<Coefficients> coefficients;
-  double time = std::numeric_limits<double>::quiet_NaN();
-  std::function<
-    void(const ConstModelState<G, GFS, X>&, const fs::path&, bool)>
-    writer;
+  //! Point in time
+  using TimePoint = TP;
+
+  //! Non mutable version of this object
+  using Const = ModelState<const G, const S,const C, const TP>;
+
+private:
+  std::shared_ptr<Grid> _grid;
+  std::optional<Space> _space;
+  std::optional<Coefficients> _coefficients;
+  TimePoint _time_point;
+
+public:
+  std::function<void(const ModelState&, const fs::path&, bool)> writer;
   std::function<void(ModelState&, const fs::path&)> reader;
+
+  ModelState(const std::shared_ptr<Grid>& grid,
+             const std::optional<Space>& space,
+             const std::optional<Coefficients>& coefficients,
+             TimePoint time_point = std::make_shared<TimePoint>(std::numeric_limits<TimePoint>::quiteNaN()))
+    : _grid(grid)
+    , _space(space)
+    , _coefficients(coefficients)
+    , _time_point(time_point)
+  {}
+
+  ModelState() = default;
+  ~ModelState() = default;
+
+   operator Const() const {
+    return {_grid, _space, _coefficients, _time_point};
+   }
 
   /**
    * @brief      Write the model state into a file
    *
    * @param[in]  path     The path to write file
-   * @param[in]  append   True if write should apppend file to older state write
+   * @param[in]  append   True if write should apppend file to older state
+   *                      write
    */
   void write(const fs::path& path, bool append) const
   {
@@ -133,14 +90,67 @@ struct ModelState
     reader(*this, path);
   }
 
-  /**
-   * @brief      implicit conversion to constant state
-   */
-  operator ConstModelState<G, GFS, X>()
+  const Grid& grid() const { return *_grid; }
+
+  Grid& grid() { return *_grid; }
+
+  std::shared_ptr<const Grid> grid_storage() const { return _grid; }
+
+  std::shared_ptr<Grid>& grid_storage() { return _grid; }
+
+  const Space& space() const
   {
-    return ConstModelState<G, GFS, X>{
-      grid, grid_function_space, coefficients, time, writer
-    };
+    assert(_space);
+    return *_space;
+  }
+
+  Space& space()
+  {
+    assert(_space);
+    return *_space;
+  }
+
+  TimePoint& time_point()
+  {
+    return _time_point;
+  }
+
+  TimePoint time_point() const
+  {
+    return _time_point;
+  }
+
+  void set_time_point(TimePoint time_point)
+  {
+    _time_point = time_point;
+  }
+
+  void set_space(const Space& space){
+    _space.emplace(space);
+  }
+
+  void set_space(Space&& space){
+    _space.emplace(std::move(space));
+  }
+
+  const Coefficients& coefficients() const
+  {
+    assert(_coefficients);
+    return *_coefficients;
+  }
+
+  Coefficients& coefficients()
+  {
+    assert(_coefficients);
+    return *_coefficients;
+  }
+
+  void set_coefficients(const Coefficients& coefficients) {
+    _coefficients.emplace(coefficients);
+  }
+
+  void set_coefficients(Coefficients&& coefficients) {
+    _coefficients.emplace(std::move(coefficients));
   }
 
   /**
@@ -150,7 +160,7 @@ struct ModelState
    */
   operator bool() const
   {
-    return grid and grid_function_space and coefficients;
+    return _grid and _space and _coefficients;
   }
 };
 

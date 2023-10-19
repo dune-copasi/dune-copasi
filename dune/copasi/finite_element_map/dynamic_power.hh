@@ -112,6 +112,7 @@ public:
    *
    * @return     True if codim has dregees of freedom
    */
+  template<class = void>
   bool hasDOFs(int codim) const
   {
     return (_power_size != 0) && _fem->hasDOFs(codim);
