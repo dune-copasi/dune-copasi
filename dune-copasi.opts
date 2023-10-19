@@ -41,10 +41,6 @@ if [[ -z $OS_TARGET ]]; then
   elif [[ "$OSTYPE" == "darwin"* ]]; then
     OS_TARGET="osx"
     OS_VERSION=${MACOSX_DEPLOYMENT_TARGET:-${OSTYPE#darwin}}
-    # use fallback filesystem on darwin older than 10.15
-    if (( $(echo $OS_VERSION 10.15 | awk '{if ($1 < $2) print 1;}') )); then
-      export DUNE_USE_FALLBACK_FILESYSTEM=${DUNE_USE_FALLBACK_FILESYSTEM:-ON}
-    fi
     [ ! -w "$CMAKE_INSTALL_PREFIX" ] && SUDOCMD="sudo"
   elif [[ "$OSTYPE" == "msys" ]]; then
     # Lightweight shell and GNU utilities compiled for Windows (part of MinGW)
@@ -82,7 +78,6 @@ if [[ "$DUNE_COPASI_USE_STATIC_DEPS" =~ ^(ON|on|ON|TRUE|true|1)$ ]];then
 fi
 
 # default dune flags
-export DUNE_USE_FALLBACK_FILESYSTEM=${DUNE_USE_FALLBACK_FILESYSTEM:-OFF}
 export DUNE_PDELAB_ENABLE_TRACING=${DUNE_PDELAB_ENABLE_TRACING:-ON}
 export DUNE_VENDOR_FMT=${DUNE_VENDOR_FMT:-ON}
 export DUNE_PYTHON_VIRTUALENV_SETUP=${DUNE_PYTHON_VIRTUALENV_SETUP:-$SETUP_DUNE_TESTTOOLS}

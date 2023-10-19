@@ -1,4 +1,5 @@
-install(FILES diffusion_reaction_mc_traits.hh
+install(FILES constraints.hh
+              diffusion_reaction_mc_traits.hh
               diffusion_reaction_mc.hh
               diffusion_reaction_mc.impl.hh
               diffusion_reaction_sc_traits.hh
@@ -9,6 +10,7 @@ install(FILES diffusion_reaction_mc_traits.hh
               interpolate.hh
               make_initial.hh
               make_step_operator.hh
+              reduce.hh
         COMPONENT Development
         DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/dune/copasi/model")
 

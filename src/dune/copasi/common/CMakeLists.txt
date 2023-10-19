@@ -3,37 +3,6 @@
 find_package(TIFF REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
-find_package(Filesystem)
-
-# if standard C++ filesystem is not found, using a fallback is mandatory
-include(CMakeDependentOption)
-cmake_dependent_option(DUNE_USE_FALLBACK_FILESYSTEM
-    "Use bundled std::filesystem alternative (enable this for macOS older than 10.15)" OFF
-    "Filesystem_FOUND" ON
-)
-
-if(DUNE_USE_FALLBACK_FILESYSTEM)
-  # let's use ghc_filesystem
-  find_package(ghc_filesystem QUIET)
-
-  # ... library not installed, we provide it from git
-  if (NOT ghc_filesystem_FOUND)
-    include(FetchContent)
-    message("-- Declaring GHC Filesystem")
-    option(GHC_FILESYSTEM_WITH_INSTALL "With install target" ON)
-    FetchContent_Declare(
-      ghc_filesystem
-      GIT_REPOSITORY https://github.com/gulrak/filesystem.git
-      GIT_TAG        v1.5.14
-    )
-
-    if(NOT ghc_filesystem_POPULATED)
-      message("-- Populating GHC Filesystem")
-      FetchContent_Populate(ghc_filesystem)
-      add_subdirectory("${ghc_filesystem_SOURCE_DIR}" "${ghc_filesystem_BINARY_DIR}")
-    endif()
-  endif()
-endif()
 
 # The function2 library provides an alternative to std::move_only_function
 # (which otherwise requires c++23 in libstdc++ and is not yet implemented in libc++)
@@ -63,12 +32,6 @@ find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 ")
 
-if(${DUNE_USE_FALLBACK_FILESYSTEM})
-  set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}\nfind_package(ghc_filesystem REQUIRED)")
-else()
-  set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}\nfind_package(Filesystem REQUIRED)")
-endif()
-
 set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}" PARENT_SCOPE)
 
 add_library(dune-copasi-common STATIC)
@@ -89,14 +52,8 @@ target_include_directories(dune-copasi-common
     $<INSTALL_INTERFACE:${PROJECT_BINARY_INCLUDEDIR}>
 )
 
-target_compile_definitions(dune-copasi-common
-  PUBLIC
-    $<$<BOOL:${DUNE_USE_FALLBACK_FILESYSTEM}>:HAVE_GHC_FILESYSTEM>
-)
-
 target_link_libraries(dune-copasi-common
   PUBLIC
-    $<TARGET_NAME_IF_EXISTS:ghcFilesystem::ghc_filesystem>
     function2
   PRIVATE
     TIFF::TIFF

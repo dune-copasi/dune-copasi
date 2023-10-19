@@ -37,7 +37,7 @@ add_subdirectory(doc)
 # include targets file in config file
 set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}
 get_filename_component(_dir \"\${CMAKE_CURRENT_LIST_FILE}\" PATH)
-include(\"\${_dir}/dune-copasi-targets.cmake\")")
+include(\"\${_dir}/dune-copasi-installed-targets.cmake\")")
 
 # finalize the dune project: Generate and install config.h, cmake target and version file
 finalize_dune_project(GENERATE_CONFIG_H_CMAKE)
@@ -54,18 +54,18 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/dune-copasi-config.hh"
 
 # export targets to be used with installed tree
 install(EXPORT dune-copasi-targets
-        FILE dune-copasi-targets.cmake
+        FILE dune-copasi-installed-targets.cmake
         NAMESPACE Dune::
         COMPONENT Development
         DESTINATION "${DUNE_INSTALL_LIBDIR}/cmake/dune-copasi"
 )
 
+
 # export targets to be used with build tree
 export(EXPORT dune-copasi-targets
-       FILE "${DUNE_INSTALL_LIBDIR}/dune-copasi-targets.cmake"
+       FILE "${CMAKE_CURRENT_BINARY_DIR}/dune-copasi-targets.cmake"
        NAMESPACE Dune::
 )
-
 # include tests as a sub project
 include(CTest)
 if(BUILD_TESTING)
