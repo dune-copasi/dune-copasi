@@ -1,5 +1,5 @@
 <string|integer|bool>
-Options of the linear solver. Default RestartedGMRes with restart of 40 and 1e-4 relative reduction
+Options of the linear solver. Default UMFPack
 
 type=<string>
   Type of the linear solver
