@@ -160,7 +160,6 @@ SymEngineParser::define_function(const std::string& symbol, const Function4D& fu
 void
 SymEngineParser::compile()
 {
-  Parser::compile();
   assert(not _compiled);
   assert(size(_symbols) == size(_variables));
 

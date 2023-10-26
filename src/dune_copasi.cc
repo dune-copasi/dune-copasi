@@ -70,6 +70,7 @@ program_help(std::string_view prog_name, bool long_help)
     "  --version            - Display the version of this program\n"
     "  --config=<string>    - Specifies a config file in INI format. See Configuration Options\n"
     "  --dump-config        - Dumps configuration in the INI format to stdout\n"
+    "  --parser-list        - Display the parsers availiable for this program. Default with marked with '*'\n"
     "  --{{key}}={{value}}      - Overrides key=value sections of the config file\n\n",
     prog_name);
 
@@ -121,6 +122,18 @@ main(int argc, char** argv)
   auto is_version = [](std::string_view opt) { return opt == "--version"; };
   if (std::ranges::find_if(cmd_args, is_version) != cmd_args.end()) {
     std::cout << DUNE_COPASI_VERSION << std::endl;
+    return 0;
+  }
+
+  auto is_parser_list = [](std::string_view opt) { return opt == "--parser-list"; };
+  if (std::ranges::find_if(cmd_args, is_parser_list) != cmd_args.end()) {
+    std::unique_ptr<Dune::Copasi::Parser> parser;
+    for (auto [parser_str, _] : Dune::Copasi::string2parser)
+      try {
+        parser = Dune::Copasi::make_parser(parser_str);
+        auto default_str = Dune::Copasi::default_parser_str == parser_str ? '*' : ' ';
+        std::cout << fmt::format("{} {}\n", default_str, parser_str);
+      } catch (...) {}
     return 0;
   }
 

@@ -10,7 +10,7 @@
 #include <dune/copasi/parser/exprtk.hh>
 #endif
 
-#if __has_include(<symengine_config.h>)
+#if __has_include(<symengine/symengine_config.h>)
 #include <dune/copasi/parser/symengine.hh>
 #endif
 
@@ -23,10 +23,10 @@
 namespace Dune::Copasi {
 
 const ParserType default_parser =
-#if __has_include(<symengine_config.h>)
-  ParserType::SymEngineSBML;
-#elif __has_include(<muParser.h>)
+#if __has_include(<muParser.h>)
   ParserType::MuParser;
+#elif __has_include(<symengine/symengine_config.h>)
+  ParserType::SymEngine;
 #elif __has_include(<exprtk.hpp>)
   ParserType::ExprTk;
 #else
@@ -46,7 +46,7 @@ make_parser(ParserType parser_type) -> std::unique_ptr<Parser>
   }
 
   if (parser_type == ParserType::SymEngine) {
-#if __has_include(<symengine_config.h>)
+#if __has_include(<symengine/symengine_config.h>)
     return std::make_unique<SymEngineParser>(SymEngineParser::Type::Native);
 #else
     throw format_exception(Exception{}, "SymEngine parser is not available");
@@ -54,7 +54,7 @@ make_parser(ParserType parser_type) -> std::unique_ptr<Parser>
   }
 
   if (parser_type == ParserType::SymEngineSBML) {
-#if __has_include(<symengine_config.h>)
+#if __has_include(<symengine/symengine_config.h>)
     return std::make_unique<SymEngineParser>(SymEngineParser::Type::SBML);
 #else
     throw format_exception(Exception{}, "SymEngineSBML is not available");

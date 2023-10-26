@@ -169,7 +169,6 @@ ExprTkParser::define_function(const std::string& symbol, const Function4D& funct
 void
 ExprTkParser::compile()
 {
-  Parser::compile();
   assert(not _compiled);
   assert(size(_symbols) == size(_variables));
 

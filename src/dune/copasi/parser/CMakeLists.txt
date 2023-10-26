@@ -5,8 +5,8 @@ if(${SymEngine_FOUND})
 endif()
 
 find_package(ExprTk)
-option(DUNE_COPASI_DISABLE_FETCH_PACKAGE_ExprTk "Disable (internet) fetch package for ExprTk" ON)
-if ((NOT ${ExprTk_FOUND}) AND (NOT ${CMAKE_DISABLE_FIND_PACKAGE_ExprTk}) AND (NOT ${DUNE_COPASI_DISABLE_FETCH_PACKAGE_ExprTk}))
+option(DUNE_COPASI_DISABLE_FETCH_PACKAGE_ExprTk "Disable (internet) fetch package for ExprTk" OFF)
+if ((NOT ExprTk_FOUND) AND (NOT CMAKE_DISABLE_FIND_PACKAGE_ExprTk) AND (NOT DUNE_COPASI_DISABLE_FETCH_PACKAGE_ExprTk))
   include(FetchContent)
   message("-- Declaring ExprTk")
   FetchContent_Declare(
@@ -25,9 +25,6 @@ if(${ExprTk_FOUND})
   set(DUNE_COPASI_EXPRTK_MAX_FUNCTIONS 500 CACHE STRING "Maximum number of functions that ExprTk can store in its context")
 endif()
 
-if(NOT (SymEngine_FOUND OR ExprTk_FOUND))
-  set(MUPARSER_REQUIREMENT "REQUIRED") # we need at least one parser!
-endif()
 find_package(muparser ${MUPARSER_REQUIREMENT})
 if(${muparser_FOUND})
   set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}\nfind_package(muparser REQUIRED)")
@@ -36,7 +33,7 @@ endif()
 
 find_package(parafields)
 option(DUNE_COPASI_DISABLE_FETCH_PACKAGE_parafields "Disable (internet) fetch package for parafields" OFF)
-if((NOT ${parafields_FOUND}) AND (NOT ${CMAKE_DISABLE_FIND_PACKAGE_parafields}) AND (NOT ${DUNE_COPASI_DISABLE_FETCH_PACKAGE_parafields}))
+if((NOT parafields_FOUND) AND (NOT CMAKE_DISABLE_FIND_PACKAGE_parafields) AND (NOT DUNE_COPASI_DISABLE_FETCH_PACKAGE_parafields))
   include(FetchContent)
   message("-- Declaring ParaFields")
   FetchContent_Declare(
