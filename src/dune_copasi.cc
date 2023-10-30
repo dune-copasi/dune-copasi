@@ -70,7 +70,7 @@ program_help(std::string_view prog_name, bool long_help)
     "  --version            - Display the version of this program\n"
     "  --config=<string>    - Specifies a config file in INI format. See Configuration Options\n"
     "  --dump-config        - Dumps configuration in the INI format to stdout\n"
-    "  --parser-list        - Display the parsers availiable for this program. Default with marked with '*'\n"
+    "  --parser-list        - Display the parsers available for this program. Default with marked with '*'\n"
     "  --{{key}}={{value}}      - Overrides key=value sections of the config file\n\n",
     prog_name);
 
