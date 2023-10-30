@@ -7,22 +7,22 @@
 
 #include <exprtk.hpp>
 
-#include <map>
+#include <array>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <vector>
-#include <memory>
 
 #ifndef DUNE_COPASI_EXPRTK_MAX_FUNCTIONS
-#define DUNE_COPASI_EXPRTK_MAX_FUNCTIONS 500
+#error DUNE_COPASI_EXPRTK_MAX_FUNCTIONS is not defined
 #endif
-
 
 namespace Dune::Copasi {
 
 const std::size_t max_functions = DUNE_COPASI_EXPRTK_MAX_FUNCTIONS;
 
-struct ParserData {
+struct ParserData
+{
   exprtk::parser<typename ExprTkParser::RangeField> parser;
   exprtk::expression<typename ExprTkParser::RangeField> expression;
   exprtk::symbol_table<typename ExprTkParser::RangeField> symbol_table;
@@ -45,16 +45,15 @@ using FunctionID3D = FunctionID<typename ExprTkParser::Function3D>;
 using FunctionID4D = FunctionID<typename ExprTkParser::Function4D>;
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
-std::map<std::size_t, std::unique_ptr<FunctionID0D>> _function0d = {};
-std::map<std::size_t, std::unique_ptr<FunctionID1D>> _function1d = {};
-std::map<std::size_t, std::unique_ptr<FunctionID2D>> _function2d = {};
-std::map<std::size_t, std::unique_ptr<FunctionID3D>> _function3d = {};
-std::map<std::size_t, std::unique_ptr<FunctionID4D>> _function4d = {};
+std::array<std::unique_ptr<FunctionID0D>, max_functions> _function0d = {};
+std::array<std::unique_ptr<FunctionID1D>, max_functions> _function1d = {};
+std::array<std::unique_ptr<FunctionID2D>, max_functions> _function2d = {};
+std::array<std::unique_ptr<FunctionID3D>, max_functions> _function3d = {};
+std::array<std::unique_ptr<FunctionID4D>, max_functions> _function4d = {};
 
 // recursive mutex are needed because functions may hold parsers that need to be destructed
 std::recursive_mutex _mutex = {};
 // NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
-
 
 ExprTkParser::ExprTkParser()
   : _data{ new ParserData{}, [](void* ptr) { delete static_cast<ParserData*>(ptr); } }
@@ -120,21 +119,25 @@ function_wrapper_4d(typename ExprTkParser::RangeField arg0,
 }
 
 template<class FunctionID>
-void define_function(auto parser, const std::string& symbol, auto& function_registry, const auto& function)
+void
+define_function(auto parser,
+                const std::string& symbol,
+                auto& function_registry,
+                const auto& function)
 {
   auto guard = std::unique_lock{ _mutex };
-  for (std::size_t i = 0; i < max_functions; ++i) {
-    if (not function_registry[i]) {
-      function_registry[i] = std::make_unique<FunctionID>(FunctionID{ parser, symbol, function });
-      return;
-    }
-  }
-  throw format_exception(
-    NotImplemented{}, "Maximum number of functions reached: {}", max_functions);
+  auto is_assigned = [](const auto& entry) { return bool(entry); };
+  // use first slot without assigned functions
+  if (auto result = std::ranges::find_if_not(function_registry, is_assigned);
+      result != function_registry.end())
+    *result = std::make_unique<FunctionID>(FunctionID{ parser, symbol, function });
+  else
+    throw format_exception(NotImplemented{},
+                           "Maximum number of function definitions for ExprTk reached: {}",
+                           max_functions);
 }
 
 } // namespace Impl
-
 
 void
 ExprTkParser::define_function(const std::string& symbol, const Function0D& function)
@@ -199,47 +202,32 @@ ExprTkParser::register_functions()
   ParserData& data = *static_cast<ParserData*>(_data.get());
   auto indices = Dune::range(std::integral_constant<std::size_t, max_functions>{});
   Dune::Hybrid::forEach(indices, [&, guard = std::unique_lock{ _mutex }](auto i) {
-    auto i0 = _function0d.find(i);
-    auto i1 = _function1d.find(i);
-    auto i2 = _function2d.find(i);
-    auto i3 = _function3d.find(i);
-    auto i4 = _function4d.find(i);
-
-    if (i0 != end(_function0d) and (i0->second) and (i0->second->data == _data))
-      data.symbol_table.add_function(i0->second->name, Impl::function_wrapper_0d<i>);
-    if (i1 != end(_function1d) and (i1->second) and (i1->second->data == _data))
-      data.symbol_table.add_function(i1->second->name, Impl::function_wrapper_1d<i>);
-    if (i2 != end(_function2d) and (i2->second) and i2->second->data == _data)
-      data.symbol_table.add_function(i2->second->name, Impl::function_wrapper_2d<i>);
-    if (i3 != end(_function3d) and (i3->second) and i3->second->data == _data)
-      data.symbol_table.add_function(i3->second->name, Impl::function_wrapper_3d<i>);
-    if (i4 != end(_function4d) and (i4->second) and i4->second->data == _data)
-      data.symbol_table.add_function(i4->second->name, Impl::function_wrapper_4d<i>);
+    if ((_function0d[i]) and (_function0d[i]->data == _data))
+      data.symbol_table.add_function(_function0d[i]->name, Impl::function_wrapper_0d<i>);
+    if ((_function1d[i]) and (_function1d[i]->data == _data))
+      data.symbol_table.add_function(_function1d[i]->name, Impl::function_wrapper_1d<i>);
+    if ((_function2d[i]) and _function2d[i]->data == _data)
+      data.symbol_table.add_function(_function2d[i]->name, Impl::function_wrapper_2d<i>);
+    if ((_function3d[i]) and _function3d[i]->data == _data)
+      data.symbol_table.add_function(_function3d[i]->name, Impl::function_wrapper_3d<i>);
+    if ((_function4d[i]) and _function4d[i]->data == _data)
+      data.symbol_table.add_function(_function4d[i]->name, Impl::function_wrapper_4d<i>);
   });
 }
 
 void
 ExprTkParser::unregister_functions()
 {
-  auto indices = Dune::range(std::integral_constant<std::size_t, max_functions>{});
-  Dune::Hybrid::forEach(indices, [&, guard = std::unique_lock{ _mutex }](auto i) {
-    auto i0 = _function0d.find(i);
-    auto i1 = _function1d.find(i);
-    auto i2 = _function2d.find(i);
-    auto i3 = _function3d.find(i);
-    auto i4 = _function4d.find(i);
-
-    if (i0 != end(_function0d) and (i0->second) and (i0->second->data == _data))
-      _function0d.erase(i0);
-    if (i1 != end(_function1d) and (i1->second) and (i1->second->data == _data))
-      _function1d.erase(i1);
-    if (i2 != end(_function2d) and (i2->second) and i2->second->data == _data)
-      _function2d.erase(i2);
-    if (i3 != end(_function3d) and (i3->second) and i3->second->data == _data)
-      _function3d.erase(i3);
-    if (i4 != end(_function4d) and (i4->second) and i4->second->data == _data)
-      _function4d.erase(i4);
-  });
+  auto erase_function_from_this = [&](auto& entry) {
+    if (entry and entry->data == _data)
+      entry.reset();
+  };
+  auto guard = std::unique_lock{ _mutex };
+  std::ranges::for_each(_function0d, erase_function_from_this);
+  std::ranges::for_each(_function1d, erase_function_from_this);
+  std::ranges::for_each(_function2d, erase_function_from_this);
+  std::ranges::for_each(_function3d, erase_function_from_this);
+  std::ranges::for_each(_function4d, erase_function_from_this);
 }
 
 } // namespace Dune::Copasi

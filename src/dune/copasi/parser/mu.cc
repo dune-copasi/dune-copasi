@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <dune/copasi/parser/mu.hh>
 
 #include <dune/copasi/common/exceptions.hh>
@@ -10,18 +11,18 @@
 
 #include <muParser.h>
 
+#include <array>
 #include <cassert>
 #include <cstddef>
 #include <exception>
 #include <iostream>
-#include <map>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <utility>
 
 #ifndef DUNE_COPASI_MUPARSER_MAX_FUNCTIONS
-#define DUNE_COPASI_MUPARSER_MAX_FUNCTIONS 500
+#error DUNE_COPASI_MUPARSER_MAX_FUNCTIONS is not defined
 #endif
 
 namespace Dune::Copasi {
@@ -47,11 +48,11 @@ using FunctionID3D = FunctionID<typename MuParser::Function3D>;
 using FunctionID4D = FunctionID<typename MuParser::Function4D>;
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
-std::map<std::size_t, std::unique_ptr<FunctionID0D>> _function0d = {};
-std::map<std::size_t, std::unique_ptr<FunctionID1D>> _function1d = {};
-std::map<std::size_t, std::unique_ptr<FunctionID2D>> _function2d = {};
-std::map<std::size_t, std::unique_ptr<FunctionID3D>> _function3d = {};
-std::map<std::size_t, std::unique_ptr<FunctionID4D>> _function4d = {};
+std::array<std::unique_ptr<FunctionID0D>, max_functions> _function0d = {};
+std::array<std::unique_ptr<FunctionID1D>, max_functions> _function1d = {};
+std::array<std::unique_ptr<FunctionID2D>, max_functions> _function2d = {};
+std::array<std::unique_ptr<FunctionID3D>, max_functions> _function3d = {};
+std::array<std::unique_ptr<FunctionID4D>, max_functions> _function4d = {};
 
 // recursive mutex are needed because functions may hold parsers that need to be destructed
 std::recursive_mutex _mutex = {};
@@ -123,17 +124,22 @@ MuParser::define_constant(const std::string& symbol, const RangeField& value)
 namespace Impl {
 
 template<class FunctionID>
-void define_function(auto parser, const std::string& symbol, auto& function_registry, const auto& function)
+void
+define_function(auto parser,
+                const std::string& symbol,
+                auto& function_registry,
+                const auto& function)
 {
   auto guard = std::unique_lock{ _mutex };
-  for (std::size_t i = 0; i < max_functions; ++i) {
-    if (not function_registry[i]) {
-      function_registry[i] = std::make_unique<FunctionID>(FunctionID{ parser, symbol, function });
-      return;
-    }
-  }
-  throw format_exception(
-    NotImplemented{}, "Maximum number of functions reached: {}", max_functions);
+  auto is_assigned = [](const auto& entry) { return bool(entry); };
+  // use first slot without assigned functions
+  if (auto result = std::ranges::find_if_not(function_registry, is_assigned);
+      result != function_registry.end())
+    *result = std::make_unique<FunctionID>(FunctionID{ parser, symbol, function });
+  else
+    throw format_exception(NotImplemented{},
+                           "Maximum number of function definitions for muParser reached: {}",
+                           max_functions);
 }
 
 } // namespace Impl
@@ -240,27 +246,22 @@ MuParser::register_functions()
 {
   auto indices = std::make_index_sequence<max_functions>{};
   auto& mu_parser = *static_cast<mu::Parser*>(_parser.get());
-  Dune::Hybrid::forEach(indices, [&, guard = std::unique_lock{ _mutex }](auto idx) {
-    auto idx_0d = _function0d.find(idx);
-    auto idx_1d = _function1d.find(idx);
-    auto idx_2d = _function2d.find(idx);
-    auto idx_3d = _function3d.find(idx);
-    auto idx_4d = _function4d.find(idx);
-
-    if (idx_0d != end(_function0d) and (idx_0d->second) and (idx_0d->second->parser == _parser)) {
-      mu_parser.DefineFun(idx_0d->second->name, function_wrapper_0d<idx>);
+  auto guard = std::unique_lock{ _mutex };
+  Dune::Hybrid::forEach(indices, [&](auto idx) {
+    if ((_function0d[idx]) and (_function0d[idx]->parser == _parser)) {
+      mu_parser.DefineFun(_function0d[idx]->name, function_wrapper_0d<idx>);
     }
-    if (idx_1d != end(_function1d) and (idx_1d->second) and (idx_1d->second->parser == _parser)) {
-      mu_parser.DefineFun(idx_1d->second->name, function_wrapper_1d<idx>);
+    if ((_function1d[idx]) and (_function1d[idx]->parser == _parser)) {
+      mu_parser.DefineFun(_function1d[idx]->name, function_wrapper_1d<idx>);
     }
-    if (idx_2d != end(_function2d) and (idx_2d->second) and idx_2d->second->parser == _parser) {
-      mu_parser.DefineFun(idx_2d->second->name, function_wrapper_2d<idx>);
+    if ((_function2d[idx]) and _function2d[idx]->parser == _parser) {
+      mu_parser.DefineFun(_function2d[idx]->name, function_wrapper_2d<idx>);
     }
-    if (idx_3d != end(_function3d) and (idx_3d->second) and idx_3d->second->parser == _parser) {
-      mu_parser.DefineFun(idx_3d->second->name, function_wrapper_3d<idx>);
+    if ((_function3d[idx]) and _function3d[idx]->parser == _parser) {
+      mu_parser.DefineFun(_function3d[idx]->name, function_wrapper_3d<idx>);
     }
-    if (idx_4d != end(_function4d) and (idx_4d->second) and idx_4d->second->parser == _parser) {
-      mu_parser.DefineFun(idx_4d->second->name, function_wrapper_4d<idx>);
+    if ((_function4d[idx]) and _function4d[idx]->parser == _parser) {
+      mu_parser.DefineFun(_function4d[idx]->name, function_wrapper_4d<idx>);
     }
   });
 }
@@ -268,30 +269,16 @@ MuParser::register_functions()
 void
 MuParser::unregister_functions()
 {
-  auto indices = std::make_index_sequence<max_functions>{};
-  Dune::Hybrid::forEach(indices, [&, guard = std::unique_lock{ _mutex }](auto idx) {
-    auto idx_0d = _function0d.find(idx);
-    auto idx_1d = _function1d.find(idx);
-    auto idx_2d = _function2d.find(idx);
-    auto idx_3d = _function3d.find(idx);
-    auto idx_4d = _function4d.find(idx);
-
-    if (idx_0d != end(_function0d) and (idx_0d->second) and (idx_0d->second->parser == _parser)) {
-      _function0d.erase(idx_0d);
-    }
-    if (idx_1d != end(_function1d) and (idx_1d->second) and (idx_1d->second->parser == _parser)) {
-      _function1d.erase(idx_1d);
-    }
-    if (idx_2d != end(_function2d) and (idx_2d->second) and idx_2d->second->parser == _parser) {
-      _function2d.erase(idx_2d);
-    }
-    if (idx_3d != end(_function3d) and (idx_3d->second) and idx_3d->second->parser == _parser) {
-      _function3d.erase(idx_3d);
-    }
-    if (idx_4d != end(_function4d) and (idx_4d->second) and idx_4d->second->parser == _parser) {
-      _function4d.erase(idx_4d);
-    }
-  });
+  auto erase_function_from_this = [&](auto& entry) {
+    if (entry and entry->parser == _parser)
+      entry.reset();
+  };
+  auto guard = std::unique_lock{ _mutex };
+  std::ranges::for_each(_function0d, erase_function_from_this);
+  std::ranges::for_each(_function1d, erase_function_from_this);
+  std::ranges::for_each(_function2d, erase_function_from_this);
+  std::ranges::for_each(_function3d, erase_function_from_this);
+  std::ranges::for_each(_function4d, erase_function_from_this);
 }
 
 } // namespace Dune::Copasi
