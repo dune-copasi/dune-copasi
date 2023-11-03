@@ -320,6 +320,7 @@ ModelDiffusionReaction<Traits>::write_vtk(const State& state,
 
   spdlog::info("Writing solution for {:.2f}s time stamp", state.time);
   spdlog::info("Writing vtu file: '{0}/{0}-{1:0>5}.vtu'", name, timesteps.size());
+  TRACE_EVENT("dune", "WriteVTK");
   sequential_writer.write(state.time, Dune::VTK::base64);
   sequential_writer.vtkWriter()->clear();
   timesteps = sequential_writer.getTimeSteps();

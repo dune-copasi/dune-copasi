@@ -338,6 +338,7 @@ ModelMultiCompartmentDiffusionReaction<Traits>::write_vtk(const State& state,
         VTK::FieldInfo{ species_basis.name(), VTK::FieldInfo::Type::scalar, 1 });
     }
     spdlog::info("Writing vtu file: '{0}/{0}-{1:0>5}.vtu'", name, timesteps.size());
+    TRACE_EVENT("dune", "WriteVTK");
     sequential_writer.write(state.time, Dune::VTK::base64);
     sequential_writer.vtkWriter()->clear();
 
