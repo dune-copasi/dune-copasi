@@ -429,7 +429,7 @@ make_step_operator(const ParameterTree& config,
         auto path = fs::path{ svg_path }.replace_extension("svg");
         spdlog::info("Writing matrix pattern in svg file: '{}'", path.string());
         std::ofstream file{ path.string() };
-        writeSVGMatrix(jac, file);
+        writeSVGMatrix(file, jac);
       }
     };
 
