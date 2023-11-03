@@ -22,8 +22,8 @@ variables:
   BASE_IMAGE_VERSION:
     value: "v2.0.0-git"
     options:
-      - "v2.0.0-git"
-      - "v2.0.0-git-tmp"
+      - "v2.0.0-git"        # Main dependecy base image
+      - "v2.0.0-git-tmp"    # Temporary (one time testing)
     description: "Key to tag images in the registry. Use '*-tmp' key to try out changes that need to rebild the dependencies image"
   FORCE_REBUILD_BASE_IMAGE:
     value: "false"

@@ -33,6 +33,7 @@ RUN export DEBIAN_FRONTEND=noninteractive; \
   libfftw3-mpi-dev \
   libgtest-dev \
   libmuparser-dev \
+  libscotchmetis-dev \
   libspdlog-dev \
   libsuitesparse-dev \
   libsuperlu-dev \
