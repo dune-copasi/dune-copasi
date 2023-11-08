@@ -62,8 +62,7 @@ ParserContext::ParserContext(const ParameterTree& config)
     if (type == "constant") {
       _constants[sub] = sub_config.template get<double>("value");
     } else if (type == "function") {
-      auto parser_type = string2parser.at(sub_config.get("parser_type", default_parser_str));
-      _functions_expr[sub] = std::make_pair(parser_type, sub_config["expression"]);
+      _functions_expr[sub] = sub_config;
     } else if (type == "tiff") {
       auto tiff = std::make_shared<TIFFGrayscale>(sub_config["file"]);
       _functions_2[sub] = [tiff](const auto& pos_x, const auto& pos_y) {
@@ -214,15 +213,59 @@ ParserContext::add_context(Parser& parser) const
   add_independent_context(parser);
 
   // add functions to the parser
-  for (const auto& [name, pair] : _functions_expr) {
-    const auto& [parser_type, function_expression] = pair;
-    auto [args, expr] = parse_function_expression(function_expression);
+  for (const auto& [name, config] : _functions_expr) {
+    auto parser_type = string2parser.at(config.get("parser_type", default_parser_str));
+    auto [args, expr] = parse_function_expression(config["expression"]);
     Hybrid::switchCases(std::make_index_sequence<5>{}, args.size(), [&](auto dim){
       std::array<std::string,dim> array_args;
-      std::copy_n(args.begin(), dim, array_args.begin());
-      parser.define_function(name, make_function(parser_type, array_args, expr));
+      std::move(args.begin(), args.end(), array_args.begin());
+      auto fnc = make_function(parser_type, array_args, expr);
+      if (config.get("interpolate", false)) {
+        // replace actual function with an interpolation
+        if constexpr (dim == 1) {
+          auto intervals = config.get("interpolation.intervals", std::size_t{1000});
+          if (intervals < 1)
+            throw format_exception(IOError{}, "At least one interval is required in function {}", name);
+          auto domain = config.get("interpolation.domain." + array_args[0],  std::array<double,2>{0., 1.});
+          if (domain[0] >= domain[1])
+            throw format_exception(IOError{}, "Domain arguments ({}, {}) of function {} are not ordered", domain[0], domain[1], name);
+          auto ooo = config.get("interpolation.out_of_bounds", "error");
+          std::vector<double> grid_eval(intervals+1, 0.);
+          double width = (domain[1] - domain[0])/intervals;
+          // evaluate function over the grid
+          for(std::size_t i = 0; i != grid_eval.size(); ++i)
+            grid_eval[i] = fnc(domain[0] + i*width);
+          auto ctn = intervals/(domain[1] - domain[0]);
+          // store interpolation instead of function
+          auto fnc_raw = [domain, ctn, intervals, _grid_eval = std::move(grid_eval)](auto pos) {
+            // convert position to one of the intervals
+            double interval = (pos - domain[0])*ctn;
+            double t = std::modf(interval, &interval);
+            auto i = std::max<std::size_t>(0, interval);
+            auto j = std::min<std::size_t>(interval, intervals+1);
+            return std::lerp(_grid_eval[i], _grid_eval[j], t);
+          };
+          if (ooo == "clamp") {
+            fnc = [domain, _fnc_raw = std::move(fnc_raw)](auto pos) {
+              pos = std::clamp(domain[0], pos, domain[1]);
+              return _fnc_raw(pos);
+            };
+          } else if (ooo == "error") {
+            fnc = [domain, name, _fnc_raw = std::move(fnc_raw)](auto pos) {
+              if ((pos < domain[0]) or (pos > domain[1]))
+                throw format_exception(MathError{}, "Interpolation of function {} is out of bounds: {} ∉ [{}, {}]", name, pos, domain[0], domain[1]);
+              return _fnc_raw(pos);
+            };
+          } else {
+            throw format_exception(IOError{}, "Not known '{}.interpolation.out_of_bounds = {}'", name, ooo);
+          }
+        } else {
+          throw format_exception(NotImplemented{}, "Cannot interpolate '{}' function with {} arguments", name, dim);
+        }
+      }
+      parser.define_function(name, std::move(fnc));
     }, [&](){
-      throw format_exception(NotImplemented{}, "Cannot parse {} function arguments", args.size());
+      throw format_exception(NotImplemented{}, "Cannot parse '{}' function with {} arguments", name, args.size());
     });
   }
 }
