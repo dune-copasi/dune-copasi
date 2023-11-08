@@ -15,7 +15,7 @@
 namespace Dune::Copasi {
 
 template<std::size_t dim>
-class LocalDomain;
+struct LocalDomain;
 
 // the owner of the resulting function must hold the local equations for the lifetime of created
 // functors

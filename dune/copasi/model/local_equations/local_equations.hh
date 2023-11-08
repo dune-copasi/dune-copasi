@@ -93,8 +93,8 @@ class LocalEquations : public LocalDomain<dim>
   };
 
 public:
-  class CompartmentNode;
-  class MembraneNode;
+  struct CompartmentNode;
+  struct MembraneNode;
 
   template<class Signature>
   struct CompartmentPartialDerivative : public fu2::unique_function<Signature>
