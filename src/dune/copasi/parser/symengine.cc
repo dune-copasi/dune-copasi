@@ -36,7 +36,7 @@ SymEngineParser::define_constant(const std::string& symbol, const RangeField& va
   _const_symbols.push_back(symbol);
 }
 
-auto
+std::vector<std::shared_ptr<std::size_t>>
 SymEngineParser::setup_function_symbol(const std::string& symbol)
 {
   assert(!_se_expression.is_null());
@@ -84,14 +84,15 @@ SymEngineParser::setup_function_symbol(const std::string& symbol)
       return args_i;
     }
   }
-  throw format_exception(IOError{}, "Function symbol is not contained in expression!");
+  return {};
 }
 
 void
 SymEngineParser::define_function(const std::string& symbol, const Function0D& function)
 {
   auto args_i = setup_function_symbol(symbol);
-
+  if (args_i.empty())
+    return;
   if (size(args_i) != 1)
     throw format_exception(IOError{}, "Function arguments do not match with defined function");
 
@@ -105,7 +106,8 @@ void
 SymEngineParser::define_function(const std::string& symbol, const Function1D& function)
 {
   auto args_i = setup_function_symbol(symbol);
-
+  if (args_i.empty())
+    return;
   if (size(args_i) != 2)
     throw format_exception(IOError{}, "Function arguments do not match with defined function");
 
@@ -119,7 +121,8 @@ void
 SymEngineParser::define_function(const std::string& symbol, const Function2D& function)
 {
   auto args_i = setup_function_symbol(symbol);
-
+  if (args_i.empty())
+    return;
   if (size(args_i) != 3)
     throw format_exception(IOError{}, "Function arguments do not match with defined function");
 
@@ -133,7 +136,8 @@ void
 SymEngineParser::define_function(const std::string& symbol, const Function3D& function)
 {
   auto args_i = setup_function_symbol(symbol);
-
+  if (args_i.empty())
+    return;
   if (size(args_i) != 4)
     throw format_exception(IOError{}, "Function arguments do not match with defined function");
 
@@ -147,7 +151,8 @@ void
 SymEngineParser::define_function(const std::string& symbol, const Function4D& function)
 {
   auto args_i = setup_function_symbol(symbol);
-
+  if (args_i.empty())
+    return;
   if (size(args_i) != 5)
     throw format_exception(IOError{}, "Function arguments do not match with defined function");
 

@@ -38,7 +38,7 @@ public:
 
   void define_constant(const std::string& symbol, const RangeField& value) override final;
 
-  auto setup_function_symbol(const std::string& symbol);
+  std::vector<std::shared_ptr<std::size_t>> setup_function_symbol(const std::string& symbol);
 
   void define_function(const std::string& symbol, const Function0D& function) override final;
   void define_function(const std::string& symbol, const Function1D& function) override final;
