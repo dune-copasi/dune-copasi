@@ -1,5 +1,5 @@
 <integer|bool|string>
-
+General options of the model
 is_linear=<bool>
   Whether the problem is linear. Default: false
 

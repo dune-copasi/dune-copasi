@@ -1,5 +1,5 @@
 <string>
-
+Expression options for the cross diffusion of the scalar field equation in variable '{var}'
 
 type=<string>
   Selects between 'scalar' and 'tensor'
