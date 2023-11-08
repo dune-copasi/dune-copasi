@@ -1,0 +1,40 @@
+<math-expr|string>
+Define an evaluation/reduction/transformation algorithm on grid functions
+The token '{key}' defines the context for a generic reduction algorithm over grid functions.
+
+  evaluation.expression=<math-expr>:
+    Pointwise math expression to evaluate. Its context includes values defined in the 'scalar_field' sections.
+
+  reduction.expression=<function>:
+    Function expression with exactly 3 arguments:
+      1. New value: Contextual evaluation of 'evaluation.expression'
+      2. Old value: previous result of 'reduction.expression' or 'initial.value'
+      3. Weight: Weight of the quadrature evaluation
+
+  transformation.expression=<function>:
+    Function expression with exactly 1 argument:
+      1. Old value: Value after a reduction over all of the quadrature points
+
+  error.expression=<function>:
+    Function expression with exactly 1 argument:
+      1. Final value: Value after a transformation. If expression evaluates different than 0, an error is thrown
+
+  warn.expression=<function>:
+    Function expression with exactly 1 argument:
+      1. Final value: Value after a transformation. If expression evaluates different than 0, a warning is thrown
+
+In general, this allows to evaluate a pointwise function over the whole grid
+
+  # set initial value from options
+  value := initial.value
+  for entity in grid:
+    for [pos, weight] in quadrature(entity):
+      # contextual evaluation to the current quadrature position
+      quad_eval := evaluation.expression()
+      # apply weighted reduction to new and old value
+      value = reduction.expression(quad_eval, value, weight)
+  # apply final transformation to last reduced value
+  value = transformation.expression(value)
+
+Finally, the warn and error expressions allow to control whether the final value must be
+reported as an error or a warning.

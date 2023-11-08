@@ -92,8 +92,8 @@ reduce(const Basis& basis,
       auto evaluation = functor_factory->make_scalar(key + ".evaluation", config.sub(key).sub("evaluation"), *leqs);
       if (not evaluation)
         continue;
-      values[key] = 0.;
       fu2::unique_function<double(double, double, double) const> reduction = [](auto init, auto val, auto weight) { return init + val*weight; };
+      values[key] = config.get(key + ".initial.value", 0.);
       if (config.hasKey(key + ".reduction.expression")) {
         auto [args, expr] = parser_context->parse_function_expression(config.sub(key).sub("reduction")["expression"]);
         if (args.size() != 3)
