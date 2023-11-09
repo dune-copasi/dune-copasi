@@ -59,9 +59,6 @@ for module in common geometry grid istl localfunctions; do
   eval SETUP_dune_${module}_REPO=\"https://gitlab.dune-project.org/core/dune-${module}.git\"
 done
 
-# dune-common with power.hh header. See https://github.com/parafields/parafields-core/pull/59
-SETUP_dune_common_BRANCH="6b70be950355a6b74a651167e83a7288d6520a7d"
-
 for module in functions uggrid typetree; do
   eval SETUP_dune_${module}_BRANCH=\"master\"
   eval SETUP_dune_${module}_REPO=\"https://gitlab.dune-project.org/staging/dune-${module}.git\"

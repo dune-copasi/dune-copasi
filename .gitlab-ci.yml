@@ -14,11 +14,15 @@ stages:
   tags:
     - "dind"
 
-.global_variables: &global_variables
+variables:
   DUNECONTROL: dunecontrol
-  BASE_IMAGE_VERSION: v2.0.0-git
   CPACK_GENERATORS: 'DEB'
   CPACK_PACKAGE_DIRECTORY: $CI_PROJECT_DIR/tmp
+  BASE_IMAGE_VERSION:
+    value: "v2.0.0-git"
+    options:
+      - "tmp"
+    description: "Key to tag images in the registry. Use 'tmp' key to try out changes that need to rebild the dependencies image"
 
 .docker_variables: &docker_variables
   DOCKER_BUILDKIT: 1
@@ -28,14 +32,12 @@ stages:
   DOCKER_TLS_CERTDIR: ""
 
 .debian_gcc: &debian_gcc
-  <<: *global_variables
   # TOOLCHAIN: gcc-8-17
   DUNECI_OS: debian
   BASE_IMAGE: debian:trixie
   DEPENDENCIES_IMAGE: ${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${TOOLCHAIN}-${BASE_IMAGE_VERSION}
 
 # .debian_clang: &debian_clang
-#   <<: *global_variables
 #   TOOLCHAIN: clang-6-17
 #   DUNECI_OS: debian
 #   BASE_IMAGE: debian:10
