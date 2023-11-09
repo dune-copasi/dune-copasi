@@ -21,8 +21,9 @@ variables:
   BASE_IMAGE_VERSION:
     value: "v2.0.0-git"
     options:
-      - "tmp"
-    description: "Key to tag images in the registry. Use 'tmp' key to try out changes that need to rebild the dependencies image"
+      - "v2.0.0-git"
+      - "v2.0.0-git-tmp"
+    description: "Key to tag images in the registry. Use '*-tmp' key to try out changes that need to rebild the dependencies image"
 
 .docker_variables: &docker_variables
   DOCKER_BUILDKIT: 1
