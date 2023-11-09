@@ -39,7 +39,7 @@ if((NOT parafields_FOUND) AND (NOT CMAKE_DISABLE_FIND_PACKAGE_parafields) AND (N
   FetchContent_Declare(
     parafields
     GIT_REPOSITORY https://github.com/parafields/parafields-core.git
-    GIT_TAG        1e276ec12e23dbbf8f0858dae12076e94e5fae08
+    GIT_TAG        61b2893f4940e3bb5881bf32faee14524efb4184
   )
 
   if(NOT parafields_POPULATED)
