@@ -49,7 +49,6 @@ ENV PATH=/duneci/install/bin:$PATH
 ENV TERM=xterm-256color
 ENV CMAKE_INSTALL_PREFIX=/duneci/install
 ENV SETUP_DUNE_TESTTOOLS=ON
-ENV DUNE_VENDOR_FMT=ON
 # ENV DUNE_OPTS_FILE=/duneci/dune.opts
 ENV DUNE_OPTS_FILE=/duneci/cmake-flags/dune-copasi.opts
 

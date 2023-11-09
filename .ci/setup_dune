@@ -5,7 +5,6 @@
 # variables from DUNE_OPTIONS_FILE
 #   (optional) SETUP_DUNE_TESTTOOLS
 #   (optional) SUDOCMD
-#   (optional) DUNE_VENDOR_FMT
 
 set +e
 
@@ -21,7 +20,6 @@ set -e
 # load dune options
 SETUP_DUNE_TESTTOOLS="$(. ${DUNE_OPTIONS_FILE}; eval echo \$SETUP_DUNE_TESTTOOLS)"
 SUDOCMD="$(. ${DUNE_OPTIONS_FILE}; eval echo \$SUDOCMD)"
-DUNE_VENDOR_FMT="$(. ${DUNE_OPTIONS_FILE}; eval echo \$DUNE_VENDOR_FMT)"
 
 # load useful functions
 CALL_DIR=$PWD
@@ -45,7 +43,7 @@ cleanup() {
 # set up verbose output in case of failure
 ONFAILURE_PROG="git gcc g++ python pip python3 pip3 cmake wget $SUDOCMD"
 ONFAILURE_VARS="PATH MSYSTEM SUDOCMD SETUP_DUNE_TESTTOOLS DUNE_OPTIONS_FILE"
-ONFAILURE_VARS+=" CMAKE_FLAGS CMAKE_INSTALL_PREFIX DUNE_VENDOR_FMT REPO BRANCH PATCHES RECURSIVE BUILD_PATH"
+ONFAILURE_VARS+=" CMAKE_FLAGS CMAKE_INSTALL_PREFIX REPO BRANCH PATCHES RECURSIVE BUILD_PATH"
 ONFAILURE_CMD="ls cleanup"
 
 trap onfailure EXIT
