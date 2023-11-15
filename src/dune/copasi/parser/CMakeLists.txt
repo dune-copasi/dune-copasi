@@ -45,6 +45,7 @@ if((NOT parafields_FOUND) AND (NOT CMAKE_DISABLE_FIND_PACKAGE_parafields) AND (N
   if(NOT parafields_POPULATED)
     message("-- Populating ParaFields")
     FetchContent_Populate(parafields)
+    set(BUILD_TESTING OFF)
     add_subdirectory("${parafields_SOURCE_DIR}" "${parafields_BINARY_DIR}")
     set(parafields_FOUND ON)
   endif()
