@@ -6,6 +6,7 @@
 #include <dune/pdelab/common/convergence/reason.hh>
 #include <dune/pdelab/common/error_condition.hh>
 #include <dune/pdelab/common/trace.hh>
+#include <dune/pdelab/common/execution.hh>
 #include <dune/pdelab/concepts/basis.hh>
 #include <dune/pdelab/operator/adapter.hh>
 #include <dune/pdelab/operator/forward/instationary/assembler.hh>
@@ -65,7 +66,7 @@ class LinearSolver : public PDELab::Operator<Range, Domain>
     void apply(const Domain& x, Range& y) const override
     {
       PDELab::forEachContainerEntry(
-        std::execution::par_unseq, y, []<class T>(T& v) { v = T{ 0 }; });
+        PDELab::Execution::par_unseq, y, []<class T>(T& v) { v = T{ 0 }; });
       _forward.apply(x, y).or_throw();
     }
 
@@ -76,7 +77,7 @@ class LinearSolver : public PDELab::Operator<Range, Domain>
     {
       tmp = y;
       this->apply(x, tmp);
-      Dune::PDELab::axpy(std::execution::par_unseq, y, alpha, tmp);
+      Dune::PDELab::axpy(PDELab::Execution::par_unseq, y, alpha, tmp);
     }
 
     SolverCategory::Category category() const override
