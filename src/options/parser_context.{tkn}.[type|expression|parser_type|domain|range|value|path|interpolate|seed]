@@ -1,12 +1,12 @@
-<string|math-expr|string|float|float-list|integer>
+<string|math-expr|string|float|float-list|integer|bool>
 Sets up a token '{tkn}' in the dune-copasi parsers
 
 type=<string>
   Type of token '{tkn}' within the dune-copasi parsers
     Possible selections are:
       * constat:        Sets token '{tkn}' as a constant float. Options: 'parser_context.{tkn}.value'
-      * function:       Sets token '{tkn}' as an inline function. Options: 'parser_context.{tkn}.expression'
-      * tiff:           Sets token '{tkn}' as a function with the contents of a tiff file. Options: 'parser_context.{tkn}.file'
+      * function:       Sets token '{tkn}' as an inline function. Options: 'parser_context.{tkn}.[expression|interpolate|interpolation.[...]]'
+      * tiff:           Sets token '{tkn}' as a 2D function with the contents of a tiff file. Options: 'parser_context.{tkn}.path'
       * interpolation:  Sets token '{tkn}' as a 1D interpolation function. Options: 'parser_context.{tkn}.[domain|range]'
       * random_field:   Sets token '{tkn}' as a random field function. Options: 'parser_context.{tkn}.[seed|grid|...]'
 
@@ -46,6 +46,10 @@ parser_type=<string>
   Underlying parser for inlined function of the token '{tkn}'
     See 'model.parser_type' for more options.
     This option can only be used together with 'parser_context.{tkn}.type=function'
+
+path=<string>
+  File path of a TIFF image to set token '{tkn}' as a 2D function
+    This option can only be used together with 'parser_context.{tkn}.type=tiff'
 
 seed=<integer>
   Seed to be used in the pseudorandom number field generator

@@ -64,7 +64,7 @@ ParserContext::ParserContext(const ParameterTree& config)
     } else if (type == "function") {
       _functions_expr[sub] = sub_config;
     } else if (type == "tiff") {
-      auto tiff = std::make_shared<TIFFGrayscale>(sub_config["file"]);
+      auto tiff = std::make_shared<TIFFGrayscale>(sub_config["path"]);
       _functions_2[sub] = [tiff](const auto& pos_x, const auto& pos_y) {
         return std::invoke(*tiff, pos_x, pos_y);
       };
