@@ -109,6 +109,9 @@ make_multi_domain_grid(Dune::ParameterTree& config,
         auto parser_type =
           string2parser.at(compartment_config.get("parser_type", default_parser_str));
         std::shared_ptr const parser_ptr = make_parser(parser_type);
+        if (update_gmsh_id)
+          parser_ptr->define_variable("gmsh_id", &gmsh_id);
+        parser_ptr->set_expression(compartment_config["expression"]);
         if (parser_context)
           parser_context->add_context(*parser_ptr);
         auto position = std::make_shared<FieldVector<double, MDGrid::dimensionworld>>();
@@ -121,9 +124,6 @@ make_multi_domain_grid(Dune::ParameterTree& config,
             parser_ptr->define_constant(pos_arg, 0.);
           }
         }
-        if (update_gmsh_id)
-          parser_ptr->define_variable("gmsh_id", &gmsh_id);
-        parser_ptr->set_expression(compartment_config["expression"]);
         parser_ptr->compile();
         compartments.emplace_back(compartment, [position, parser_ptr, update_gmsh_id](const HostEntity& entity) {
           (*position) = entity.geometry().center();
