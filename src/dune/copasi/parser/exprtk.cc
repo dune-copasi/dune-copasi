@@ -185,8 +185,15 @@ ExprTkParser::compile()
   register_functions();
 
   data.expression.register_symbol_table(data.symbol_table);
-  data.parser.compile(_expression, data.expression);
-  _compiled = true;
+  _compiled = data.parser.compile(_expression, data.expression);
+  if (!_compiled) {
+    throw format_exception(IOError{},
+                           "[ExprTk] Failed to compile expression\n"
+                           "Expression:    {}\n"
+                           "Error message: {}\n",
+                           _expression,
+                           data.parser.error());
+  }
 }
 
 [[nodiscard]] ExprTkParser::RangeField
