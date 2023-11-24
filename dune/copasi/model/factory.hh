@@ -72,13 +72,7 @@ make_model(
   auto compartments_blocked = config.get("blocked_layout.compartments", false);
 
   std::set<std::string> compartments;
-  if (not config.hasSub("scalar_field")) {
-    throw format_exception(IOError{}, "A model must have an 'scalar_field' section");
-  }
-  // find the number of compartments
-  if (config.hasSub("scalar_field")) {
-  }
-  for (const auto& component : config.sub("scalar_field", true).getSubKeys()) {
+  for (const auto& component : config.sub("scalar_field").getSubKeys()) {
     compartments.insert(config[fmt::format("scalar_field.{}.compartment", component)]);
   }
 

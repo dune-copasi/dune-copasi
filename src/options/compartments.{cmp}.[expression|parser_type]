@@ -1,15 +1,17 @@
 <string|math-expr|integer>
-Definition of a compartment in the grid
+Compartment definition of with name '{cmp}' as a sub-domain of the grid
+Compartments represent one sub-domain within the grid where the model scalar fields have support.
+There must be at least one non-empty compartment.
 
 expression=<math-expr>
-  Expression that defines a compartment in terms of a function.
-    If the expression evaluates to a value different than zero in the center of an entity,
+  Expression that defines a compartment in terms of a function evaluated on grid entities
+    If the expression evaluates to a value different than zero in the center of a grid entity,
     such entity is assigned to the compartment '{cmp}'. For example, an the expression
-    'compartements.top.expression=\"position_y > 0.5\"' defines a compartment '{cmp}' with
-    name 'top' that is only defined for the top half of an square grid.
+    'compartments.top.expression=\"position_y > 0.5\"' defines a compartment '{cmp}' with
+    name 'top' that is only defined for the top half of an squared grid.
     If the grid was read from a gmsh file (i.e., 'grid.path=path/to/gmsh/file'), the parser
     will additionally know the `gmsh_id` for each of entity. For example, an expression of the form
-    'compartements.gmsh_domain.expression = (gmsh_id == 2)' will be a compartment with name
+    'compartments.gmsh_domain.expression = (gmsh_id == 2)' will be a compartment with name
     'gmsh_domain' with entities that have a gmsh id equal to '2'.
 
 parser_type=<string>

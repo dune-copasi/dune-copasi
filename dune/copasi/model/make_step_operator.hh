@@ -226,7 +226,7 @@ public:
     TRACE_COUNTER("dune", "LinearSolver::Reduction", solver_timestamp, result.reduction);
     TRACE_COUNTER("dune", "LinearSolver::Converged", solver_timestamp, result.converged);
 
-    if (result.iterations <= static_cast<int>(min_iterations)) {
+    if (result.iterations < static_cast<int>(min_iterations)) {
       spdlog::warn("Minimum of {} iteration requested but {} were performed",
                    min_iterations,
                    result.iterations);
@@ -266,6 +266,12 @@ make_step_operator(const ParameterTree& config,
 
   using RKCoefficients = Dune::BlockVector<Coefficients>;
   using RKResidual = Dune::BlockVector<Residual>;
+
+  if (basis.dimension() == 0) {
+    throw format_exception(InvalidStateException{},
+                           "Basis has dimension 0, make sure to have at least one 'scalar_field' "
+                           "with a non-empty 'compartment'");
+  }
 
   std::shared_ptr<PDELab::Operator<RKResidual, RKCoefficients>> runge_kutta_inverse;
 

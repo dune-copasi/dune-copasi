@@ -20,6 +20,21 @@ enable_testing()
 dune_declare_test_label(LABELS unit system)
 
 if (TARGET Dune::Copasi::Executable)
+
+  foreach(simple_opt help;help-full;version;parser-list;dump-config)
+    dune_add_test(
+      NAME            ${simple_opt}
+      TARGET          Dune::Copasi::Executable
+      LABELS          system
+      CMD_ARGS        --${simple_opt})
+  endforeach()
+
+  dune_add_test(
+    NAME            empty
+    TARGET          Dune::Copasi::Executable
+    LABELS          system
+    EXPECT_FAIL)
+
   foreach(dim ${DUNE_COPASI_GRID_DIMENSIONS})
     dune_add_test(
       NAME            exp-${dim}D

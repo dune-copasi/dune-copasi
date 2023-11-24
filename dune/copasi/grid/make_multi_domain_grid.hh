@@ -158,6 +158,7 @@ make_multi_domain_grid(Dune::ParameterTree& config,
 
   spdlog::info("Applying sub-domain partition");
   md_grid_ptr->startSubDomainMarking();
+  std::size_t max_domains = 0;
   std::size_t max_domains_per_entity = 0;
   for (const auto& cell : elements(md_grid_ptr->leafGridView())) {
     for (std::size_t id = max_domains_per_entity = 0; id != compartments.size(); ++id) {
@@ -172,12 +173,12 @@ make_multi_domain_grid(Dune::ParameterTree& config,
                              " have more than {} domains per entity!",
                              md_grid_traits.maxSubDomainIndex() + 1);
     }
+    max_domains = std::max(max_domains, max_domains_per_entity);
   }
 
-  auto max_sd_index = static_cast<std::size_t>(md_grid_ptr->maxAssignedSubDomainIndex())+1;
-  if (max_sd_index != compartments.size())  {
+  if (max_domains != compartments.size())  {
     spdlog::warn("Grid has {} sub-domain{} but config has {} compartment{}",
-      max_sd_index, max_sd_index == 1 ? "" : "s",
+      max_domains, max_domains == 1 ? "" : "s",
       compartments.size(), compartments.size() == 1 ? "" : "s");
   }
 
@@ -187,7 +188,7 @@ make_multi_domain_grid(Dune::ParameterTree& config,
 
   std::cout << fmt::format("MultiDomainGrid: ");
   gridinfo(*md_grid_ptr, "    ");
-  for (std::size_t id = 0; id != max_sd_index; ++id) {
+  for (std::size_t id = 0; id != compartments.size(); ++id) {
     std::cout << fmt::format("  SubDomain {{{}: {}}}", id, compartments[id].first);
     gridinfo(md_grid_ptr->subDomain(id), "      ");
   }

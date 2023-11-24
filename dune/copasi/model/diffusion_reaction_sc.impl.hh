@@ -67,7 +67,7 @@ ModelDiffusionReaction<Traits>::make_scalar_field_pre_basis(const CompartmentEnt
                                                             const ParameterTree& scalar_field_config,
                                                             std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory) -> ScalarPreBasis
 {
-  spdlog::info("Setup grid function space for component {}", name);
+  spdlog::info("Setup basis functions for component '{}'", name);
   auto scalar_field_pre_basis =
     ScalarPreBasis{ ScalarMergingStrategy{ entity_set },
                     std::make_shared<ScalarFiniteElementMap>(entity_set),
@@ -85,7 +85,7 @@ ModelDiffusionReaction<Traits>::make_compartment_pre_basis(
   const ParameterTree& scalar_fields_config,
   std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory) -> CompartmentPreBasis
 {
-  spdlog::info("Setup compartment grid function space");
+  spdlog::info("Setup compartment basis functions for compartment ;{}'", compartment_name);
 
   if (entity_set.size(0) == 0)
     spdlog::warn("Compartment '{}' is empty", compartment_name);

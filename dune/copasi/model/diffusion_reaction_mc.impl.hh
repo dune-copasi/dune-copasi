@@ -59,14 +59,14 @@ ModelMultiCompartmentDiffusionReaction<Traits>::make_multi_compartment_pre_basis
   std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory) -> MultiCompartmentPreBasis
 {
   TRACE_EVENT("dune", "Basis::SetUp");
-  spdlog::info("Setup grid function space");
+  spdlog::info("Setup basis functions");
 
   const auto& compartments_config = config.sub("compartments", true);
 
   std::vector<CompartmentPreBasis> compartment_pre_basis_vec;
 
   std::map<std::string, std::vector<std::string>> compartment2componets;
-  const auto& scalar_fields_config = config.sub("scalar_field", true);
+  const auto& scalar_fields_config = config.sub("scalar_field");
   for (const auto& component : scalar_fields_config.getSubKeys())
     compartment2componets[config[fmt::format("scalar_field.{}.compartment", component)]].push_back(component);
 
