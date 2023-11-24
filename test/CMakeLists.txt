@@ -4,7 +4,6 @@ project(dune-copasi-tests CXX C)
 # check if this project is called as its own cmake project (i.e. not as subdirectory)
 if("${CMAKE_SOURCE_DIR}" STREQUAL "${PROJECT_SOURCE_DIR}")
   # ...if so, find dune-copasi as if this were downstream project
-  find_package(dune-common REQUIRED)
   find_package(dune-copasi REQUIRED IMPORTED COMPONENTS Development Runtime)
   set(DUNE_BUILD_TESTS_ON_MAKE_ALL ON)
 else()
@@ -39,9 +38,4 @@ if (TARGET Dune::Copasi::Executable)
                         --model.parser_type=${parser})
     endforeach()
   endforeach()
-endif()
-
-
-if("${CMAKE_SOURCE_DIR}" STREQUAL "${PROJECT_SOURCE_DIR}")
-  set_target_properties(build_unit_tests build_system_tests PROPERTIES EXCLUDE_FROM_ALL OFF)
 endif()

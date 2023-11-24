@@ -1,10 +1,5 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.16)
 project(dune-copasi CXX)
-
-cmake_policy(SET CMP0074 NEW)
-if(POLICY CMP0087)
-  cmake_policy(SET CMP0087 OLD)
-endif()
 
 ########## Setup dependencies ##########
 
@@ -43,18 +38,8 @@ endforeach()
 get_filename_component(_dir \"\${CMAKE_CURRENT_LIST_FILE}\" PATH)
 include(\"\${_dir}/dune-copasi-installed-targets.cmake\")")
 
-# finalize the dune project: Generate and install config.h, cmake target and version file
-finalize_dune_project(GENERATE_CONFIG_H_CMAKE)
-
-# NOTE: Dowstream projects shall not generate and include config files from
-# `finalize_dune_project`, otherwise, there will be repeated definitions.
-
-# install generated config in build and install directories as <dune-copasi-config.h>
-file(RENAME "${CMAKE_CURRENT_BINARY_DIR}/config.h" "${CMAKE_CURRENT_BINARY_DIR}/dune-copasi-config.hh")
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/dune-copasi-config.hh"
-        COMPONENT Development
-        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
-)
+# finalize the dune project: Generate and install config headers, cmake targets and version files
+finalize_dune_project()
 
 # export targets to be used with installed tree
 install(EXPORT dune-copasi-targets
