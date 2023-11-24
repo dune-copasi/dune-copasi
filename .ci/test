@@ -17,7 +17,6 @@ set -e
 [ ! -z "$1" ] && DUNE_OPTIONS_FILE="$1"
 
 # load useful functions
-CALL_DIR=$PWD
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 source $SCRIPT_DIR/util
 
@@ -41,7 +40,7 @@ cleanup() {
 ONFAILURE_PROG="git gcc g++ python pip python3 pip3 cmake"
 ONFAILURE_VARS="PATH DUNE_OPTIONS_FILE "
 ONFAILURE_VARS+="DEBUG_CMAKE_FLAGS RELEASE_CMAKE_FLAGS"
-ONFAILURE_CMD="ls cleanup"
+ONFAILURE_CMD="pwd ls cleanup"
 
 trap onfailure EXIT
 
@@ -73,6 +72,7 @@ fi
 echo "cmake $RELEASE_CMAKE_FLAGS $SOURCEDIR"
 eval cmake $RELEASE_CMAKE_FLAGS $SOURCEDIR
 cmake --build . --target build_system_tests
-ctest -j4 -L "DUNE_SYSTEMTEST" --output-on-failure
+ctest -j4 -L "system" --output-on-failure
 
+cd $SCRIPT_PATH
 trap cleanup EXIT

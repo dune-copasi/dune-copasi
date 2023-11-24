@@ -1,5 +1,5 @@
 <string|integer|bool>
-Options of the linear solver. Default UMFPack
+Options of the linear solver. Default (first found): UMFPack|SuperLU|BiCGSTAB
 
 type=<string>
   Type of the linear solver

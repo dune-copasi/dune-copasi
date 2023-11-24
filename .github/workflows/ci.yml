@@ -45,8 +45,8 @@ jobs:
       run: ./.ci/setup_dune $PWD/dune-copasi.opts
     - name: Build and Install
       run: ./.ci/install $PWD/dune-copasi.opts
-#    - name: Build and run tests
-#      run: ./.ci/test $PWD/dune-copasi.opts
+    - name: Build and run tests
+      run: ./.ci/test $PWD/dune-copasi.opts
 
   macos:
     name: MacOS
@@ -70,8 +70,8 @@ jobs:
         run: ./.ci/setup_dune $PWD/dune-copasi.opts
       - name: Build and Install
         run: ./.ci/install $PWD/dune-copasi.opts
-#      - name: Build and run tests
-#        run: ./.ci/test $PWD/dune-copasi.opts
+      - name: Build and run tests
+        run: ./.ci/test $PWD/dune-copasi.opts
 
   win64:
     name: Windows 64-bit
@@ -96,5 +96,5 @@ jobs:
         run: ./.ci/setup_dune $PWD/dune-copasi.opts
       - name: Build and Install
         run: ./.ci/install $PWD/dune-copasi.opts
-#      - name: Build and run tests
-#        run: ./.ci/test $PWD/dune-copasi.opts
+      - name: Build and run tests
+        run: ./.ci/test $PWD/dune-copasi.opts

@@ -24,7 +24,6 @@ CMAKE_FLAGS="$(. ${DUNE_OPTIONS_FILE}; eval echo \$CMAKE_FLAGS)"
 SUDOCMD="$(. ${DUNE_OPTIONS_FILE}; eval echo \$SUDOCMD)"
 
 # load useful functions
-CALL_DIR=$PWD
 SCRIPT_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 source $SCRIPT_PATH/util
 
@@ -33,10 +32,6 @@ BUILD_PATH=/tmp/dune-copasi-build
 
 print_opts_file() {
   cat "${DUNE_OPTIONS_FILE}"
-}
-
-print_cmake_error() {
-  cat "${BUILD_PATH}/src/CMakeFiles/multidomain-exec.dir/build.make"
 }
 
 cleanup() {
@@ -63,4 +58,5 @@ for generator in $CPACK_GENERATORS; do
   cpack -G $generator -B $CPACK_PACKAGE_DIRECTORY CPackConfig.cmake
 done
 
+cd $SCRIPT_PATH
 trap cleanup EXIT

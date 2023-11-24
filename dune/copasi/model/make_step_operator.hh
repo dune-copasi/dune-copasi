@@ -37,6 +37,15 @@
 
 #include <memory>
 
+#if HAVE_SUITESPARSE_UMFPACK
+#define DUNE_COPASI_DEFAULT_LINEAR_SOLVER "UMFPack"
+#elif HAVE_SUPERLU
+#define DUNE_COPASI_DEFAULT_LINEAR_SOLVER "SuperLU"
+#else
+#define DUNE_COPASI_DEFAULT_LINEAR_SOLVER "BiCGSTAB"
+#endif
+
+
 namespace Dune::Copasi {
 
 namespace Impl {
@@ -114,7 +123,7 @@ class LinearSolver : public PDELab::Operator<Range, Domain>
 public:
   LinearSolver(const ParameterTree& config)
     : _config{ config }
-    , _lin_type{_config.template get<std::string>("type", std::string{ "UMFPack" })}
+    , _lin_type{_config.template get<std::string>("type", std::string{ DUNE_COPASI_DEFAULT_LINEAR_SOLVER })}
     , _prec_type{_config.get("preconditioner.type", std::string{ "Richardson" })}
   {
     spdlog::info("Creating linear solver with '{}' type", _lin_type);

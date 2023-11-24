@@ -76,7 +76,7 @@ variables:
   stage: build
   script:
     - ./.ci/install dune-copasi.opts
-    # - ./.ci/test dune-copasi.opts
+    - ./.ci/test dune-copasi.opts
     - mkdir -p packages
     - mv tmp/dune-copasi-*-Runtime.deb packages/dune-copasi-runtime.deb
   <<: *default_tags

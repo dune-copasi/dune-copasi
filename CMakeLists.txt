@@ -36,6 +36,10 @@ add_subdirectory(doc)
 
 # include targets file in config file
 set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}
+find_package(TBB CONFIG REQUIRED)
+foreach(module ${ALL_DEPENDENCIES})
+  find_package(\${module})
+endforeach()
 get_filename_component(_dir \"\${CMAKE_CURRENT_LIST_FILE}\" PATH)
 include(\"\${_dir}/dune-copasi-installed-targets.cmake\")")
 
