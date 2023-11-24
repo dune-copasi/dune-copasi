@@ -1,0 +1,2 @@
+<float|bool>
+Define the initial value and quietness of an evaluation/reduction/transformation algorithm on grid functions. Default: {0., false}

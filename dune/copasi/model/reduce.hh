@@ -5,6 +5,7 @@
 #include <dune/copasi/model/local_equations/functor_factory_parser.hh>
 #include <dune/copasi/parser/context.hh>
 #include <dune/copasi/finite_element/local_basis_cache.hh>
+#include <dune/copasi/common/exceptions.hh>
 
 #include <dune/pdelab/concepts/basis.hh>
 #include <dune/pdelab/common/local_container.hh>
@@ -26,7 +27,7 @@
 namespace Dune::Copasi {
 
 
-
+class ReductionError : public Dune::Exception {};
 
 // Evaluates a evaluation/reduction/transformation algorigthm over the grid.
 // Starting with val = 0, the this function evaluates `val = reduction(val, evaluation(), weight)` for each quadrature point of the grid. Finally, the result gets transformed by `value = transformation(value)`
@@ -173,7 +174,7 @@ reduce(const Basis& basis,
     max_key_chars = std::max(max_key_chars, key.size());
 
   spdlog::info("   ┌{0:─^{1}}┐", "", max_key_chars+max_val_chars+13);
-  bool do_throw = false;
+  std::string error_msg;
   for (auto& [key, value] : values) {
 
     if (config.sub(key).hasKey("transformation.expression")) {
@@ -190,21 +191,7 @@ reduce(const Basis& basis,
 #else
     auto sty_key = key;
 #endif
-    auto verbose = config.sub(key).get("verbose", 1);
-    if (verbose) {
-      spdlog::info("   | {0:>{2}} := {1: .{3}e} |", sty_key, value, max_key_chars, max_val_chars);
-    }
-
-    if (config.sub(key).hasKey("warn.expression")) {
-      auto [args, expr] = parser_context->parse_function_expression(config.sub(key)["warn.expression"]);
-      if (args.size() != 1)
-        throw format_exception(IOError{}, "Warning function must have exactly 1 argument");
-      auto sub_parser_type = string2parser.at(config.sub(key).get("warn.parser_type", std::string{parser2string.at(parser_type)}));
-      auto warn = parser_context->make_function(sub_parser_type, std::array{std::string{args[0]}}, expr);
-      if (FloatCmp::ne(warn(value), 0.)) {
-        spdlog::warn("| {0:>{2}} := {1: .{3}e} |", sty_key, value, max_key_chars, max_val_chars);
-      }
-    }
+    bool processed = false;
 
     if (config.sub(key).hasKey("error.expression")) {
       auto [args, expr] = parser_context->parse_function_expression(config.sub(key)["error.expression"]);
@@ -213,15 +200,39 @@ reduce(const Basis& basis,
       auto sub_parser_type = string2parser.at(config.sub(key).get("error.parser_type", std::string{parser2string.at(parser_type)}));
       auto error = parser_context->make_function(sub_parser_type, std::array{std::string{args[0]}}, expr);
       if (FloatCmp::ne(error(value), 0.)) {
-        do_throw = true;
+        processed = true;
         spdlog::error("  | {0:>{2}} := {1: .{3}e} |", sty_key, value, max_key_chars, max_val_chars);
+        if (not error_msg.empty())
+          error_msg += '\n';
+        error_msg += fmt::format("Reduction on the token '{}' raised an error because the "
+                                 "expression '{}' with evaluates to false with '{} := {}'",
+                                 key,
+                                 expr,
+                                 args[0],
+                                 value);
       }
+    }
+
+    if (not processed and config.sub(key).hasKey("warn.expression")) {
+      auto [args, expr] = parser_context->parse_function_expression(config.sub(key)["warn.expression"]);
+      if (args.size() != 1)
+        throw format_exception(IOError{}, "Warning function must have exactly 1 argument");
+      auto sub_parser_type = string2parser.at(config.sub(key).get("warn.parser_type", std::string{parser2string.at(parser_type)}));
+      auto warn = parser_context->make_function(sub_parser_type, std::array{std::string{args[0]}}, expr);
+      if (FloatCmp::ne(warn(value), 0.)) {
+        processed = true;
+        spdlog::warn("| {0:>{2}} := {1: .{3}e} |", sty_key, value, max_key_chars, max_val_chars);
+      }
+    }
+
+    if (not processed and not config.sub(key).get("quiet", false)) {
+      spdlog::info("   | {0:>{2}} := {1: .{3}e} |", sty_key, value, max_key_chars, max_val_chars);
     }
   }
   spdlog::info("   └{0:─^{1}}┘", "", max_key_chars+max_val_chars+13);
 
-  if (do_throw) {
-    throw Exception{};
+  if (not error_msg.empty()) {
+    throw format_exception(ReductionError{}, "{}", error_msg);
   }
 
   return values;
