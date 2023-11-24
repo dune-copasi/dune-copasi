@@ -1,2 +1,8 @@
 <float|bool>
 Define the initial value and quietness of an evaluation/reduction/transformation algorithm on grid functions. Default: {0., false}
+
+  initial.value=<float>:
+    Initial value of the evaluation/reduction/transformation algorithm for the token '{key}'
+
+  quiet=<bool>:
+    If 'true', the evaluation/reduction/transformation algorithm will only report its result on failure.

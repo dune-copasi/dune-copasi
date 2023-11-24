@@ -1,0 +1,3 @@
+<string>
+Select default underlying parser for the 'parser_context' sub-sections. Default: <see '--parser-list' option>
+Whenever an '--parser_context.*' option doesn't define its own parser, this one is selected.

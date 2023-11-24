@@ -1,0 +1,17 @@
+<math-expr|string>
+Expression options for the scalar field equation in variable '{var}'
+
+reaction.expression=<math-expr>
+  Math expression for the reaction part for equation on variable '{var}'
+
+storage.expression=<math-expr>
+  Math expression for the storage part on the temporal derivative for equation on variable '{var}'
+
+velocity.[x|y|z].expression=<math-expr>
+  Math expression for the convction part for equation on variable '{var}'
+
+outflow.{cmp}.expression=<math-expr>
+  Math expression for the outflow condition w.r.t compartment '{cmp}' for equation on variable '{var}'
+
+initial.expression=<math-expr>
+  Math expression for the initial condition for equation on variable '{var}'

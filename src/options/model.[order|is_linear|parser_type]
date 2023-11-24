@@ -7,6 +7,6 @@ order=<integer>
   Polynomail order of the finite elements
 
 parser_type=<string>
-  Default underlying parser for dune-copasi. Default: MuParser
-    Whenever an option doesn't define its own parser, this one is selected.
+  Default underlying parser for dune-copasi models. Default: <see '--parser-list' option>
+    Whenever an '--model.*' option doesn't define its own parser, this one is selected.
     Options: SymEngine, SymEngineSBML, MuParser, ExprTk

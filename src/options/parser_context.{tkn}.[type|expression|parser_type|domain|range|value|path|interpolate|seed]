@@ -43,8 +43,7 @@ range=<float-list>
     This option can only be used together with 'parser_context.{tkn}.type=interpolation'
 
 parser_type=<string>
-  Underlying parser for inlined function of the token '{tkn}'
-    See 'model.parser_type' for more options.
+  Underlying parser for inlined function of the token '{tkn}'. Default: <see '--parser-list' option>
     This option can only be used together with 'parser_context.{tkn}.type=function'
 
 path=<string>

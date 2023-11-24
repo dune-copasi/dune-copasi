@@ -1,3 +1,3 @@
 <path>
 File path to store the trace of the program
-To visualize the trace, use <https://ui.perfetto.dev/>
+Only available if binary is built with Perfetto. To visualize the trace, use <https://ui.perfetto.dev/>

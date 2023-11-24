@@ -1,5 +1,10 @@
 <string>
-Expression options for the cross diffusion of the scalar field equation in variable '{var}'
+Selects the kind of cross diffusion of the variable '{drwt}' diffusing into variable '{var}'
 
 type=<string>
-  Selects between 'scalar' and 'tensor'
+  Selects between 'scalar' and 'tensor'. Default: scalar
+    * 'scalar': The cross diffusion is an scalar and it must be set with the
+      'model.scalar_field.{var}.cross_diffusion.{dwrt}.[expression|parser_type]' options.
+    * 'tensor': The cross diffusion is a tensor and it must be set with the
+      'model.scalar_field.{var}.cross_diffusion.{dwrt}.[xx|xy|xz|yx|yy|yz|zx|zy|zz].[expression|parser_type]' options.
+      where each sub-section 'xx|xy|xz|yx|yy|yz|zx|zy|zz' has its own 'expression' and 'parser_type' definition.

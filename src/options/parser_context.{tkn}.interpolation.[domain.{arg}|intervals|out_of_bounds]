@@ -1,3 +1,4 @@
+<float-pair|integer|string>
 Interpolation options for the context function '{tkn}'
 
 domain.{arg}=<float-pair>:
