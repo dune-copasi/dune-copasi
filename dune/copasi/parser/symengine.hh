@@ -6,6 +6,9 @@
 #include <symengine/lambda_double.h>
 #include <symengine/parser.h>
 #include <symengine/parser/sbml/sbml_parser.h>
+#ifdef HAVE_SYMENGINE_LLVM
+#include <symengine/llvm_double.h>
+#endif
 
 #include <functional>
 #include <string>
@@ -62,7 +65,12 @@ private:
   SymEngine::RCP<const SymEngine::Basic> _se_expression;
   SymEngine::vec_basic _arguments;
 
+#ifdef HAVE_SYMENGINE_LLVM
+  std::list<SymEngine::LLVMDoubleVisitor> _visitors;
+#else
   std::list<SymEngine::LambdaRealDoubleVisitor> _visitors;
+#endif
+
   std::vector<std::function<void()>> _setup, _callbacks;
   RangeField _result;
 };
