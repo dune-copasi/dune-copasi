@@ -10,9 +10,6 @@
 # If run in script mode (e.g. ./dune-copasi.opts), this script will print out
 # the installation prefix, OS target, and cmake flags.
 
-# flag to install dune-testtools in 'setup_dune' script
-export SETUP_DUNE_TESTTOOLS=${SETUP_DUNE_TESTTOOLS:-OFF}
-
 # get install prefix from CMAKE_FLAGS env
 for flag in $CMAKE_OPTIONS; do
   [[ ${flag#-D} == CMAKE_INSTALL_PREFIX* ]] && CMAKE_INSTALL_PREFIX=${flag#-DCMAKE_INSTALL_PREFIX}

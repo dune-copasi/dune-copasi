@@ -65,9 +65,6 @@ done
 SETUP_dune_pdelab_BRANCH="feature/dune-assembler/main"
 SETUP_dune_pdelab_REPO="https://gitlab.dune-project.org/pdelab/dune-pdelab.git"
 
-SETUP_dune_testtools_BRANCH="master"
-SETUP_dune_testtools_REPO="https://gitlab.dune-project.org/quality/dune-testtools.git"
-
 SETUP_dune_multidomaingrid_BRANCH="master"
 SETUP_dune_multidomaingrid_REPO="https://gitlab.dune-project.org/extensions/dune-multidomaingrid.git"
 
@@ -75,9 +72,6 @@ echo "Downloading patches"
 
 # hardcoded **ordered** dependencies
 MODULES="common geometry uggrid grid typetree localfunctions istl functions multidomaingrid pdelab"
-# if [[ "$SETUP_DUNE_TESTTOOLS" =~ ^(ON|on|1|yes|YES|true|TRUE)$ ]]; then
-# 	MODULES+=" testtools"
-# fi
 
 [ -z $DUNE_OPTIONS_FILE ] && ONFAILURE_MESSAGE+="Dune options file is not set!\n" && exit 1
 
@@ -178,7 +172,7 @@ for module in $MODULES; do
   export DUNE_CONTROL_PATH=$PWD
 
   # configure, build, and install module
-  $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module all
+  $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module configure
   $SUDOCMD $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module bexec cmake --build . --target install
 
   # we want to know where the build dir is located
