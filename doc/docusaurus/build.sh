@@ -33,7 +33,14 @@ create_doxygen_html() {
   git checkout $BRANCH -- ${HEADERS_SOURCE} ${DUNE_MODULE_FILE}
 }
 
+# make a version page for each git tag
 for tag in $(git tag); do
+
+  # skip versions that do not work with current docusaurus
+  if [[ $tag = @(v0.3.0) ]]; then
+    continue
+  fi
+
   echo "----------Checking out $tag-----------"
   if git checkout $tag -- docs; then
     echo "----------Inspecting files $tag-----------"
@@ -45,6 +52,7 @@ for tag in $(git tag); do
   fi
 done
 
+# move last tag doxygen doc into current release
 mkdir -p tmp_build/docs/doxygen
 [[ "$BRANCH"=="master" ]] && mv tmp_build/docs/$tag/doxygen/* tmp_build/docs/doxygen
 

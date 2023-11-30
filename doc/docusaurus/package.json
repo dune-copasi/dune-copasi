@@ -12,14 +12,18 @@
     "clear": "docusaurus clear"
   },
   "dependencies": {
-    "@docusaurus/core": "2.0.0-alpha.75",
-    "@docusaurus/preset-classic": "2.0.0-alpha.75",
-    "@mdx-js/react": "^1.6.21",
+    "@docusaurus/core": "3.0.0",
+    "@docusaurus/preset-classic": "3.0.0",
+    "@mdx-js/react": "^3.0.0",
     "clsx": "^1.1.1",
-    "react": "^16.8.4",
-    "react-dom": "^16.8.4",
-    "rehype-katex": "^4.0.0",
-    "remark-math": "^3.0.1"
+    "prism-react-renderer": "^2.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "rehype-katex": "7",
+    "remark-math": "6"
+  },
+  "engines": {
+    "node": ">=18.0"
   },
   "browserslist": {
     "production": [
