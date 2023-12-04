@@ -8,21 +8,24 @@
 
 namespace Dune::Copasi {
 
-template<std::size_t dim>
-class FunctorFactoryParser final : public FunctorFactory<dim>
+template<Dune::Concept::Grid Grid>
+class FunctorFactoryParser final : public FunctorFactory<Grid>
 {
 public:
+
+  static constexpr int dim = Grid::dimensionworld;
+
   using Scalar = FieldVector<double, 1>;
   using Vector = FieldVector<double, dim>;
   using Tensor = FieldMatrix<double, dim, dim>;
 
-  using ScalarFunctor = typename FunctorFactory<dim>::ScalarFunctor;
-  using VectorFunctor = typename FunctorFactory<dim>::VectorFunctor;
-  using TensorApplyFunctor = typename FunctorFactory<dim>::TensorApplyFunctor;
+  using ScalarFunctor = typename FunctorFactory<Grid>::ScalarFunctor;
+  using VectorFunctor = typename FunctorFactory<Grid>::VectorFunctor;
+  using TensorApplyFunctor = typename FunctorFactory<Grid>::TensorApplyFunctor;
 
   explicit FunctorFactoryParser(ParserType parser_type = default_parser,
                                 std::shared_ptr<const ParserContext> parser_context = nullptr)
-    : FunctorFactory<dim>()
+    : FunctorFactory<Grid>()
     , _parser_type{ parser_type }
     , _parser_context{ std::move(parser_context) }
   {

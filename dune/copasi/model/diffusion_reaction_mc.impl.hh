@@ -56,7 +56,7 @@ auto
 ModelMultiCompartmentDiffusionReaction<Traits>::make_multi_compartment_pre_basis(
   const Grid& grid,
   const ParameterTree& config,
-  std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory) -> MultiCompartmentPreBasis
+  std::shared_ptr<const FunctorFactory<Grid>> functor_factory) -> MultiCompartmentPreBasis
 {
   TRACE_EVENT("dune", "Basis::SetUp");
   spdlog::info("Setup basis functions");
@@ -226,7 +226,8 @@ ModelMultiCompartmentDiffusionReaction<Traits>::make_step_operator(
 
   using LocalOperator = LocalOperatorDiffusionReactionCG<
     MultiCompartmentBasis,
-    typename ScalarFiniteElementMap::Traits::FiniteElement::Traits::LocalBasisType::Traits>;
+    typename ScalarFiniteElementMap::Traits::FiniteElement::Traits::LocalBasisType::Traits,
+    typename Traits::Grid>;
 
   spdlog::info("Creating mass/stiffness local operator");
   LocalOperator stiff_lop{ basis,

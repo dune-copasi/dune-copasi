@@ -49,11 +49,11 @@ template<class Model>
 std::unique_ptr<Model>
 make_model(
   const ParameterTree& config,
-  std::shared_ptr<const FunctorFactory<Model::Grid::dimensionworld>> functor_factory = nullptr)
+  std::shared_ptr<const FunctorFactory<typename Model::Grid>> functor_factory = nullptr)
 {
   const auto dim = Model::Grid::dimensionworld;
   if (not functor_factory) {
-    functor_factory = std::make_shared<FunctorFactoryParser<dim>>();
+    functor_factory = std::make_shared<FunctorFactoryParser<typename Model::Grid>>();
   }
 
   const auto fem_orders = [dim]() {

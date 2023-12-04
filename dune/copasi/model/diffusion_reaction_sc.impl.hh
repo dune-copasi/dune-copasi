@@ -65,7 +65,7 @@ auto
 ModelDiffusionReaction<Traits>::make_scalar_field_pre_basis(const CompartmentEntitySet& entity_set,
                                                             std::string_view name,
                                                             const ParameterTree& scalar_field_config,
-                                                            std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory) -> ScalarPreBasis
+                                                            std::shared_ptr<const FunctorFactory<Grid>> functor_factory) -> ScalarPreBasis
 {
   spdlog::info("Setup basis functions for component '{}'", name);
   auto scalar_field_pre_basis =
@@ -83,7 +83,7 @@ ModelDiffusionReaction<Traits>::make_compartment_pre_basis(
   std::string_view compartment_name,
   const std::vector<std::string>& scalar_field_names,
   const ParameterTree& scalar_fields_config,
-  std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory) -> CompartmentPreBasis
+  std::shared_ptr<const FunctorFactory<Grid>> functor_factory) -> CompartmentPreBasis
 {
   spdlog::info("Setup compartment basis functions for compartment ;{}'", compartment_name);
 
@@ -111,7 +111,7 @@ void
 ModelDiffusionReaction<Traits>::setup_basis(State& state,
                                             const Grid& grid,
                                             const ParameterTree& config,
-                                            std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory)
+                                            std::shared_ptr<const FunctorFactory<Grid>> functor_factory)
 {
   TRACE_EVENT("dune", "Basis::SetUp");
   using CompartmentBasis = PDELab::Basis<CompartmentEntitySet, CompartmentPreBasis>;
@@ -206,7 +206,8 @@ ModelDiffusionReaction<Traits>::make_step_operator(const State& state,
 
   using LocalOperator = LocalOperatorDiffusionReactionCG<
     CompartmentBasis,
-    typename ScalarFiniteElementMap::Traits::FiniteElement::Traits::LocalBasisType::Traits>;
+    typename ScalarFiniteElementMap::Traits::FiniteElement::Traits::LocalBasisType::Traits,
+    typename Traits::Grid>;
 
   spdlog::info("Creating mass/stiffness local operator");
   LocalOperator const stiff_lop(basis,
@@ -328,7 +329,7 @@ ModelDiffusionReaction<Traits>::write_vtk(const State& state,
   if (coeff_ptr.use_count() != 1) {
     throw format_exception(
       InvalidStateException{},
-      "Fake shared pointer from coefficient vector may have been leaked outsie of this"
+      "Fake shared pointer from coefficient vector may have been leaked outside of this"
       "function!");
   }
 }

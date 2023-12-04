@@ -44,7 +44,7 @@ enum class LocalOperatorType
  * @tparam     Basis    Basis
  * @tparam     LBT   Local basis traits
  */
-template<PDELab::Concept::Basis TestBasis, class LBT>
+template<PDELab::Concept::Basis TestBasis, class LBT, Dune::Concept::Grid Grid>
 class LocalOperatorDiffusionReactionCG
 {
 
@@ -58,8 +58,8 @@ class LocalOperatorDiffusionReactionCG
   mutable std::vector<FieldMatrix<RF, 1, dim>> _jacphi_i, _jacphi_o;
   mutable std::vector<FieldVector<RF, 1>> _phi_i, _phi_o;
 
-  using MembraneScalarFunction = typename LocalEquations<dim>::MembraneScalarFunction;
-  using CompartmentNode = typename LocalEquations<dim>::CompartmentNode;
+  using MembraneScalarFunction = typename LocalEquations<Grid>::MembraneScalarFunction;
+  using CompartmentNode = typename LocalEquations<Grid>::CompartmentNode;
   struct Outflow
   {
     const MembraneScalarFunction& outflow;
@@ -77,7 +77,7 @@ class LocalOperatorDiffusionReactionCG
   bool _has_outflow = true;
 
   PDELab::SharedStash<LocalBasisCache<LBT>> _fe_cache;
-  PDELab::SharedStash<LocalEquations<dim>> _local_values;
+  PDELab::SharedStash<LocalEquations<Grid>> _local_values;
 
   static inline const auto& firstCompartmentFiniteElement(
     const Concept::CompartmentLocalBasisNode auto& lnode) noexcept
@@ -171,18 +171,18 @@ public:
                                    LocalOperatorType lop_type,
                                    bool is_linear,
                                    const ParameterTree& config,
-                                   std::shared_ptr<const FunctorFactory<dim>> functor_factory)
+                                   std::shared_ptr<const FunctorFactory<Grid>> functor_factory)
     : _test_basis{ test_basis }
     , _is_linear{ is_linear }
     , _fe_cache([]() { return std::make_unique<LocalBasisCache<LBT>>(); })
     , _local_values([_lop_type = lop_type,
                      _basis = _test_basis,
                      _config = config,
-                     _functor_factory = std::move(functor_factory)]() {
+                     _functor_factory = std::move(functor_factory) ] () {
       if (_lop_type == LocalOperatorType::Mass)
-        return LocalEquations<dim>::make_mass(_basis.localView(), _config, *_functor_factory);
+        return LocalEquations<Grid>::make_mass(_basis.localView(), _config, *_functor_factory);
       else if (_lop_type == LocalOperatorType::Stiffness)
-        return LocalEquations<dim>::make_stiffness(_basis.localView(), _config, *_functor_factory);
+        return LocalEquations<Grid>::make_stiffness(_basis.localView(), _config, *_functor_factory);
       std::terminate();
     })
   {
@@ -373,6 +373,9 @@ public:
     _local_values->time = time;
     _local_values->entity_volume = geo.volume();
     _local_values->in_volume = 1;
+
+    // Call the gridContext to return the gmsh_id (TO DO: @Dylan)
+    // _local_values->gmsh_id = gridData. _gmsh_id_map(entity);
 
     const auto& trial_finite_element = firstCompartmentFiniteElement(ltrial.tree());
 

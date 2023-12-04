@@ -45,7 +45,7 @@ public:
   using MultiCompartmentMergingStrategy = typename Traits::MultiCompartmentMergingStrategy;
 
   using ScalarPreBasis =
-    PDELab::PreBasis<ScalarMergingStrategy, ScalarFiniteElementMap, Constraints<Grid::dimensionworld>>;
+    PDELab::PreBasis<ScalarMergingStrategy, ScalarFiniteElementMap, Constraints<Grid>>;
   using CompartmentPreBasis = PDELab::PreBasisVector<CompartmentMergingStrategy, ScalarPreBasis>;
   using MultiCompartmentPreBasis =
     PDELab::PreBasisVector<MultiCompartmentMergingStrategy, CompartmentPreBasis>;
@@ -55,7 +55,7 @@ public:
   using GridFunction = typename Base::GridFunction;
 
   explicit ModelMultiCompartmentDiffusionReaction(
-    std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory)
+    std::shared_ptr<const FunctorFactory<Grid>> functor_factory)
     : _functor_factory{ std::move(functor_factory) }
   {
     assert(_functor_factory);
@@ -82,13 +82,13 @@ public:
 private:
   static MultiCompartmentPreBasis make_multi_compartment_pre_basis(const Grid&,
                                                                    const ParameterTree&,
-                                                                   std::shared_ptr<const FunctorFactory<Grid::dimensionworld>>);
+                                                                   std::shared_ptr<const FunctorFactory<Grid>>);
 
   static void setup_coefficient_vector(State&);
   static CompartmentEntitySet get_entity_set(const Grid&, std::size_t);
 
   mutable std::unordered_map<std::string, std::vector<double>> _writer_timesteps;
-  std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> _functor_factory;
+  std::shared_ptr<const FunctorFactory<Grid>> _functor_factory;
 };
 
 } // namespace Dune::Copasi

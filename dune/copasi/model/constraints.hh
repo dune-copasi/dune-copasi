@@ -16,9 +16,11 @@
 
 namespace Dune::Copasi {
 
-template<std::size_t dim>
+template<Dune::Concept::Grid Grid>
 class Constraints : public TypeTree::LeafNode
 {
+  static constexpr int dim = Grid::dimensionworld;
+  using GridView = typename Grid::LeafGridView;
 
   struct Data
   {
@@ -37,7 +39,7 @@ public:
   using Container = PDELab::AffineConstraintsContainer<double, MultiIndex, EntitySet>;
 
   explicit Constraints(const ParameterTree& config = {},
-                       std::shared_ptr<const FunctorFactory<dim>> functor_factory = nullptr)
+                       std::shared_ptr<const FunctorFactory<Grid>> functor_factory = nullptr)
     : TypeTree::LeafNode()
     , _data_codim_0(
         [_config = config, _functor_factory = functor_factory]() -> std::unique_ptr<Data> {

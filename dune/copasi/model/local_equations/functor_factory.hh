@@ -2,6 +2,7 @@
 #define DUNE_COPASI_MODEL_LOCAL_EQUATIONS_FUNCTOR_FACTORY_HH
 
 #include <dune-copasi-config.hh>
+#include <dune/copasi/concepts/grid.hh>
 
 #include <dune/common/fmatrix.hh>
 #include <dune/common/fvector.hh>
@@ -19,10 +20,15 @@ struct LocalDomain;
 
 // the owner of the resulting function must hold the local equations for the lifetime of created
 // functors
-template<std::size_t dim>
+template<Dune::Concept::Grid Grid>
 class FunctorFactory
 {
 public:
+
+  static constexpr int dim = Grid::dimensionworld;
+  using GridView = typename Grid::LeafGridView;
+
+
   using Scalar = FieldVector<double, 1>;
   using Vector = FieldVector<double, dim>;
   using Tensor = FieldMatrix<double, dim, dim>;

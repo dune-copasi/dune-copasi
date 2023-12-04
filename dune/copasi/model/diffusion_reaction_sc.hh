@@ -35,8 +35,7 @@ public:
   using CompartmentEntitySet = typename Traits::CompartmentEntitySet;
   using ScalarFiniteElementMap = typename Traits::ScalarFiniteElementMap;
   using ScalarMergingStrategy = typename Traits::ScalarMergingStrategy;
-  using ScalarPreBasis =
-    PDELab::PreBasis<ScalarMergingStrategy, ScalarFiniteElementMap, Constraints<Grid::dimensionworld>>;
+  using ScalarPreBasis = PDELab::PreBasis<ScalarMergingStrategy, ScalarFiniteElementMap, Constraints<Grid>>;
   using CompartmentMergingStrategy = typename Traits::CompartmentMergingStrategy;
   using CompartmentPreBasis = PDELab::PreBasisVector<CompartmentMergingStrategy, ScalarPreBasis>;
   using ResidualQuantity = ScalarQuantity;
@@ -44,7 +43,7 @@ public:
   using GridFunction = typename Base::GridFunction;
 
   explicit ModelDiffusionReaction(
-    std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory)
+    std::shared_ptr<const FunctorFactory<Grid>> functor_factory)
     : _functor_factory{ std::move(functor_factory) }
   {
     assert(_functor_factory);
@@ -72,16 +71,16 @@ public:
                                                         std::string_view,
                                                         const std::vector<std::string>&,
                                                         const ParameterTree& = {},
-                                                        std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> = nullptr);
+                                                        std::shared_ptr<const FunctorFactory<Grid>> = nullptr);
 
 private:
-  static ScalarPreBasis make_scalar_field_pre_basis(const CompartmentEntitySet&, std::string_view, const ParameterTree&, std::shared_ptr<const FunctorFactory<Grid::dimensionworld>>);
-  static void setup_basis(State&, const Grid&, const ParameterTree&, std::shared_ptr<const FunctorFactory<Grid::dimensionworld>>);
+  static ScalarPreBasis make_scalar_field_pre_basis(const CompartmentEntitySet&, std::string_view, const ParameterTree&, std::shared_ptr<const FunctorFactory<Grid>>);
+  static void setup_basis(State&, const Grid&, const ParameterTree&, std::shared_ptr<const FunctorFactory<Grid>>);
   static void setup_coefficient_vector(State&);
   static CompartmentEntitySet get_entity_set(const Grid&, std::size_t);
 
   mutable std::unordered_map<std::string, std::vector<double>> _writer_timesteps;
-  std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> _functor_factory;
+  std::shared_ptr<const FunctorFactory<Grid>> _functor_factory;
 };
 
 } // namespace Dune::Copasi

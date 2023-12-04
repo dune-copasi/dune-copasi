@@ -58,6 +58,7 @@ make_multi_domain_grid(Dune::ParameterTree& config,
 
   double gmsh_id = std::numeric_limits<double>::max();
   std::function<void(HostEntity)> update_gmsh_id;
+  std::function<double(HostEntity)> get_gmsh_id;
 
   if (grid_config.hasKey("path")) {
     auto grid_path = grid_config.template get<std::string>("path");
@@ -78,6 +79,16 @@ make_multi_domain_grid(Dune::ParameterTree& config,
       }
       assert(_entity.level() == 0);
       gmsh_id = gmsh_physical_entity[mcmg.index(_entity)];
+    };
+
+    // Create a get grid gmsh_id function to add to the parserContext (TO DO: @Dylan)
+    get_gmsh_id = [gmsh_physical_entity, mcmg](const HostEntity& entity) {
+      HostEntity _entity = entity;
+      while (_entity.hasFather()) {
+        _entity = _entity.father();
+      }
+      assert(_entity.level() == 0);
+      return gmsh_physical_entity[mcmg.index(_entity)];
     };
 
   } else {
