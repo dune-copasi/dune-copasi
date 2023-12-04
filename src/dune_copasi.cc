@@ -222,7 +222,7 @@ main(int argc, char** argv)
 
         auto parser_type = string2parser.at(config.get("model.parser_type", default_parser_str));
         auto functor_factory =
-          std::make_shared<FunctorFactoryParser<dim>>(parser_type, std::move(parser_context));
+          std::make_shared<FunctorFactoryParser<MDGrid>>(parser_type, std::move(parser_context));
         std::shared_ptr model = make_model<Model>(model_config, functor_factory);
 
         // create time stepper
@@ -248,11 +248,19 @@ main(int argc, char** argv)
 
         // setup functor for each step
         std::function<void(const State&)> on_each_step;
+        // setup the vtk writer
         auto vtk_path = model_config.get("writer.vtk.path", "");
-        on_each_step = [model_config, vtk_path, model](const auto& state) {
+        // define each time step to write out (standard value = 0. implies every step is written out)
+        auto time_step = model_config.get("writer.time_step", TimeQuantity{ 0. });
+        auto time_write = begin_time;
+
+        on_each_step = [model_config, vtk_path, &time_write, time_step, model](const auto& state) {
           // write to vtk if requested
-          if (not vtk_path.empty()) {
-            model->write_vtk(state, vtk_path, true);
+          if (not vtk_path.empty() ) {
+            if( state.time >= time_write - 1e-9 * time_step){ // small epsilon correction
+              model->write_vtk(state, vtk_path, true);
+              time_write += time_step;
+            }
           }
           // evaluate transform/reduce operations on the model state
           if (model_config.hasSub("reduce")) {

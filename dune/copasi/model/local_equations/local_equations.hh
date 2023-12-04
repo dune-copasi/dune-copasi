@@ -1,6 +1,7 @@
 #ifndef DUNE_COPASI_MODEL_LOCAL_EQUATIONS_LOCAL_EQUATIONS_HH
 #define DUNE_COPASI_MODEL_LOCAL_EQUATIONS_LOCAL_EQUATIONS_HH
 
+#include <dune/copasi/concepts/grid.hh>
 #include <dune/copasi/common/bit_flags.hh>
 #include <dune/copasi/common/exceptions.hh>
 #include <dune/copasi/concepts/compartment_tree.hh>
@@ -29,6 +30,7 @@ namespace Dune::Copasi {
 template<std::size_t dim>
 struct LocalDomain
 {
+
   FieldVector<double, dim> position;
   FieldVector<double, dim> normal;
   double time = 0.;
@@ -36,15 +38,19 @@ struct LocalDomain
   double in_volume = 0;
   double in_boundary = 0;
   double in_skeleton = 0;
+  double gmsh_id = -1;
   virtual ~LocalDomain() {}
 };
 
 // this class holds a data-structure for each equation that contains functors to be evaluated.
 // Additionally, it contains the values with respect these functors may be evaluated if they are
 // non-linear All the functors are require to be thread-safe!
-template<std::size_t dim>
-class LocalEquations : public LocalDomain<dim>
+template<Dune::Concept::Grid Grid>
+class LocalEquations : public LocalDomain<Grid::dimensionworld>
 {
+
+  static constexpr int dim =  Grid::dimensionworld;
+  using GridView = typename Grid::LeafGridView;
 
   using Scalar = FieldVector<double, 1>;
   using Vector = FieldVector<double, dim>;
@@ -263,7 +269,7 @@ public:
   [[nodiscard]] static std::unique_ptr<LocalEquations> make(
     const PDELab::Concept::LocalBasis auto& lbasis,
     const ParameterTree& config = {},
-    FunctorFactory<dim> const * functor_factory = nullptr,
+    FunctorFactory<Grid> const * functor_factory = nullptr,
     BitFlags<FactoryFalgs> opts = BitFlags<FactoryFalgs>::no_flags())
   {
     auto local_values = std::unique_ptr<LocalEquations>(new LocalEquations{});
@@ -303,7 +309,8 @@ public:
   static std::unique_ptr<LocalEquations> make_stiffness(
     const PDELab::Concept::LocalBasis auto& lbasis,
     const ParameterTree& config,
-    const FunctorFactory<dim>& functor_factory)
+    const FunctorFactory<Grid>& functor_factory
+  )
   {
     return make(lbasis,
                 config,
@@ -312,11 +319,16 @@ public:
                   FactoryFalgs::Outflow);
   }
 
-  static std::unique_ptr<LocalEquations> make_mass(const PDELab::Concept::LocalBasis auto& lbasis,
-                                                   const ParameterTree& config,
-                                                   const FunctorFactory<dim>& functor_factory)
+  static std::unique_ptr<LocalEquations> make_mass(
+    const PDELab::Concept::LocalBasis auto& lbasis,
+    const ParameterTree& config,
+    const FunctorFactory<Grid>& functor_factory
+  )
   {
-    return make(lbasis, config, &functor_factory, FactoryFalgs::Storage);
+    return make(lbasis,
+                config,
+                &functor_factory,
+                FactoryFalgs::Storage);
   }
 
   template<class Tree>
@@ -460,7 +472,7 @@ private:
   }
 
   void configure(const ParameterTree& config,
-                 const FunctorFactory<dim>& functor_factory,
+                 const FunctorFactory<Grid>& functor_factory,
                  BitFlags<FactoryFalgs> opts)
   {
 

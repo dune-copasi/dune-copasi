@@ -31,7 +31,7 @@ endif()
 find_package(muparser ${MUPARSER_REQUIREMENT})
 if(${muparser_FOUND})
   set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}\nfind_package(muparser REQUIRED)")
-  set(DUNE_COPASI_MUPARSER_MAX_FUNCTIONS 500 CACHE STRING "Maximum number of functions that muparser can store in its context")
+  set(DUNE_COPASI_MUPARSER_MAX_FUNCTIONS 5000 CACHE STRING "Maximum number of functions that muparser can store in its context")
 endif()
 
 find_package(parafields)
