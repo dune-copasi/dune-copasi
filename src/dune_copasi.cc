@@ -10,6 +10,7 @@
 #include <dune/copasi/model/local_equations/functor_factory_parser.hh>
 #include <dune/copasi/model/model.hh>
 #include <dune/copasi/parser/context.hh>
+#include <dune/copasi/parser/grid_context.hh>
 #include <dune/copasi/parser/factory.hh>
 
 #include <dune/pdelab/common/trace.hh>
@@ -209,15 +210,27 @@ main(int argc, char** argv)
       dims,
       config_dim,
       [&](auto dim) {
+        // get a pointer to the parser grid context
+        auto parser_grid_context = [&] {
+          using MDGTraits = Dune::mdgrid::DynamicSubDomainCountTraits<dim, 10>;
+          if constexpr (dim < 2) {
+            using MDGrid = Dune::mdgrid::MultiDomainGrid<Dune::YaspGrid<dim, Dune::EquidistantOffsetCoordinates<double,dim>>, MDGTraits>;
+            return std::make_shared<ParserGridContext<MDGrid>>(config);
+          } else {
+            using MDGrid = Dune::mdgrid::MultiDomainGrid<Dune::UGGrid<dim>, MDGTraits>; // overly verbose - I know ;) !
+            return std::make_shared<ParserGridContext<MDGrid>>(config);
+          }
+        }();
+
         // get a pointer to the grid
         auto md_grid_ptr = [&] {
           using MDGTraits = Dune::mdgrid::DynamicSubDomainCountTraits<dim, 10>;
           if constexpr (dim < 2) {
             using MDGrid = Dune::mdgrid::MultiDomainGrid<Dune::YaspGrid<dim, Dune::EquidistantOffsetCoordinates<double,dim>>, MDGTraits>;
-            return make_multi_domain_grid<MDGrid>(config, parser_context);
+            return make_multi_domain_grid<MDGrid>(config, parser_context, parser_grid_context);
           } else {
             using MDGrid = Dune::mdgrid::MultiDomainGrid<Dune::UGGrid<dim>, MDGTraits>;
-            return make_multi_domain_grid<MDGrid>(config, parser_context);
+            return make_multi_domain_grid<MDGrid>(config, parser_context, parser_grid_context);
           }
         }();
 
@@ -236,8 +249,9 @@ main(int argc, char** argv)
 
         auto parser_type = string2parser.at(config.get("model.parser_type", default_parser_str));
         auto functor_factory =
-          std::make_shared<FunctorFactoryParser<MDGrid>>(parser_type, std::move(parser_context));
+          std::make_shared<FunctorFactoryParser<MDGrid>>(parser_type, std::move(parser_context), std::move(parser_grid_context));
         std::shared_ptr model = make_model<Model>(model_config, functor_factory);
+
 
         // create time stepper
         const auto& time_config = model_config.sub("time_step_operator");

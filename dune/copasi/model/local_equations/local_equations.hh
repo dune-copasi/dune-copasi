@@ -24,13 +24,13 @@
 #include <utility>
 #include <variant>
 #include <set>
+#include <any>
 
 namespace Dune::Copasi {
 
 template<std::size_t dim>
 struct LocalDomain
 {
-
   FieldVector<double, dim> position;
   FieldVector<double, dim> normal;
   double time = 0.;
@@ -45,16 +45,21 @@ struct LocalDomain
 // this class holds a data-structure for each equation that contains functors to be evaluated.
 // Additionally, it contains the values with respect these functors may be evaluated if they are
 // non-linear All the functors are require to be thread-safe!
-template<Dune::Concept::Grid Grid>
-class LocalEquations : public LocalDomain<Grid::dimensionworld>
+template<Dune::Concept::Grid MDGrid>
+class LocalEquations : public LocalDomain<MDGrid::dimensionworld>
 {
 
-  static constexpr int dim =  Grid::dimensionworld;
-  using GridView = typename Grid::LeafGridView;
+  static constexpr int dim =  MDGrid::dimensionworld;
 
   using Scalar = FieldVector<double, 1>;
   using Vector = FieldVector<double, dim>;
   using Tensor = FieldMatrix<double, dim, dim>;
+
+  using SDGrid = MDGrid::SubDomainGrid;
+  using HostGrid = MDGrid::HostGrid;
+  using SDEntity = typename SDGrid::template Codim<0>::Entity;
+  using MDEntity = typename MDGrid::template Codim<0>::Entity;
+  using HostEntity = typename HostGrid::template Codim<0>::Entity;
 
   using CompartmentPath = TypeTree::HybridTreePath<index_constant<0>, std::size_t, std::size_t>;
   using MembranePath = TypeTree::HybridTreePath<index_constant<1>, std::size_t, std::size_t>;
@@ -271,7 +276,7 @@ public:
   [[nodiscard]] static std::unique_ptr<LocalEquations> make(
     const PDELab::Concept::LocalBasis auto& lbasis,
     const ParameterTree& config = {},
-    FunctorFactory<Grid> const * functor_factory = nullptr,
+    FunctorFactory<MDGrid> const * functor_factory = nullptr,
     BitFlags<FactoryFalgs> opts = BitFlags<FactoryFalgs>::no_flags())
   {
     auto local_values = std::unique_ptr<LocalEquations>(new LocalEquations{});
@@ -311,7 +316,7 @@ public:
   static std::unique_ptr<LocalEquations> make_stiffness(
     const PDELab::Concept::LocalBasis auto& lbasis,
     const ParameterTree& config,
-    const FunctorFactory<Grid>& functor_factory
+    const FunctorFactory<MDGrid>& functor_factory
   )
   {
     return make(lbasis,
@@ -324,7 +329,7 @@ public:
   static std::unique_ptr<LocalEquations> make_mass(
     const PDELab::Concept::LocalBasis auto& lbasis,
     const ParameterTree& config,
-    const FunctorFactory<Grid>& functor_factory
+    const FunctorFactory<MDGrid>& functor_factory
   )
   {
     return make(lbasis,
@@ -356,6 +361,29 @@ public:
   {
     return PDELab::containerEntry(_nodes, make_path(tree)).gradient;
   }
+
+  // Extract the HostEntity -> update gmsh id
+  void update_gmsh_id(const SDEntity& entity)
+  {
+    update_gmsh_id(_parser_grid_mapper->getHostEntity(entity));
+  }
+
+  // Extract the HostEntity -> update gmsh id
+  void update_gmsh_id(const MDEntity& entity)
+  {
+    update_gmsh_id(_parser_grid_mapper->getHostEntity(entity));
+  }
+
+  // The idea is to update this to update_grid_data
+  // Should be included in one function with above one
+  void update_gmsh_id(const HostEntity& entity)
+  {
+    if(_update_gmsh_id){
+      this->gmsh_id = _update_gmsh_id(entity);
+    }else
+      this->gmsh_id = -1;
+  }
+
 
   void clear()
   {
@@ -425,6 +453,10 @@ private:
   std::vector<Scalar> _values;
   std::vector<Vector> _gradients;
 
+  // grid related functor
+  std::function<double (const HostEntity& entity)> _update_gmsh_id;
+  std::shared_ptr<ParserGridMapper<MDGrid>> _parser_grid_mapper;
+
   auto compartment_index(const Concept::CompartmentLocalBasisTree auto&) const
   {
     return Indices::_0;
@@ -474,13 +506,17 @@ private:
   }
 
   void configure(const ParameterTree& config,
-                 const FunctorFactory<Grid>& functor_factory,
+                 const FunctorFactory<MDGrid>& functor_factory,
                  BitFlags<FactoryFalgs> opts)
   {
 
     using ScalarTag = index_constant<0>;
     using VectorTag = index_constant<1>;
     using TensorApplyTag = index_constant<2>;
+
+    auto parser_grid_context = functor_factory.parser_grid_context();
+    _update_gmsh_id = parser_grid_context->get_gmsh_id();
+    _parser_grid_mapper = parser_grid_context->get_parser_grid_mapper();
 
     auto make_functor = overload(
       [&](std::string_view prefix, const ParameterTree& config, int codim, ScalarTag)

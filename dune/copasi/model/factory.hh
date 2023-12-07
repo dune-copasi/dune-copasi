@@ -84,6 +84,7 @@ make_model(
 
   std::unique_ptr<Model> model;
 
+
   if (compartments.size() == 1) {
     // unroll static switch case for dynamic order case
     Dune::Hybrid::switchCases(
@@ -92,11 +93,11 @@ make_model(
       [&](auto fem_order) {
         if (field_blocked) {
           model = std::make_unique<
-            ModelDiffusionReaction<Impl::SingleCompartmentTraits<Model, fem_order, true>>>(
+            ModelDiffusionReaction<Impl::SingleCompartmentTraits<Model, fem_order, true>, typename Model::Grid>>(
             functor_factory);
         } else {
           model = std::make_unique<
-            ModelDiffusionReaction<Impl::SingleCompartmentTraits<Model, fem_order, false>>>(
+            ModelDiffusionReaction<Impl::SingleCompartmentTraits<Model, fem_order, false>, typename Model::Grid>>(
             functor_factory);
         }
       } /*,
@@ -124,8 +125,8 @@ make_model(
               Impl::MultiCompartmentTraits<Model, fem_order, false, false>>>(functor_factory);
           }
         }
-      },
-      not_know_order);
+      } /*,
+      not_know_order*/);
   }
 
   assert(model); // this should not be reachable if parameters are invalid

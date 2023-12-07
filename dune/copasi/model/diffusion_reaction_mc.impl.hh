@@ -79,7 +79,7 @@ ModelMultiCompartmentDiffusionReaction<Traits>::make_multi_compartment_pre_basis
     CompartmentEntitySet sub_grid_view = grid.subDomain(domain_id).leafGridView();
 
     CompartmentPreBasis compartment_pre_basis =
-      ModelDiffusionReaction<Traits>::make_compartment_pre_basis(
+      ModelDiffusionReaction<Traits, Grid>::make_compartment_pre_basis(
         sub_grid_view, compartment, components, scalar_fields_config, functor_factory);
     compartment_pre_basis_vec.emplace_back(compartment_pre_basis);
   }
@@ -227,7 +227,7 @@ ModelMultiCompartmentDiffusionReaction<Traits>::make_step_operator(
   using LocalOperator = LocalOperatorDiffusionReactionCG<
     MultiCompartmentBasis,
     typename ScalarFiniteElementMap::Traits::FiniteElement::Traits::LocalBasisType::Traits,
-    typename Traits::Grid>;
+    Grid>;
 
   spdlog::info("Creating mass/stiffness local operator");
   LocalOperator stiff_lop{ basis,

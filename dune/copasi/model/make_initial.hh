@@ -21,11 +21,11 @@
 
 namespace Dune::Copasi {
 
-template<class GridFunction, Dune::Concept::Grid Grid>
+template<class GridFunction, Dune::Concept::Grid Grid, Dune::Concept::Grid HostGrid>
 [[nodiscard]] inline static std::unordered_map<std::string, GridFunction>
 make_initial(const Grid& grid,
              const ParameterTree& config,
-             const FunctorFactory<Grid>& functor_factory)
+             const FunctorFactory<HostGrid>& functor_factory)
 {
   TRACE_EVENT("dune", "InitialCondition");
 

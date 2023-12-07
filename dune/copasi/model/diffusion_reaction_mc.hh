@@ -56,7 +56,7 @@ public:
 
   explicit ModelMultiCompartmentDiffusionReaction(
     std::shared_ptr<const FunctorFactory<Grid>> functor_factory)
-    : _functor_factory{ std::move(functor_factory) }
+    : _functor_factory{ functor_factory } // ?? std::move(functor_factory) ??
   {
     assert(_functor_factory);
   }

@@ -44,14 +44,14 @@ template class ModelDiffusionReaction<ModelDiffusionPkReactionTraits<HostGrid,
                                                                      double,
                                                                      double,
                                                                      false,
-                                                                     false>>;
+                                                                     false>, MDGrid>;
 template class ModelDiffusionReaction<ModelDiffusionPkReactionTraits<HostGrid,
                                                                      HostGridView,
                                                                      DUNE_COPASI_FEM_ORDER,
                                                                      double,
                                                                      double,
                                                                      false,
-                                                                     true>>;
+                                                                     true>, MDGrid>;
 
 template class ModelDiffusionReaction<ModelDiffusionPkReactionTraits<MDGrid,
                                                                      SDGridView,
@@ -59,14 +59,14 @@ template class ModelDiffusionReaction<ModelDiffusionPkReactionTraits<MDGrid,
                                                                      double,
                                                                      double,
                                                                      false,
-                                                                     false>>;
+                                                                     false>, MDGrid>;
 template class ModelDiffusionReaction<ModelDiffusionPkReactionTraits<MDGrid,
                                                                      SDGridView,
                                                                      DUNE_COPASI_FEM_ORDER,
                                                                      double,
                                                                      double,
                                                                      false,
-                                                                     true>>;
+                                                                     true>, MDGrid>;
 
 } // namespace Copasi
 } // namespace Dune

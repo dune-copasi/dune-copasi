@@ -38,8 +38,9 @@ public:
   template<PDELab::Concept::MultiIndex MultiIndex, Dune::Concept::GridView EntitySet>
   using Container = PDELab::AffineConstraintsContainer<double, MultiIndex, EntitySet>;
 
+  template<Dune::Concept::Grid HostGrid>
   explicit Constraints(const ParameterTree& config = {},
-                       std::shared_ptr<const FunctorFactory<Grid>> functor_factory = nullptr)
+                       std::shared_ptr<const FunctorFactory<HostGrid>> functor_factory = nullptr)
     : TypeTree::LeafNode()
     , _data_codim_0(
         [_config = config, _functor_factory = functor_factory]() -> std::unique_ptr<Data> {
