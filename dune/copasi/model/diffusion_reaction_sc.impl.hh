@@ -263,7 +263,7 @@ ModelDiffusionReaction<Traits>::reduce(const State& state, const ParameterTree& 
 template<class Traits>
 void
 ModelDiffusionReaction<Traits>::write_vtk(const State& state,
-                                          const fs::path& path,
+                                          const std::filesystem::path& path,
                                           bool append) const
 {
   using CompartmentBasis = PDELab::Basis<CompartmentEntitySet, CompartmentPreBasis>;
@@ -279,11 +279,11 @@ ModelDiffusionReaction<Traits>::write_vtk(const State& state,
   std::shared_ptr<const Coefficients> const coeff_ptr = Dune::stackobject_to_shared_ptr(coeff);
 
   // create directory if necessary
-  auto path_entry = fs::directory_entry{ path };
+  auto path_entry = std::filesystem::directory_entry{ path };
   if (not path_entry.exists()) {
     spdlog::info("Creating output directory '{}'", path_entry.path().string());
     std::error_code ec{ 0, std::generic_category() };
-    fs::create_directories(path_entry.path(), ec);
+    std::filesystem::create_directories(path_entry.path(), ec);
     if (ec) {
       throw format_exception(IOError{},
                              "\n Category: {}\nValue: {}\nMessage: {}\n",

@@ -1,5 +1,4 @@
 #include <dune/copasi/common/exceptions.hh>
-#include <dune/copasi/common/filesystem.hh>
 #include <dune/copasi/common/tiff_file.hh>
 
 #include <dune/common/exceptions.hh>
@@ -8,12 +7,13 @@
 #include <tiff.h>
 #include <tiffio.h>
 
+#include <filesystem>
 #include <cstddef>
 #include <cstdint>
 
 namespace Dune::Copasi {
 
-TIFFFile::TIFFFile(const fs::path& filename)
+TIFFFile::TIFFFile(const std::filesystem::path& filename)
   : _tiff_file(static_cast<TIFF*>(TIFFOpen(filename.string().c_str(), "r")))
 {
   TIFF* tiff_file = static_cast<TIFF*>(_tiff_file);

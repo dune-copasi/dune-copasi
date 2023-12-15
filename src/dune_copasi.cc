@@ -47,6 +47,7 @@ static const std::vector<std::array<std::string, 4>> config_file_opts;
 #include <cstddef>
 #include <exception>
 #include <functional>
+#include <filesystem>
 #include <iostream>
 #include <memory>
 #include <optional>
@@ -107,7 +108,7 @@ program_help(std::string_view prog_name, bool long_help)
 int
 main(int argc, char** argv)
 {
-  const Dune::Copasi::fs::path prog_path = argv[0];
+  const std::filesystem::path prog_path = argv[0];
 
   int end_code = 0;
   Dune::ParameterTree config;
@@ -148,7 +149,7 @@ main(int argc, char** argv)
     auto is_config = [](std::string_view opt) { return opt.starts_with("--config="); };
     if (auto cfg_it = std::ranges::find_if(cmd_args, is_config); cfg_it != cmd_args.end()) {
       auto cfg_file = std::string{ *cfg_it }.substr(9);
-      if (not exists(Dune::Copasi::fs::path{cfg_file})) {
+      if (not exists(std::filesystem::path{cfg_file})) {
         throw Dune::Copasi::format_exception(Dune::IOError{}, "Configuration file '{}' does not exist", cfg_file);
       }
       if (not dump_config) {

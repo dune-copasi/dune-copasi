@@ -1,11 +1,10 @@
 #ifndef DUNE_COPASI_TIFF_FILE_HH
 #define DUNE_COPASI_TIFF_FILE_HH
 
-#include <dune/copasi/common/filesystem.hh>
-
 #include <dune/common/exceptions.hh>
 #include <dune/common/float_cmp.hh>
 
+#include <filesystem>
 #include <memory>
 
 namespace Dune::Copasi {
@@ -30,7 +29,7 @@ struct TIFFFile
   };
 
   //! opens a tiff file from the file system
-  explicit TIFFFile(const fs::path& filename);
+  explicit TIFFFile(const std::filesystem::path& filename);
 
   TIFFFile(const TIFFFile&) = delete;
   TIFFFile(TIFFFile&&) = delete;

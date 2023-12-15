@@ -56,7 +56,7 @@ make_model(
     functor_factory = std::make_shared<FunctorFactoryParser<dim>>();
   }
 
-  const auto fem_orders = [dim]() {
+  const auto fem_orders = []() {
     if constexpr (dim == 1) {
       return std::index_sequence<DUNE_COPASI_1D_FEM_ORDERS>{};
     } else if constexpr (dim == 2) {

@@ -8,6 +8,7 @@
 #include <exprtk.hpp>
 
 #include <array>
+#include <cassert>
 #include <memory>
 #include <mutex>
 #include <string>

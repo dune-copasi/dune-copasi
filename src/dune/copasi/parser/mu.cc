@@ -15,7 +15,6 @@
 #include <cassert>
 #include <cstddef>
 #include <exception>
-#include <iostream>
 #include <memory>
 #include <mutex>
 #include <string>

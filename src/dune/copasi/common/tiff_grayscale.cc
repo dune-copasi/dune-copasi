@@ -10,6 +10,7 @@
 #include <climits>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <memory>
 #include <tuple>
 #include <utility>
@@ -66,7 +67,7 @@ TIFFGrayscale::TIFFGrayscaleRow::row() const -> std::size_t
   return _row;
 }
 
-TIFFGrayscale::TIFFGrayscale(const fs::path& filename, std::size_t max_cache)
+TIFFGrayscale::TIFFGrayscale(const std::filesystem::path& filename, std::size_t max_cache)
   : _tiff{ filename }
   , _max_cache(max_cache)
 {

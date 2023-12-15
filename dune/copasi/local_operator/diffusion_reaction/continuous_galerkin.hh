@@ -200,13 +200,13 @@ public:
     if constexpr (Concept::MultiDomainGrid<typename TestBasis::EntitySet::Grid>)
       forEachNode(lbasis.tree(),
                   overload(
-                    [&](const Concept::CompartmentLocalBasisNode auto& ltrial_node, auto path) {
+                    [&](const Concept::CompartmentLocalBasisNode auto& /*ltrial_node*/, auto path) {
                       auto compartment = back(path);
                       _compartment2domain.resize(compartment + 1);
                       _compartment2domain[compartment] =
                         _test_basis.subSpace(path).entitySet().grid().domain();
                     },
-                    [&](const auto& ltrial_node) {}));
+                    [&](const auto& /*ltrial_node*/) {}));
     else
       _compartment2domain.assign(1, std::numeric_limits<std::size_t>::max());
   }

@@ -149,8 +149,7 @@ public:
     CompartmentDiffusionApply(
       fu2::unique_function<Vector(Vector) const noexcept>&& callable,
       const CompartmentNode& _wrt)
-      : CompartmentDifferentiableFunction<Vector(
-          Vector) const noexcept>{ std::move(callable) }
+      : CompartmentDifferentiableFunction<Vector(Vector) const noexcept>{ std::move(callable) }
       , wrt{ _wrt }
     {
     }

@@ -2,7 +2,6 @@
 #define DUNE_COPASI_MODEL_MODEL_HH
 
 #include <dune/copasi/common/exceptions.hh>
-#include <dune/copasi/common/filesystem.hh>
 
 #include <dune/pdelab/operator/operator.hh>
 
@@ -14,9 +13,10 @@
 #include <dune/common/parametertree.hh>
 
 #include <any>
+#include <filesystem>
 #include <map>
-#include <string>
 #include <memory>
+#include <string>
 #include <unordered_map>
 
 namespace Dune::Copasi {
@@ -78,7 +78,7 @@ struct Model
     throw format_exception(NotImplemented{}, "Model has no membrane functions");
   }
 
-  virtual void write_vtk(const State&, const fs::path&, bool) const
+  virtual void write_vtk(const State&, const std::filesystem::path&, bool) const
   {
     throw format_exception(NotImplemented{}, "Model write has not been implemented");
   }
