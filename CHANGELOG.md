@@ -36,6 +36,7 @@ Types of changes
 
 ### Changed
 
+ - Update ExprTk to 0.0.3 !237
  - Improve documentation !210 !211 !212 !213 !214 !215 !216 !217 !218 !219 !220 !221 !222 !223 !224 !225 !226 !227 !228
 
 ### Fixed

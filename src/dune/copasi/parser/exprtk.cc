@@ -33,10 +33,10 @@ struct ParserData
   // the order of these entries **does** matter!
   std::pmr::monotonic_buffer_resource memory_resource;
 #endif
-  exprtk::parser<typename ExprTkParser::RangeField> parser;
-  exprtk::expression<typename ExprTkParser::RangeField> expression;
-  exprtk::symbol_table<typename ExprTkParser::RangeField> symbol_table;
-  std::vector<std::shared_ptr<exprtk::ifunction<typename ExprTkParser::RangeField>>> functions;
+  exprtk::parser<typename ExprTkParser::RangeField> parser{};
+  exprtk::expression<typename ExprTkParser::RangeField> expression{};
+  exprtk::symbol_table<typename ExprTkParser::RangeField> symbol_table{};
+  std::vector<std::shared_ptr<exprtk::ifunction<typename ExprTkParser::RangeField>>> functions{};
 };
 
 ExprTkParser::ExprTkParser()
