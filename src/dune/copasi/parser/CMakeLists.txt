@@ -16,7 +16,7 @@ if ((NOT ExprTk_FOUND) AND (NOT CMAKE_DISABLE_FIND_PACKAGE_ExprTk) AND (NOT DUNE
   FetchContent_Declare(
     exprtk
     GIT_REPOSITORY https://github.com/ArashPartow/exprtk.git
-    GIT_TAG        0.0.2
+    GIT_TAG        0.0.3
   )
   if(NOT exprtk_POPULATED)
     message("-- Populating ExprTk")
