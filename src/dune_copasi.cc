@@ -217,7 +217,7 @@ main(int argc, char** argv)
             using MDGrid = Dune::mdgrid::MultiDomainGrid<Dune::YaspGrid<dim, Dune::EquidistantOffsetCoordinates<double,dim>>, MDGTraits>;
             return std::make_shared<ParserGridContext<MDGrid>>(config);
           } else {
-            using MDGrid = Dune::mdgrid::MultiDomainGrid<Dune::UGGrid<dim>, MDGTraits>; // overly verbose - I know ;) !
+            using MDGrid = Dune::mdgrid::MultiDomainGrid<Dune::UGGrid<dim>, MDGTraits>; 
             return std::make_shared<ParserGridContext<MDGrid>>(config);
           }
         }();

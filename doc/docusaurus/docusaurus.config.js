@@ -49,6 +49,11 @@ module.exports = {
           position: 'left',
         },
         {
+          to: 'blog',
+          label: 'Blog',
+          position: 'left',
+        },
+        {
           type: 'docsVersionDropdown',
           position: 'left',
           dropdownActiveClassDisabled: true,
@@ -119,6 +124,11 @@ module.exports = {
           rehypePlugins: [ katex ],
           showLastUpdateTime: true,
           showLastUpdateAuthor: true,
+        },
+        blog: {
+          path: 'blog',
+          remarkPlugins: [ math ],
+          rehypePlugins: [ katex ],
         },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),

@@ -376,6 +376,8 @@ public:
 
     // Call the gridContext to update the gmsh_id
     _local_values->update_gmsh_id(entity);
+    // Call the gridContext to update the grid variables
+    _local_values->update_grid_data(entity);
 
     const auto& trial_finite_element = firstCompartmentFiniteElement(ltrial.tree());
 
@@ -520,6 +522,8 @@ public:
 
     // Call the gridContext to update the gmsh_id
     _local_values->update_gmsh_id(entity);
+    // Call the gridContext to update the grid variables
+    _local_values->update_grid_data(entity);
 
     const auto& trial_finite_element = firstCompartmentFiniteElement(ltrial.tree());
 

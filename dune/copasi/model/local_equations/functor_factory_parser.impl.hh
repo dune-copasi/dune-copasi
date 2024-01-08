@@ -152,6 +152,10 @@ FunctorFactoryParser<Grid>::parse_scalar_expression(const ParameterTree& config,
 
     // make gmsh_id available during assembly (only compartment)
     parser_ptr->define_variable("gmsh_id", &(local_values.gmsh_id));
+    for(const auto& node : local_values.cell_data){
+      std::cout << "Defining grid data variable: " << node.first << std::endl;
+      parser_ptr->define_variable(node.first, &(node.second));
+    }
 
     LocalEquations<Grid> const* d = dynamic_cast<LocalEquations<Grid> const*>(&local_values);
     if (d != nullptr)

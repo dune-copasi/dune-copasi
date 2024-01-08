@@ -39,6 +39,7 @@ struct LocalDomain
   double in_boundary = 0;
   double in_skeleton = 0;
   double gmsh_id = -1;
+  std::unordered_map<std::string, double> cell_data;  // data adresses to be bound to the parser
   virtual ~LocalDomain() {}
 };
 
@@ -384,6 +385,26 @@ public:
       this->gmsh_id = -1;
   }
 
+  // TO DO: merge with gmsh_id section above
+  // Extract the HostEntity -> update grid data
+  void update_grid_data(const SDEntity& entity)
+  {
+    update_grid_data(_parser_grid_mapper->getHostEntity(entity));
+  }
+
+  // Extract the HostEntity -> update grid data
+  void update_grid_data(const MDEntity& entity)
+  {
+    update_grid_data(_parser_grid_mapper->getHostEntity(entity));
+  }
+
+  // The idea is to update this to update_grid_data
+  // Should be included in one function with above one
+  void update_grid_data(const HostEntity& entity)
+  {
+    _grid_context->update_grid_data(this->cell_data, entity);
+  }
+
 
   void clear()
   {
@@ -455,6 +476,8 @@ private:
 
   // grid related functor
   std::function<double (const HostEntity& entity)> _update_gmsh_id;
+  std::shared_ptr<const ParserGridContext<MDGrid>> _grid_context;
+  //std::unordered_map<std::string, std::function<double*(std::size_t)>> _update_element_data;
   std::shared_ptr<ParserGridMapper<MDGrid>> _parser_grid_mapper;
 
   auto compartment_index(const Concept::CompartmentLocalBasisTree auto&) const
@@ -514,10 +537,19 @@ private:
     using VectorTag = index_constant<1>;
     using TensorApplyTag = index_constant<2>;
 
-    auto parser_grid_context = functor_factory.parser_grid_context();
-    _update_gmsh_id = parser_grid_context->get_gmsh_id();
-    _parser_grid_mapper = parser_grid_context->get_parser_grid_mapper();
+    // configure grid context data
+    _grid_context = functor_factory.parser_grid_context();
+    _update_gmsh_id = _grid_context->get_gmsh_id();
+    _parser_grid_mapper = _grid_context->get_parser_grid_mapper();
 
+    const std::unordered_map<std::string, std::function<double*(std::size_t)>>& cell_data = _grid_context->get_cell_data();
+    this->cell_data.reserve( cell_data.size() );
+
+    for (const auto& node : cell_data){
+      this->cell_data[node.first] = 0.0;
+    }
+
+    // configure functors
     auto make_functor = overload(
       [&](std::string_view prefix, const ParameterTree& config, int codim, ScalarTag)
         -> fu2::unique_function<Scalar() const noexcept> {
