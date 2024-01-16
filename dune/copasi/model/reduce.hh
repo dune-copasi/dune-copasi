@@ -201,7 +201,7 @@ reduce(const Basis& basis,
       auto error = parser_context->make_function(sub_parser_type, std::array{std::string{args[0]}}, expr);
       if (FloatCmp::ne(error(value), 0.)) {
         processed = true;
-        spdlog::error("  | {0:>{2}} := {1: .{3}e} |", sty_key, value, max_key_chars, max_val_chars);
+        spdlog::error("  | {0:>{2}} := {1: .{3}e} |", std::move(sty_key), value, max_key_chars, max_val_chars);
         if (not error_msg.empty())
           error_msg += '\n';
         error_msg += fmt::format("Reduction on the token '{}' raised an error because the "
@@ -221,12 +221,12 @@ reduce(const Basis& basis,
       auto warn = parser_context->make_function(sub_parser_type, std::array{std::string{args[0]}}, expr);
       if (FloatCmp::ne(warn(value), 0.)) {
         processed = true;
-        spdlog::warn("| {0:>{2}} := {1: .{3}e} |", sty_key, value, max_key_chars, max_val_chars);
+        spdlog::warn("| {0:>{2}} := {1: .{3}e} |", std::move(sty_key), value, max_key_chars, max_val_chars);
       }
     }
 
     if (not processed and not config.sub(key).get("quiet", false)) {
-      spdlog::info("   | {0:>{2}} := {1: .{3}e} |", sty_key, value, max_key_chars, max_val_chars);
+      spdlog::info("   | {0:>{2}} := {1: .{3}e} |", std::move(sty_key), value, max_key_chars, max_val_chars);
     }
   }
   spdlog::info("   └{0:─^{1}}┘", "", max_key_chars+max_val_chars+13);

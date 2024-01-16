@@ -111,9 +111,9 @@ public:
     auto& sty_time_next = time_next;
 #endif
     spdlog::info("Evaluating time step: {:.2e}s + {:.2e}s -> {:.2e}s",
-                 sty_time,
+                 std::move(sty_time),
                  dt,
-                 sty_time_next);
+                 std::move(sty_time_next));
 
     // set stepper with time-stepping parameters
     one_step["duration"] = dt;

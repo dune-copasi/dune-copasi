@@ -87,7 +87,7 @@ program_help(std::string_view prog_name, bool long_help)
       auto& sty_type = type;
       auto& sty_short_doc = short_doc;
 #endif
-      fmt::print("  {}={}\n     {}\n", sty_key, sty_type, sty_short_doc);
+      fmt::print("  {}={}\n     {}\n", std::move(sty_key), std::move(sty_type), std::move(sty_short_doc));
       if (long_help and not long_doc.empty()) {
         std::istringstream iss(long_doc);
         for (std::string line; std::getline(iss, line);) {
@@ -96,7 +96,7 @@ program_help(std::string_view prog_name, bool long_help)
 #else
           auto sty_line = line;
 #endif
-          fmt::print("       {}\n", sty_line);
+          fmt::print("       {}\n", std::move(sty_line));
         }
       }
     }
