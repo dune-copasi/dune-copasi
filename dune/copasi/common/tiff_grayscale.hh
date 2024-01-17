@@ -15,7 +15,7 @@ namespace Dune::Copasi {
  * @brief This class describes a tiff grayscale.
  * @details This class opens, closes, and query information from a single tiff
  * image. Data can be queried using matrix like indices with the bracket
- * operator or using space coordinates using the parethesis operator.
+ * operator or using space coordinates using the parenthesis operator.
  */
 class TIFFGrayscale
 {
