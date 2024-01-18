@@ -18,6 +18,7 @@ RUN export DEBIAN_FRONTEND=noninteractive; \
   build-essential \
   ca-certificates \
   cmake \
+  codespell \
   curl \
   dpkg \
   dpkg-dev \
@@ -27,6 +28,7 @@ RUN export DEBIAN_FRONTEND=noninteractive; \
   gcovr \
   git \
   git-lfs \
+  gnupg \
   libfftw3-dev \
   libfftw3-mpi-dev \
   libgtest-dev \
@@ -40,8 +42,31 @@ RUN export DEBIAN_FRONTEND=noninteractive; \
   mpi-default-dev \
   ninja-build \
   pkg-config \
+  python3 \
+  python3-pip \
+  python3-dev \
+  python3-venv \
+  python3-setuptools \
+  software-properties-common \
+  wget \
   && apt-get clean
 
+RUN  wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - \
+  && add-apt-repository "deb http://apt.llvm.org/unstable/ llvm-toolchain-unstable-17 main" \
+  && export DEBIAN_FRONTEND=noninteractive; \
+  apt-get update \
+  && apt-get install --no-install-recommends --yes \
+  clang-17 \
+  clang-tidy-17 \
+  && update-alternatives --install /usr/bin/clang clang /usr/bin/clang-17 100 \
+  && update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-17 100 \
+  && update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-17 100 \
+  && apt-get clean
+
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+RUN pip3 install codechecker
 
 # ARG TOOLCHAIN=clang-6-17
 
@@ -54,8 +79,11 @@ ENV DUNE_OPTS_FILE=/duneci/cmake-flags/dune-copasi.opts
 COPY --chown=duneci ./dune-copasi.opts /duneci/cmake-flags/
 COPY --chown=duneci ./.ci /duneci/modules/dune-copasi/.ci
 
-RUN    ln -s /duneci/toolchains/${TOOLCHAIN} /duneci/toolchain \
-    && export PATH=/duneci/install/bin:$PATH
+ENV DUNE_ENABLE_PYTHONBINDINGS=OFF
+ENV CMAKE_CXX_COMPILER=clang++
+ENV CMAKE_C_COMPILER=clang
+# RUN    ln -s /duneci/toolchains/${TOOLCHAIN} /duneci/toolchain \
+#     && export PATH=/duneci/install/bin:$PATH
 WORKDIR /duneci/modules
 RUN mkdir -p /duneci/modules/dune-copasi/.ci
 RUN ./dune-copasi/.ci/setup_dune $DUNE_OPTS_FILE
@@ -63,6 +91,8 @@ RUN ./dune-copasi/.ci/setup_dune $DUNE_OPTS_FILE
 # build and install dune-copasi from the setup-env
 FROM ${BUILD_BASE_IMAGE} AS build-env
 
+ENV CMAKE_CXX_COMPILER=clang++
+ENV CMAKE_C_COMPILER=clang
 ENV CPACK_GENERATORS=DEB
 ENV CPACK_PACKAGE_DIRECTORY=/duneci/packages
 
@@ -72,6 +102,7 @@ WORKDIR /duneci/modules
 COPY --chown=duneci ./ /duneci/modules/dune-copasi
 
 # run installer
+ENV DUNE_ENABLE_PYTHONBINDINGS=OFF
 RUN ./dune-copasi/.ci/install $DUNE_OPTS_FILE
 
 # tests installer

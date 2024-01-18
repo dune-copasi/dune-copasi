@@ -2,11 +2,15 @@
 
 # build and install
 
+# used env variables
+# DUNE_OPTIONS_FILE
+#   (optional) CPACK_GENERATORS
+#   (optional) CPACK_PACKAGE_DIRECTORY
+#   (optional) CODE_CHECKER_REPORT_PATH
+
 # variables from DUNE_OPTIONS_FILE
 #   (optional) CMAKE_FLAGS
 #   (optional) SUDOCMD
-#   (optional) CPACK_GENERATORS
-#   (optional) CPACK_PACKAGE_DIRECTORY
 
 set +e
 
@@ -27,7 +31,7 @@ SUDOCMD="$(. ${DUNE_OPTIONS_FILE}; eval echo \$SUDOCMD)"
 SCRIPT_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 source $SCRIPT_PATH/util
 
-SOURCEDIR=${SCRIPT_PATH}/..
+SOURCEDIR=`readlink -f ${SCRIPT_PATH}/..`
 BUILD_PATH=/tmp/dune-copasi-build
 
 print_opts_file() {
@@ -50,13 +54,18 @@ trap onfailure EXIT
 mkdir $BUILD_PATH && cd $BUILD_PATH
 
 echo "cmake $CMAKE_FLAGS $SOURCEDIR"
-eval cmake $CMAKE_FLAGS $SOURCEDIR
+eval CMAKE_EXPORT_COMPILE_COMMANDS=ON cmake $CMAKE_FLAGS $SOURCEDIR
 
-$SUDOCMD cmake --build $BUILD_PATH --target install
+if test "x$CODE_CHECKER_REPORT_PATH" != "x"; then
+  CodeChecker analyze $BUILD_PATH/compile_commands.json --config ${SOURCEDIR}/.codechecker.json --output $CODE_CHECKER_REPORT_PATH
+  CodeChecker parse --config ${SOURCEDIR}/.codechecker.json --trim-path-prefix ${SOURCEDIR} -e codeclimate $CODE_CHECKER_REPORT_PATH > $CODE_CHECKER_REPORT_PATH/gl-code-quality-report.json
+else
+  $SUDOCMD cmake --build $BUILD_PATH --target install
 
-for generator in $CPACK_GENERATORS; do
-  cpack -G $generator -B $CPACK_PACKAGE_DIRECTORY CPackConfig.cmake
-done
+  for generator in $CPACK_GENERATORS; do
+    cpack -G $generator -B $CPACK_PACKAGE_DIRECTORY CPackConfig.cmake
+  done
+fi
 
 cd $SCRIPT_PATH
 trap cleanup EXIT

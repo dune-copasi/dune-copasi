@@ -1,0 +1,9 @@
+{
+  "analyze": [
+    "--analyzers=clang-tidy",
+    "--file=*/dune-copasi/*.cc"
+  ],
+  "parse": [
+    "--file=*/dune-copasi/*"
+  ]
+}
