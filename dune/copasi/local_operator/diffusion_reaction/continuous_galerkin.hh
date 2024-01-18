@@ -683,7 +683,8 @@ public:
 
     _local_values->time = time;
     _local_values->entity_volume = geo_f.volume();
-    _local_values->in_boundary = not (_local_values->in_skeleton = double(intersection.neighbor()));
+    _local_values->in_boundary = static_cast<double>(not intersection.neighbor());
+    _local_values->in_skeleton = static_cast<double>(intersection.neighbor());
 
     using LocalBasis =
       std::decay_t<decltype(firstCompartmentFiniteElement(ltrial_in.tree()).localBasis())>;
@@ -877,7 +878,8 @@ public:
 
     _local_values->time = time;
     _local_values->entity_volume = geo_f.volume();
-    _local_values->in_boundary = not (_local_values->in_skeleton = double(intersection.neighbor()));
+    _local_values->in_boundary = static_cast<double>(not intersection.neighbor());
+    _local_values->in_skeleton = static_cast<double>(intersection.neighbor());
 
     using LocalBasis =
       std::decay_t<decltype(firstCompartmentFiniteElement(ltrial_in.tree()).localBasis())>;

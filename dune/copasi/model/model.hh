@@ -45,6 +45,13 @@ struct Model
     RangeQuatinty(typename GridView::template Codim<0>::Geometry::GlobalCoordinate),
     GridView>;
 
+  Model() = default;
+  Model(const Model&) = delete;
+  Model(Model&&) = delete;
+
+  Model& operator=(const Model&) = delete;
+  Model& operator=(Model&&) = delete;
+
   virtual ~Model() = default;
 
   [[nodiscard]] virtual std::unique_ptr<State> make_state(const std::shared_ptr<const Grid>&,

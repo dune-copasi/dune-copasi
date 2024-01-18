@@ -2,16 +2,20 @@
 
 #include <dune/copasi/common/exceptions.hh>
 
+#include <dune/common/rangeutilities.hh>
 #include <dune/common/exceptions.hh>
 #include <dune/common/hybridutilities.hh>
 
 #include <exprtk.hpp>
 
+#include <algorithm>
 #include <array>
 #include <cassert>
+#include <cstddef>
 #include <memory>
 #include <mutex>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #ifndef DUNE_COPASI_EXPRTK_MAX_FUNCTIONS

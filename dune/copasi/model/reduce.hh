@@ -6,6 +6,7 @@
 #include <dune/copasi/parser/context.hh>
 #include <dune/copasi/finite_element/local_basis_cache.hh>
 #include <dune/copasi/common/exceptions.hh>
+#include <dune/copasi/common/fmt_style.hh>
 
 #include <dune/pdelab/concepts/basis.hh>
 #include <dune/pdelab/common/local_container.hh>
@@ -18,7 +19,6 @@
 #include <function2/function2.hpp>
 #include <spdlog/spdlog.h>
 
-#include <fmt/color.h>
 #include <fmt/core.h>
 
 #include <string>
@@ -186,11 +186,6 @@ reduce(const Basis& basis,
       value = transformation(value);
     }
 
-#if FMT_VERSION >= 90000
-    auto sty_key = fmt::styled(key, fmt::emphasis::bold);
-#else
-    auto sty_key = key;
-#endif
     bool processed = false;
 
     if (config.sub(key).hasKey("error.expression")) {
@@ -201,7 +196,7 @@ reduce(const Basis& basis,
       auto error = parser_context->make_function(sub_parser_type, std::array{std::string{args[0]}}, expr);
       if (FloatCmp::ne(error(value), 0.)) {
         processed = true;
-        spdlog::error("  | {0:>{2}} := {1: .{3}e} |", std::move(sty_key), value, max_key_chars, max_val_chars);
+        spdlog::error("  | {0:>{2}} := {1: .{3}e} |", DUNE_COPASI_FMT_STYLED_BOLD(key), value, max_key_chars, max_val_chars);
         if (not error_msg.empty())
           error_msg += '\n';
         error_msg += fmt::format("Reduction on the token '{}' raised an error because the "
@@ -221,12 +216,12 @@ reduce(const Basis& basis,
       auto warn = parser_context->make_function(sub_parser_type, std::array{std::string{args[0]}}, expr);
       if (FloatCmp::ne(warn(value), 0.)) {
         processed = true;
-        spdlog::warn("| {0:>{2}} := {1: .{3}e} |", std::move(sty_key), value, max_key_chars, max_val_chars);
+        spdlog::warn("| {0:>{2}} := {1: .{3}e} |", DUNE_COPASI_FMT_STYLED_BOLD(key), value, max_key_chars, max_val_chars);
       }
     }
 
     if (not processed and not config.sub(key).get("quiet", false)) {
-      spdlog::info("   | {0:>{2}} := {1: .{3}e} |", std::move(sty_key), value, max_key_chars, max_val_chars);
+      spdlog::info("   | {0:>{2}} := {1: .{3}e} |", DUNE_COPASI_FMT_STYLED_BOLD(key), value, max_key_chars, max_val_chars);
     }
   }
   spdlog::info("   └{0:─^{1}}┘", "", max_key_chars+max_val_chars+13);

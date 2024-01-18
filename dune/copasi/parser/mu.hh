@@ -19,7 +19,7 @@ public:
   MuParser& operator=(const MuParser&) = delete;
   MuParser& operator=(MuParser&&) = default;
 
-  ~MuParser() final;
+  ~MuParser() override final;
 
   using RangeField = typename Parser::RangeField;
 

@@ -83,9 +83,12 @@ TIFFGrayscale::operator[](std::size_t row) const -> const TIFFGrayscale::TIFFGra
 [[nodiscard]] auto
 TIFFGrayscale::operator()(double pos_x, double pos_y) noexcept -> double
 {
-  auto row = static_cast<uint32_t>(_tiff.info().x_res * (pos_x - _tiff.info().x_off));
-  auto col = _tiff.info().row_size -
-             static_cast<uint32_t>(_tiff.info().y_res * (pos_y - _tiff.info().y_off)) - 1;
+  auto row =
+    static_cast<uint32_t>(_tiff.info().x_res * (static_cast<float>(pos_x) - _tiff.info().x_off));
+  auto col =
+    _tiff.info().row_size -
+    static_cast<uint32_t>(_tiff.info().y_res * (static_cast<float>(pos_y) - _tiff.info().y_off)) -
+    1;
   // clamp invalid pixel indices to nearest valid pixel
   row = std::clamp(row, uint32_t{ 0 }, _tiff.info().col_size - 1);
   col = std::clamp(col, uint32_t{ 0 }, _tiff.info().row_size - 1);

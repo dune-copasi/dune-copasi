@@ -134,7 +134,7 @@ public:
 
   virtual PDELab::ErrorCondition apply(Range& range, Domain& domain) override
   {
-    uint64_t solver_timestamp = perfetto::TrackEvent::GetTraceTimeNs();
+    [[maybe_unused]] uint64_t solver_timestamp = perfetto::TrackEvent::GetTraceTimeNs();
     TRACE_EVENT("dune", "LinearSolver", solver_timestamp);
     static_assert(std::is_same_v<Range, Domain>);
     auto& forward = this->template get<PDELab::Operator<Domain, Range>>("forward");
@@ -386,7 +386,7 @@ make_step_operator(const ParameterTree& config,
       basis, basis, mass_local_operator, stiffness_local_operator);
   } else { // matrix based
     auto pattern_factory = [basis, stiffness_local_operator, mass_local_operator, svg_path](
-                             const auto& op, RKJacobian& jac) {
+                             const auto& /*op*/, RKJacobian& jac) {
       // TODO(sospinar): resize outer jacobian wrt instationary coefficients
       jac.resize(1, 1);
 
@@ -394,7 +394,7 @@ make_step_operator(const ParameterTree& config,
       auto& entry = jac[0][0];
 
       // TODO(sospinar): fix pattern in PDELab!
-      auto size_per_row = []<class MultiIndex>(MultiIndex i, MultiIndex j) -> std::size_t {
+      auto size_per_row = []<class MultiIndex>(MultiIndex /*i*/, MultiIndex /*j*/) -> std::size_t {
         //       if constexpr (CompartmentMergingStrategy::Blocked) {
         //         assert(i.size() == j.size());
         //         assert(i.size() < 2);

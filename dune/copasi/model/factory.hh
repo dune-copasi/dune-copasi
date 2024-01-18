@@ -51,17 +51,16 @@ make_model(
   const ParameterTree& config,
   std::shared_ptr<const FunctorFactory<Model::Grid::dimensionworld>> functor_factory = nullptr)
 {
-  const auto dim = Model::Grid::dimensionworld;
   if (not functor_factory) {
-    functor_factory = std::make_shared<FunctorFactoryParser<dim>>();
+    functor_factory = std::make_shared<FunctorFactoryParser<Model::Grid::dimensionworld>>();
   }
 
   const auto fem_orders = []() {
-    if constexpr (dim == 1) {
+    if constexpr (Model::Grid::dimensionworld == 1) {
       return std::index_sequence<DUNE_COPASI_1D_FEM_ORDERS>{};
-    } else if constexpr (dim == 2) {
+    } else if constexpr (Model::Grid::dimensionworld == 2) {
       return std::index_sequence<DUNE_COPASI_2D_FEM_ORDERS>{};
-    } else if constexpr (dim == 3) {
+    } else if constexpr (Model::Grid::dimensionworld == 3) {
       return std::index_sequence<DUNE_COPASI_3D_FEM_ORDERS>{};
     }
     return std::index_sequence<1>{};
