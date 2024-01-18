@@ -9,7 +9,7 @@ tags: [Electrophysiology, Dune Copasi]
 hide_table_of_contents: false
 ---
 
-In this blog I will show you can configure the Dune Copasi simulation environment to perform a very simple cardiac electrophysiology simulation. I will show you how you can simulate the Mitchell-Schaeffer cardiomyocyte electrophysiology model in a 2D environment. First I will show you how you can obtain a working version of Dune Copasi within a docker environment. Thereafter, I will introduce the electrophysiology model and how to implement it.
+In this blog I will show you can configure the Dune Copasi simulation environment to perform a very simple cardiac electrophysiology simulation. I will show you how you can simulate the Mitchell-Schaeffer cardiomyocyte electrophysiology model in a 2D environment. First, I will show you how you can obtain a working version of Dune Copasi within a docker environment. Thereafter, I will introduce the electrophysiology model and how to implement it.
 
 <!-- truncate -->
 
@@ -69,7 +69,7 @@ Cardiomyocytes maintain an ion concentration gradient between the intracellular 
 
 $$
 \begin{aligned}
-  \partial_t V_m = &J_{in}(V_m,h) + J_{out}(V_m),\\
+  C_m \partial_t V_m = &J_{in}(V_m,h) + J_{out}(V_m),\\
   &J_{in}(V_m,h) = \frac{h {V_m}^2 (1-V_m)}{\tau_{in}},\\
   &J_{out}(V_m)  = \frac{V_m}{\tau_{out}},
 \end{aligned}
@@ -88,4 +88,48 @@ where $\tau_{in}$ and $\tau_{out}$ are time-scale variables for the gating varia
 
 ### The bi-domain equation of cardiac electrophysiology
 
-WORK IN PROGRESS ... 
+In the section above we described a model capturing the basic electrophysiology of cardiomyocytes. Now we want to extend this by coupling multiple cardiomyocytes yielding a spatial description of the cardiac electrophysiology. To obtain this we will depart from Ohm's law stating
+
+$$
+  J = \sigma E.
+$$  
+
+In our specific case we have two compartments. We will use an intracellular and extracellular current density and potential. We obtain
+
+$$
+\begin{aligned}
+  J_{i} &= \sigma_i E_i = \sigma_i \nabla \varphi_i,\\
+  J_{e} &= \sigma_e E_e = \sigma_e \nabla \varphi_e. \\
+\end{aligned}
+$$
+
+Furthermore, we assume that any current leaving the intracellular space flows into the extracellular (and vice-versa) and that there is no charge accumulation. Therefore, the change in current density in the extracellular space has to be equal to the current flowing into the intracellular space. Using Gauss' law (i.e. the divergence theorem) this can be written as
+
+$$  
+  \nabla \cdot J_{i} + \nabla \cdot J_{e} = 0 = \nabla \cdot \sigma_i \nabla \varphi_i + \nabla \cdot \sigma_e \nabla \varphi_e.
+$$
+
+The current flowing from the intracellular into the extracellular space is nothing else than the transmembrane current $I_m$ (per surface area). The conservation of current can be rewritten as
+
+$$
+\begin{aligned}
+  I_m &= \nabla \cdot \sigma_i \nabla \varphi_i = -\nabla \cdot \sigma_e \nabla \varphi_e.\\
+\end{aligned}
+$$
+
+The transmembrane current $I_m$ can be modeled using the cable equation where we combine the ion channel current $I_{ion}$ with a capacitative component
+
+$$
+\begin{aligned}
+  I_m &= A_m \Big( C_m \frac{\partial V_m }{\partial t} + I_{ion} \Big)\\
+\end{aligned}
+$$
+
+where $V_m = \varphi_i - \varphi_e$ is the transmembrane potential and $A_m$ is the surface density. Rewriting these equations (by eliminating $\varphi_i$) yields the standard form of the bidomain equation of cardiac electrophysiology:
+
+$$
+\begin{aligned}
+  A_m \Big( C_m \frac{\partial V_m }{\partial t} + I_{ion} \Big) &= \nabla \cdot \sigma_i \nabla V_m + \nabla \cdot \sigma_i \nabla \varphi_e ,\\
+  0 &= \nabla \cdot \sigma_i \nabla V_m + \nabla \cdot (\sigma_i + \sigma_e) \nabla \varphi_e . \\
+\end{aligned}
+$$

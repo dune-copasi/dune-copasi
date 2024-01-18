@@ -135,9 +135,7 @@ public:
         cell_data[node.first] = 0.0;
       }
     }
-
-    std::cout << "================ \n";
-
+    
   }
 
 
