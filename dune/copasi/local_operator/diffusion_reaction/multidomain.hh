@@ -58,7 +58,7 @@ class LocalOperatorMultiDomainDiffusionReaction
 {
   static_assert(Concept::isMultiDomainGrid<Grid>());
 
-  //! jacobian tpye
+  //! jacobian type
   using IndexSet = typename Grid::LeafGridView::IndexSet;
 
   static constexpr std::size_t unused_domain = ~std::size_t(0);

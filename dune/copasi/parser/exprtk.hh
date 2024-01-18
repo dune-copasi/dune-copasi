@@ -18,6 +18,12 @@ class ExprTkParser final : public Parser
 public:
   ExprTkParser();
 
+  ExprTkParser(const ExprTkParser&) = delete;
+  ExprTkParser(ExprTkParser&&) = default;
+
+  ExprTkParser& operator=(const ExprTkParser&) = delete;
+  ExprTkParser& operator=(ExprTkParser&&) = default;
+
   ~ExprTkParser() override final;
 
   using RangeField = typename Parser::RangeField;

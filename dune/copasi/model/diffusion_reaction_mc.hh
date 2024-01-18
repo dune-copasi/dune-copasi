@@ -75,7 +75,7 @@ public:
   std::unique_ptr<PDELab::OneStep<State>> make_step_operator(const State&,
                                                              const ParameterTree&) const override;
 
-  void write_vtk(const State&, const fs::path&, bool) const override;
+  void write_vtk(const State&, const std::filesystem::path&, bool) const override;
 
   std::map<std::string, double> reduce(const State&, const ParameterTree&) const override;
 

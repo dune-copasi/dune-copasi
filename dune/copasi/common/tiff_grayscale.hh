@@ -5,6 +5,7 @@
 
 #include <function2/function2.hpp>
 
+#include <filesystem>
 #include <functional>
 #include <queue>
 
@@ -14,7 +15,7 @@ namespace Dune::Copasi {
  * @brief This class describes a tiff grayscale.
  * @details This class opens, closes, and query information from a single tiff
  * image. Data can be queried using matrix like indices with the bracket
- * operator or using space coordinates using the parethesis operator.
+ * operator or using space coordinates using the parenthesis operator.
  */
 class TIFFGrayscale
 {
@@ -73,7 +74,7 @@ public:
    * @param[in]  filename   The filename
    * @param[in]  max_cache  The maximum row cache.
    */
-  explicit TIFFGrayscale(const fs::path& filename, std::size_t max_cache = 8);
+  explicit TIFFGrayscale(const std::filesystem::path& filename, std::size_t max_cache = 8);
 
   /**
    * @brief      Array indexer row operator.

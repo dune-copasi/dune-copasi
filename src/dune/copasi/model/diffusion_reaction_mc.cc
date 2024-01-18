@@ -8,9 +8,7 @@
 
 #include <dune/copasi/model/diffusion_reaction_mc.hh>
 #include <dune/copasi/model/diffusion_reaction_mc_traits.hh>
-#include <dune/copasi/model/diffusion_reaction_sc.hh>
 #include <dune/copasi/model/diffusion_reaction_sc_traits.hh>
-#include <dune/copasi/model/local_equations/functor_factory_parser.hh>
 
 #if DUNE_COPASI_GRID_DIMENSION < 2
 #include <dune/grid/yaspgrid.hh>
@@ -18,7 +16,8 @@
 #include <dune/grid/uggrid.hh>
 #endif
 
-#include <dune/grid/multidomaingrid.hh>
+#include <dune/grid/multidomaingrid/mdgridtraits.hh>
+#include <dune/grid/multidomaingrid/multidomaingrid.hh>
 
 namespace Dune {
 

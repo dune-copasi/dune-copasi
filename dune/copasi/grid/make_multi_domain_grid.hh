@@ -180,7 +180,7 @@ make_multi_domain_grid(Dune::ParameterTree& config,
         md_grid_ptr->addToSubDomain(id, cell);
       }
     }
-    if (max_domains_per_entity > static_cast<std::size_t>(md_grid_traits.maxSubDomainIndex() + 1)) {
+    if (max_domains_per_entity > static_cast<std::size_t>(md_grid_traits.maxSubDomainIndex()) + 1u) {
       throw format_exception(GridError{},
                              "This version of dune-copasi does not support to"
                              " have more than {} domains per entity!",

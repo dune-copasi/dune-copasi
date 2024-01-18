@@ -5,7 +5,6 @@
 
 #include <function2/function2.hpp>
 
-#include <functional>
 #include <memory>
 #include <ostream>
 #include <sstream>

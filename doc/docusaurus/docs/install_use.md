@@ -21,7 +21,7 @@ The [Spatial Model Editor](https://github.com/spatial-model-editor/spatial-model
 is a **user friendly** GUI editor to create and edit 2D
 spatial *Systems Biology Markup Language* ([SBML](https://en.wikipedia.org/wiki/SBML))
 models of bio-chemical reactions. Additionally, it can simulate them with `dune-copasi`. A big
-adventage of this package is that is tailored for biologists and is available
+advantage of this package is that is tailored for biologists and is available
 with just a pair of clicks on the major plataforms. Find more information
 [here](https://spatial-model-editor.readthedocs.io/en/latest/quickstart/get-started.html)!
 
@@ -268,7 +268,7 @@ The following list of software is required to install and use `dune-copasi`:
 | [COPASI/dune-pdelab](https://gitlab.dune-project.org/copasi/dune-pdelab)                    | `support/dune-copasi-latest` |
 
 :::info
-Notice that some required dune modules are forks of original reopsitories and
+Notice that some required dune modules are forks of original repositories and
 are placed under the [COPASI namespace](https://gitlab.dune-project.org/copasi/)
 on the [DUNE GitLab](https://gitlab.dune-project.org/).
 :::

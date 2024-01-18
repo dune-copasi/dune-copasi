@@ -48,13 +48,13 @@ class BitFlags
   // Ensure that Enum is a valid template
   static_assert(
     is_bitflags_v<Enum>,
-    "Enum is not a bit flag and it should not be instatiated in BitFlag class");
+    "Enum is not a bit flag and it should not be instantiated in BitFlag class");
   static_assert(std::is_enum_v<Enum>, "Emum type must be a enummeration type");
 
   //! Bit set representation of the bit flag
   using BitSet = std::bitset<CHAR_BIT * sizeof(Enum)>;
 
-  //! Unterlying type to operate with
+  //! Underlying type to operate with
   using UnderlyingType = std::underlying_type_t<Enum>;
 
   //! Value full of 0 bits

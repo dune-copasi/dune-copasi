@@ -24,13 +24,12 @@
 
 #include <algorithm>
 #include <array>
-#include <bitset>
 #include <cctype>
+#include <cmath>
 #include <cstddef>
 #include <functional>
 #include <limits>
 #include <memory>
-#include <ranges>
 #include <string>
 #include <string_view>
 #include <tuple>
@@ -227,26 +226,30 @@ ParserContext::add_context(Parser& parser) const
       if (config.get("interpolate", false)) {
         // replace actual function with an interpolation
         if constexpr (dim == 1) {
-          auto intervals = config.get("interpolation.intervals", std::size_t{1000});
-          if (intervals < 1)
+          const auto intervals_u = config.get("interpolation.intervals", 1000u);
+          const auto intervals_f = static_cast<double>(intervals_u);
+          if (std::trunc(intervals_f) != 0.0)
+            throw format_exception(IOError{}, "Number of interpolation intervals is too big!");
+          if (intervals_u < 1u)
             throw format_exception(IOError{}, "At least one interval is required in function {}", name);
           auto domain = config.get("interpolation.domain." + array_args[0],  std::array<double,2>{0., 1.});
           if (domain[0] >= domain[1])
             throw format_exception(IOError{}, "Domain arguments ({}, {}) of function {} are not ordered", domain[0], domain[1], name);
           auto ooo = config.get("interpolation.out_of_bounds", "error");
-          std::vector<double> grid_eval(intervals+1, 0.);
-          double width = (domain[1] - domain[0])/intervals;
+          std::vector<double> grid_eval(intervals_u+1, 0.);
+          double width = (domain[1] - domain[0])/intervals_f;
           // evaluate function over the grid
           for(std::size_t i = 0; i != grid_eval.size(); ++i)
-            grid_eval[i] = fnc(domain[0] + i*width);
-          auto ctn = intervals/(domain[1] - domain[0]);
+            grid_eval[i] = fnc(domain[0] + static_cast<double>(i)*width);
+          auto ctn = intervals_f/(domain[1] - domain[0]);
           // store interpolation instead of function
-          auto fnc_raw = [domain, ctn, intervals, _grid_eval = std::move(grid_eval)](auto pos) {
+          auto fnc_raw = [domain, ctn, intervals_u, _grid_eval = std::move(grid_eval)](auto pos) {
             // convert position to one of the intervals
             double interval = (pos - domain[0])*ctn;
             double t = std::modf(interval, &interval);
-            auto i = std::max<std::size_t>(0, interval);
-            auto j = std::min<std::size_t>(interval, intervals+1);
+            auto interval_st = static_cast<unsigned int>(interval);
+            auto i = std::max(0u, interval_st);
+            auto j = std::min(interval_st, intervals_u+1u);
             return std::lerp(_grid_eval[i], _grid_eval[j], t);
           };
           if (ooo == "clamp") {

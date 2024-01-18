@@ -31,6 +31,15 @@ namespace Dune::Copasi {
 template<std::size_t dim>
 struct LocalDomain
 {
+  LocalDomain() = default;
+  LocalDomain(const LocalDomain&) = delete;
+  LocalDomain(LocalDomain&&) = delete;
+
+  LocalDomain& operator=(const LocalDomain&) = delete;
+  LocalDomain& operator=(LocalDomain&&) = delete;
+
+  virtual ~LocalDomain() {}
+
   FieldVector<double, dim> position;
   FieldVector<double, dim> normal;
   double time = 0.;
@@ -65,6 +74,17 @@ class LocalEquations : public LocalDomain<MDGrid::dimensionworld>
   using CompartmentPath = TypeTree::HybridTreePath<index_constant<0>, std::size_t, std::size_t>;
   using MembranePath = TypeTree::HybridTreePath<index_constant<1>, std::size_t, std::size_t>;
 
+  LocalEquations() = default;
+public:
+  LocalEquations(const LocalEquations&) = delete;
+  LocalEquations(LocalEquations&&) = delete;
+
+  virtual ~LocalEquations() override = default;
+
+  LocalEquations& operator=(const LocalEquations&) = delete;
+  LocalEquations& operator=(LocalEquations&&) = delete;
+
+private:
   static const Concept::CompartmentScalarLocalBasisNode auto& path_to_local_basis_node(
     CompartmentPath path,
     const Concept::CompartmentLocalBasisNode auto& lbasis)
@@ -135,14 +155,14 @@ public:
   template<class Signature>
   struct CompartmentDifferentiableFunction : public fu2::unique_function<Signature>
   {
-    std::vector<CompartmentPartialDerivative<Signature>> compartment_jacobian;
+    std::vector<CompartmentPartialDerivative<Signature>> compartment_jacobian = {};
   };
 
   template<class Signature>
   struct MembraneDifferentiableFunction : public fu2::unique_function<Signature>
   {
-    std::vector<CompartmentPartialDerivative<Signature>> compartment_jacobian;
-    std::vector<MembranePartialDerivative<Signature>> membrane_jacobian;
+    std::vector<CompartmentPartialDerivative<Signature>> compartment_jacobian = {};
+    std::vector<MembranePartialDerivative<Signature>> membrane_jacobian = {};
   };
 
   using CompartmentScalarFunction =
@@ -158,11 +178,8 @@ public:
   struct CompartmentDiffusionApply
     : public CompartmentDifferentiableFunction<Vector(Vector) const noexcept>
   {
-    CompartmentDiffusionApply(
-      fu2::unique_function<Vector(Vector) const noexcept>&& callable,
-      const CompartmentNode& _wrt)
-      : CompartmentDifferentiableFunction<Vector(
-          Vector) const noexcept>{ std::move(callable) }
+    CompartmentDiffusionApply(fu2::unique_function<Vector(Vector) const noexcept>&& callable,const CompartmentNode& _wrt)
+      : CompartmentDifferentiableFunction<Vector(Vector) const noexcept>{ std::move(callable) }
       , wrt{ _wrt }
     {
     }
@@ -175,8 +192,7 @@ public:
     MembraneDiffusionApply(
       fu2::unique_function<Vector(Vector) const noexcept>&& callable,
       const MembraneNode& _wrt)
-      : MembraneDifferentiableFunction<Vector(Vector)
-                                         const noexcept>{ std::move(callable) }
+      : MembraneDifferentiableFunction<Vector(Vector) const noexcept>{ std::move(callable) }
       , wrt{ _wrt }
     {
     }
@@ -457,14 +473,6 @@ private:
     auto compartment_id = (mi.size() == 2) ? front(mi) : 0;
     return TypeTree::treePath(compartment_type, compartment_id, field_id);
   }
-
-  LocalEquations() = default;
-
-  LocalEquations(const LocalEquations&) = delete;
-  LocalEquations(LocalEquations&&) = delete;
-
-  LocalEquations& operator=(const LocalEquations&) = delete;
-  LocalEquations& operator=(LocalEquations&&) = delete;
 
   // (bulk|membrane, compartment, component)
   TupleVector<std::vector<std::vector<CompartmentNode>>, std::vector<std::vector<MembraneNode>>>

@@ -33,6 +33,12 @@ public:
   {
   }
 
+  FunctorFactoryParser(const FunctorFactoryParser&) = delete;
+  FunctorFactoryParser(FunctorFactoryParser&&) = delete;
+
+  FunctorFactoryParser& operator=(const FunctorFactoryParser&) = delete;
+  FunctorFactoryParser& operator=(FunctorFactoryParser&&) = delete;
+
   ~FunctorFactoryParser() override = default;
 
   [[nodiscard]] ScalarFunctor make_scalar(std::string_view /*prefix*/,

@@ -2,6 +2,7 @@
 #define DUNE_COPASI_COMMON_STEPPERS_HH
 
 #include <dune/copasi/common/exceptions.hh>
+#include <dune/copasi/common/fmt_style.hh>
 
 #include <dune/pdelab/common/convergence/reason.hh>
 #include <dune/pdelab/common/trace.hh>
@@ -10,7 +11,6 @@
 #include <dune/common/float_cmp.hh>
 #include <dune/common/parametertree.hh>
 
-#include <fmt/color.h>
 #include <fmt/core.h>
 
 #include <spdlog/spdlog.h>
@@ -71,10 +71,10 @@ public:
   }
 
   TimeStepper(const TimeStepper&) = delete;
-  TimeStepper(TimeStepper&) = delete;
+  TimeStepper(TimeStepper&&) = delete;
 
   TimeStepper& operator=(const TimeStepper&) = delete;
-  TimeStepper& operator=(TimeStepper&) = delete;
+  TimeStepper& operator=(TimeStepper&&) = delete;
 
   //! Time stepper destructor
   virtual ~TimeStepper() = default;
@@ -103,17 +103,10 @@ public:
 
     TimeQuantity time = _time_const(in);
     TimeQuantity time_next = time + dt;
-#if FMT_VERSION >= 90000
-    auto sty_time = fmt::styled(time, fmt::emphasis::bold);
-    auto sty_time_next = fmt::styled(time_next, fmt::emphasis::bold);
-#else
-    auto& sty_time = time;
-    auto& sty_time_next = time_next;
-#endif
     spdlog::info("Evaluating time step: {:.2e}s + {:.2e}s -> {:.2e}s",
-                 sty_time,
+                 DUNE_COPASI_FMT_STYLED_BOLD(time),
                  dt,
-                 sty_time_next);
+                 DUNE_COPASI_FMT_STYLED_BOLD(time_next));
 
     // set stepper with time-stepping parameters
     one_step["duration"] = dt;
@@ -220,7 +213,7 @@ public:
       // find number of time steps to fit in the (time,snap_time) range
       auto timesteps_ratio = ((snap_time - time) / dt);
       using std::ceil;
-      const int timesteps_until_end = ceil(timesteps_ratio);
+      const auto timesteps_until_end = static_cast<int>(ceil(timesteps_ratio));
       if (timesteps_until_end <= 0) {
         throw format_exception(MathError{}, "Timestep doesn't make advances towards snap step");
       }

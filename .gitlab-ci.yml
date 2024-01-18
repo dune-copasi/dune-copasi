@@ -1,9 +1,10 @@
 ---
 
 stages:
-  - check
   - setup
+  - check
   - build
+  - codequality
   - deploy
 
 .default_tags: &default_tags
@@ -38,18 +39,10 @@ variables:
   DOCKER_DRIVER: overlay2
   DOCKER_TLS_CERTDIR: ""
 
-.debian_gcc: &debian_gcc
-  # TOOLCHAIN: gcc-8-17
+.debian_clang: &debian_clang
   DUNECI_OS: debian
   BASE_IMAGE: debian:trixie
   DEPENDENCIES_IMAGE: ${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${TOOLCHAIN}-${BASE_IMAGE_VERSION}
-
-# .debian_clang: &debian_clang
-#   TOOLCHAIN: clang-6-17
-#   DUNECI_OS: debian
-#   BASE_IMAGE: debian:10
-#   DEPENDENCIES_IMAGE: ${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${TOOLCHAIN}-${BASE_IMAGE_VERSION}
-#   MASTER_IMAGE: "true"
 
 .setup: &setup
   image: ${DOCKER_IMAGE}
@@ -84,6 +77,16 @@ variables:
     paths:
       - packages
     expire_in: 1h
+
+.codequality: &codequality
+  image: ${DEPENDENCIES_IMAGE}
+  stage: codequality
+  script:
+    - CODE_CHECKER_REPORT_PATH=$CI_PROJECT_DIR/code_checker_report ./.ci/install dune-copasi.opts
+  <<: *default_tags
+  artifacts:
+    reports:
+      codequality: $CI_PROJECT_DIR/code_checker_report/gl-code-quality-report.json
 
 .deploy: &deploy
   image: ${DOCKER_IMAGE}
@@ -121,54 +124,40 @@ variables:
     - if: '$CI_COMMIT_BRANCH == "latest"'
   <<: *dind_docker_tags
 
-code_spelling:
+codespell:
+  variables:
+    <<: *debian_clang
+  <<: *default_tags
   stage: check
-  tags: [duneci]
-  image: registry.dune-project.org/docker/ci/debian:11
+  image: ${DEPENDENCIES_IMAGE}
   script:
   - codespell
     --skip=./doc/docusaurus/yarn.lock
 
-# debian gcc
-setup:debian_gcc:
+setup:debian_clang:
   variables:
     <<: *docker_variables
-    <<: *debian_gcc
+    <<: *debian_clang
   <<: *setup
 
-build:debian_gcc:
+build:debian_clang:
   variables:
-    <<: *debian_gcc
+    <<: *debian_clang
   <<: *build
   dependencies:
-    - setup:debian_gcc
+    - setup:debian_clang
 
-deploy:debian_gcc:
+codequality:debian_clang:
+  variables:
+    <<: *debian_clang
+  <<: *codequality
+  dependencies:
+    - setup:debian_clang
+
+deploy:debian_clang:
   variables:
     <<: *docker_variables
-    <<: *debian_gcc
+    <<: *debian_clang
   <<: *deploy
   dependencies:
-    - build:debian_gcc
-
-# # debian clang
-# setup:debian_clang:
-#   variables:
-#     <<: *docker_variables
-#     <<: *debian_clang
-#   <<: *setup
-
-# build:debian_clang:
-#   variables:
-#     <<: *debian_clang
-#   <<: *build
-#   dependencies:
-#     - setup:debian_clang
-
-# deploy:debian_clang:
-#   variables:
-#     <<: *docker_variables
-#     <<: *debian_clang
-#   <<: *deploy
-#   dependencies:
-#     - build:debian_clang
+    - build:debian_clang

@@ -4,7 +4,16 @@
 #define DUNE_COPASI_GRID_DIMENSIONS 2
 #endif
 
+#include <dune-copasi-config.hh>
+
 #include <dune/copasi/common/stepper.hh>
+#include <dune/copasi/common/exceptions.hh>
+#include <dune/copasi/common/fmt_style.hh>
+
+#if HAVE_PERFETTO
+#include <dune/copasi/common/ostream_to_spdlog.hh>
+#endif
+
 #include <dune/copasi/grid/make_multi_domain_grid.hh>
 #include <dune/copasi/model/factory.hh>
 #include <dune/copasi/model/local_equations/functor_factory_parser.hh>
@@ -12,6 +21,7 @@
 #include <dune/copasi/parser/context.hh>
 #include <dune/copasi/parser/grid_context.hh>
 #include <dune/copasi/parser/factory.hh>
+#include <dune/copasi/parser/parser.hh>
 
 #include <dune/pdelab/common/trace.hh>
 
@@ -20,18 +30,16 @@
 
 #include <dune/grid/uggrid.hh>
 #include <dune/grid/yaspgrid.hh>
+#include <dune/grid/yaspgrid/coordinates.hh>
 
 #include <dune/common/exceptions.hh>
-#include <dune/common/float_cmp.hh>
-#include <dune/common/fvector.hh>
-#include <dune/common/indices.hh>
 #include <dune/common/parallel/mpihelper.hh>
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>
+#include <dune/common/hybridutilities.hh>
 
 #include <spdlog/spdlog.h>
 
-#include <fmt/color.h>
 #include <fmt/core.h>
 
 // Generated options for the done-copasi configuration ini-file
@@ -43,17 +51,17 @@ static const std::vector<std::array<std::string, 4>> config_file_opts;
 
 #include <algorithm>
 #include <array>
-#include <cassert>
-#include <chrono>
 #include <cstddef>
 #include <exception>
 #include <functional>
+#include <filesystem>
 #include <iostream>
 #include <memory>
 #include <optional>
-#include <set>
+#include <type_traits>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -79,25 +87,14 @@ program_help(std::string_view prog_name, bool long_help)
     fmt::print("Configuration Options:\n\n");
     for (auto [key, type, short_doc, long_doc] : config_file_opts) {
       auto key_stg = "--" + key;
-#if FMT_VERSION >= 90000
-      auto sty_key = fmt::styled(key_stg, fmt::emphasis::bold);
-      auto sty_type = fmt::styled(type, fmt::emphasis::italic);
-      auto sty_short_doc = fmt::styled(short_doc, fmt::fg(fmt::color::dark_gray));
-#else
-      auto& sty_key = key_stg;
-      auto& sty_type = type;
-      auto& sty_short_doc = short_doc;
-#endif
-      fmt::print("  {}={}\n     {}\n", sty_key, sty_type, sty_short_doc);
+      fmt::print("  {}={}\n     {}\n", 
+        DUNE_COPASI_FMT_STYLED_BOLD(key),
+        DUNE_COPASI_FMT_STYLED_ITALIC(type),
+        DUNE_COPASI_FMT_STYLED_DARK_GRAY(short_doc));
       if (long_help and not long_doc.empty()) {
         std::istringstream iss(long_doc);
         for (std::string line; std::getline(iss, line);) {
-#if FMT_VERSION >= 90000
-          auto sty_line = fmt::styled(line, fmt::fg(fmt::color::dark_gray));
-#else
-          auto sty_line = line;
-#endif
-          fmt::print("       {}\n", sty_line);
+          fmt::print("       {}\n", DUNE_COPASI_FMT_STYLED_DARK_GRAY(line));
         }
       }
     }
@@ -108,7 +105,7 @@ program_help(std::string_view prog_name, bool long_help)
 int
 main(int argc, char** argv)
 {
-  const Dune::Copasi::fs::path prog_path = argv[0];
+  const std::filesystem::path prog_path = argv[0];
 
   int end_code = 0;
   Dune::ParameterTree config;
@@ -149,7 +146,7 @@ main(int argc, char** argv)
     auto is_config = [](std::string_view opt) { return opt.starts_with("--config="); };
     if (auto cfg_it = std::ranges::find_if(cmd_args, is_config); cfg_it != cmd_args.end()) {
       auto cfg_file = std::string{ *cfg_it }.substr(9);
-      if (not exists(Dune::Copasi::fs::path{cfg_file})) {
+      if (not exists(std::filesystem::path{cfg_file})) {
         throw Dune::Copasi::format_exception(Dune::IOError{}, "Configuration file '{}' does not exist", cfg_file);
       }
       if (not dump_config) {
@@ -175,7 +172,7 @@ main(int argc, char** argv)
   std::unique_ptr<Dune::PDELab::TracingSession> tracing_session;
   if (not trace_path.empty()) {
     tracing_session = [trace_path]() {
-      auto ostream_guard = Dune::Copasi::ostream2spdlog();
+      [[maybe_unused]] auto ostream_guard = Dune::Copasi::ostream2spdlog();
       return std::make_unique<Dune::PDELab::TracingSession>(trace_path);
     }();
   }
@@ -310,10 +307,10 @@ main(int argc, char** argv)
         stepper.evolve(*step_operator, *in, *in, initial_step, end_time, on_each_step).or_throw();
       },
       [config_dim]() {
-        Dune::IOError excep;
-        excep.message(
-          fmt::format("This executable cannot simulate in {}D grids!", std::size_t{ config_dim }));
-        throw excep;
+        throw Dune::Copasi::format_exception(
+          Dune::IOError{},
+          "This executable cannot simulate in {}D grids!",
+          std::size_t{ config_dim });
       });
   } catch (Dune::NotImplemented& e) {
     spdlog::error("Feature is not implemented:");

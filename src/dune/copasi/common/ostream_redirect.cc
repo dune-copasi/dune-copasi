@@ -4,7 +4,6 @@
 #include <function2/function2.hpp>
 
 #include <cstring>
-#include <functional>
 #include <ios>
 #include <memory>
 #include <ostream>

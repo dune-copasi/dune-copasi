@@ -43,6 +43,9 @@ public:
   FunctorFactory(const FunctorFactory&) = delete;
   FunctorFactory(FunctorFactory&&) = delete;
 
+  FunctorFactory& operator=(const FunctorFactory&) = delete;
+  FunctorFactory& operator=(FunctorFactory&&) = delete;
+
   virtual ~FunctorFactory() = default;
 
   [[nodiscard]] virtual ScalarFunctor make_scalar(std::string_view,

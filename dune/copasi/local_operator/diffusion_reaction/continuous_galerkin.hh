@@ -200,13 +200,13 @@ public:
     if constexpr (Concept::MultiDomainGrid<typename TestBasis::EntitySet::Grid>)
       forEachNode(lbasis.tree(),
                   overload(
-                    [&](const Concept::CompartmentLocalBasisNode auto& ltrial_node, auto path) {
+                    [&](const Concept::CompartmentLocalBasisNode auto& /*ltrial_node*/, auto path) {
                       auto compartment = back(path);
                       _compartment2domain.resize(compartment + 1);
                       _compartment2domain[compartment] =
                         _test_basis.subSpace(path).entitySet().grid().domain();
                     },
-                    [&](const auto& ltrial_node) {}));
+                    [&](const auto& /*ltrial_node*/) {}));
     else
       _compartment2domain.assign(1, std::numeric_limits<std::size_t>::max());
   }
@@ -693,7 +693,8 @@ public:
 
     _local_values->time = time;
     _local_values->entity_volume = geo_f.volume();
-    _local_values->in_boundary = not (_local_values->in_skeleton = double(intersection.neighbor()));
+    _local_values->in_boundary = static_cast<double>(not intersection.neighbor());
+    _local_values->in_skeleton = static_cast<double>(intersection.neighbor());
 
     using LocalBasis =
       std::decay_t<decltype(firstCompartmentFiniteElement(ltrial_in.tree()).localBasis())>;
@@ -887,7 +888,8 @@ public:
 
     _local_values->time = time;
     _local_values->entity_volume = geo_f.volume();
-    _local_values->in_boundary = not (_local_values->in_skeleton = double(intersection.neighbor()));
+    _local_values->in_boundary = static_cast<double>(not intersection.neighbor());
+    _local_values->in_skeleton = static_cast<double>(intersection.neighbor());
 
     using LocalBasis =
       std::decay_t<decltype(firstCompartmentFiniteElement(ltrial_in.tree()).localBasis())>;

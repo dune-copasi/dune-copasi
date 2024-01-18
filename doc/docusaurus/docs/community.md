@@ -29,8 +29,7 @@ The [Spatial Model Editor](https://github.com/spatial-model-editor/spatial-model
 a **user friendly** Graphical User Interface (GUI) for the
 *Systems Biology Markup Language* ([SBML](https://en.wikipedia.org/wiki/SBML)).
 The GUI is able to read and modify non-spatial SBML models into 2D spatial
-models and simulate them with `dune-copasi`. A big adventage of this package is
+models and simulate them with `dune-copasi`. A big advantage of this package is
 that is tailored specifically for biologists and is available with just a pair
 of clicks on the major plataforms.
 [Check it out](https://spatial-model-editor.readthedocs.io/en/latest/quickstart/get-started.html)!
-

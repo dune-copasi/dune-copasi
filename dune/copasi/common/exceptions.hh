@@ -28,7 +28,7 @@ format_exception(Exception&& e, fmt::format_string<Args...> format, Args&&... ar
   message += std::format("\nStacktrace:\n{}", std::stacktrace::current());
 #endif
   e.message(message);
-  return std::move(e);
+  return std::forward<Exception>(e);
 }
 
 } // namespace Dune::Copasi

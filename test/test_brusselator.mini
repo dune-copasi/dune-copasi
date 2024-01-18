@@ -1,4 +1,4 @@
-# Test: Simulation is run successfully for challeging timestepping setup
+# Test: Simulation is run successfully for challenging timestepping setup
 
 import default_logging.ini
 import default_time_stepping.ini

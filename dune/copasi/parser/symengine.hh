@@ -37,6 +37,14 @@ public:
 
   SymEngineParser(Type parser_type = Type::Native);
 
+  SymEngineParser(const SymEngineParser&) = delete;
+  SymEngineParser(SymEngineParser&&) = default;
+
+  SymEngineParser& operator=(const SymEngineParser&) = delete;
+  SymEngineParser& operator=(SymEngineParser&&) = default;
+
+  ~SymEngineParser() override final = default;
+
   void set_expression(const std::string& expression) override final;
 
   void define_constant(const std::string& symbol, const RangeField& value) override final;
