@@ -1,0 +1,20 @@
+<string|integer>
+Options forh the execution policy on the assembly of residuals and jacobians
+
+type=<string>
+  Type of execution policy
+    * sequential:     The assembly of residuals/jacobians is sequenced one after the other.
+    * parallel:       The assembly of residuals/jacobians is made in parallel
+
+partition.type=<string>
+  Type of partition of the grid entities. Only used if 'model.assembly.partition.type=parallel'
+    * METIS:          Partition the grid patches using METIS library
+    * Simple:         Partition the grid patches by naively splitting the grid iterator
+
+partition.patches=<integer>
+  Number of patches to partition the grid
+
+partition.coloring=<string>
+  Whether to use a coloring for a synchronization free assembly
+    * None:         No Coloring and use local basis lock to sincronize accumulation to residuals/jacobians
+    * DSatur:       Use DSatur algorithm to find patches free of synchronization requirements

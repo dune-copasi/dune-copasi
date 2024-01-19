@@ -14,15 +14,10 @@ template<Dune::Concept::Grid G,
          std::size_t Order = 1,
          class RQ = double,
          class TQ = double,
-         bool MultiThreaded_ = false,
          bool ScalarBlocking = false>
 struct ModelDiffusionPkReactionTraits
 {
   using Grid = G;
-  static constexpr auto MultiThreaded = MultiThreaded_;
-  static_assert(!MultiThreaded, "NotImplemented");
-  // using CompartmentEntitySet = std::conditional_t<MultiThread,
-  // PDELab::EntitySetThreadPool<ES>, ES>;
   using CompartmentEntitySet = ES;
   static_assert(Order != 0);
   using ScalarFiniteElementMap =

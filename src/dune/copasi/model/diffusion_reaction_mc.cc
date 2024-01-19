@@ -39,7 +39,6 @@ using SingleCompartmentTraits = ModelDiffusionPkReactionTraits<MDGrid,
                                                                DUNE_COPASI_FEM_ORDER,
                                                                double,
                                                                double,
-                                                               false,
                                                                SpeciesBlocked>;
 
 template<bool SpeciesBlocked, bool CompartmentBlocked>

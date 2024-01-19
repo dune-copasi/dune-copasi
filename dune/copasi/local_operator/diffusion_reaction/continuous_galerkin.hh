@@ -7,6 +7,7 @@
 #include <dune/copasi/model/local_equations/local_equations.hh>
 
 #include <dune/pdelab/common/concurrency/shared_stash.hh>
+#include <dune/pdelab/common/execution.hh>
 #include <dune/pdelab/common/quadraturerules.hh>
 #include <dune/pdelab/common/tree_traversal.hh>
 #include <dune/pdelab/operator/local_assembly/archetype.hh>
@@ -44,7 +45,7 @@ enum class LocalOperatorType
  * @tparam     Basis    Basis
  * @tparam     LBT   Local basis traits
  */
-template<PDELab::Concept::Basis TestBasis, class LBT>
+template<PDELab::Concept::Basis TestBasis, class LBT, class ExecutionPolicy = PDELab::Execution::SequencedPolicy>
 class LocalOperatorDiffusionReactionCG
 {
 
@@ -78,6 +79,8 @@ class LocalOperatorDiffusionReactionCG
 
   PDELab::SharedStash<LocalBasisCache<LBT>> _fe_cache;
   PDELab::SharedStash<LocalEquations<dim>> _local_values;
+
+  ExecutionPolicy _execution_policy;
 
   static inline const auto& firstCompartmentFiniteElement(
     const Concept::CompartmentLocalBasisNode auto& lnode) noexcept
@@ -142,6 +145,10 @@ public:
     return std::bool_constant<Concept::MultiDomainGrid<typename TestBasis::EntitySet::Grid>>{};
   }
 
+  auto executionPolicy() const {
+    return _execution_policy;
+  }
+
   bool localAssembleDoBoundary() const noexcept { return _has_outflow; }
 
   bool localAssembleSkipIntersection(const Dune::Concept::Intersection auto& intersection) const noexcept
@@ -171,7 +178,8 @@ public:
                                    LocalOperatorType lop_type,
                                    bool is_linear,
                                    const ParameterTree& config,
-                                   std::shared_ptr<const FunctorFactory<dim>> functor_factory)
+                                   std::shared_ptr<const FunctorFactory<dim>> functor_factory,
+                                   ExecutionPolicy execution_policy = {})
     : _test_basis{ test_basis }
     , _is_linear{ is_linear }
     , _fe_cache([]() { return std::make_unique<LocalBasisCache<LBT>>(); })
@@ -179,12 +187,16 @@ public:
                      _basis = _test_basis,
                      _config = config,
                      _functor_factory = std::move(functor_factory)]() {
+      std::unique_ptr<LocalEquations<dim>> ptr;
       if (_lop_type == LocalOperatorType::Mass)
-        return LocalEquations<dim>::make_mass(_basis.localView(), _config, *_functor_factory);
+        ptr = LocalEquations<dim>::make_mass(_basis.localView(), _config, *_functor_factory);
       else if (_lop_type == LocalOperatorType::Stiffness)
-        return LocalEquations<dim>::make_stiffness(_basis.localView(), _config, *_functor_factory);
-      std::terminate();
+        ptr = LocalEquations<dim>::make_stiffness(_basis.localView(), _config, *_functor_factory);
+      if (not ptr)
+        std::terminate();
+      return ptr;
     })
+    , _execution_policy{execution_policy}
   {
     auto lbasis = _test_basis.localView();
     if (_test_basis.entitySet().size(0) == 0)

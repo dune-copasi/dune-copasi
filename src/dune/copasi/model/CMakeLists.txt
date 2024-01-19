@@ -3,16 +3,24 @@ add_library(dune-copasi-model INTERFACE)
 add_library(Dune::Copasi::Model ALIAS dune-copasi-model)
 set_target_properties(dune-copasi-model PROPERTIES EXPORT_NAME Copasi::Model)
 
-target_link_libraries(dune-copasi-model
-  INTERFACE
-    $<TARGET_NAME_IF_EXISTS:SuiteSparse::SuiteSparse>
-    $<TARGET_NAME_IF_EXISTS:SuperLU::SuperLU>
+find_package(METIS)
+
+set(model_libraries
+  $<TARGET_NAME_IF_EXISTS:SuiteSparse::SuiteSparse>
+  $<TARGET_NAME_IF_EXISTS:SuperLU::SuperLU>
+  $<TARGET_NAME_IF_EXISTS:METIS::METIS>
+  $<TARGET_NAME_IF_EXISTS:PTScotch::Scotch>
 )
-target_compile_definitions(dune-copasi-model
-  INTERFACE
-    $<$<TARGET_EXISTS:SuiteSparse::SuiteSparse>:ENABLE_SUITESPARSE=1>
-    $<$<TARGET_EXISTS:SuperLU::SuperLU>:ENABLE_SUPERLU=1>
+
+set(model_definitions
+  $<$<TARGET_EXISTS:SuiteSparse::SuiteSparse>:HAVE_SUITESPARSE=1>
+  $<$<TARGET_EXISTS:SuperLU::SuperLU>:ENABLE_SUPERLU=1>
+  $<$<TARGET_EXISTS:METIS::METIS>:HAVE_METIS=1>
+  $<$<TARGET_EXISTS:PTScotch::Scotch>:HAVE_SCOTCH_METIS=1>
 )
+
+target_link_libraries(dune-copasi-model INTERFACE ${model_libraries})
+target_compile_definitions(dune-copasi-model INTERFACE ${model_definitions})
 
 set(DUNE_COPASI_GRID_DIMENSIONS 2 CACHE STRING "List of grid dimension for models")
 set(DUNE_COPASI_PRECOMPILED_MODE ON CACHE BOOL "If dune-copasi should be pre-compile object libraries for model classes")
@@ -27,19 +35,23 @@ foreach(dim ${DUNE_COPASI_GRID_DIMENSIONS})
       add_library(${target} STATIC)
       add_library(Dune::Copasi::ModelLibraryP${order}${dim}D ALIAS ${target})
       set_target_properties(${target} PROPERTIES EXPORT_NAME Copasi::ModelLibraryP${order}${dim}D)
-      add_dune_suitesparse_flags(${target})
-      add_dune_superlu_flags(${target})
       target_sources(${target} PRIVATE diffusion_reaction_sc.cc)
       target_sources(${target} PRIVATE diffusion_reaction_mc.cc)
       target_compile_definitions(${target}
         INTERFACE
           DUNE_COPASI_PRECOMPILED_MODE
         PRIVATE
+          ${model_definitions}
           DUNE_COPASI_GRID_DIMENSION=${dim}
-          DUNE_COPASI_FEM_ORDER=${order})
+          DUNE_COPASI_FEM_ORDER=${order}
+      )
       target_link_libraries(${target}
-        PRIVATE Dune::Copasi::Common
-        PUBLIC  ${DUNE_LIBS})
+        PRIVATE
+          ${model_libraries}
+          Dune::Copasi::Common
+        PUBLIC
+          ${DUNE_LIBS}
+      )
 
       target_link_libraries(dune-copasi-model INTERFACE ${target})
       install(TARGETS ${target} EXPORT dune-copasi-targets ARCHIVE COMPONENT Development)

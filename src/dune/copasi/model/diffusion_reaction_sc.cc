@@ -43,14 +43,12 @@ template class ModelDiffusionReaction<ModelDiffusionPkReactionTraits<HostGrid,
                                                                      DUNE_COPASI_FEM_ORDER,
                                                                      double,
                                                                      double,
-                                                                     false,
                                                                      false>>;
 template class ModelDiffusionReaction<ModelDiffusionPkReactionTraits<HostGrid,
                                                                      HostGridView,
                                                                      DUNE_COPASI_FEM_ORDER,
                                                                      double,
                                                                      double,
-                                                                     false,
                                                                      true>>;
 
 template class ModelDiffusionReaction<ModelDiffusionPkReactionTraits<MDGrid,
@@ -58,14 +56,12 @@ template class ModelDiffusionReaction<ModelDiffusionPkReactionTraits<MDGrid,
                                                                      DUNE_COPASI_FEM_ORDER,
                                                                      double,
                                                                      double,
-                                                                     false,
                                                                      false>>;
 template class ModelDiffusionReaction<ModelDiffusionPkReactionTraits<MDGrid,
                                                                      SDGridView,
                                                                      DUNE_COPASI_FEM_ORDER,
                                                                      double,
                                                                      double,
-                                                                     false,
                                                                      true>>;
 
 } // namespace Copasi

@@ -5,19 +5,19 @@
 #include <dune/copasi/model/reduce.hh>
 #include <dune/copasi/model/interpolate.hh>
 #include <dune/copasi/model/make_initial.hh>
-#include <dune/copasi/model/make_step_operator.hh>
+#include <dune/copasi/model/make_diffusion_reaction_step_operator.hh>
 #include <dune/copasi/model/local_equations/functor_factory_parser.hh>
 
 #include <dune/copasi/common/exceptions.hh>
 #include <dune/copasi/common/ostream_to_spdlog.hh>
 #include <dune/copasi/concepts/grid.hh>
 #include <dune/copasi/grid/has_single_geometry_type.hh>
-#include <dune/copasi/local_operator/diffusion_reaction/continuous_galerkin.hh>
 #include <dune/copasi/parser/factory.hh>
 
 #include <dune/pdelab/basis/backend/istl.hh>
 #include <dune/pdelab/basis/basis.hh>
 #include <dune/pdelab/basis/discrete_global_function.hh>
+#include <dune/pdelab/common/partition/identity.hh>
 #include <dune/pdelab/common/trace.hh>
 #include <dune/pdelab/concepts/multiindex.hh>
 
@@ -51,7 +51,7 @@ ModelDiffusionReaction<Traits>::interpolate(
   State& state,
   const std::unordered_map<std::string, GridFunction>& initial) const
 {
-  using CompartmentBasis = PDELab::Basis<CompartmentEntitySet, CompartmentPreBasis>;
+  using CompartmentBasis = PDELab::Basis<PDELab::EntitySetPartitioner::Identity<CompartmentEntitySet>, CompartmentPreBasis>;
   using CoefficientsBackend = PDELab::ISTLUniformBackend<ScalarQuantity>;
   using Coefficients = typename CompartmentBasis::template Container<CoefficientsBackend>;
   const auto& basis = any_cast<const CompartmentBasis&>(state.basis);
@@ -114,7 +114,7 @@ ModelDiffusionReaction<Traits>::setup_basis(State& state,
                                             std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory)
 {
   TRACE_EVENT("dune", "Basis::SetUp");
-  using CompartmentBasis = PDELab::Basis<CompartmentEntitySet, CompartmentPreBasis>;
+  using CompartmentBasis = PDELab::Basis<PDELab::EntitySetPartitioner::Identity<CompartmentEntitySet>, CompartmentPreBasis>;
   const auto& compartments_config = config.sub("compartments", true);
   const auto& compartments = compartments_config.getSubKeys();
   if (compartments.size() != 1) {
@@ -140,7 +140,7 @@ void
 ModelDiffusionReaction<Traits>::setup_coefficient_vector(State& state)
 {
   spdlog::info("Setup coefficient vector");
-  using CompartmentBasis = PDELab::Basis<CompartmentEntitySet, CompartmentPreBasis>;
+  using CompartmentBasis = PDELab::Basis<PDELab::EntitySetPartitioner::Identity<CompartmentEntitySet>, CompartmentPreBasis>;
   using CoefficientsBackend = PDELab::ISTLUniformBackend<ScalarQuantity>;
   using Coefficients = typename CompartmentBasis::template Container<CoefficientsBackend>;
   const auto& basis = any_cast<const CompartmentBasis&>(state.basis);
@@ -166,7 +166,7 @@ typename ModelDiffusionReaction<Traits>::GridFunction
 ModelDiffusionReaction<Traits>::make_compartment_function(const std::shared_ptr<const State>& state,
                                                           std::string_view name) const
 {
-  using CompartmentBasis = PDELab::Basis<CompartmentEntitySet, CompartmentPreBasis>;
+  using CompartmentBasis = PDELab::Basis<PDELab::EntitySetPartitioner::Identity<CompartmentEntitySet>, CompartmentPreBasis>;
   using CoefficientsBackend = PDELab::ISTLUniformBackend<ScalarQuantity>;
   using Coefficients = typename CompartmentBasis::template Container<CoefficientsBackend>;
   const auto& basis = any_cast<const CompartmentBasis&>(state->basis);
@@ -196,33 +196,16 @@ ModelDiffusionReaction<Traits>::make_step_operator(const State& state,
                                                    const ParameterTree& config) const
   -> std::unique_ptr<PDELab::OneStep<State>>
 {
-  using CompartmentBasis = PDELab::Basis<CompartmentEntitySet, CompartmentPreBasis>;
+  using CompartmentBasis = PDELab::Basis<PDELab::EntitySetPartitioner::Identity<CompartmentEntitySet>, CompartmentPreBasis>;
   using CoefficientsBackend = PDELab::ISTLUniformBackend<ScalarQuantity>;
   using Coefficients = typename CompartmentBasis::template Container<CoefficientsBackend>;
   using ResidualBackend = PDELab::ISTLUniformBackend<ResidualQuantity>;
   using Residual = typename CompartmentBasis::template Container<ResidualBackend>;
+  using LocalBasisTraits = typename ScalarFiniteElementMap::Traits::FiniteElement::Traits::LocalBasisType::Traits;
 
   const auto& basis = any_cast<const CompartmentBasis&>(state.basis);
 
-  using LocalOperator = LocalOperatorDiffusionReactionCG<
-    CompartmentBasis,
-    typename ScalarFiniteElementMap::Traits::FiniteElement::Traits::LocalBasisType::Traits>;
-
-  spdlog::info("Creating mass/stiffness local operator");
-  LocalOperator const stiff_lop(basis,
-                                LocalOperatorType::Stiffness,
-                                config.get("is_linear", false),
-                                config.sub("scalar_field"),
-                                _functor_factory);
-  LocalOperator const mass_lop(basis,
-                               LocalOperatorType::Mass,
-                               config.get("is_linear", false),
-                               config.sub("scalar_field"),
-                               _functor_factory);
-
-  std::shared_ptr const one_step =
-    Dune::Copasi::make_step_operator<Coefficients, Residual, ResidualQuantity, TimeQuantity>(
-      config.sub("time_step_operator"), basis, mass_lop, stiff_lop);
+  std::shared_ptr one_step = make_diffusion_reaction_step_operator<LocalBasisTraits, Coefficients, Residual, ResidualQuantity, TimeQuantity>(config, basis, 1, _functor_factory);
 
   // type erase the original runge kutta operator
   auto type_erased_one_step = std::make_unique<PDELab::OperatorAdapter<State, State>>(
@@ -251,7 +234,7 @@ auto
 ModelDiffusionReaction<Traits>::reduce(const State& state, const ParameterTree& config) const
   -> std::map<std::string, double>
 {
-  using CompartmentBasis = PDELab::Basis<CompartmentEntitySet, CompartmentPreBasis>;
+  using CompartmentBasis = PDELab::Basis<PDELab::EntitySetPartitioner::Identity<CompartmentEntitySet>, CompartmentPreBasis>;
   using CoefficientsBackend = PDELab::ISTLUniformBackend<ScalarQuantity>;
   using Coefficients = typename CompartmentBasis::template Container<CoefficientsBackend>;
   const auto& basis = any_cast<const CompartmentBasis&>(state.basis);
@@ -266,11 +249,9 @@ ModelDiffusionReaction<Traits>::write_vtk(const State& state,
                                           const std::filesystem::path& path,
                                           bool append) const
 {
-  using CompartmentBasis = PDELab::Basis<CompartmentEntitySet, CompartmentPreBasis>;
+  using CompartmentBasis = PDELab::Basis<PDELab::EntitySetPartitioner::Identity<CompartmentEntitySet>, CompartmentPreBasis>;
   using CoefficientsBackend = PDELab::ISTLUniformBackend<ScalarQuantity>;
   using Coefficients = typename CompartmentBasis::template Container<CoefficientsBackend>;
-  using ScalarBasis =
-    PDELab::Basis<CompartmentEntitySet, CompartmentPreBasis, TypeTree::HybridTreePath<std::size_t>>;
   const auto& basis = any_cast<const CompartmentBasis&>(state.basis);
   const auto& coeff = any_cast<const Coefficients&>(state.coefficients);
   // warning: we use Dune::stackobject_to_shared_ptr to avoid copying the coefficients vector,
@@ -311,7 +292,7 @@ ModelDiffusionReaction<Traits>::write_vtk(const State& state,
   sequential_writer.setTimeSteps(timesteps);
 
   for (std::size_t component = 0; component != basis.degree(); ++component) {
-    ScalarBasis const component_basis =
+    auto const component_basis =
       basis.subSpace(TypeTree::treePath(std::size_t{ component }));
     sequential_writer.vtkWriter()->addVertexData(
       makeDiscreteGlobalBasisFunction(component_basis, coeff_ptr),

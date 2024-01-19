@@ -33,7 +33,6 @@ using SingleCompartmentTraits = ModelDiffusionPkReactionTraits<typename Model::G
                                                                Order,
                                                                typename Model::RangeQuatinty,
                                                                typename Model::TimeQuantity,
-                                                               false,
                                                                SpeciesBlocked>;
 
 template<class Model, std::size_t Order, bool SpeciesBlocked, bool CompartmentBlocked>
