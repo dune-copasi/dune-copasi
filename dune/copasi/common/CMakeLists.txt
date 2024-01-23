@@ -2,6 +2,7 @@ install(FILES bit_flags.hh
               data_context.hh
               exceptions.hh
               factory.hh
+              fmt_style.hh
               ostream_redirect.hh
               ostream_to_spdlog.hh
               stepper.hh
