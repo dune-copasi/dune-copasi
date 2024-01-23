@@ -85,9 +85,9 @@ jobs:
     steps:
       - uses: msys2/setup-msys2@v2
         with:
-          msystem: MINGW64
+          msystem: UCRT64
           update: true
-          install: mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake make git dos2unix
+          install: mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake make git dos2unix
       - name: Clone repo
         run: pwd && ls && git clone -b ${{ github.head_ref || github.ref_name }} https://github.com/${{ github.repository }} . && ls
       - name: Setup static dependencies
