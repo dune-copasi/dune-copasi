@@ -13,8 +13,6 @@ namespace Dune::Copasi {
 
 class ExprTkParser final : public Parser
 {
-  static const std::size_t max_functions = 100;
-
 public:
   ExprTkParser();
 
