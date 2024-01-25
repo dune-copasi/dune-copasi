@@ -85,7 +85,7 @@ ModelDiffusionReaction<Traits>::make_compartment_pre_basis(
   const ParameterTree& scalar_fields_config,
   std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory) -> CompartmentPreBasis
 {
-  spdlog::info("Setup compartment basis functions for compartment ;{}'", compartment_name);
+  spdlog::info("Setup compartment basis functions for compartment '{}'", compartment_name);
 
   if (entity_set.size(0) == 0)
     spdlog::warn("Compartment '{}' is empty", compartment_name);

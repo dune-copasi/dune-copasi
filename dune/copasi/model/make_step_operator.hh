@@ -28,13 +28,13 @@
 
 #include <dune/common/overloadset.hh>
 
-#include <concepts>
-#include <functional>
-
 #include <dune/istl/bvector.hh>
 
 #include <spdlog/spdlog.h>
 
+#include <algorithm>
+#include <concepts>
+#include <functional>
 #include <memory>
 
 #if HAVE_SUITESPARSE_UMFPACK
@@ -393,35 +393,65 @@ make_step_operator(const ParameterTree& config,
       // all jacobian entries of the RK jacobian have the same pattern
       auto& entry = jac[0][0];
 
-      // TODO(sospinar): fix pattern in PDELab!
-      auto size_per_row = []<class MultiIndex>(MultiIndex /*i*/, MultiIndex /*j*/) -> std::size_t {
-        //       if constexpr (CompartmentMergingStrategy::Blocked) {
-        //         assert(i.size() == j.size());
-        //         assert(i.size() < 2);
-        //         // TODO: put actual values from spaces
-        //         if (i.size() == 0)
-        //           return 5; // number of edges connecting to a vertex
-        //         if (i.size() == 1)
-        //           return 10; // number of component per vertex (P1)
-        //         return 0;
-        //       } else {
-        //          return 5;
-        //       }
-        return 100;
+      // number of components per compartment
+      std::vector<std::size_t> comp_size(basis.degree(), 0);
+      for (std::size_t i = 0; i != comp_size.size(); ++i)
+        comp_size[i] = basis.subSpace(TypeTree::treePath(i )).degree();
+
+      using SizePrefix = typename Basis::SizePrefix;
+
+      // blocked case
+      auto comp_max = std::ranges::max(comp_size);
+      std::function<std::size_t(SizePrefix, SizePrefix)> block_size;
+      if (basis.degree() == basis.size()) { // compartment is blokced
+        block_size = [=](SizePrefix, SizePrefix j) -> std::size_t {
+          switch (j.size()) {
+            case 0:
+              return comp_size.size(); // number of compartmetns
+            case 1:
+              return comp_size[j[0]] * 6; // aprox number of neighboring entities time the number of
+                                          // components (assume 2D & P1)
+          }
+          std::terminate();
+        };
+      } else { // component is blokced
+        block_size = [=](SizePrefix, SizePrefix j) -> std::size_t {
+          switch (j.size()) {
+            case 0:
+              return comp_max * 6; // max number of components times aprox number of neighboring
+                                   // entities (assume 2D)
+            case 1:
+              return comp_max; // number of components (assume P1)
+          }
+          std::terminate();
+        };
+      }
+
+      // blocked-blocked case
+      auto block_block_size = [=]<class MultiIndex>(MultiIndex, MultiIndex j) -> std::size_t {
+        switch (j.size()) {
+          case 0:
+            return comp_size.size(); // number of compartmetns
+          case 1:
+            return 6; // aprox number of neighboring entities (assume 2D)
+          case 2:
+            return comp_size[j[1]]; // number of components (assume P1)
+        }
+        std::terminate();
       };
 
       auto pattern_selector = overload(
         [&](BCRSMatrix<double>&) -> PDELab::LeafSparsePattern<Basis, Basis> {
-          return { basis, {}, basis, {}, size_per_row };
+          return { basis, {}, basis, {}, comp_max * 6 };
         },
         [&](BCRSMatrix<BCRSMatrix<double>>&)
           -> PDELab::BlockedSparsePattern<PDELab::LeafSparsePattern<Basis, Basis>> {
-          return { basis, {}, basis, {}, size_per_row };
+          return { basis, {}, basis, {}, block_size };
         },
         [&](BCRSMatrix<BCRSMatrix<BCRSMatrix<double>>>&)
           -> PDELab::BlockedSparsePattern<
             PDELab::BlockedSparsePattern<PDELab::LeafSparsePattern<Basis, Basis>>> {
-          return { basis, {}, basis, {}, size_per_row };
+          return { basis, {}, basis, {}, block_block_size };
         });
 
       auto pattern = pattern_selector(entry);
@@ -463,7 +493,7 @@ make_step_operator(const ParameterTree& config,
   std::shared_ptr<PDELab::InstationaryCoefficients> inst_coeff;
 
   auto pdelab2coeff = [](auto pdlab_param) {
-    return std::make_shared<PDELab::InstationaryCoefficients>(pdlab_param);
+    return std::make_unique<PDELab::InstationaryCoefficients>(pdlab_param);
   };
 
   spdlog::info("Creating time-stepping solver with '{}' type", type);
