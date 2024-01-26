@@ -45,7 +45,7 @@ public:
   using MultiCompartmentMergingStrategy = typename Traits::MultiCompartmentMergingStrategy;
 
   using ScalarPreBasis =
-    PDELab::PreBasis<ScalarMergingStrategy, ScalarFiniteElementMap, Constraints<Grid::dimensionworld>>;
+    PDELab::PreBasis<ScalarMergingStrategy, ScalarFiniteElementMap, Constraints<CompartmentEntitySet>>;
   using CompartmentPreBasis = PDELab::PreBasisVector<CompartmentMergingStrategy, ScalarPreBasis>;
   using MultiCompartmentPreBasis =
     PDELab::PreBasisVector<MultiCompartmentMergingStrategy, CompartmentPreBasis>;

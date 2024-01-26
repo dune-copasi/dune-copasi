@@ -1,4 +1,5 @@
-install(FILES has_single_geometry_type.hh
+install(FILES boundary_entity_mapper.hh
+              has_single_geometry_type.hh
               make_multi_domain_grid.hh
               mark_stripes.hh
         COMPONENT Development

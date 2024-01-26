@@ -41,7 +41,7 @@ FunctorFactoryParser<dim>::make_vector(std::string_view /*prefix*/,
   // create one parser for each entry of the vector
   std::array<ScalarFunctor, dim> vector_parser;
   bool is_active = false;
-  std::vector<std::string> dim_name = { "x", "y", "z" };
+  std::array<std::string,3> dim_name = { "x", "y", "z" };
   for (std::size_t i = 0; i != dim; ++i) {
     is_active |= bool(vector_parser[i] = parse_scalar_expression(
                         config.sub(dim_name.at(i), true), local_values, codim));
@@ -69,7 +69,7 @@ FunctorFactoryParser<dim>::make_tensor_apply(std::string_view prefix,
   -> TensorApplyFunctor
 {
   // diffusion apply parser
-  std::vector<std::string> dim_name = { "x", "y", "z" };
+  std::array<std::string,3> dim_name = { "x", "y", "z" };
   std::string type = config.get("type", "scalar");
   if (type == "scalar") {
     if (auto parser = parse_scalar_expression(config, local_values, codim)) {
@@ -128,7 +128,7 @@ FunctorFactoryParser<dim>::parse_scalar_expression(const ParameterTree& config,
   } else {
     auto parser_type =
       string2parser.at(config.get("parser_type", std::string{ parser2string.at(_parser_type) }));
-    std::vector<std::string> dim_name = { "x", "y", "z" };
+    std::array<std::string,3> dim_name = { "x", "y", "z" };
     auto parser_ptr = make_parser(parser_type);
     parser_ptr->define_variable("time", &(local_values.time));
     parser_ptr->define_variable("entity_volume", &(local_values.entity_volume));

@@ -6,6 +6,7 @@
 #include <dune/copasi/model/constraints.hh>
 #include <dune/copasi/model/local_equations/functor_factory.hh>
 #include <dune/copasi/model/model.hh>
+#include <dune/copasi/grid/boundary_entity_mapper.hh>
 
 #include <dune/pdelab/basis/prebasis/composite.hh>
 #include <dune/pdelab/basis/prebasis/leaf.hh>
@@ -36,7 +37,7 @@ public:
   using ScalarFiniteElementMap = typename Traits::ScalarFiniteElementMap;
   using ScalarMergingStrategy = typename Traits::ScalarMergingStrategy;
   using ScalarPreBasis =
-    PDELab::PreBasis<ScalarMergingStrategy, ScalarFiniteElementMap, Constraints<Grid::dimensionworld>>;
+    PDELab::PreBasis<ScalarMergingStrategy, ScalarFiniteElementMap, Constraints<CompartmentEntitySet>>;
   using CompartmentMergingStrategy = typename Traits::CompartmentMergingStrategy;
   using CompartmentPreBasis = PDELab::PreBasisVector<CompartmentMergingStrategy, ScalarPreBasis>;
   using ResidualQuantity = ScalarQuantity;
@@ -75,7 +76,7 @@ public:
                                                         std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> = nullptr);
 
 private:
-  static ScalarPreBasis make_scalar_field_pre_basis(const CompartmentEntitySet&, std::string_view, const ParameterTree&, std::shared_ptr<const FunctorFactory<Grid::dimensionworld>>);
+  static ScalarPreBasis make_scalar_field_pre_basis(std::shared_ptr<BoundaryEntityMapper<CompartmentEntitySet>>, const CompartmentEntitySet&, std::string_view, const ParameterTree&, std::shared_ptr<const FunctorFactory<Grid::dimensionworld>>);
   static void setup_basis(State&, const Grid&, const ParameterTree&, std::shared_ptr<const FunctorFactory<Grid::dimensionworld>>);
   static void setup_coefficient_vector(State&);
   static CompartmentEntitySet get_entity_set(const Grid&, std::size_t);

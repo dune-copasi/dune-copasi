@@ -1,6 +1,7 @@
 #ifndef DUNE_COPASI_MODEL_CONSTRAINTS_HH
 #define DUNE_COPASI_MODEL_CONSTRAINTS_HH
 
+#include <dune/copasi/grid/boundary_entity_mapper.hh>
 #include <dune/copasi/model/local_equations/functor_factory.hh>
 #include <dune/copasi/model/local_equations/local_equations.hh>
 
@@ -16,50 +17,76 @@
 
 namespace Dune::Copasi {
 
-template<std::size_t dim>
+/**
+ * @brief Constraints parser and operator for a leaf basis 
+ * @warning Expressions with time dependency are not supported: the 'time'
+ *          token will be evaluated to NaN
+ * 
+ * @tparam GridView The grid view of the basis to constrain
+ */
+template<Dune::Concept::GridView GridView>
 class Constraints : public TypeTree::LeafNode
 {
-
+  constexpr static auto dim = GridView::dimension;
   struct Data
   {
     std::unique_ptr<LocalDomain<dim>> local_domain;
     fu2::unique_function<FieldVector<double, 1>() const noexcept> constrain_fnc;
-    Data(std::unique_ptr<LocalDomain<dim>> local_domain, fu2::unique_function<FieldVector<double, 1>() const noexcept> constrain_fnc)
-      : local_domain{std::move(local_domain)}, constrain_fnc{std::move(constrain_fnc)} {}
+    Data(std::unique_ptr<LocalDomain<dim>> local_domain,
+         fu2::unique_function<FieldVector<double, 1>() const noexcept> constrain_fnc)
+      : local_domain{ std::move(local_domain) }
+      , constrain_fnc{ std::move(constrain_fnc) }
+    {
+    }
   };
 
 public:
-  bool doConstrainBoundary() const { return _data_codim_1 and _data_codim_1->constrain_fnc; }
-  bool doConstrainSkeleton() const { return _data_codim_1 and _data_codim_1->constrain_fnc; }
-  bool doConstrainVolume() const { return _data_codim_0 and _data_codim_0->constrain_fnc; }
+  bool doConstrainBoundary() const { return _data_boundary and _data_boundary->constrain_fnc; }
+  bool doConstrainSkeleton() const { return _data_skeleton and _data_skeleton->constrain_fnc; }
+  bool doConstrainVolume() const { return _data_volume and _data_volume->constrain_fnc; }
 
   template<PDELab::Concept::MultiIndex MultiIndex, Dune::Concept::GridView EntitySet>
   using Container = PDELab::AffineConstraintsContainer<double, MultiIndex, EntitySet>;
 
-  explicit Constraints(const ParameterTree& config = {},
+  explicit Constraints(std::shared_ptr<BoundaryEntityMapper<GridView>> mapper,
+                       const ParameterTree& config = {},
                        std::shared_ptr<const FunctorFactory<dim>> functor_factory = nullptr)
     : TypeTree::LeafNode()
-    , _data_codim_0(
-        [_config = config, _functor_factory = functor_factory]() -> std::unique_ptr<Data> {
-          if (not _functor_factory)
-            return nullptr;
-          auto local_domain = std::make_unique<LocalDomain<dim>>();
-          local_domain->in_volume = 1;
-          // currently, time-dependent constraints are not possible in a generic way...
-          local_domain->time = std::numeric_limits<double>::quiet_NaN();
-          auto constraints = _functor_factory->make_scalar("constrain", _config, *local_domain, 0);
-          return std::make_unique<Data>(std::move(local_domain), std::move(constraints));
-        })
-    , _data_codim_1(
-        [_config = config, _functor_factory = functor_factory]() -> std::unique_ptr<Data> {
-          if (not _functor_factory)
-            return nullptr;
-          auto local_domain = std::make_unique<LocalDomain<dim>>();
-          // currently, time-dependent constraints are not possible in a generic way...
-          local_domain->time = std::numeric_limits<double>::quiet_NaN();
-          auto constraints = _functor_factory->make_scalar("constrain", _config, *local_domain, 1);
-          return std::make_unique<Data>(std::move(local_domain), std::move(constraints));
-        })
+    , _mapper{ mapper }
+    , _data_volume([_config = config.sub("volume"),
+                    _functor_factory = functor_factory]() -> std::unique_ptr<Data> {
+      if (not _functor_factory)
+        return nullptr;
+      auto local_domain = std::make_unique<LocalDomain<dim>>();
+      local_domain->in_volume = 1;
+      // currently, time-dependent constraints are not possible in a generic way...
+      local_domain->time = std::numeric_limits<double>::quiet_NaN();
+      auto constraints =
+        _functor_factory->make_scalar("constrain.volume", _config, *local_domain, 0);
+      return std::make_unique<Data>(std::move(local_domain), std::move(constraints));
+    })
+    , _data_skeleton([_config = config.sub("skeleton"),
+                      _functor_factory = functor_factory]() -> std::unique_ptr<Data> {
+      if (not _functor_factory)
+        return nullptr;
+      auto local_domain = std::make_unique<LocalDomain<dim>>();
+      // currently, time-dependent constraints are not possible in a generic way...
+      local_domain->time = std::numeric_limits<double>::quiet_NaN();
+      auto constraints =
+        _functor_factory->make_scalar("constrain.skeleton", _config, *local_domain, 1);
+      return std::make_unique<Data>(std::move(local_domain), std::move(constraints));
+    })
+    , _data_boundary([_config = config.sub("boundary"),
+                      _functor_factory = functor_factory]() -> std::unique_ptr<Data> {
+      if (not _functor_factory)
+        return nullptr;
+      auto local_domain = std::make_unique<LocalDomain<dim>>();
+      // currently, time-dependent constraints are not possible in a generic way...
+      local_domain->time = std::numeric_limits<double>::quiet_NaN();
+      auto constraints =
+        _functor_factory->make_scalar("constrain.boundary", _config, *local_domain, 1);
+      return std::make_unique<Data>(std::move(local_domain), std::move(constraints));
+    })
   {
   }
 
@@ -69,7 +96,7 @@ public:
       return;
 
     const auto& entity = lbasis.element();
-    _data_codim_0->local_domain->entity_volume = entity.geometry().volume();
+    _data_volume->local_domain->entity_volume = entity.geometry().volume();
 
     const auto& lkeys = lbasis.finiteElement().localCoefficients();
     for (std::size_t dof = 0; dof != lbasis.size(); ++dof) {
@@ -77,8 +104,8 @@ public:
       unsigned int codim = lkeys.localKey(dof).codim();
       if (codim != 0)
         continue;
-      _data_codim_0->local_domain->position = entity.geometry().center();
-      double constraint = _data_codim_0->constrain_fnc();
+      _data_volume->local_domain->position = entity.geometry().center();
+      double constraint = _data_volume->constrain_fnc();
       if (constraint != std::numeric_limits<double>::max())
         container.addTranslationConstraint(lbasis.index(dof), constraint);
     }
@@ -90,35 +117,14 @@ public:
   {
     if (lbasis_in.size() == 0)
       return;
+    _data_boundary->local_domain->in_boundary = not intersection.neighbor();
 
-    const auto& entity_in = lbasis_in.element();
-    // find dof indices that belong to the intersection
-    const auto face = intersection.indexInInside();
-    const auto& refelem = referenceElement(entity_in.geometry());
-    _data_codim_1->local_domain->entity_volume = intersection.geometry().volume();
-    _data_codim_1->local_domain->in_boundary = not intersection.neighbor();
-
-    const auto& lkeys = lbasis_in.finiteElement().localCoefficients();
-    for (std::size_t dof = 0; dof != lbasis_in.size(); ++dof) {
-      // the codim to which this dof is attached to
-      unsigned int codim = lkeys.localKey(dof).codim();
-      if (codim == 0)
-        continue;
-      // find the reference sub_entity index for this degree of freedom
-      int sub_entity = lkeys.localKey(dof).subEntity();
-      for (int j = 0; j != refelem.size(face, 1, codim); ++j) {
-        if (sub_entity == refelem.subEntity(face, 1, j, codim)) {
-          auto inside_pos = refelem.position(sub_entity, codim);
-          _data_codim_1->local_domain->normal =
-            intersection.unitOuterNormal(intersection.geometryInInside().local(inside_pos));
-          _data_codim_1->local_domain->position = entity_in.geometry().global(inside_pos);
-          double constraint = _data_codim_1->constrain_fnc();
-          if (constraint != std::numeric_limits<double>::max())
-            container.addTranslationConstraint(lbasis_in.index(dof), constraint);
-        }
-      }
-    }
-    _data_codim_1->local_domain->in_boundary = false;
+    add_intersection_constraints(true, _data_boundary,
+                                 lbasis_in,
+                                 intersection,
+                                 intersection.geometryInInside(),
+                                 intersection.indexInInside(),
+                                 container);
   }
 
   void constrainSkeleton(const Dune::Concept::Intersection auto& intersection,
@@ -128,43 +134,67 @@ public:
   {
     if (lbasis_in.size() == 0 and lbasis_out.size() == 0)
       return;
+    _data_skeleton->local_domain->in_skeleton = intersection.neighbor();
 
-    _data_codim_1->local_domain->in_skeleton = intersection.neighbor();
-    constrainBoundary(intersection, lbasis_in, container);
+    if (lbasis_in.size() != 0)
+      add_intersection_constraints(false,
+                                   _data_skeleton,
+                                   lbasis_in,
+                                   intersection,
+                                   intersection.geometryInInside(),
+                                   intersection.indexInInside(),
+                                   container);
 
-    if (intersection.neighbor() and lbasis_out.size() != 0) {
-      const auto& entity_out = lbasis_out.element();
-      // find dof indices that belong to the intersection
-      const auto face = intersection.indexInOutside();
-      const auto& refelem = referenceElement(entity_out.geometry());
-      _data_codim_1->local_domain->entity_volume = intersection.geometry().volume();
+    if (intersection.neighbor() and lbasis_out.size() != 0)
+      add_intersection_constraints(false,
+                                   _data_skeleton,
+                                   lbasis_out,
+                                   intersection,
+                                   intersection.geometryInOutside(),
+                                   intersection.indexInOutside(),
+                                   container);
+  }
 
-      const auto& lkeys = lbasis_out.finiteElement().localCoefficients();
-      for (std::size_t dof = 0; dof != lbasis_out.size(); ++dof) {
-        // the codim to which this dof is attached to
-        unsigned int codim = lkeys.localKey(dof).codim();
-        if (codim == 0)
-          continue;
-        // find the reference sub_entity index for this degree of freedom
-        int sub_entity = lkeys.localKey(dof).subEntity();
-        for (int j = 0; j != refelem.size(face, 1, codim); ++j) {
-          if (sub_entity == refelem.subEntity(face, 1, j, codim)) {
+private:
+  auto add_intersection_constraints(bool boundary,
+                                    const auto& data,
+                                    const auto& lbasis,
+                                    const auto& intersection,
+                                    const auto& ig_geometry,
+                                    auto face,
+                                    auto& container) const
+  {
+    const auto& entity = lbasis.element();
+    // find dof indices that belong to the intersection
+    const auto& refelem = referenceElement(entity.geometry());
+    data->local_domain->entity_volume = intersection.geometry().volume();
+
+    const auto& lkeys = lbasis.finiteElement().localCoefficients();
+    for (std::size_t dof = 0; dof != lbasis.size(); ++dof) {
+      // the codim to which this dof is attached to
+      unsigned int codim = lkeys.localKey(dof).codim();
+      if (codim == 0)
+        continue;
+      // find the reference sub_entity index for this degree of freedom
+      int sub_entity = lkeys.localKey(dof).subEntity();
+
+      for (int j = 0; j != refelem.size(face, 1, codim); ++j) {
+        if (sub_entity == refelem.subEntity(face, 1, j, codim)) {
+          if (boundary == _mapper->isBoundary(entity, sub_entity, codim)) {
             auto inside_pos = refelem.position(sub_entity, codim);
-            _data_codim_1->local_domain->normal =
-              intersection.unitOuterNormal(intersection.geometryInOutside().local(inside_pos));
-            _data_codim_1->local_domain->position = entity_out.geometry().global(inside_pos);
-            double constraint = _data_codim_1->constrain_fnc();
+            data->local_domain->normal = intersection.unitOuterNormal(ig_geometry.local(inside_pos));
+            data->local_domain->position = entity.geometry().global(inside_pos);
+            double constraint = data->constrain_fnc();
             if (constraint != std::numeric_limits<double>::max())
-              container.addTranslationConstraint(lbasis_out.index(dof), constraint);
+              container.addTranslationConstraint(lbasis.index(dof), constraint);
           }
         }
       }
     }
-    _data_codim_1->local_domain->in_skeleton = false;
-  }
+  };
 
-private:
-  PDELab::SharedStash<Data> _data_codim_0, _data_codim_1;
+  std::shared_ptr<BoundaryEntityMapper<GridView>> _mapper;
+  PDELab::SharedStash<Data> _data_volume, _data_skeleton, _data_boundary;
 };
 
 } // namespace Dune::Copasi

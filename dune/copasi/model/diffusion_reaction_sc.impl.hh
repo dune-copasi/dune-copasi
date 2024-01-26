@@ -12,6 +12,7 @@
 #include <dune/copasi/common/ostream_to_spdlog.hh>
 #include <dune/copasi/concepts/grid.hh>
 #include <dune/copasi/grid/has_single_geometry_type.hh>
+#include <dune/copasi/grid/boundary_entity_mapper.hh>
 #include <dune/copasi/parser/factory.hh>
 
 #include <dune/pdelab/basis/backend/istl.hh>
@@ -62,7 +63,8 @@ ModelDiffusionReaction<Traits>::interpolate(
 
 template<class Traits>
 auto
-ModelDiffusionReaction<Traits>::make_scalar_field_pre_basis(const CompartmentEntitySet& entity_set,
+ModelDiffusionReaction<Traits>::make_scalar_field_pre_basis(std::shared_ptr<BoundaryEntityMapper<CompartmentEntitySet>> boundary_mapper,
+                                                            const CompartmentEntitySet& entity_set,
                                                             std::string_view name,
                                                             const ParameterTree& scalar_field_config,
                                                             std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory) -> ScalarPreBasis
@@ -71,7 +73,7 @@ ModelDiffusionReaction<Traits>::make_scalar_field_pre_basis(const CompartmentEnt
   auto scalar_field_pre_basis =
     ScalarPreBasis{ ScalarMergingStrategy{ entity_set },
                     std::make_shared<ScalarFiniteElementMap>(entity_set),
-                    Constraints{scalar_field_config.sub("constrain"), functor_factory} };
+                    Constraints{boundary_mapper, scalar_field_config.sub("constrain"), functor_factory} };
   scalar_field_pre_basis.name(name);
   return scalar_field_pre_basis;
 }
@@ -90,9 +92,10 @@ ModelDiffusionReaction<Traits>::make_compartment_pre_basis(
   if (entity_set.size(0) == 0)
     spdlog::warn("Compartment '{}' is empty", compartment_name);
 
+  auto boundary_mapper = std::make_shared<BoundaryEntityMapper<CompartmentEntitySet>>(entity_set);
   std::vector<ScalarPreBasis> scalar_field_pre_basis;
   for (const auto& name : scalar_field_names) {
-    scalar_field_pre_basis.push_back(make_scalar_field_pre_basis(entity_set, name, scalar_fields_config.sub(name), functor_factory));
+    scalar_field_pre_basis.push_back(make_scalar_field_pre_basis(boundary_mapper, entity_set, name, scalar_fields_config.sub(name), functor_factory));
   }
 
   CompartmentPreBasis compartment_pre_basis =

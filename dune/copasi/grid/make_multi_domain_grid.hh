@@ -115,7 +115,7 @@ make_multi_domain_grid(Dune::ParameterTree& config,
         if (parser_context)
           parser_context->add_context(*parser_ptr);
         auto position = std::make_shared<FieldVector<double, MDGrid::dimensionworld>>();
-        const std::vector<std::string> dim_name = { "x", "y", "z" };
+        const std::array<std::string,3> dim_name = { "x", "y", "z" };
         for (std::size_t i = 0; i != 3; ++i) {
           auto pos_arg = fmt::format("position_{}", dim_name.at(i));
           if (i < MDGrid::dimensionworld) {
