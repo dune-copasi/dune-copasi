@@ -34,6 +34,7 @@ private:
 
   void add_independent_context(Parser& parser) const;
 
+  ParserType _default_context_parser;
   std::unordered_map<std::string, double> _constants;
   std::unordered_map<std::string, typename Parser::Function1D> _functions_1;
   std::unordered_map<std::string, typename Parser::Function2D> _functions_2;

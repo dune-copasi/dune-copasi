@@ -55,6 +55,7 @@ public:
 
 ParserContext::ParserContext(const ParameterTree& config)
 {
+  _default_context_parser = string2parser.at(config.get("parser_type", default_parser_str));
   for (const auto& sub : config.getSubKeys()) {
     const auto& sub_config = config.sub(sub, true);
     const std::string type = sub_config["type"];
@@ -215,7 +216,9 @@ ParserContext::add_context(Parser& parser) const
   for (const auto& name_config_pair : _functions_expr) {
     const std::string &name{name_config_pair.first};
     const ParameterTree& config{name_config_pair.second};
-    auto parser_type = string2parser.at(config.get("parser_type", default_parser_str));
+    auto parser_type = _default_context_parser;
+    if (config.hasKey("parser_type"))
+      parser_type = string2parser.at(config["parser_type"]);
     std::vector<std::string_view> args;
     std::string_view expr;
     std::tie(args, expr) = parse_function_expression(config["expression"]);
