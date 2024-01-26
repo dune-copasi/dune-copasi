@@ -22,8 +22,9 @@ template<typename Exception, typename... Args>
 [[nodiscard]] inline auto
 format_exception(Exception&& e, fmt::format_string<Args...> format, Args&&... args)
 {
-  auto message = fmt::format(std::move(format), std::forward<Args>(args)...);
-  message += fmt::format("\n\nException type: {}", className<Exception>());
+  auto message = std::string{"Message:        "};
+  message += fmt::format(std::move(format), std::forward<Args>(args)...);
+  message += fmt::format("\nException type: {}", className<Exception>());
 #if ___cpp_lib_stacktrace >= 202011L && __cpp_lib_formatters >= 202302L
   message += std::format("\nStacktrace:\n{}", std::stacktrace::current());
 #endif

@@ -185,6 +185,14 @@ main(int argc, char** argv)
     Dune::MPIHelper::instance(argc, argv);
   }
 
+  auto log_error = [](std::string message){
+    std::istringstream stream(message);
+    std::string line;    
+    while (std::getline(stream, line)) {
+      spdlog::error("  {}", line);
+    }
+  };
+
   try {
     using namespace Dune::Copasi;
 
@@ -292,15 +300,15 @@ main(int argc, char** argv)
       });
   } catch (Dune::NotImplemented& e) {
     spdlog::error("Feature is not implemented:");
-    spdlog::error("{}", e.what());
+    log_error(e.what());
     end_code = 1;
   } catch (Dune::Exception& e) {
     spdlog::error("Dune reported error:");
-    spdlog::error("{}", e.what());
+    log_error(e.what());
     end_code = 1;
   } catch (std::exception& e) {
     spdlog::error("C++ reported error:");
-    spdlog::error("{}", e.what());
+    log_error(e.what());
     end_code = 1;
   } catch (...) {
     spdlog::error("Unknown exception thrown!");
