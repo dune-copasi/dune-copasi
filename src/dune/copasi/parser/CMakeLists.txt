@@ -1,10 +1,9 @@
 
-set(DUNE_COPASI_PARSER_LIST)
-
+set(parser_list)
 find_package(SymEngine 0.8.0)
 if(${SymEngine_FOUND})
   set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}\nfind_package(SymEngine 0.8.0 REQUIRED)")
-  list(APPEND DUNE_COPASI_PARSER_LIST SymEngine SymEngineSBML)
+  list(APPEND parser_list SymEngine SymEngineSBML)
 endif()
 
 find_package(ExprTk)
@@ -26,14 +25,14 @@ if ((NOT ExprTk_FOUND) AND (NOT CMAKE_DISABLE_FIND_PACKAGE_ExprTk) AND (NOT DUNE
 endif()
 if(${ExprTk_FOUND})
   set(DUNE_COPASI_EXPRTK_MAX_FUNCTIONS 5000 CACHE STRING "Maximum number of functions that ExprTk can store in its context")
-  list(APPEND DUNE_COPASI_PARSER_LIST ExprTk)
+  list(APPEND parser_list ExprTk)
 endif()
 
 find_package(muparser)
 if(${muparser_FOUND})
   set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}\nfind_package(muparser REQUIRED)")
   set(DUNE_COPASI_MUPARSER_MAX_FUNCTIONS 5000 CACHE STRING "Maximum number of functions that muparser can store in its context")
-  list(APPEND DUNE_COPASI_PARSER_LIST MuParser)
+  list(APPEND parser_list MuParser)
 endif()
 
 find_package(parafields)
@@ -59,7 +58,8 @@ if(${parafields_FOUND})
   set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}\nfind_package(parafields REQUIRED)")
 endif()
 
-set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}\nset(DUNE_COPASI_PARSER_LIST ${DUNE_COPASI_PARSER_LIST})" PARENT_SCOPE)
+set(DUNE_COPASI_PARSER_LIST ${parser_list} CACHE INTERNAL "List of parsers found found and used in dune-copasi-parser")
+set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}\nset(DUNE_COPASI_PARSER_LIST ${parser_list})" PARENT_SCOPE)
 
 add_library(dune-copasi-parser STATIC)
 add_library(Dune::Copasi::Parser ALIAS dune-copasi-parser)

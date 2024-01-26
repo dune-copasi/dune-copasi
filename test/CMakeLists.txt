@@ -17,6 +17,8 @@ include(DuneMacros)
 
 enable_testing()
 
+file(CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR}/data ${CMAKE_CURRENT_BINARY_DIR}/data COPY_ON_ERROR SYMBOLIC)
+
 dune_declare_test_label(LABELS unit system)
 
 if (TARGET Dune::Copasi::Executable)
@@ -34,6 +36,14 @@ if (TARGET Dune::Copasi::Executable)
     TARGET          Dune::Copasi::Executable
     LABELS          system
     EXPECT_FAIL)
+
+  if(ExprTk IN_LIST DUNE_COPASI_PARSER_LIST)
+    dune_add_test(
+      NAME            disk
+      TARGET          Dune::Copasi::Executable
+      CMD_ARGS        --config=${CMAKE_CURRENT_SOURCE_DIR}/disk.ini
+      LABELS          system)
+  endif()
 
   foreach(dim ${DUNE_COPASI_GRID_DIMENSIONS})
     dune_add_test(
