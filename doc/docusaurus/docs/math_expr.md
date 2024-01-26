@@ -5,7 +5,7 @@ sidebar_label: Math Expressions
 ---
 
 Mathematical expressions are permitted on different sections of the
-[Parameter Tree](param_tree.md). Such expressions may contain typical math
+[Parameter Tree](param_tree). Such expressions may contain typical math
 operations such as `+`, `-`, `*`, `^`, `sin`, `tan`, etc. The complete list of
 possibilities is found [here](https://beltoforion.de/en/muparser/features.php).
 That is, the `muParser` built in operators.
@@ -52,4 +52,4 @@ context. In such case, the function will have a custom name and fixed number of
 arguments and will be available for use on the mathematical expression.
 
 Currently we only provide these for defining TIFF input images as 2D functions
-for initial conditions (See [Input Data](input_data.md) section).
+for initial conditions (See [Input Data](input_data) section).

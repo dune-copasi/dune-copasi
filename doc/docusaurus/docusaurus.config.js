@@ -34,7 +34,7 @@ module.exports = {
       disableSwitch: true,
     },
     prism: {
-      additionalLanguages: ['ini','cmake'],
+      additionalLanguages: ['ini','cmake', 'bash', 'docker'],
     },
     navbar: {
       title: 'DuneCopasi',

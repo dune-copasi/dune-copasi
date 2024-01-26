@@ -5,16 +5,16 @@ sidebar_label: Community
 ---
 
 A piece of software is nothing without who maintains it **and** who uses it.
-We all form the community that make this package to be useful around the globe.
+We all form the community that make this package to be useful.
 
 ## DUNE
 
 [`DUNE`](https://www.dune-project.org/), the *Distributed and Unified Numerics
 Environment* is a modular toolbox for solving partial differential equations
-(PDEs) with grid-based methods. It is the framework that `dune-copasi` uses to
+(PDEs) with grid-based methods. We use this framework to
 assemble and solve the numerical problems. The very well designed [`DUNE`
 grid](https://link.springer.com/article/10.1007/s00607-008-0003-x)
-has a tremendous influence on how `dune-copasi` is designed.
+has a tremendous influence on how **dune-copasi** has been designed.
 
 ## Biological Cell Modelling
 
@@ -28,8 +28,8 @@ developers to fill this gap for determinitic reaction networks.
 The [Spatial Model Editor](https://github.com/spatial-model-editor/spatial-model-editor) is
 a **user friendly** Graphical User Interface (GUI) for the
 *Systems Biology Markup Language* ([SBML](https://en.wikipedia.org/wiki/SBML)).
-The GUI is able to read and modify non-spatial SBML models into 2D spatial
-models and simulate them with `dune-copasi`. A big advantage of this package is
+The GUI is able to read and modify non-spatial SBML models into 2D and 3D spatial
+models and simulate them with **dune-copasi**. A big advantage of this package is
 that is tailored specifically for biologists and is available with just a pair
 of clicks on the major plataforms.
 [Check it out](https://spatial-model-editor.readthedocs.io/en/latest/quickstart/get-started.html)!

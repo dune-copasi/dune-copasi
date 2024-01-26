@@ -15,7 +15,6 @@ module.exports = {
       label: 'Getting Started',
       items: [
         'install_use',
-        'api',
         'ini_file',
         'math_expr',
         'input_data',

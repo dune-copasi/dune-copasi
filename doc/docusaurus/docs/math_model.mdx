@@ -22,7 +22,7 @@ reaction-diffusion process and the interaction between them happens
 
 We say that each compartment, denoted by $\Omega^k$, is an open, bounded,
 connected subset of Euclidean space $\mathbb{R}^d$, with Lipschitz boundary
-$\partial\Omega^k$ and space dimension $d=2$ or $d=3$. Moreover, we require
+$\partial\Omega^k$ and space dimension $d=\{1,2,3\}$. Moreover, we require
 that the compartments are the non-overlapping decomposition of an open, bounded,
 and connected domain $\Omega\subset\mathbb{R}^d$, such that,
 $$
@@ -30,16 +30,20 @@ $$
 $$
 where $K$ is the total number of compartments.
 
-### Species
-We will distinguish species within the same compartment with a subscript,
-usually $i$, and species on different compartments with a superscript, usually
-$k$. For example, $u_i^k$ is the $i$-th species on the $k$-th compartment.
-Furthermore, we will denote bold letters to refer to all $N^k$ species in the
-$k$-th compartment, i.e, $\bm{u}^k:=[u^k_1,\dots,u_{N^k}^k]^T$.
+### Components
+
+We will distinguish individual scalar components within the same compartment with
+a subscript, usually $i$, and components on different compartments with a
+superscript, usually $k$. For example, $u_i^k$ is the $i$-th scalar component on
+the $k$-th compartment. Furthermore, we will denote bold letters to refer to
+all $N^k$ components in the $k$-th compartment, i.e, $\bm{u}^k:=[u^k_1,\dots,u_{N^k}^k]^T$.
 
 ### Transport
 
-We then characterize transport with a **diffusive flux operator**,
+We then characterize transport with diffusive and advective flux operators.
+
+#### Diffusive flux operator
+We then characterize the diffusive transport,
 $\mathcal{D}_i^k$, for the $i$-th species by
 $$
 \mathcal{D}^k_i\left(\bm{u}^k\right):=-\mathsf{D}^k_{i\star} \nabla \bm{u}^k,
@@ -50,12 +54,11 @@ $\mathsf{D}^k_{i\star}\nabla\bm{u}^k:=\sum_{i=1}^{N^k}\mathsf{D}^k_{ij}\nabla u^
 
 ### Reaction Network
 
-A (bio-)chemical reaction is the transformation of one species to another, i.e,
+A reaction term is the transformation of one component to another, i.e,
 $u_i^k\to u_j^k$. There are many natural processes that present a rich reaction
 network. Particularly, we will represent the *deterministic* rate of change of
-$u^k_i$ caused by chemical reactions with the **reaction operator**
-$\mathcal{R}_i^k\left(\bm{u}^k\right)$. Such an operator is required to be a
-Lipschitz function and be mass conservative.
+$u^k_i$ with the **reaction operator** $\mathcal{R}_i^k\left(\bm{u}^k\right)$.
+Such an operator is required to be a Lipschitz function and be mass conservative.
 
 ### Membrane
 
@@ -76,15 +79,13 @@ where $\partial\Omega$ represents the boundaries of the domain $\Omega$.
 
 ### Transmission Conditions
 
-The transmission conditions refer to the flux rate at which compartment
-species are transformed and moved across the membrane. It depends on the
-concentration of species and the diffusion coefficients at
-which species can move on the surroundings of the membrane. In our model, we say
-that this equals to the outer flux $\mathcal{D}_i^k$ of the
-species $i$ leaving the compartment $k$. It is defined by a general
+The transmission condition refers to the flux rate at which a compartment
+component is transformed and moved to either side of the membrane. In our model,
+we say that this equals to the outer flux $\mathcal{D}_i^k$ of the
+component $i$ leaving the compartment $k$. It is defined by a general
 **transmission condition**, $\mathcal{T}^{kl}_i$, that may take the form of
-typical Robin boundary conditions as well as complex chemical reaction networks
-for the different species touching the membrane, i.e.,
+typical Neumann boundary condition as well as complex chemical reaction networks
+for the different components touching the membrane, i.e.,
 $$
 \mathcal{D}_i^{k}\left(\bm{u}^k\right)\cdot\mathbf{n}^k = \mathcal{T}_i^{kl}\left(\bm{u}^k,\bm{u}^l\right)\qquad \text{on }\Gamma^{kl},
 $$

@@ -8,9 +8,21 @@ sidebar_label: Parameter Tree
 
 A parameter tree is a collection of *key–value pairs* that may be grouped by
 sections. We call it a *tree* because sections may contain also other sections.
-Here, we follow the [`DUNE` ini file convention](ini_file.md) to refer to
+Here, we follow the [`DUNE` ini file convention](ini_file) to refer to
 sections and keywords. In addition, keywords between angle brackets (i.e.
 `<key>`) are references to **multiple** user-defined keywords of the same kind.
+
+
+
+
+import CodeBlock from '@theme/CodeBlock';
+import Trace from '!!raw-loader!../../../src/options/trace.path';
+
+<CodeBlock language="bash">trace.path: {Trace}</CodeBlock>
+
+
+
+
 
 ### `[grid]`
 
@@ -60,7 +72,7 @@ model.
 | -----------|-----| -------------- |
 | `<data_name>` | `path` | 16-bit grayscale TIFF file |
 
-See [Input Data](input_data.md) section for more information about usage.
+See [Input Data](input_data) section for more information about usage.
 
 #### `[model.output]`
 
@@ -165,7 +177,7 @@ the same namings must be used on all the `[model.<comp_k>]` subsections.
 ##### `[model.<comp_k>.initial]`
 
 The `initial` subsection allows the initialization for each of the *variables*.
-Expressions in this section may contain [Input Data](input_data.md) functions.
+Expressions in this section may contain [Input Data](input_data) functions.
 
 | Key | Type | Description |
 | -----------|-----| -------------- |
@@ -330,7 +342,7 @@ du__du_o = -1
 
 ### `[logging]`
 
-:::caution Work in progress
+:::warning Work in progress
 :::
 
 The logging settings are directly forwarded to the `dune-logging` module. Please
