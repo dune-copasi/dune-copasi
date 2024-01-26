@@ -23,10 +23,19 @@ void
 SymEngineParser::set_expression(const std::string& expression)
 {
   Parser::set_expression(expression);
-  if (Type::Native == _parser_type)
-    _se_expression = SymEngine::parse(_expression);
-  else
-    _se_expression = SymEngine::parse_sbml(_expression);
+  try {
+    if (Type::Native == _parser_type)
+      _se_expression = SymEngine::parse(_expression);
+    else
+      _se_expression = SymEngine::parse_sbml(_expression);
+  } catch (SymEngine::ParseError& e) {
+    throw format_exception(IOError{},
+                           "[SymEngine] Failed to compile expression\n"
+                           "Expression:    {}\n"
+                           "Error message: {}\n",
+                           _expression,
+                           e.what());
+  }
 }
 
 void
