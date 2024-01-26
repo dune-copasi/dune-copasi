@@ -86,7 +86,7 @@ program_help(std::string_view prog_name, bool long_help)
     fmt::print("Configuration Options:\n\n");
     for (auto [key, type, short_doc, long_doc] : config_file_opts) {
       auto key_stg = "--" + key;
-      fmt::print("  {}={}\n     {}\n", 
+      fmt::print("  {}={}\n     {}\n",
         DUNE_COPASI_FMT_STYLED_BOLD(key),
         DUNE_COPASI_FMT_STYLED_ITALIC(type),
         DUNE_COPASI_FMT_STYLED_DARK_GRAY(short_doc));
@@ -99,6 +99,30 @@ program_help(std::string_view prog_name, bool long_help)
     }
   }
   std::cout << std::endl;
+  if (long_help) {
+    std::cout << fmt::format(
+      "EXAMPLE:\n"
+      "  Step diffusion:\n"
+      "    The following command will solve the laplace equation for a\n"
+      "    1D scalar field variable named 'u' in a compartment named 'domain'.\n"
+      "    The initial condition is an expression which has an step when the\n"
+      "    coordinate 'x' is 0.5. The storage term is set to '1.' because the\n"
+      "    problem is transient and the diffusion coefficient is set to '0.001'\n"
+      "    to blend the step over time. Finally, the solution will be written\n"
+      "    in the vtk format using the keyword 'step_diffusion' used to format\n"
+      "    the output files.\n\n"
+      "    {} \\\n"
+      "     --grid.dimension=1 \\\n"
+      "     --grid.refinement_level=5 \\\n"
+      "     --compartments.domain.type=expression \\\n"
+      "     --compartments.domain.expression=1 \\\n"
+      "     --model.scalar_field.u.compartment=domain \\\n"
+      "     --model.scalar_field.u.initial.expression=\"(position_x > 0.5)\" \\\n"
+      "     --model.scalar_field.u.storage.expression=1 \\\n"
+      "     --model.scalar_field.u.cross_diffusion.u.expression=0.001 \\\n"
+      "     --model.writer.vtk.path=step_diffusion\n\n",
+      prog_name);
+  }
 }
 
 int
