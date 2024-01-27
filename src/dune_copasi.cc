@@ -40,6 +40,7 @@
 #include <spdlog/spdlog.h>
 
 #include <fmt/core.h>
+#include <fmt/ranges.h>
 
 // Generated options for the done-copasi configuration ini-file
 #if __has_include("dune-copasi-config-file-options.hh")
@@ -76,10 +77,12 @@ program_help(std::string_view prog_name, bool long_help)
     "  -h / --help          - Display this help\n"
     "  --help-full          - Display this help with long descriptions\n"
     "  --version            - Display the version of this program\n"
-    "  --parser-list        - Display the parsers available for this program. Default marked with '*'\n"
-    "  --config=<string>    - Specifies a config file in INI format. See Configuration Options\n"
-    "  --dump-config        - Dumps configuration in the INI format to stdout\n"
-    "  --{{key}}={{value}}      - Overrides key=value sections of the config file. See Configuration Options\n\n",
+    "  --parser-default     - Display the default parser.\n"
+    "  --parser-list        - Display the parsers available for this program.\n"
+    "  --dimension-list     - Display the grid dimensions available for this program.\n"
+    "  --dump-config        - Dumps configuration in the INI format to stdout.\n"
+    "  --config=<string>    - Specifies a config file in INI format. See Configuration Options.\n"
+    "  --{{key}}={{value}}      - Overrides key=value sections of the config file. See Configuration Options.\n\n",
     prog_name);
 
   if (not config_file_opts.empty()) {
@@ -100,27 +103,27 @@ program_help(std::string_view prog_name, bool long_help)
   }
   std::cout << std::endl;
   if (long_help) {
-    std::cout << fmt::format(
+    fmt::print(
       "EXAMPLE:\n"
       "  Step diffusion:\n"
       "    The following command will solve the laplace equation for a\n"
       "    1D scalar field variable named 'u' in a compartment named 'domain'.\n"
       "    The initial condition is an expression which has an step when the\n"
-      "    coordinate 'x' is 0.5. The storage term is set to '1.' because the\n"
-      "    problem is transient and the diffusion coefficient is set to '0.001'\n"
+      "    coordinate 'x' is 0.5. The storage term is set to 1.0 because the\n"
+      "    problem is transient and the diffusion coefficient is set to 0.001\n"
       "    to blend the step over time. Finally, the solution will be written\n"
       "    in the vtk format using the keyword 'step_diffusion' used to format\n"
       "    the output files.\n\n"
-      "    {} \\\n"
-      "     --grid.dimension=1 \\\n"
-      "     --grid.refinement_level=5 \\\n"
-      "     --compartments.domain.type=expression \\\n"
-      "     --compartments.domain.expression=1 \\\n"
-      "     --model.scalar_field.u.compartment=domain \\\n"
-      "     --model.scalar_field.u.initial.expression=\"(position_x > 0.5)\" \\\n"
-      "     --model.scalar_field.u.storage.expression=1 \\\n"
-      "     --model.scalar_field.u.cross_diffusion.u.expression=0.001 \\\n"
-      "     --model.writer.vtk.path=step_diffusion\n\n",
+      "      {} \\\n"
+      "        --grid.dimension=1 \\\n"
+      "        --grid.refinement_level=5 \\\n"
+      "        --compartments.domain.type=expression \\\n"
+      "        --compartments.domain.expression=1 \\\n"
+      "        --model.scalar_field.u.compartment=domain \\\n"
+      "        --model.scalar_field.u.initial.expression=\"(position_x > 0.5)\" \\\n"
+      "        --model.scalar_field.u.storage.expression=1 \\\n"
+      "        --model.scalar_field.u.cross_diffusion.u.expression=0.001 \\\n"
+      "        --model.writer.vtk.path=step_diffusion\n\n",
       prog_name);
   }
 }
@@ -133,6 +136,14 @@ main(int argc, char** argv)
   int end_code = 0;
   Dune::ParameterTree config;
 
+  auto log_error = [](std::string message){
+    std::istringstream stream(message);
+    std::string line;
+    while (std::getline(stream, line)) {
+      spdlog::error("  {}", line);
+    }
+  };
+
   std::vector<char*> cmd_args(argv, argv + argc);
   auto is_help = [](std::string_view opt) { return opt.starts_with("--help") or opt == "-h"; };
   if (auto hlp = std::ranges::find_if(cmd_args, is_help); hlp != cmd_args.end()) {
@@ -142,19 +153,32 @@ main(int argc, char** argv)
 
   auto is_version = [](std::string_view opt) { return opt == "--version"; };
   if (std::ranges::find_if(cmd_args, is_version) != cmd_args.end()) {
-    std::cout << DUNE_COPASI_VERSION << std::endl;
+    fmt::print("{}\n", DUNE_COPASI_VERSION);
+    return 0;
+  }
+
+  auto is_parser_default = [](std::string_view opt) { return opt == "--parser-default"; };
+  if (std::ranges::find_if(cmd_args, is_parser_default) != cmd_args.end()) {
+    fmt::print("{}\n", Dune::Copasi::default_parser_str);
     return 0;
   }
 
   auto is_parser_list = [](std::string_view opt) { return opt == "--parser-list"; };
   if (std::ranges::find_if(cmd_args, is_parser_list) != cmd_args.end()) {
     std::unique_ptr<Dune::Copasi::Parser> parser;
+    std::vector<std::string> parsers;
     for (auto [parser_str, _] : Dune::Copasi::string2parser)
       try {
         parser = Dune::Copasi::make_parser(parser_str);
-        auto default_str = Dune::Copasi::default_parser_str == parser_str ? '*' : ' ';
-        std::cout << fmt::format("{} {}\n", default_str, parser_str);
+        parsers.emplace_back(parser_str);
       } catch (...) {}
+    fmt::print("{}\n", parsers);
+    return 0;
+  }
+
+  auto is_dimension_list = [](std::string_view opt) { return opt == "--dimension-list"; };
+  if (std::ranges::find_if(cmd_args, is_dimension_list) != cmd_args.end()) {
+    fmt::print("{}\n", std::array{DUNE_COPASI_GRID_DIMENSIONS});
     return 0;
   }
 
@@ -180,7 +204,7 @@ main(int argc, char** argv)
     Dune::ParameterTreeParser::readNamedOptions(cmd_args.size(), cmd_args.data(), config, {});
   } catch (Dune::Exception& e) {
     spdlog::error("Invalid arguments!");
-    spdlog::error("{}", e.what());
+    log_error(e.what());
     spdlog::error("dune-copasi finished with some errors :(");
     return 1;
   }
@@ -189,7 +213,7 @@ main(int argc, char** argv)
     return 0;
   }
 
-  spdlog::info("Starting dune-copasi");
+  spdlog::info("Starting dune-copasi (version: {})", DUNE_COPASI_VERSION);
   auto trace_path = config.get("trace.path", "");
 #if HAVE_PERFETTO
   std::unique_ptr<Dune::PDELab::TracingSession> tracing_session;
@@ -208,14 +232,6 @@ main(int argc, char** argv)
     TRACE_EVENT("dune", "MPI::Init");
     Dune::MPIHelper::instance(argc, argv);
   }
-
-  auto log_error = [](std::string message){
-    std::istringstream stream(message);
-    std::string line;    
-    while (std::getline(stream, line)) {
-      spdlog::error("  {}", line);
-    }
-  };
 
   try {
     using namespace Dune::Copasi;
@@ -319,8 +335,9 @@ main(int argc, char** argv)
       [config_dim]() {
         throw Dune::Copasi::format_exception(
           Dune::IOError{},
-          "This executable cannot simulate in {}D grids!",
-          std::size_t{ config_dim });
+          "\n  This executable cannot simulate in {}D grids!\n  Available dimensions are: {}.",
+          config_dim,
+          std::array{DUNE_COPASI_GRID_DIMENSIONS});
       });
   } catch (Dune::NotImplemented& e) {
     spdlog::error("Feature is not implemented:");
