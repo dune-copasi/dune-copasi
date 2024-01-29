@@ -135,7 +135,7 @@ FunctorFactoryParser<dim>::parse_scalar_expression(const ParameterTree& config,
     parser_ptr->define_variable("in_volume", &(local_values.in_volume));
     parser_ptr->define_variable("in_boundary", &(local_values.in_boundary));
     parser_ptr->define_variable("in_skeleton", &(local_values.in_skeleton));
-    parser_ptr->define_constant("null", std::numeric_limits<double>::max());
+    parser_ptr->define_constant("no_value", std::numeric_limits<double>::max());
     for (std::size_t i = 0; i != axis_names.size(); ++i) {
       auto pos_arg = fmt::format("position_{}", axis_names[i]);
       auto norm_arg = fmt::format("normal_{}", axis_names[i]);

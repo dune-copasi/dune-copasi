@@ -1,8 +1,8 @@
 <math-expr|string>
 Constraints expressions for '{var}' on 'boundary', 'skeleton' and 'volume' degrees of freedom. Default '<empty>'.
-When the expression evaluates to 'null' the degree of freedom will be left unconstrained
-and left to be solved (expect when using 'ExprTk'!). Otherwise, the resulting value on the
-expression will be set as a constrain and the degree of freedom won't be modified when the system
-is solved. When this option not set, the all the degrees of freedom for '{var}' will automatically be unconstrained.
-The 'boundary' degrees of freedom refer to the coefficients bound to the boundary of the entire grid 
-(i.e., not necessarily the compartment boundary). Warning: Time dependent constraints are currently unsupported.
+When the expression evaluates to 'no_value' the degree of freedom will be left unconstrained
+and left to be solved. Otherwise, the resulting value on the expression will be set as a constrain
+and the degree of freedom won't be modified when the system is solved. When this option not set,
+the all the degrees of freedom for '{var}' will automatically be unconstrained. The 'boundary'
+degrees of freedom refer to the coefficients bound to the boundary of the entire grid  (i.e., not
+necessarily the compartment boundary). Warning: Time dependent constraints are currently unsupported.
