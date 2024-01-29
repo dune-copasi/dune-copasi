@@ -23,3 +23,9 @@ origin=<float-list>
 
 refinement_level=<integer>
   Refinement level of the grid at the beginning of the simulation.  Default: 0
+
+axis_names=<string-list>
+  Names given to the axis of the grid. Default: ['x', 'y', 'z']
+  These names are used to identify the cartesian components of several parameters in the
+  program (e.g. 'position_x', 'model.scalar_field.{var}.velocity.z.initial.expression', etc).
+  Through the rest of the documentation, they are assumed to be the default ones.

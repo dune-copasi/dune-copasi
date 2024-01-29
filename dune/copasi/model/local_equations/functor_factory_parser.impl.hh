@@ -3,6 +3,7 @@
 
 #include <dune/copasi/model/local_equations/functor_factory_parser.hh>
 #include <dune/copasi/model/local_equations/local_equations.hh>
+#include <dune/copasi/common/axis_names.hh>
 
 #include <regex>
 
@@ -40,11 +41,11 @@ FunctorFactoryParser<dim>::make_vector(std::string_view /*prefix*/,
 {
   // create one parser for each entry of the vector
   std::array<ScalarFunctor, dim> vector_parser;
+  const std::size_t max_axis = std::min({axis_names.size(), dim});
   bool is_active = false;
-  std::array<std::string,3> dim_name = { "x", "y", "z" };
-  for (std::size_t i = 0; i != dim; ++i) {
+  for (std::size_t i = 0; i != max_axis; ++i) {
     is_active |= bool(vector_parser[i] = parse_scalar_expression(
-                        config.sub(dim_name.at(i), true), local_values, codim));
+                        config.sub(axis_names[i], true), local_values, codim));
   }
   if (not is_active) {
     return nullptr;
@@ -69,7 +70,6 @@ FunctorFactoryParser<dim>::make_tensor_apply(std::string_view prefix,
   -> TensorApplyFunctor
 {
   // diffusion apply parser
-  std::array<std::string,3> dim_name = { "x", "y", "z" };
   std::string type = config.get("type", "scalar");
   if (type == "scalar") {
     if (auto parser = parse_scalar_expression(config, local_values, codim)) {
@@ -80,12 +80,13 @@ FunctorFactoryParser<dim>::make_tensor_apply(std::string_view prefix,
   } else if (type == "tensor") {
     // create one parser for each entry of the tensor
     std::array<std::array<ScalarFunctor, dim>, dim> tensor_parser;
+    const std::size_t max_axis = std::min({axis_names.size(), dim});
     bool is_active = false;
-    for (std::size_t i = 0; i != dim; ++i) {
-      for (std::size_t j = 0; j != dim; ++j) {
-        if (config.hasSub(dim_name.at(i) + dim_name.at(j)))
+    for (std::size_t i = 0; i != max_axis; ++i) {
+      for (std::size_t j = 0; j != max_axis; ++j) {
+        if (config.hasSub(axis_names[i] + axis_names[j]))
           is_active |= bool(tensor_parser[i][j] = parse_scalar_expression(
-                              config.sub(dim_name.at(i) + dim_name.at(j)),
+                              config.sub(axis_names[i] + axis_names[j]),
                               local_values,
                               codim));
       }
@@ -128,7 +129,6 @@ FunctorFactoryParser<dim>::parse_scalar_expression(const ParameterTree& config,
   } else {
     auto parser_type =
       string2parser.at(config.get("parser_type", std::string{ parser2string.at(_parser_type) }));
-    std::array<std::string,3> dim_name = { "x", "y", "z" };
     auto parser_ptr = make_parser(parser_type);
     parser_ptr->define_variable("time", &(local_values.time));
     parser_ptr->define_variable("entity_volume", &(local_values.entity_volume));
@@ -136,9 +136,9 @@ FunctorFactoryParser<dim>::parse_scalar_expression(const ParameterTree& config,
     parser_ptr->define_variable("in_boundary", &(local_values.in_boundary));
     parser_ptr->define_variable("in_skeleton", &(local_values.in_skeleton));
     parser_ptr->define_constant("null", std::numeric_limits<double>::max());
-    for (std::size_t i = 0; i != 3; ++i) {
-      auto pos_arg = fmt::format("position_{}", dim_name.at(i));
-      auto norm_arg = fmt::format("normal_{}", dim_name.at(i));
+    for (std::size_t i = 0; i != axis_names.size(); ++i) {
+      auto pos_arg = fmt::format("position_{}", axis_names[i]);
+      auto norm_arg = fmt::format("normal_{}", axis_names[i]);
       if (i < dim) {
         parser_ptr->define_variable(pos_arg, &(local_values.position)[i]);
         if (codim == 1)
@@ -156,8 +156,8 @@ FunctorFactoryParser<dim>::parse_scalar_expression(const ParameterTree& config,
         for (auto& compartment_fncs : compartments)
           for (auto& component_fncs : compartment_fncs) {
             parser_ptr->define_variable(component_fncs.name, &(component_fncs.value[0]));
-            for (std::size_t i = 0; i != 3; ++i) {
-              auto grad_arg = fmt::format("grad_{}_{}", component_fncs.name, dim_name.at(i));
+            for (std::size_t i = 0; i != axis_names.size(); ++i) {
+              auto grad_arg = fmt::format("grad_{}_{}", component_fncs.name, axis_names[i]);
               if (i < dim) {
                 parser_ptr->define_variable(grad_arg, &(component_fncs.gradient)[i]);
               } else {

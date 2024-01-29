@@ -1,4 +1,5 @@
-install(FILES bit_flags.hh
+install(FILES axis_names.hh
+              bit_flags.hh
               data_context.hh
               exceptions.hh
               factory.hh

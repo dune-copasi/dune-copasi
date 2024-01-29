@@ -56,7 +56,7 @@ if (${DUNE_COPASI_WITH_EXECUTABLE})
   install(TARGETS dune-copasi-exec EXPORT dune-copasi-targets RUNTIME COMPONENT Runtime)
 
   # generate configuration file options out of file descriptors in the "options/" folder
-  file(GLOB opt_files "${CMAKE_CURRENT_SOURCE_DIR}/options/*")
+  file(GLOB opt_files CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/options/*")
   set(opt_header "static const std::vector<std::array<std::string, 4>> config_file_opts = \{\n")
   foreach(opt_file ${opt_files})
     file(STRINGS ${opt_file} opt_content)

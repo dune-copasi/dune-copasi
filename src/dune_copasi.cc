@@ -236,8 +236,6 @@ main(int argc, char** argv)
   try {
     using namespace Dune::Copasi;
 
-    auto parser_context = std::make_shared<ParserContext>(config.sub("parser_context"));
-
     // find grid dimension
     std::size_t config_dim;
     if (config.hasKey("grid.dimension")) {
@@ -247,6 +245,16 @@ main(int argc, char** argv)
     } else {
       config_dim = 2;
     }
+
+    if (config.hasKey("grid.axis_names"))
+      axis_names = config.template get<std::vector<std::string>>("grid.axis_names");
+    spdlog::info("Axis names are set to: {}", axis_names);
+    if (axis_names.size() < config_dim)
+      spdlog::warn("There are less axis names ({}) than number dimensions ({})", axis_names.size(), config_dim);
+    if (not std::ranges::unique(axis_names).empty())
+      throw format_exception(Dune::IOError{}, "Axis names are not unique!");
+
+    auto parser_context = std::make_shared<ParserContext>(config.sub("parser_context"));
 
     // unroll dimensions and select the one case defined at run-time
     constexpr auto dims = std::index_sequence<DUNE_COPASI_GRID_DIMENSIONS>{};

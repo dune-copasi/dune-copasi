@@ -3,6 +3,7 @@
 
 #include <dune/copasi/common/exceptions.hh>
 #include <dune/copasi/common/ostream_to_spdlog.hh>
+#include <dune/copasi/common/axis_names.hh>
 #include <dune/copasi/concepts/grid.hh>
 #include <dune/copasi/parser/context.hh>
 
@@ -115,9 +116,8 @@ make_multi_domain_grid(Dune::ParameterTree& config,
         if (parser_context)
           parser_context->add_context(*parser_ptr);
         auto position = std::make_shared<FieldVector<double, MDGrid::dimensionworld>>();
-        const std::array<std::string,3> dim_name = { "x", "y", "z" };
-        for (std::size_t i = 0; i != 3; ++i) {
-          auto pos_arg = fmt::format("position_{}", dim_name.at(i));
+        for (std::size_t i = 0; i != axis_names.size(); ++i) {
+          auto pos_arg = fmt::format("position_{}", axis_names[i]);
           if (i < MDGrid::dimensionworld) {
             parser_ptr->define_variable(pos_arg, &(*position)[i]);
           } else {

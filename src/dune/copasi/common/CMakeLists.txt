@@ -40,6 +40,7 @@ set_target_properties(dune-copasi-common PROPERTIES EXPORT_NAME Copasi::Common)
 
 target_sources(dune-copasi-common
   PRIVATE
+    axis_names.cc
     tiff_file.cc
     tiff_grayscale.cc
     ostream_redirect.cc
