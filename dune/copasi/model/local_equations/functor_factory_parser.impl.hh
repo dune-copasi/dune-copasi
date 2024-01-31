@@ -19,12 +19,12 @@ static inline const std::regex float_regex("-?([0-9]+)?([\\.]?)([0-9]+)?");
 static inline const std::regex zero_regex("-?([0]+)?([\\.]?)([0]+)?");
 } // namespace Impl
 
-template<std::size_t dim>
+template<Dune::Concept::Grid Grid>
 class LocalEquations;
 
-template<std::size_t dim>
+template<Dune::Concept::Grid Grid>
 auto
-FunctorFactoryParser<dim>::make_scalar(std::string_view /*prefix*/,
+FunctorFactoryParser<Grid>::make_scalar(std::string_view /*prefix*/,
                                        const ParameterTree& config,
                                        const LocalDomain<dim>& local_values,
                                        int codim) const -> ScalarFunctor
@@ -32,16 +32,16 @@ FunctorFactoryParser<dim>::make_scalar(std::string_view /*prefix*/,
   return parse_scalar_expression(config, local_values, codim);
 }
 
-template<std::size_t dim>
+template<Dune::Concept::Grid Grid>
 auto
-FunctorFactoryParser<dim>::make_vector(std::string_view /*prefix*/,
+FunctorFactoryParser<Grid>::make_vector(std::string_view /*prefix*/,
                                        const ParameterTree& config,
                                        const LocalDomain<dim>& local_values,
                                        int codim) const -> VectorFunctor
 {
   // create one parser for each entry of the vector
   std::array<ScalarFunctor, dim> vector_parser;
-  const std::size_t max_axis = std::min({axis_names.size(), dim});
+  const std::size_t max_axis = std::min<std::size_t>({axis_names.size(), dim});
   bool is_active = false;
   for (std::size_t i = 0; i != max_axis; ++i) {
     is_active |= bool(vector_parser[i] = parse_scalar_expression(
@@ -61,9 +61,9 @@ FunctorFactoryParser<dim>::make_vector(std::string_view /*prefix*/,
   } };
 }
 
-template<std::size_t dim>
+template<Dune::Concept::Grid Grid>
 auto
-FunctorFactoryParser<dim>::make_tensor_apply(std::string_view prefix,
+FunctorFactoryParser<Grid>::make_tensor_apply(std::string_view prefix,
                                              const ParameterTree& config,
                                              const LocalDomain<dim>& local_values,
                                              int codim) const
@@ -80,7 +80,7 @@ FunctorFactoryParser<dim>::make_tensor_apply(std::string_view prefix,
   } else if (type == "tensor") {
     // create one parser for each entry of the tensor
     std::array<std::array<ScalarFunctor, dim>, dim> tensor_parser;
-    const std::size_t max_axis = std::min({axis_names.size(), dim});
+    const std::size_t max_axis = std::min<std::size_t>(axis_names.size(), dim);
     bool is_active = false;
     for (std::size_t i = 0; i != max_axis; ++i) {
       for (std::size_t j = 0; j != max_axis; ++j) {
@@ -112,9 +112,9 @@ FunctorFactoryParser<dim>::make_tensor_apply(std::string_view prefix,
   }
 }
 
-template<std::size_t dim>
+template<Dune::Concept::Grid Grid>
 auto
-FunctorFactoryParser<dim>::parse_scalar_expression(const ParameterTree& config,
+FunctorFactoryParser<Grid>::parse_scalar_expression(const ParameterTree& config,
                                                    const LocalDomain<dim>& local_values,
                                                    int codim) const
   -> ScalarFunctor
@@ -150,7 +150,14 @@ FunctorFactoryParser<dim>::parse_scalar_expression(const ParameterTree& config,
       }
     }
 
-    LocalEquations<dim> const* d = dynamic_cast<LocalEquations<dim> const*>(&local_values);
+    // make gmsh_id available during assembly (only compartment)
+    parser_ptr->define_variable("gmsh_id", &(local_values.gmsh_id));
+    for(const auto& node : local_values.cell_data){
+      std::cout << "Defining grid data variable: " << node.first << std::endl;
+      parser_ptr->define_variable(node.first, &(node.second));
+    }
+
+    LocalEquations<Grid> const* d = dynamic_cast<LocalEquations<Grid> const*>(&local_values);
     if (d != nullptr)
       PDELab::forEach(d->nodes(), [&](auto& compartments) {
         for (auto& compartment_fncs : compartments)

@@ -2,6 +2,9 @@
 #define DUNE_COPASI_MODEL_LOCAL_EQUATIONS_FUNCTOR_FACTORY_HH
 
 #include <dune-copasi-config.hh>
+#include <dune/copasi/concepts/grid.hh>
+#include <dune/copasi/parser/context.hh>
+#include <dune/copasi/parser/grid_context.hh>
 
 #include <dune/common/fmatrix.hh>
 #include <dune/common/fvector.hh>
@@ -19,18 +22,22 @@ struct LocalDomain;
 
 // the owner of the resulting function must hold the local equations for the lifetime of created
 // functors
-template<std::size_t dim>
+template<Dune::Concept::Grid Grid>
 class FunctorFactory
 {
 public:
+
+  static constexpr int dim = Grid::dimensionworld;
+  using GridView = typename Grid::LeafGridView;
+  using Entity = typename Grid::template Codim<0>::Entity;
+
   using Scalar = FieldVector<double, 1>;
   using Vector = FieldVector<double, dim>;
   using Tensor = FieldMatrix<double, dim, dim>;
 
   using ScalarFunctor = fu2::unique_function<Scalar() const noexcept>;
   using VectorFunctor = fu2::unique_function<Vector() const noexcept>;
-  using TensorApplyFunctor =
-    fu2::unique_function<Vector(Vector) const noexcept>;
+  using TensorApplyFunctor = fu2::unique_function<Vector(Vector) const noexcept>;
 
   FunctorFactory() = default;
   FunctorFactory(const FunctorFactory&) = delete;
@@ -55,6 +62,12 @@ public:
                                                              const ParameterTree&,
                                                              const LocalDomain<dim>&,
                                                              int /*codim*/ = 0) const = 0;
+
+
+  virtual std::shared_ptr<const ParserContext> parser_context() const = 0;
+
+  virtual std::shared_ptr<const ParserGridContext<Grid>> parser_grid_context() const = 0;
+
 };
 
 } // namespace Dune::Copasi

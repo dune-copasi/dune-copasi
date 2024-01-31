@@ -32,9 +32,9 @@
 
 namespace Dune::Copasi {
 
-template<class Traits>
+template<class Traits, Dune::Concept::Grid MDGrid>
 auto
-ModelDiffusionReaction<Traits>::get_entity_set(const Grid& grid, std::size_t subdomain)
+ModelDiffusionReaction<Traits, MDGrid>::get_entity_set(const Grid& grid, std::size_t subdomain)
   -> CompartmentEntitySet
 {
   if constexpr (std::same_as<typename Grid::LeafGridView, CompartmentEntitySet>) {
@@ -46,9 +46,9 @@ ModelDiffusionReaction<Traits>::get_entity_set(const Grid& grid, std::size_t sub
   throw format_exception(NotImplemented{}, "Not known mapping from Grid to CompartmentEntitySet");
 }
 
-template<class Traits>
+template<class Traits, Dune::Concept::Grid MDGrid>
 void
-ModelDiffusionReaction<Traits>::interpolate(
+ModelDiffusionReaction<Traits, MDGrid>::interpolate(
   State& state,
   const std::unordered_map<std::string, GridFunction>& initial) const
 {
@@ -61,13 +61,13 @@ ModelDiffusionReaction<Traits>::interpolate(
   Dune::Copasi::interpolate(basis, coefficients, initial);
 }
 
-template<class Traits>
+template<class Traits, Dune::Concept::Grid MDGrid>
 auto
-ModelDiffusionReaction<Traits>::make_scalar_field_pre_basis(std::shared_ptr<BoundaryEntityMapper<CompartmentEntitySet>> boundary_mapper,
+ModelDiffusionReaction<Traits, MDGrid>::make_scalar_field_pre_basis(std::shared_ptr<BoundaryEntityMapper<CompartmentEntitySet>> boundary_mapper,
                                                             const CompartmentEntitySet& entity_set,
                                                             std::string_view name,
                                                             const ParameterTree& scalar_field_config,
-                                                            std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory) -> ScalarPreBasis
+                                                            std::shared_ptr<const FunctorFactory< MDGrid >> functor_factory) -> ScalarPreBasis
 {
   spdlog::info("Setup basis functions for component '{}'", name);
   auto scalar_field_pre_basis =
@@ -78,14 +78,14 @@ ModelDiffusionReaction<Traits>::make_scalar_field_pre_basis(std::shared_ptr<Boun
   return scalar_field_pre_basis;
 }
 
-template<class Traits>
+template<class Traits, Dune::Concept::Grid MDGrid>
 auto
-ModelDiffusionReaction<Traits>::make_compartment_pre_basis(
+ModelDiffusionReaction<Traits, MDGrid>::make_compartment_pre_basis(
   const CompartmentEntitySet& entity_set,
   std::string_view compartment_name,
   const std::vector<std::string>& scalar_field_names,
   const ParameterTree& scalar_fields_config,
-  std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory) -> CompartmentPreBasis
+  std::shared_ptr<const FunctorFactory< MDGrid >> functor_factory) -> CompartmentPreBasis
 {
   spdlog::info("Setup compartment basis functions for compartment '{}'", compartment_name);
 
@@ -109,12 +109,12 @@ ModelDiffusionReaction<Traits>::make_compartment_pre_basis(
   return compartment_pre_basis;
 }
 
-template<class Traits>
+template<class Traits, Dune::Concept::Grid MDGrid>
 void
-ModelDiffusionReaction<Traits>::setup_basis(State& state,
+ModelDiffusionReaction<Traits, MDGrid>::setup_basis(State& state,
                                             const Grid& grid,
                                             const ParameterTree& config,
-                                            std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory)
+                                            std::shared_ptr<const FunctorFactory< MDGrid >> functor_factory)
 {
   TRACE_EVENT("dune", "Basis::SetUp");
   using CompartmentBasis = PDELab::Basis<PDELab::EntitySetPartitioner::Identity<CompartmentEntitySet>, CompartmentPreBasis>;
@@ -138,9 +138,9 @@ ModelDiffusionReaction<Traits>::setup_basis(State& state,
   state.basis = CompartmentBasis{ makeBasis(entity_set, comp_space) };
 }
 
-template<class Traits>
+template<class Traits, Dune::Concept::Grid MDGrid>
 void
-ModelDiffusionReaction<Traits>::setup_coefficient_vector(State& state)
+ModelDiffusionReaction<Traits, MDGrid>::setup_coefficient_vector(State& state)
 {
   spdlog::info("Setup coefficient vector");
   using CompartmentBasis = PDELab::Basis<PDELab::EntitySetPartitioner::Identity<CompartmentEntitySet>, CompartmentPreBasis>;
@@ -150,9 +150,9 @@ ModelDiffusionReaction<Traits>::setup_coefficient_vector(State& state)
   state.coefficients = Coefficients{ basis.makeContainer(CoefficientsBackend{}) };
 }
 
-template<class Traits>
+template<class Traits, Dune::Concept::Grid MDGrid>
 auto
-ModelDiffusionReaction<Traits>::make_state(const std::shared_ptr<const Grid>& grid,
+ModelDiffusionReaction<Traits, MDGrid>::make_state(const std::shared_ptr<const Grid>& grid,
                                            const ParameterTree& config) const
   -> std::unique_ptr<State>
 {
@@ -164,9 +164,9 @@ ModelDiffusionReaction<Traits>::make_state(const std::shared_ptr<const Grid>& gr
   return state_ptr;
 }
 
-template<class Traits>
-typename ModelDiffusionReaction<Traits>::GridFunction
-ModelDiffusionReaction<Traits>::make_compartment_function(const std::shared_ptr<const State>& state,
+template<class Traits, Dune::Concept::Grid MDGrid>
+typename ModelDiffusionReaction<Traits, MDGrid>::GridFunction
+ModelDiffusionReaction<Traits, MDGrid>::make_compartment_function(const std::shared_ptr<const State>& state,
                                                           std::string_view name) const
 {
   using CompartmentBasis = PDELab::Basis<PDELab::EntitySetPartitioner::Identity<CompartmentEntitySet>, CompartmentPreBasis>;
@@ -185,17 +185,17 @@ ModelDiffusionReaction<Traits>::make_compartment_function(const std::shared_ptr<
   throw format_exception(RangeError{}, "State doesn't contain any function with name: {}", name);
 }
 
-template<class Traits>
+template<class Traits, Dune::Concept::Grid MDGrid>
 auto
-ModelDiffusionReaction<Traits>::make_initial(const Grid& grid, const ParameterTree& config) const
+ModelDiffusionReaction<Traits, MDGrid>::make_initial(const Grid& grid, const ParameterTree& config) const
   -> std::unordered_map<std::string, GridFunction>
 {
   return Dune::Copasi::make_initial<GridFunction>(grid, config, *_functor_factory);
 }
 
-template<class Traits>
+template<class Traits, Dune::Concept::Grid MDGrid>
 auto
-ModelDiffusionReaction<Traits>::make_step_operator(const State& state,
+ModelDiffusionReaction<Traits, MDGrid>::make_step_operator(const State& state,
                                                    const ParameterTree& config) const
   -> std::unique_ptr<PDELab::OneStep<State>>
 {
@@ -208,7 +208,7 @@ ModelDiffusionReaction<Traits>::make_step_operator(const State& state,
 
   const auto& basis = any_cast<const CompartmentBasis&>(state.basis);
 
-  std::shared_ptr one_step = make_diffusion_reaction_step_operator<LocalBasisTraits, Coefficients, Residual, ResidualQuantity, TimeQuantity>(config, basis, 1, _functor_factory);
+  std::shared_ptr one_step = make_diffusion_reaction_step_operator<LocalBasisTraits, Coefficients, Residual, ResidualQuantity, TimeQuantity, MDGrid>(config, basis, 1, _functor_factory);
 
   // type erase the original runge kutta operator
   auto type_erased_one_step = std::make_unique<PDELab::OperatorAdapter<State, State>>(
@@ -232,9 +232,9 @@ ModelDiffusionReaction<Traits>::make_step_operator(const State& state,
   return type_erased_one_step;
 }
 
-template<class Traits>
+template<class Traits, Dune::Concept::Grid MDGrid>
 auto
-ModelDiffusionReaction<Traits>::reduce(const State& state, const ParameterTree& config) const
+ModelDiffusionReaction<Traits, MDGrid>::reduce(const State& state, const ParameterTree& config) const
   -> std::map<std::string, double>
 {
   using CompartmentBasis = PDELab::Basis<PDELab::EntitySetPartitioner::Identity<CompartmentEntitySet>, CompartmentPreBasis>;
@@ -246,9 +246,9 @@ ModelDiffusionReaction<Traits>::reduce(const State& state, const ParameterTree& 
   return Dune::Copasi::reduce(basis, coeff, state.time, config, _functor_factory);
 }
 
-template<class Traits>
+template<class Traits, Dune::Concept::Grid MDGrid>
 void
-ModelDiffusionReaction<Traits>::write_vtk(const State& state,
+ModelDiffusionReaction<Traits, MDGrid>::write_vtk(const State& state,
                                           const std::filesystem::path& path,
                                           bool append) const
 {
@@ -312,7 +312,7 @@ ModelDiffusionReaction<Traits>::write_vtk(const State& state,
   if (coeff_ptr.use_count() != 1) {
     throw format_exception(
       InvalidStateException{},
-      "Fake shared pointer from coefficient vector may have been leaked outsie of this"
+      "Fake shared pointer from coefficient vector may have been leaked outside of this"
       "function!");
   }
 }

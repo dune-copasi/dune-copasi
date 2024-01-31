@@ -23,6 +23,7 @@ template<class LocalBasisTraits,
          class Residual,
          class ResidualQuantity,
          class TimeQuantity,
+         Dune::Concept::Grid MDGrid,
          PDELab::Concept::Basis Basis>
 [[nodiscard]] inline static std::unique_ptr<PDELab::Operator<Coefficients, Coefficients>>
 make_diffusion_reaction_step_operator(const ParameterTree& config,
@@ -42,7 +43,7 @@ make_diffusion_reaction_step_operator(const ParameterTree& config,
     const auto& scalar_field_cfg = config.sub("scalar_field");
     bool is_linear = config.get("is_linear", false);
     using LocalOperator =
-      LocalOperatorDiffusionReactionCG<OperatorBasis, LocalBasisTraits, ExecutionPolicy>;
+      LocalOperatorDiffusionReactionCG<OperatorBasis, LocalBasisTraits, MDGrid, ExecutionPolicy>;
     LocalOperator const stiff_lop(operator_basis,
                                   LocalOperatorType::Stiffness,
                                   is_linear,
