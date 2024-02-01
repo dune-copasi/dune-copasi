@@ -22,7 +22,7 @@ set(model_definitions
 target_link_libraries(dune-copasi-model INTERFACE ${model_libraries})
 target_compile_definitions(dune-copasi-model INTERFACE ${model_definitions})
 
-set(DUNE_COPASI_GRID_DIMENSIONS 2 CACHE STRING "List of grid dimension for models")
+set(DUNE_COPASI_GRID_DIMENSIONS "2" CACHE STRING "List of grid dimension for models")
 set(DUNE_COPASI_PRECOMPILED_MODE ON CACHE BOOL "If dune-copasi should be pre-compile object libraries for model classes")
 
 set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}\nset(DUNE_COPASI_GRID_DIMENSIONS ${DUNE_COPASI_GRID_DIMENSIONS})" PARENT_SCOPE)

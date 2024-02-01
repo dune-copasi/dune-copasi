@@ -70,6 +70,13 @@ if (TARGET Dune::Copasi::Executable)
       CMD_ARGS        --config=${CMAKE_CURRENT_SOURCE_DIR}/exp.ini
                       --grid.dimension=${dim})
 
+    set(grid_extensions "2")
+    set(grid_origin "-1")
+    foreach(i RANGE 2 ${dim})
+      set(grid_extensions "${grid_extensions} 2")
+      set(grid_origin "${grid_origin} -1")
+    endforeach()
+
     foreach(parser ${DUNE_COPASI_PARSER_LIST})
       dune_add_test(
         NAME            gauss-${dim}D-${parser}
@@ -77,6 +84,8 @@ if (TARGET Dune::Copasi::Executable)
         LABELS          system
         CMD_ARGS        --config=${CMAKE_CURRENT_SOURCE_DIR}/gauss.ini
                         --grid.dimension=${dim}
+                        --grid.extensions=${grid_extensions}
+                        --grid.origin=${grid_origin}
                         --model.parser_type=${parser})
     endforeach()
   endforeach()

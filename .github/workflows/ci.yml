@@ -19,6 +19,8 @@ jobs:
       CMAKE_INSTALL_PREFIX: '/opt/smelibs'
       CMAKE_PREFIX_PATH: '/opt/smelibs'
       CMAKE_CXX_FLAGS: "'-fvisibility=hidden -D_GLIBCXX_USE_TBB_PAR_BACKEND=0 -DNDEBUG'"
+      MAKE_OPTIONS: "-j4"
+      DUNE_COPASI_GRID_DIMENSIONS: '"2;3"'
       CC: "clang"
       CXX: "clang++"
       TERM: 'xterm-256color'
@@ -54,6 +56,8 @@ jobs:
     env:
       CMAKE_INSTALL_PREFIX: '/opt/smelibs'
       CMAKE_PREFIX_PATH: '/opt/smelibs'
+      MAKE_OPTIONS: "-j3"
+      DUNE_COPASI_GRID_DIMENSIONS: '"2;3"'
       MACOSX_DEPLOYMENT_TARGET: '11'
       TERM: 'xterm-256color'
     defaults:
@@ -79,6 +83,8 @@ jobs:
     env:
       CMAKE_INSTALL_PREFIX: '/c/smelibs'
       CMAKE_PREFIX_PATH: '/c/smelibs'
+      MAKE_OPTIONS: "-j4"
+      DUNE_COPASI_GRID_DIMENSIONS: '"2;3"'
     defaults:
       run:
         shell: msys2 {0}
