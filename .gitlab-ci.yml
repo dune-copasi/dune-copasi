@@ -7,13 +7,16 @@ stages:
   - codequality
   - deploy
 
-.default_tags: &default_tags
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
+
+default:
   tags:
     - "cores:4"
-
-.dind_docker_tags: &dind_docker_tags
-  tags:
-    - "dind"
 
 variables:
   DUNECONTROL: dunecontrol
@@ -31,6 +34,10 @@ variables:
       - "true"
       - "false"
     description: "Force rebuild of base image"
+
+.dind_docker_tags: &dind_docker_tags
+  tags:
+    - "dind"
 
 .docker_variables: &docker_variables
   DOCKER_BUILDKIT: 1
@@ -72,7 +79,6 @@ variables:
     - ./.ci/test dune-copasi.opts
     - mkdir -p packages
     - mv tmp/dune-copasi-*-Runtime.deb packages/dune-copasi-runtime.deb
-  <<: *default_tags
   artifacts:
     paths:
       - packages
@@ -83,7 +89,6 @@ variables:
   stage: codequality
   script:
     - CODE_CHECKER_REPORT_PATH=$CI_PROJECT_DIR/code_checker_report ./.ci/install dune-copasi.opts
-  <<: *default_tags
   artifacts:
     reports:
       codequality: $CI_PROJECT_DIR/code_checker_report/gl-code-quality-report.json
@@ -127,7 +132,6 @@ variables:
 codespell:
   variables:
     <<: *debian_clang
-  <<: *default_tags
   stage: check
   image: ${DEPENDENCIES_IMAGE}
   script:
@@ -161,3 +165,24 @@ deploy:debian_clang:
   <<: *deploy
   dependencies:
     - build:debian_clang
+
+deploy:documentation:
+  image: ${DEPENDENCIES_IMAGE}
+  variables:
+    <<: *debian_clang
+    GIT_STRATEGY: none
+  stage: deploy
+  script:
+    - curl -s --head --request GET https://${CI_COMMIT_REF_SLUG}--dune-copasi.netlify.app | grep "HTTP/2 404" 2> /dev/null || EXIT=$?
+    - test ${EXIT} -eq 1
+  environment:
+    name: documentation/${CI_COMMIT_REF_NAME}
+    url: https://${CI_COMMIT_REF_SLUG}--dune-copasi.netlify.app
+  allow_failure: true
+  rules:
+    - if: '$CI_COMMIT_TAG'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_COMMIT_BRANCH == "latest"'
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - doc/**/*
