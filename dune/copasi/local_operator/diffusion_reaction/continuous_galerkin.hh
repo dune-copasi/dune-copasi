@@ -8,7 +8,6 @@
 
 #include <dune/pdelab/common/concurrency/shared_stash.hh>
 #include <dune/pdelab/common/execution.hh>
-#include <dune/pdelab/common/quadraturerules.hh>
 #include <dune/pdelab/common/tree_traversal.hh>
 #include <dune/pdelab/operator/local_assembly/archetype.hh>
 #include <dune/pdelab/operator/local_assembly/interface.hh>
@@ -28,12 +27,6 @@ enum class LocalOperatorType
   Mass
 };
 
-// TODO currently, loops over trial and test functions cover the whole tree.
-// That makes the program O(n^2) where n is the number of nodes in the whole
-// tree. To fix that we need a mapping from entity domains to active local
-// bases... That would make this O(k^2) where k is the number of active local
-// bases.
-
 /**
  * @brief      This class describes a PDELab local operator for diffusion
  *             reaction systems.
@@ -49,15 +42,10 @@ template<PDELab::Concept::Basis TestBasis, class LBT, class ExecutionPolicy = PD
 class LocalOperatorDiffusionReactionCG
 {
 
-  //! range field
+  // utility types
+  using DF = typename LBT::DomainFieldType;
   using RF = typename LBT::RangeFieldType;
-
-  //! world dimension
   static constexpr int dim = LBT::dimDomain;
-
-  mutable std::vector<FieldVector<RF, dim>> _gradphi_i, _gradphi_o;
-  mutable std::vector<FieldMatrix<RF, 1, dim>> _jacphi_i, _jacphi_o;
-  mutable std::vector<FieldVector<RF, 1>> _phi_i, _phi_o;
 
   using MembraneScalarFunction = typename LocalEquations<dim>::MembraneScalarFunction;
   using CompartmentNode = typename LocalEquations<dim>::CompartmentNode;
@@ -67,8 +55,8 @@ class LocalOperatorDiffusionReactionCG
     const CompartmentNode& source;
     Outflow(const MembraneScalarFunction& outflow, const CompartmentNode& source) : outflow{outflow}, source{source} {}
   };
-  mutable std::vector<Outflow> _outflow_i;
-  mutable std::vector<Outflow> _outflow_o;
+  std::vector<Outflow> _outflow_i;
+  std::vector<Outflow> _outflow_o;
 
   std::vector<std::size_t> _compartment2domain;
 
@@ -78,27 +66,10 @@ class LocalOperatorDiffusionReactionCG
   bool _has_outflow = true;
 
   PDELab::SharedStash<LocalBasisCache<LBT>> _fe_cache;
-  PDELab::SharedStash<LocalEquations<dim>> _local_values;
+  PDELab::SharedStash<LocalEquations<dim>> _local_values_in;
+  PDELab::SharedStash<LocalEquations<dim>> _local_values_out;
 
   ExecutionPolicy _execution_policy;
-
-  static inline const auto& firstCompartmentFiniteElement(
-    const Concept::CompartmentLocalBasisNode auto& lnode) noexcept
-  {
-    for (std::size_t i = 0; i != lnode.degree(); ++i)
-      if (lnode.child(i).size() != 0)
-        return lnode.child(i).finiteElement();
-    std::terminate();
-  }
-
-  static inline const auto& firstCompartmentFiniteElement(
-    const Concept::MultiCompartmentLocalBasisNode auto& lnode) noexcept
-  {
-    for (std::size_t i = 0; i != lnode.degree(); ++i)
-      if (lnode.child(i).size() != 0)
-        return firstCompartmentFiniteElement(lnode.child(i));
-    std::terminate();
-  }
 
   template<class R, class X>
   struct PseudoJacobian
@@ -135,6 +106,19 @@ class LocalOperatorDiffusionReactionCG
       return _test_basis.entitySet().indexSet().subDomains(entity);
     else
       return MonoDomainSet{};
+  }
+
+  std::size_t integrationOrder(const auto&... lbasis_pack) const {
+    std::size_t order = 0;
+    std::size_t intorderadd = 0;
+    std::size_t quad_factor = 2;
+    Hybrid::forEach(std::tie(lbasis_pack...), [&](const auto& lbasis){
+      forEachLeafNode(lbasis.tree(), [&](const auto& node) {
+        if (node.size() != 0)
+          order = std::max<std::size_t>(order, node.finiteElement().localBasis().order());
+      });
+    });
+    return intorderadd + quad_factor * order;
   }
 
 public:
@@ -183,10 +167,10 @@ public:
     : _test_basis{ test_basis }
     , _is_linear{ is_linear }
     , _fe_cache([]() { return std::make_unique<LocalBasisCache<LBT>>(); })
-    , _local_values([_lop_type = lop_type,
+    , _local_values_in([_lop_type = lop_type,
                      _basis = _test_basis,
                      _config = config,
-                     _functor_factory = std::move(functor_factory)]() {
+                     _functor_factory = functor_factory]() {
       std::unique_ptr<LocalEquations<dim>> ptr;
       if (_lop_type == LocalOperatorType::Mass)
         ptr = LocalEquations<dim>::make_mass(_basis.localView(), _config, *_functor_factory);
@@ -196,7 +180,20 @@ public:
         std::terminate();
       return ptr;
     })
-    , _execution_policy{execution_policy}
+    , _local_values_out([_lop_type = lop_type,
+                         _basis = _test_basis,
+                         _config = config,
+                         _functor_factory = std::move(functor_factory)]() {
+      std::unique_ptr<LocalEquations<dim>> ptr;
+      if (_lop_type == LocalOperatorType::Mass)
+        ptr = LocalEquations<dim>::make_mass(_basis.localView(), _config, *_functor_factory);
+      else if (_lop_type == LocalOperatorType::Stiffness)
+        ptr = LocalEquations<dim>::make_stiffness(_basis.localView(), _config, *_functor_factory);
+      if (not ptr)
+        std::terminate();
+      return ptr;
+    })
+    , _execution_policy{ execution_policy }
   {
     auto lbasis = _test_basis.localView();
     if (_test_basis.entitySet().size(0) == 0)
@@ -204,7 +201,7 @@ public:
     lbasis.bind(*_test_basis.entitySet().template begin<0>());
     _has_outflow = false;
     forEachLeafNode(lbasis.tree(), [&](const auto& ltrial_node) {
-      const auto& eq = _local_values->get_equation(ltrial_node);
+      const auto& eq = _local_values_in->get_equation(ltrial_node);
       _has_outflow |= not eq.outflow.empty();
     });
     lbasis.unbind();
@@ -242,7 +239,7 @@ public:
   {
     forEachLeafNode(ltest.tree(), [&](const auto& ltest_node) {
       const auto& ltrial_node = PDELab::containerEntry(ltrial.tree(), ltest_node.path());
-      const auto& eq = _local_values->get_equation(ltrial_node);
+      const auto& eq = _local_values_in->get_equation(ltrial_node);
       if (eq.reaction) {
         for (const auto& jacobian_entry : eq.reaction.compartment_jacobian) {
           const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
@@ -307,7 +304,7 @@ public:
       if (ltest_node_in.size() == 0)
         return;
       const auto& ltrial_node = PDELab::containerEntry(ltrial_in.tree(), ltest_node_in.path());
-      const auto& eq = _local_values->get_equation(ltrial_node);
+      const auto& eq = _local_values_in->get_equation(ltrial_node);
       for (const auto& outflow_i : eq.outflow) {
         for (const auto& jacobian_entry : outflow_i.compartment_jacobian) {
           const auto& wrt_lbasis_in = jacobian_entry.wrt.to_local_basis_node(ltrial_in);
@@ -329,7 +326,7 @@ public:
       if (ltest_node_out.size() == 0)
         return;
       const auto& ltrial_node = PDELab::containerEntry(ltrial_out.tree(), ltest_node_out.path());
-      const auto& eq = _local_values->get_equation(ltrial_node);
+      const auto& eq = _local_values_in->get_equation(ltrial_node);
       for (const auto& outflow_o : eq.outflow) {
         for (const auto& jacobian_entry : outflow_o.compartment_jacobian) {
           const auto& wrt_lbasis_in = jacobian_entry.wrt.to_local_basis_node(ltrial_in);
@@ -381,47 +378,39 @@ public:
 
     const auto& entity = ltrial.element();
     const auto& geo = entity.geometry();
+    using Geometry = std::decay_t<decltype(geo)>;
+    std::optional<typename Geometry::JacobianInverse> geojacinv_opt;
 
-    _local_values->time = time;
-    _local_values->entity_volume = geo.volume();
-    _local_values->in_volume = 1;
+    _local_values_in->time = time;
+    _local_values_in->entity_volume = geo.volume();
+    _local_values_in->in_volume = 1;
 
-    const auto& trial_finite_element = firstCompartmentFiniteElement(ltrial.tree());
-
-    _fe_cache->bind(trial_finite_element);
-    _gradphi_i.resize(trial_finite_element.size());
-
-    const auto& rule = _fe_cache->rule();
-
-    assert(geo.affine());
-    const auto& jac = geo.jacobianInverse(rule[0].position());
+    auto intorder = integrationOrder(ltrial);
+    const auto& quad_rule = QuadratureRules<DF, dim>::rule(geo.type(), intorder);
 
     // loop over quadrature points
-    for (std::size_t q = 0; q != rule.size(); ++q) {
-      const auto [position, weight] = rule[q];
-      _local_values->position = geo.global(position);
+    for (std::size_t q = 0; q != quad_rule.size(); ++q) {
+      const auto [position, weight] = quad_rule[q];
+      if (not geojacinv_opt or not geo.affine())
+        geojacinv_opt.emplace(geo.jacobianInverse(position));
+      const auto& geojacinv = *geojacinv_opt;
+      _local_values_in->position = geo.global(position);
       auto factor = weight * geo.integrationElement(position);
-
-      const auto& phi = _fe_cache->evaluateFunction(q);
-      const auto& jacphi = _fe_cache->evaluateJacobian(q);
-
-      for (std::size_t dof = 0; dof != _gradphi_i.size(); ++dof)
-        _gradphi_i[dof] = (jacphi[dof] * jac)[0];
-
-      const auto& psi = phi;
-      const auto& gradpsi = _gradphi_i;
 
       // evaluate concentrations at quadrature point
       forEachLeafNode(ltrial.tree(), [&](const auto& node) {
         if (node.size() == 0)
           return;
-        auto& value = _local_values->get_value(node);
-        auto& gradient = _local_values->get_gradient(node);
+        auto& value = _local_values_in->get_value(node);
+        auto& gradient = _local_values_in->get_gradient(node);
         value = 0.;
         gradient = 0.;
+        _fe_cache->bind(node.finiteElement(), quad_rule);
+        const auto& phi = _fe_cache->evaluateFunction(q);
+        const auto& jacphi = _fe_cache->evaluateJacobian(q);
         for (std::size_t dof = 0; dof != node.size(); ++dof) {
             value     += lcoefficients(node, dof) * phi[dof];
-            gradient  += lcoefficients(node, dof) * _gradphi_i[dof] ;
+            gradient  += lcoefficients(node, dof) * (jacphi[dof] * geojacinv)[0];
         }
       });
 
@@ -430,37 +419,24 @@ public:
         if (ltest_node.size() == 0)
           return;
         const auto& eq =
-          _local_values->get_equation(PDELab::containerEntry(ltrial.tree(), ltest_node.path()));
+          _local_values_in->get_equation(PDELab::containerEntry(ltrial.tree(), ltest_node.path()));
 
-        // accumulate reaction/storage part into residual
-        if (eq.reaction or eq.storage) {
-          double scalar = 0.;
-          if (eq.reaction)
-            scalar += -eq.reaction();
-          if (eq.storage)
-            scalar += eq.value * eq.storage();
-          for (std::size_t dof = 0; dof != ltest_node.size(); ++dof)
-            lresidual.accumulate(ltest_node, dof, scalar * psi[dof] * factor);
-        }
+        _fe_cache->bind(ltest_node.finiteElement(), quad_rule);
+        const auto& psi = _fe_cache->evaluateFunction(q);
+        const auto& jacpsi = _fe_cache->evaluateJacobian(q);
 
-        // accumulate velocity part into residual
-        if (eq.velocity) {
-          auto adv_flux = eq.velocity() * eq.value[0];
-          for (std::size_t dof = 0; dof != ltest_node.size(); ++dof)
-            lresidual.accumulate(ltest_node, dof, -dot(adv_flux, gradpsi[dof]) * factor);
-        }
-
-        // accumulate cross-diffusion part into residual
-        for (const auto& diffusion : eq.cross_diffusion) {
-          auto diff_flux = diffusion(diffusion.wrt.gradient);
-          for (std::size_t dof = 0; dof != ltest_node.size(); ++dof)
-            lresidual.accumulate(ltest_node, dof, dot(diff_flux, gradpsi[dof]) * factor);
-        }
+        RF scalar = eq.reaction ? RF{-eq.reaction()} : 0.;
+        scalar += eq.storage ? RF{eq.value * eq.storage()} : 0.;
+        auto flux = eq.velocity ? eq.velocity() * eq.value[0] : FieldVector<RF,dim>(0.);
+        for (const auto& diffusion : eq.cross_diffusion)
+          flux -= diffusion(diffusion.wrt.gradient);
+        for (std::size_t dof = 0; dof != ltest_node.size(); ++dof)
+          lresidual.accumulate(ltest_node, dof, (scalar * psi[dof] -dot(flux, (jacpsi[dof] * geojacinv)[0] )) * factor);
       });
     }
 
-    _local_values->clear();
-    _local_values->in_volume = 0;
+    _local_values_in->clear();
+    _local_values_in->in_volume = 0;
   }
 
   /**
@@ -522,47 +498,39 @@ public:
 
     const auto& entity = ltrial.element();
     const auto& geo = entity.geometry();
+    using Geometry = std::decay_t<decltype(geo)>;
+    std::optional<typename Geometry::JacobianInverse> geojacinv_opt;
 
-    _local_values->time = time;
-    _local_values->entity_volume = geo.volume();
-    _local_values->in_volume = 1;
+    _local_values_in->time = time;
+    _local_values_in->entity_volume = geo.volume();
+    _local_values_in->in_volume = 1;
 
-    const auto& trial_finite_element = firstCompartmentFiniteElement(ltrial.tree());
-
-    _fe_cache->bind(trial_finite_element);
-    _gradphi_i.resize(trial_finite_element.size());
-
-    const auto& rule = _fe_cache->rule();
-
-    assert(geo.affine());
-    const auto& jac = geo.jacobianInverse(rule[0].position());
+    auto intorder = integrationOrder(ltrial);
+    const auto& quad_rule = QuadratureRules<DF, dim>::rule(geo.type(), intorder);
 
     // loop over quadrature points
-    for (std::size_t q = 0; q != rule.size(); ++q) {
-      const auto [position, weight] = rule[q];
-      _local_values->position = geo.global(position);
+    for (std::size_t q = 0; q != quad_rule.size(); ++q) {
+      const auto [position, weight] = quad_rule[q];
+      if (not geojacinv_opt or not geo.affine())
+        geojacinv_opt.emplace(geo.jacobianInverse(position));
+      const auto& geojacinv = *geojacinv_opt;
+      _local_values_in->position = geo.global(position);
       auto factor = weight * geo.integrationElement(position);
-
-      const auto& phi = _fe_cache->evaluateFunction(q);
-      const auto& jacphi = _fe_cache->evaluateJacobian(q);
-
-      for (std::size_t dof = 0; dof != _gradphi_i.size(); ++dof)
-        _gradphi_i[dof] = (jacphi[dof] * jac)[0];
-
-      const auto& psi = phi;
-      const auto& gradpsi = _gradphi_i;
 
       // evaluate concentrations at quadrature point
       forEachLeafNode(ltrial.tree(), [&](const auto& node) {
         if (node.size() == 0)
           return;
-        auto& value = _local_values->get_value(node);
-        auto& gradient = _local_values->get_gradient(node);
+        auto& value = _local_values_in->get_value(node);
+        auto& gradient = _local_values_in->get_gradient(node);
         value = 0.;
         gradient = 0.;
+        _fe_cache->bind(node.finiteElement(), quad_rule);
+        const auto& phi = _fe_cache->evaluateFunction(q);
+        const auto& jacphi = _fe_cache->evaluateJacobian(q);
         for (std::size_t dof = 0; dof != node.size(); ++dof) {
-          value += phi[dof] * llin_point(node, dof);
-          gradient += _gradphi_i[dof] * llin_point(node, dof);
+            value     += llin_point(node, dof) * phi[dof];
+            gradient  += llin_point(node, dof) * (jacphi[dof] * geojacinv)[0];
         }
       });
 
@@ -571,13 +539,20 @@ public:
         if (ltest_node.size() == 0)
           return;
         const auto& eq =
-          _local_values->get_equation(PDELab::containerEntry(ltrial.tree(), ltest_node.path()));
+          _local_values_in->get_equation(PDELab::containerEntry(ltrial.tree(), ltest_node.path()));
+
+        _fe_cache->bind(ltest_node.finiteElement(), quad_rule);
+        const auto& psi = _fe_cache->evaluateFunction(q);
+        const auto& jacpsi = _fe_cache->evaluateJacobian(q);
 
         // accumulate reaction part into jacobian
         if (eq.reaction) {
           for (const auto& jacobian_entry : eq.reaction.compartment_jacobian) {
             auto jac = jacobian_entry();
             const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
+            _fe_cache->bind(wrt_lbasis.finiteElement(), quad_rule);
+            const auto& phi = _fe_cache->evaluateFunction(q);
+            const auto& jacphi = _fe_cache->evaluateJacobian(q);
             for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i)
               for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
                 ljacobian.accumulate(
@@ -588,7 +563,9 @@ public:
         if (eq.storage) {
           auto stg = eq.storage();
           const auto& wrt_lbasis = eq.to_local_basis_node(ltrial);
-
+          _fe_cache->bind(wrt_lbasis.finiteElement(), quad_rule);
+          const auto& phi = _fe_cache->evaluateFunction(q);
+          const auto& jacphi = _fe_cache->evaluateJacobian(q);
           for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i)
             for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
               ljacobian.accumulate(
@@ -597,6 +574,9 @@ public:
           for (const auto& jacobian_entry : eq.storage.compartment_jacobian) {
             auto jac = jacobian_entry();
             const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
+            _fe_cache->bind(wrt_lbasis.finiteElement(), quad_rule);
+            const auto& phi = _fe_cache->evaluateFunction(q);
+            const auto& jacphi = _fe_cache->evaluateJacobian(q);
             for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i)
               for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
                 ljacobian.accumulate(ltest_node,
@@ -610,60 +590,71 @@ public:
         if (eq.velocity) {
           auto vel = eq.velocity();
           const auto& wrt_lbasis = eq.to_local_basis_node(ltrial);
-
+          _fe_cache->bind(wrt_lbasis.finiteElement(), quad_rule);
+          const auto& phi = _fe_cache->evaluateFunction(q);
+          const auto& jacphi = _fe_cache->evaluateJacobian(q);
           for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i) {
             for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
               ljacobian.accumulate(ltest_node,
                                    dof_i,
                                    wrt_lbasis,
                                    dof_j,
-                                   -dot(vel * phi[dof_i][0], gradpsi[dof_j]) * factor);
+                                   -dot(vel * phi[dof_i][0], (jacpsi[dof_j] * geojacinv)[0]) * factor);
           }
 
           // accumulate jacobian for non-linear terms
           for (const auto& jacobian_entry : eq.velocity.compartment_jacobian) {
             auto adv_flux = jacobian_entry() * eq.value[0];
             const auto& jac_wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
+            _fe_cache->bind(jac_wrt_lbasis.finiteElement(), quad_rule);
+            const auto& phi = _fe_cache->evaluateFunction(q);
+            const auto& jacphi = _fe_cache->evaluateJacobian(q);
             for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i)
               for (std::size_t dof_j = 0; dof_j != jac_wrt_lbasis.size(); ++dof_j)
                 ljacobian.accumulate(ltest_node,
                                      dof_i,
                                      jac_wrt_lbasis,
                                      dof_j,
-                                     -phi[dof_i] * dot(adv_flux, gradpsi[dof_j]) * factor);
+                                     -phi[dof_i] * dot(adv_flux, (jacpsi[dof_j] * geojacinv)[0]) * factor);
           }
         }
 
         // accumulate cross-diffusion part into jacobian
         for (const auto& diffusion : eq.cross_diffusion) {
           const auto& wrt_lbasis = diffusion.wrt.to_local_basis_node(ltrial);
+          _fe_cache->bind(wrt_lbasis.finiteElement(), quad_rule);
+          const auto& phi = _fe_cache->evaluateFunction(q);
+          const auto& jacphi = _fe_cache->evaluateJacobian(q);
           // by product rule
           // accumulate linear term
           for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i) {
-            auto diffusive_flux = diffusion(_gradphi_i[dof_i]);
+            auto diffusive_flux = diffusion((jacphi[dof_i] * geojacinv)[0]);
             for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
               ljacobian.accumulate(
-                ltest_node, dof_i, wrt_lbasis, dof_j, dot(diffusive_flux, gradpsi[dof_j]) * factor);
+                ltest_node, dof_i, wrt_lbasis, dof_j, dot(diffusive_flux, (jacpsi[dof_j] * geojacinv)[0]) * factor);
           }
 
           // accumulate jacobian for non-linear terms
           for (const auto& jacobian_entry : diffusion.compartment_jacobian) {
             auto diffusive_flux = jacobian_entry(jacobian_entry.wrt.gradient);
             const auto& jac_wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
+            _fe_cache->bind(jac_wrt_lbasis.finiteElement(), quad_rule);
+            const auto& phi = _fe_cache->evaluateFunction(q);
+            const auto& jacphi = _fe_cache->evaluateJacobian(q);
             for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i)
               for (std::size_t dof_j = 0; dof_j != jac_wrt_lbasis.size(); ++dof_j)
                 ljacobian.accumulate(ltest_node,
                                      dof_i,
                                      jac_wrt_lbasis,
                                      dof_j,
-                                     phi[dof_i] * dot(diffusive_flux, gradpsi[dof_j]) * factor);
+                                     phi[dof_i] * dot(diffusive_flux, (jacpsi[dof_j] * geojacinv)[0]) * factor);
           }
         }
       });
     }
 
-    _local_values->clear();
-    _local_values->in_volume = 1;
+    _local_values_in->clear();
+    _local_values_in->in_volume = 1;
   }
 
   template<PDELab::Concept::LocalBasis LocalBasisTrial, PDELab::Concept::LocalBasis LocalBasisTest>
@@ -682,8 +673,10 @@ public:
       return;
 
     const auto& entity_i = intersection.inside();
+    const auto& geo_i = entity_i.geometry();
     // in case of a boundary, outside objects are an alias of the inside ones
     const auto& entity_o = intersection.neighbor() ? intersection.outside() : entity_i;
+    const auto& geo_o = entity_o.geometry();
 
     auto domain_set_i = subDomains(entity_i);
     auto domain_set_o = subDomains(entity_o);
@@ -693,36 +686,24 @@ public:
 
     auto geo_f = intersection.geometry();
 
-    _local_values->time = time;
-    _local_values->entity_volume = geo_f.volume();
-    _local_values->in_boundary = static_cast<double>(not intersection.neighbor());
-    _local_values->in_skeleton = static_cast<double>(intersection.neighbor());
+    using Geometry = std::decay_t<decltype(entity_i.geometry())>;
+    std::optional<typename Geometry::JacobianInverse> geojacinv_opt_i, geojacinv_opt_o;
 
-    using LocalBasis =
-      std::decay_t<decltype(firstCompartmentFiniteElement(ltrial_in.tree()).localBasis())>;
-    LocalBasis const* local_basis_i = nullptr;
-    if (ltrial_in.size() != 0)
-      local_basis_i = &firstCompartmentFiniteElement(ltrial_in.tree()).localBasis();
-
-    LocalBasis const* local_basis_o = nullptr;
-    if (intersection.neighbor() and ltrial_out.size() != 0)
-      local_basis_o = &firstCompartmentFiniteElement(ltrial_out.tree()).localBasis();
-
-    if (local_basis_i)
-      _gradphi_i.resize(local_basis_i->size());
-    if (local_basis_o)
-      _gradphi_o.resize(local_basis_o->size());
+    _local_values_in->time = _local_values_out->time = time;
+    _local_values_in->entity_volume = _local_values_out->entity_volume = geo_f.volume();
+    _local_values_in->in_boundary = _local_values_out->in_boundary = static_cast<double>(not intersection.neighbor());
+    _local_values_in->in_skeleton = _local_values_out->in_skeleton = static_cast<double>(intersection.neighbor());
 
     _outflow_i.clear();
     _outflow_o.clear();
 
     // collect ouflow part for the inside compartment
-    if (local_basis_i)
+    if (ltrial_in.size() != 0)
       forEachLeafNode(ltest_in.tree(), [&](const auto& ltest_node_in, auto path) {
         // evaluate outflow only if component exists on this side but not on
         // the outside entity
         const auto& eq =
-          _local_values->get_equation(PDELab::containerEntry(ltrial_in.tree(), path));
+          _local_values_in->get_equation(PDELab::containerEntry(ltrial_in.tree(), path));
         auto compartment_i = eq.path[Indices::_1];
         if (ltest_node_in.size() == 0 or eq.outflow.empty())
           return;
@@ -745,12 +726,12 @@ public:
       });
 
     // collect ouflow part for the outside compartment
-    if (local_basis_o)
+    if (intersection.neighbor() and ltrial_out.size() != 0)
       forEachLeafNode(ltest_out.tree(), [&](const auto& ltest_node_out, auto path) {
         // evaluate outflow only if component exists on this side but not on
         // the outside entity
         const auto& eq =
-          _local_values->get_equation(PDELab::containerEntry(ltrial_out.tree(), path));
+          _local_values_out->get_equation(PDELab::containerEntry(ltrial_out.tree(), path));
         auto compartment_o = eq.path[Indices::_1];
         if (ltest_node_out.size() == 0 or
             domain_set_i.contains(_compartment2domain[compartment_o]) or eq.outflow.empty())
@@ -770,23 +751,23 @@ public:
     if (_outflow_i.empty() and _outflow_o.empty())
       return;
 
+    auto intorder = integrationOrder(ltrial_in, ltrial_out);
+    const auto& quad_rule = QuadratureRules<DF, dim-1>::rule(geo_f.type(), intorder);
+
     // loop over quadrature points
-    for (auto [position_f, weight] : quadratureRule(geo_f, 3)) {
-      _local_values->position = geo_f.global(position_f);
+    for (std::size_t q = 0; q != quad_rule.size(); ++q) {
+      const auto [position_f, weight] = quad_rule[q];
       auto factor = weight * geo_f.integrationElement(position_f);
       auto normal = intersection.unitOuterNormal(position_f);
-      if (local_basis_i and not _outflow_i.empty()) {
-        _local_values->normal = normal;
-        const auto position_i = intersection.geometryInInside().global(position_f);
-        auto jac_i = entity_i.geometry().jacobianInverse(position_i);
-        // evaluate basis functions
-        local_basis_i->evaluateFunction(position_i, _phi_i);
-        local_basis_i->evaluateJacobian(position_i, _jacphi_i);
+      _local_values_in->position = _local_values_out->position = geo_f.global(position_f);
+      _local_values_out->normal = -(_local_values_in->normal = normal);
 
-        for (std::size_t dof = 0; dof != _gradphi_i.size(); ++dof)
-          _gradphi_i[dof] = (_jacphi_i[dof] * jac_i)[0];
-
-        const auto& psi_i = _phi_i;
+      if (not _outflow_i.empty()) {
+        auto quad_proj = [&](auto quad_pos){ return intersection.geometryInInside().global(quad_pos); };
+        const auto position_i = quad_proj(position_f);
+        if (not geojacinv_opt_i or not geo_i.affine())
+          geojacinv_opt_i.emplace(geo_i.jacobianInverse(position_i));
+        const auto& geojacinv_i = *geojacinv_opt_i;
 
         // evaluate concentrations at quadrature point (inside part)
         forEachLeafNode(ltrial_in.tree(), [&](const auto& node_in, auto path) {
@@ -796,13 +777,16 @@ public:
           // take inside values unless they only exists outside
           const auto& node = (node_in.size() != 0) ? node_in : node_out;
           const auto& lcoefficients = (node_in.size() != 0) ? lcoefficients_in : lcoefficients_out;
-          auto& value = _local_values->get_value(node);
-          auto& gradient = _local_values->get_gradient(node);
+          auto& value = _local_values_in->get_value(node);
+          auto& gradient = _local_values_in->get_gradient(node);
           value = 0.;
           gradient = 0.;
+          _fe_cache->bind(node.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
+          const auto& phi = _fe_cache->evaluateFunction(q);
+          const auto& jacphi = _fe_cache->evaluateJacobian(q);
           for (std::size_t dof = 0; dof != node.size(); ++dof) {
-            value     += lcoefficients(node, dof) * _phi_i[dof];
-            gradient  += lcoefficients(node, dof) * _gradphi_i[dof] ;
+            value     += lcoefficients(node, dof) * phi[dof];
+            gradient  += lcoefficients(node, dof) * (jacphi[dof] * geojacinv_i)[0];
           }
         });
 
@@ -810,24 +794,19 @@ public:
         for (const auto& [outflow_i, source_i] : _outflow_i) {
           auto outflow = std::invoke(outflow_i);
           const auto& ltest_node_in = source_i.to_local_basis_node(ltest_in);
+          _fe_cache->bind(ltest_node_in.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
+          const auto& psi_i = _fe_cache->evaluateFunction(q);
           for (std::size_t dof = 0; dof != ltest_node_in.size(); ++dof)
             lresidual_in.accumulate(ltest_node_in, dof, outflow * psi_i[dof] * factor);
         }
       }
 
-      if (local_basis_o and not _outflow_o.empty()) {
-        _local_values->normal = -normal;
-        const auto position_o = intersection.geometryInOutside().global(position_f);
-        auto jac_o = entity_o.geometry().jacobianInverse(position_o);
-
-        // evaluate basis functions
-        local_basis_o->evaluateFunction(position_o, _phi_o);
-        local_basis_o->evaluateJacobian(position_o, _jacphi_o);
-
-        for (std::size_t dof = 0; dof != _gradphi_o.size(); ++dof)
-          _gradphi_o[dof] = (_jacphi_o[dof] * jac_o)[0];
-
-        const auto& psi_o = _phi_o;
+      if (not _outflow_o.empty()) {
+        auto quad_proj = [&](auto quad_pos){ return intersection.geometryInOutside().global(quad_pos); };
+        const auto position_o = quad_proj(position_f);
+        if (not geojacinv_opt_o or not geo_o.affine())
+          geojacinv_opt_o.emplace(geo_o.jacobianInverse(position_o));
+        const auto& geojacinv_o = *geojacinv_opt_o;
 
         // evaluate concentrations at quadrature point (outside part)
         forEachLeafNode(ltrial_out.tree(), [&](const auto& node_out, auto path) {
@@ -835,13 +814,16 @@ public:
           // take outside values unless they only exists inside
           const auto& node = (node_out.size() != 0) ? node_out : node_in;
           const auto& lcoefficients = (node_out.size() != 0) ? lcoefficients_out : lcoefficients_in;
-          auto& value = _local_values->get_value(node);
-          auto& gradient = _local_values->get_gradient(node);
+          auto& value = _local_values_out->get_value(node);
+          auto& gradient = _local_values_out->get_gradient(node);
           value = 0.;
           gradient = 0.;
+          _fe_cache->bind(node.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
+          const auto& phi = _fe_cache->evaluateFunction(q);
+          const auto& jacphi = _fe_cache->evaluateJacobian(q);
           for (std::size_t dof = 0; dof != node.size(); ++dof) {
-            value     += lcoefficients(node, dof) * _phi_o[dof];
-            gradient  += lcoefficients(node, dof) * _gradphi_o[dof] ;
+            value     += lcoefficients(node, dof) * phi[dof];
+            gradient  += lcoefficients(node, dof) * (jacphi[dof] * geojacinv_o)[0];
           }
         });
 
@@ -849,14 +831,18 @@ public:
         for (const auto& [outflow_o, source_o] : _outflow_o) {
           auto outflow = std::invoke(outflow_o);
           const auto& ltest_node_out = source_o.to_local_basis_node(ltest_out);
+          _fe_cache->bind(ltest_node_out.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
+          const auto& psi_o = _fe_cache->evaluateFunction(q);
           for (std::size_t dof = 0; dof != ltest_node_out.size(); ++dof)
             lresidual_out.accumulate(ltest_node_out, dof, outflow * psi_o[dof] * factor);
         }
       }
     }
 
-    _local_values->clear();
-    _local_values->in_boundary = _local_values->in_skeleton = 0;
+    _local_values_in->clear();
+    _local_values_out->clear();
+    _local_values_in->in_boundary = _local_values_in->in_skeleton = 0;
+    _local_values_out->in_boundary = _local_values_out->in_skeleton = 0;
   }
 
   void localAssembleJacobianSkeleton(
@@ -877,8 +863,10 @@ public:
       return;
 
     const auto& entity_i = intersection.inside();
+    const auto& geo_i = entity_i.geometry();
     // in case of a boundary, outside objects are an alias of the inside ones
     const auto& entity_o = intersection.neighbor() ? intersection.outside() : entity_i;
+    const auto& geo_o = entity_o.geometry();
 
     auto domain_set_i = subDomains(entity_i);
     auto domain_set_o = subDomains(entity_o);
@@ -888,36 +876,24 @@ public:
 
     auto geo_f = intersection.geometry();
 
-    _local_values->time = time;
-    _local_values->entity_volume = geo_f.volume();
-    _local_values->in_boundary = static_cast<double>(not intersection.neighbor());
-    _local_values->in_skeleton = static_cast<double>(intersection.neighbor());
+    using Geometry = std::decay_t<decltype(entity_i.geometry())>;
+    std::optional<typename Geometry::JacobianInverse> geojacinv_opt_i, geojacinv_opt_o;
 
-    using LocalBasis =
-      std::decay_t<decltype(firstCompartmentFiniteElement(ltrial_in.tree()).localBasis())>;
-    LocalBasis const* local_basis_i = nullptr;
-    if (ltrial_in.size() != 0)
-      local_basis_i = &firstCompartmentFiniteElement(ltrial_in.tree()).localBasis();
-
-    LocalBasis const* local_basis_o = nullptr;
-    if (intersection.neighbor() and ltrial_out.size() != 0)
-      local_basis_o = &firstCompartmentFiniteElement(ltrial_out.tree()).localBasis();
-
-    if (local_basis_i)
-      _gradphi_i.resize(local_basis_i->size());
-    if (local_basis_o)
-      _gradphi_o.resize(local_basis_o->size());
+    _local_values_in->time = _local_values_out->time = time;
+    _local_values_in->entity_volume = _local_values_out->entity_volume = geo_f.volume();
+    _local_values_in->in_boundary = _local_values_out->in_boundary = static_cast<double>(not intersection.neighbor());
+    _local_values_in->in_skeleton = _local_values_out->in_skeleton = static_cast<double>(intersection.neighbor());
 
     _outflow_i.clear();
     _outflow_o.clear();
 
     // collect ouflow part for the inside compartment
-    if (local_basis_i)
+    if (ltrial_in.size() != 0)
       forEachLeafNode(ltest_in.tree(), [&](const auto& ltest_node_in, auto path) {
         // evaluate outflow only if component exists on this side but not on
         // the outside entity
         const auto& eq =
-          _local_values->get_equation(PDELab::containerEntry(ltrial_in.tree(), path));
+          _local_values_in->get_equation(PDELab::containerEntry(ltrial_in.tree(), path));
         auto compartment_i = eq.path[Indices::_1];
         if (ltest_node_in.size() == 0 or eq.outflow.empty())
           return;
@@ -942,12 +918,12 @@ public:
       });
 
     // collect ouflow part for the outside compartment
-    if (local_basis_o)
+    if (intersection.neighbor() and ltrial_out.size() != 0)
       forEachLeafNode(ltest_out.tree(), [&](const auto& ltest_node_out, auto path) {
         // evaluate outflow only if component exists on this side but not on
         // the outside entity
         const auto& eq =
-          _local_values->get_equation(PDELab::containerEntry(ltrial_out.tree(), path));
+          _local_values_out->get_equation(PDELab::containerEntry(ltrial_out.tree(), path));
         auto compartment_o = eq.path[Indices::_1];
         if (ltest_node_out.size() == 0 or
             domain_set_i.contains(_compartment2domain[compartment_o]) or eq.outflow.empty())
@@ -968,24 +944,23 @@ public:
     if (_outflow_i.empty() and _outflow_o.empty())
       return;
 
+    auto intorder = integrationOrder(ltrial_in, ltrial_out);
+    const auto& quad_rule = QuadratureRules<DF, dim-1>::rule(geo_f.type(), intorder);
+
     // loop over quadrature points
-    for (auto [position_f, weight] : quadratureRule(geo_f, 3)) {
-      _local_values->position = geo_f.global(position_f);
+    for (std::size_t q = 0; q != quad_rule.size(); ++q) {
+      const auto [position_f, weight] = quad_rule[q];
       auto factor = weight * geo_f.integrationElement(position_f);
       auto normal = intersection.unitOuterNormal(position_f);
+      _local_values_in->position = _local_values_out->position = geo_f.global(position_f);
+      _local_values_out->normal = -(_local_values_in->normal = normal);
 
-      if (local_basis_i and not _outflow_i.empty()) {
-        _local_values->normal = normal;
-        const auto position_i = intersection.geometryInInside().global(position_f);
-        auto jac_i = entity_i.geometry().jacobianInverse(position_i);
-        // evaluate basis functions
-        local_basis_i->evaluateFunction(position_i, _phi_i);
-        local_basis_i->evaluateJacobian(position_i, _jacphi_i);
-
-        for (std::size_t dof = 0; dof != _gradphi_i.size(); ++dof)
-          _gradphi_i[dof] = (_jacphi_i[dof] * jac_i)[0];
-
-        const auto& psi_i = _phi_i;
+      if (not _outflow_i.empty()) {
+        auto quad_proj = [&](auto quad_pos){ return intersection.geometryInInside().global(quad_pos); };
+        const auto position_i = quad_proj(position_f);
+        if (not geojacinv_opt_i or not geo_i.affine())
+          geojacinv_opt_i.emplace(geo_i.jacobianInverse(position_i));
+        const auto& geojacinv_i = *geojacinv_opt_i;
 
         // evaluate concentrations at quadrature point (inside part)
         forEachLeafNode(ltrial_in.tree(), [&](const auto& node_in, auto path) {
@@ -995,88 +970,98 @@ public:
           // take inside values unless they only exists outside
           const auto& node = (node_in.size() != 0) ? node_in : node_out;
           const auto& llin_point = (node_in.size() != 0) ? llin_point_in : llin_point_out;
-          auto& value = _local_values->get_value(node);
-          auto& gradient = _local_values->get_gradient(node);
+          auto& value = _local_values_in->get_value(node);
+          auto& gradient = _local_values_in->get_gradient(node);
           value = 0.;
           gradient = 0.;
+          _fe_cache->bind(node.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
+          const auto& phi = _fe_cache->evaluateFunction(q);
+          const auto& jacphi = _fe_cache->evaluateJacobian(q);
           for (std::size_t dof = 0; dof != node.size(); ++dof) {
-            value    += llin_point(node, dof) * _phi_i[dof];
-            gradient += llin_point(node, dof) * _gradphi_i[dof];
+            value     += llin_point(node, dof) * phi[dof];
+            gradient  += llin_point(node, dof) * (jacphi[dof] * geojacinv_i)[0];
           }
         });
 
         // contribution for each component
         for (const auto& [outflow_i, source_i] : _outflow_i) {
           const auto& ltest_node_in = source_i.to_local_basis_node(ltest_in);
+          _fe_cache->bind(ltest_node_in.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
+          const auto& psi = _fe_cache->evaluateFunction(q);
           for (const auto& jacobian_entry : outflow_i.compartment_jacobian) {
             auto jac = jacobian_entry();
             bool do_self_basis = jacobian_entry.wrt.to_local_basis_node(ltrial_out).size() == 0;
             const auto& ltrial = do_self_basis ? ltrial_in : ltrial_out;
             auto& ljacobian = do_self_basis ? ljacobian_in_in : ljacobian_in_out;
             const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
+            _fe_cache->bind(wrt_lbasis.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
+            const auto& phi = _fe_cache->evaluateFunction(q);
             for (std::size_t dof_i = 0; dof_i != ltest_node_in.size(); ++dof_i)
               for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
                 ljacobian.accumulate(ltest_node_in,
                                      dof_i,
                                      wrt_lbasis,
                                      dof_j,
-                                     jac * _phi_i[dof_i] * psi_i[dof_j] * factor);
+                                     jac * phi[dof_i] * psi[dof_j] * factor);
           }
         }
       }
 
-      if (local_basis_o and not _outflow_o.empty()) {
-        _local_values->normal = normal;
-        const auto position_o = intersection.geometryInOutside().global(position_f);
-        auto jac_o = entity_o.geometry().jacobianInverse(position_o);
-
-        // evaluate basis functions
-        local_basis_o->evaluateFunction(position_o, _phi_o);
-        local_basis_o->evaluateJacobian(position_o, _jacphi_o);
-
-        for (std::size_t dof = 0; dof != _gradphi_o.size(); ++dof)
-          _gradphi_o[dof] = (_jacphi_o[dof] * jac_o)[0];
-
-        const auto& psi_o = _phi_o;
-
+      if (not _outflow_o.empty()) {
+        auto quad_proj = [&](auto quad_pos){ return intersection.geometryInOutside().global(quad_pos); };
+        const auto position_o = quad_proj(position_f);
+        if (not geojacinv_opt_o or not geo_o.affine())
+          geojacinv_opt_o.emplace(geo_o.jacobianInverse(position_o));
+        const auto& geojacinv_o = *geojacinv_opt_o;
+ 
         // evaluate concentrations at quadrature point (outside part)
         forEachLeafNode(ltrial_out.tree(), [&](const auto& node_out, auto path) {
           const auto& node_in = PDELab::containerEntry(ltrial_in.tree(), path);
           // take outside values unless they only exists inside
           const auto& node = (node_out.size() != 0) ? node_out : node_in;
           const auto& llin_point = (node_out.size() != 0) ? llin_point_out : llin_point_in;
-          auto& value = _local_values->get_value(node);
-          auto& gradient = _local_values->get_gradient(node);
+          auto& value = _local_values_out->get_value(node);
+          auto& gradient = _local_values_out->get_gradient(node);
           value = 0.;
           gradient = 0.;
+          _fe_cache->bind(node.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
+          const auto& phi = _fe_cache->evaluateFunction(q);
+          const auto& jacphi = _fe_cache->evaluateJacobian(q);
           for (std::size_t dof = 0; dof != node.size(); ++dof) {
-            value    += llin_point(node, dof) * _phi_o[dof];
-            gradient += llin_point(node, dof) * _gradphi_o[dof];
+            value     += llin_point(node, dof) * phi[dof];
+            gradient  += llin_point(node, dof) * (jacphi[dof] * geojacinv_o)[0];
           }
         });
 
         for (const auto& [outflow_o, source_o] : _outflow_o) {
           const auto& ltest_node_out = source_o.to_local_basis_node(ltest_out);
+          _fe_cache->bind(ltest_node_out.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
+          const auto& psi = _fe_cache->evaluateFunction(q);
+          const auto& jacpsi = _fe_cache->evaluateJacobian(q);
           for (const auto& jacobian_entry : outflow_o.compartment_jacobian) {
             auto jac = jacobian_entry();
             bool do_self_basis = jacobian_entry.wrt.to_local_basis_node(ltrial_in).size() == 0;
             const auto& ltrial = do_self_basis ? ltrial_out : ltrial_in;
             auto& ljacobian = do_self_basis ? ljacobian_out_out : ljacobian_out_in;
             const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
+            _fe_cache->bind(wrt_lbasis.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
+            const auto& phi = _fe_cache->evaluateFunction(q);
             for (std::size_t dof_i = 0; dof_i != ltest_node_out.size(); ++dof_i)
               for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
                 ljacobian.accumulate(ltest_node_out,
                                      dof_i,
                                      wrt_lbasis,
                                      dof_j,
-                                     jac * _phi_o[dof_i] * psi_o[dof_j] * factor);
+                                     jac * phi[dof_i] * psi[dof_j] * factor);
           }
         }
       }
     }
 
-    _local_values->clear();
-    _local_values->in_boundary = _local_values->in_skeleton = 0;
+    _local_values_in->clear();
+    _local_values_out->clear();
+    _local_values_in->in_boundary = _local_values_in->in_skeleton = 0;
+    _local_values_out->in_boundary = _local_values_out->in_skeleton = 0;
   }
 
   void localAssembleJacobianSkeletonApply(
