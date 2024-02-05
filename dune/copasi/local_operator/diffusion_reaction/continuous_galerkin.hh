@@ -261,11 +261,8 @@ public:
         }
       }
 
-      if (eq.velocity) {
-        for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i)
-          for (std::size_t dof_j = 0; dof_j != ltrial_node.size(); ++dof_j)
-            lpattern.addLink(ltest_node, dof_i, ltrial_node, dof_j);
-        for (const auto& jacobian_entry : eq.velocity.compartment_jacobian) {
+      if (eq.flux) {
+        for (const auto& jacobian_entry : eq.flux.compartment_jacobian) {
           const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
           for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i)
             for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
@@ -427,7 +424,7 @@ public:
 
         RF scalar = eq.reaction ? RF{-eq.reaction()} : 0.;
         scalar += eq.storage ? RF{eq.value * eq.storage()} : 0.;
-        auto flux = eq.velocity ? eq.velocity() * eq.value[0] : FieldVector<RF,dim>(0.);
+        auto flux = eq.flux ? eq.flux() : FieldVector<RF,dim>(0.);
         for (const auto& diffusion : eq.cross_diffusion)
           flux -= diffusion(diffusion.wrt.gradient);
         for (std::size_t dof = 0; dof != ltest_node.size(); ++dof)
@@ -587,24 +584,9 @@ public:
           }
         }
 
-        if (eq.velocity) {
-          auto vel = eq.velocity();
-          const auto& wrt_lbasis = eq.to_local_basis_node(ltrial);
-          _fe_cache->bind(wrt_lbasis.finiteElement(), quad_rule);
-          const auto& phi = _fe_cache->evaluateFunction(q);
-          const auto& jacphi = _fe_cache->evaluateJacobian(q);
-          for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i) {
-            for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
-              ljacobian.accumulate(ltest_node,
-                                   dof_i,
-                                   wrt_lbasis,
-                                   dof_j,
-                                   -dot(vel * phi[dof_i][0], (jacpsi[dof_j] * geojacinv)[0]) * factor);
-          }
-
-          // accumulate jacobian for non-linear terms
-          for (const auto& jacobian_entry : eq.velocity.compartment_jacobian) {
-            auto adv_flux = jacobian_entry() * eq.value[0];
+        if (eq.flux) {
+          for (const auto& jacobian_entry : eq.flux.compartment_jacobian) {
+            auto jac_flux = jacobian_entry();
             const auto& jac_wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
             _fe_cache->bind(jac_wrt_lbasis.finiteElement(), quad_rule);
             const auto& phi = _fe_cache->evaluateFunction(q);
@@ -615,7 +597,7 @@ public:
                                      dof_i,
                                      jac_wrt_lbasis,
                                      dof_j,
-                                     -phi[dof_i] * dot(adv_flux, (jacpsi[dof_j] * geojacinv)[0]) * factor);
+                                     -dot(jac_flux, (jacpsi[dof_j] * geojacinv)[0]) * factor);
           }
         }
 

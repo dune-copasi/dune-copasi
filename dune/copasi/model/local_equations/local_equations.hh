@@ -105,8 +105,8 @@ private:
   enum class FactoryFalgs
   {
     Reaction = 1 << 0,
-    Diffusion = 1 << 1,
-    Velocity = 1 << 2,
+    DiffusiveFlux = 1 << 1,
+    Flux = 1 << 2,
     Outflow = 1 << 3,
     Storage = 1 << 4
   };
@@ -196,7 +196,7 @@ public:
 
     CompartmentScalarFunction reaction;
     CompartmentScalarFunction storage;
-    CompartmentVectorFunction velocity;
+    CompartmentVectorFunction flux;
 
     std::vector<CompartmentDiffusionApply> cross_diffusion;
     std::vector<MembraneScalarFunction> outflow;
@@ -243,7 +243,7 @@ public:
 
     MembraneScalarFunction reaction;
     MembraneScalarFunction storage;
-    MembraneVectorFunction velocity;
+    MembraneVectorFunction flux;
 
     std::vector<MembraneDiffusionApply> cross_diffusion;
     std::vector<MembraneScalarFunction> outflow;
@@ -325,7 +325,7 @@ public:
     return make(lbasis,
                 config,
                 &functor_factory,
-                FactoryFalgs::Reaction | FactoryFalgs::Diffusion | FactoryFalgs::Velocity |
+                FactoryFalgs::Reaction | FactoryFalgs::DiffusiveFlux | FactoryFalgs::Flux |
                   FactoryFalgs::Outflow);
   }
 
@@ -554,7 +554,7 @@ private:
 
             const auto& component_config = config.sub(component_fncs.name, true);
 
-            if (opts.test(FactoryFalgs::Diffusion) and component_config.hasSub("cross_diffusion")) {
+            if (opts.test(FactoryFalgs::DiffusiveFlux) and component_config.hasSub("cross_diffusion")) {
               const auto& cross_diffusion_config = component_config.sub("cross_diffusion");
               std::set<std::string_view> debug_set;
               for (const auto& compartment_fncs_cross_diff : compartments_fncs)
@@ -585,10 +585,10 @@ private:
                                           component_config.sub("reaction"),
                                           ScalarTag{});
 
-            if (opts.test(FactoryFalgs::Velocity) and component_config.hasSub("velocity"))
-              set_differentiable_function(component_fncs.velocity,
-                                          fmt::format("{}.velocity", component_fncs.name),
-                                          component_config.sub("velocity"),
+            if (opts.test(FactoryFalgs::Flux) and component_config.hasSub("flux"))
+              set_differentiable_function(component_fncs.flux,
+                                          fmt::format("{}.flux", component_fncs.name),
+                                          component_config.sub("flux"),
                                           VectorTag{});
 
             if (opts.test(FactoryFalgs::Storage) and component_config.hasSub("storage"))
