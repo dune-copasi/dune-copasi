@@ -17,7 +17,7 @@ set(model_libraries
 )
 
 set(model_definitions
-  $<$<TARGET_EXISTS:SuiteSparse::SuiteSparse>:HAVE_SUITESPARSE=1>
+  $<$<TARGET_EXISTS:SuiteSparse::SuiteSparse>:HAVE_SUITESPARSE_UMFPACK=1>
   $<$<TARGET_EXISTS:SuperLU::SuperLU>:ENABLE_SUPERLU=1>
   $<$<TARGET_EXISTS:METIS::METIS>:HAVE_METIS=1>
   $<$<TARGET_EXISTS:PTScotch::Scotch>:HAVE_SCOTCH_METIS=1>
