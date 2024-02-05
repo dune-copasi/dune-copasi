@@ -23,6 +23,7 @@ variables:
   CMAKE_GENERATOR: "Ninja"
   CPACK_GENERATORS: 'DEB'
   CPACK_PACKAGE_DIRECTORY: $CI_PROJECT_DIR/tmp
+  MASTER_IMAGE: debian:trixie
   BASE_IMAGE_VERSION:
     value: "v2.0.0-git"
     options:
@@ -42,6 +43,7 @@ variables:
 .debian_clang: &debian_clang
   DUNECI_OS: debian
   BASE_IMAGE: debian:trixie
+  TOOLCHAIN: clang-17
   DEPENDENCIES_IMAGE: ${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${TOOLCHAIN}-${BASE_IMAGE_VERSION}
 
 .setup_exec: &setup_exec
@@ -87,6 +89,7 @@ variables:
   image: ${DEPENDENCIES_IMAGE}
   stage: build
   script:
+    - ./util/version_handler.py --replace-build build.dune.gitlab.${CI_JOB_ID} --update-dune-module
     - ./.ci/install dune-copasi.opts
     - ./.ci/test dune-copasi.opts
     - mkdir -p packages
@@ -122,9 +125,9 @@ variables:
       --tag ${DOCKER_DEPLOY_IMAGE} .
     # push images into registry
     - podman push ${DOCKER_DEPLOY_IMAGE}
-    # set alternative and simpler names
+    # set alternative and simpler names for a master image
     - |
-      if [[ ! -z "${MASTER_IMAGE}" ]]; then
+      if [[ "${MASTER_IMAGE}" == "${BASE_IMAGE}" ]]; then
         DOCKER_TAG=${CI_REGISTRY}/copasi/dune-copasi/dune-copasi:${CI_COMMIT_REF_NAME}
         podman tag ${DOCKER_DEPLOY_IMAGE} ${DOCKER_TAG}
         podman push ${DOCKER_TAG}
@@ -193,6 +196,7 @@ build_wasm:debian_emscripten:
   image: ${DEPENDENCIES_IMAGE}-wasm
   stage: build
   script:
+    - ./util/version_handler.py --replace-build build.dune.gitlab.wasam.${CI_JOB_ID} --update-dune-module
     - source /duneci/modules/emsdk/emsdk_env.sh && ./.ci/install $DUNE_OPTS_FILE
     - mkdir -p packages
     - mv tmp/dune-copasi-* packages/

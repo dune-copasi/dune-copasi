@@ -26,7 +26,15 @@ RUN export DEBIAN_FRONTEND=noninteractive; \
   libgtest-dev \
   ninja-build \
   pkg-config \
+  python3 \
+  python3-pip \
+  python3-venv \
   && apt-get clean
+
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+RUN pip3 install semver
 
 ENV PATH=/duneci/install/bin:$PATH
 ENV TERM=xterm-256color

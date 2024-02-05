@@ -67,9 +67,7 @@ RUN  wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - \
 RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-RUN pip3 install codechecker
-
-# ARG TOOLCHAIN=clang-6-17
+RUN pip3 install codechecker semver
 
 ENV PATH=/duneci/install/bin:$PATH
 ENV TERM=xterm-256color
