@@ -82,7 +82,6 @@ reduce(const Basis& basis,
   auto leqs = LocalEquations<dim>::make(lbasis);
   leqs->time = time;
   LocalBasisCache<typename FEM::Traits::LocalBasisType::Traits> fe_cache;
-  std::vector<FieldVector<double, dim>> gradphi;
 
   std::map<std::string, double> values;
   double factor = 0.;
@@ -119,25 +118,22 @@ reduce(const Basis& basis,
   for (const auto& cell : elements(basis.entitySet(), Partitions::interior)) {
     auto geo = cell.geometry();
 
+    using Geometry = std::decay_t<decltype(geo)>;
+    std::optional<typename Geometry::JacobianInverse> geojacinv_opt;
+
     lbasis.bind(cell);
     lcoeff.load(lbasis, std::false_type{});
     const auto& finite_element = first_finite_element(lbasis.tree());
-    fe_cache.bind(finite_element);
-    const auto& rule = fe_cache.rule();
+  
+    std::size_t const order = 4;
+    const auto& quad_rule = QuadratureRules<typename Geometry::ctype, Geometry::coorddimension>::rule(geo.type(), order);
 
-    assert(geo.affine());
-    const auto& jac = geo.jacobianInverse(rule[0].position());
-
-    for (std::size_t q = 0; q != rule.size(); ++q) {
-      const auto [position, weight] = rule[q];
+    for (std::size_t q = 0; q != quad_rule.size(); ++q) {
+      const auto [position, weight] = quad_rule[q];
+      if (not geo.affine() or not geojacinv_opt)
+        geojacinv_opt.emplace(geo.jacobianInverse(position));
+      const auto& geojacinv = *geojacinv_opt;
       leqs->position = geo.global(position);
-
-      const auto& phi = fe_cache.evaluateFunction(q);
-      const auto& jacphi = fe_cache.evaluateJacobian(q);
-
-      gradphi.resize(finite_element.size());
-      for (std::size_t dof = 0; dof != gradphi.size(); ++dof)
-        gradphi[dof] = (jacphi[dof] * jac)[0];
 
       // evaluate values at quadrature point
       forEachLeafNode(lbasis.tree(), [&](const auto& node) {
@@ -147,9 +143,12 @@ reduce(const Basis& basis,
         auto& gradient = leqs->get_gradient(node);
         value = 0.;
         gradient = 0.;
+        fe_cache.bind(node.finiteElement(), quad_rule);
+        const auto& phi = fe_cache.evaluateFunction(q);
+        const auto& jacphi = fe_cache.evaluateJacobian(q);
         for (std::size_t dof = 0; dof != node.size(); ++dof) {
-          value += phi[dof] * lcoeff(node, dof);
-          gradient += gradphi[dof] * lcoeff(node, dof);
+          value     += lcoeff(node, dof) * phi[dof];
+          gradient  += lcoeff(node, dof) * (jacphi[dof] * geojacinv)[0];
         }
       });
 
