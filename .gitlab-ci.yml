@@ -8,11 +8,12 @@ stages:
   - deploy
 
 workflow:
+  auto_cancel:
+    on_new_commit: interruptible
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
       when: never
-    - if: $CI_COMMIT_BRANCH
+    - when: always
 
 default:
   tags:
