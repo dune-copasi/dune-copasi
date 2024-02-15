@@ -119,41 +119,79 @@ public:
     }
   };
 
-  void add_grid_context(Parser& parser) const;
+  void update_grid_data(std::unordered_map<std::string, double>& cell_data, std::any any_entity) const {
 
-  // update the griddata
-  void update_grid_data(std::unordered_map<std::string, double>& cell_data, const HostEntity& entity) const{
+    const HostEntity entity = getHostEntity( any_entity);
 
     for (auto& node : cell_data){
       // obtain the functor to update value
       auto it = _cell_data.find(node.first);
       if(it != _cell_data.end()){
+
+        // select whether we are at the hostgrid level at compile time
         std::size_t index = _update_index(entity);
+
         const double* ptr = it->second(index);
         cell_data[node.first] = (ptr!=nullptr) ? *(ptr) : 0.0;
       }else{
         cell_data[node.first] = 0.0;
       }
     }
-    
+
   }
 
-
-  std::function<double (const HostEntity& entity)> get_gmsh_id() const{
-    return _update_gmsh_id;
+  double get_gmsh_id( std::any any_entity) const {
+    const HostEntity entity = getHostEntity( any_entity );
+    return _update_gmsh_id(entity);
   }
 
   std::shared_ptr<ParserGridMapper<MDGrid>> get_parser_grid_mapper() const {
     return _parser_grid_mapper;
   }
 
-  const std::unordered_map<std::string, std::function<double*(std::size_t)>>& get_cell_data() const{
+  const std::unordered_map<std::string, std::function<double*(std::size_t)>>& get_cell_functor() const{
     return _cell_data;
   }
 
 private:
 
-  // Load the grid data files based on the config file parameter tree
+  /**
+  * @brief Helper function retrieving the underlying HostEntity from the type-erased any_entity
+  *
+  * The current function obtains the underlying HostEntity by first casting the
+  * the std::any back to the proper entity type. Then the HostEntity is obtained
+  * using the underlying gridpointer.
+  *
+  * @param[in]  std::any          Type erased entity
+  * @param[out] const HostEntity  The obtained underlying HostEntity contained within std::any<Entity>.
+  */
+  const HostEntity getHostEntity( std::any any_entity ) const{
+
+    HostEntity entity;
+
+    if (const MDEntity* p = std::any_cast<const MDEntity>(&any_entity)){
+      const MDEntity e = std::any_cast<const MDEntity>(any_entity);
+      entity =  _parser_grid_mapper->getHostEntity(e);
+    }else if (const SDEntity* p = std::any_cast<const SDEntity>(&any_entity)){
+      const SDEntity e = std::any_cast<const SDEntity>(any_entity);
+      entity = _md_grid_ptr->hostEntity(e);
+    }else if (const HostEntity* p = std::any_cast<const HostEntity>(&any_entity)){
+      const HostEntity e = std::any_cast<const HostEntity>(any_entity);
+      entity = e;
+    }else{
+      throw "bad_cast -- implementation of update_grid_data";
+    }
+
+    return entity;
+  }
+
+  /**
+  * @brief Load the griddata
+  *
+  * The parameter tree is unwinded and used to load and create the needed variables
+  *
+  * @param[in]  ParameterTree     The parameter tree containing the grid configuration properties
+  */
   void load_grid_data(Dune::ParameterTree& grid_config){
 
     auto& griddata_config = grid_config.sub("griddata");
@@ -214,6 +252,7 @@ private:
         }
 
         gridDataFile.close();
+        std::cout << "size of data: " << data.size() << std::endl;
         // ======================= END FILE IO =================================
 
         // create a functor to access the unordered map with hashtable to gaurantee O(1) look-up time

@@ -45,7 +45,7 @@ enum class LocalOperatorType
  * @tparam     Basis    Basis
  * @tparam     LBT   Local basis traits
  */
-template<PDELab::Concept::Basis TestBasis, class LBT, Dune::Concept::Grid MDGrid, class ExecutionPolicy = PDELab::Execution::SequencedPolicy>
+template<PDELab::Concept::Basis TestBasis, class LBT, class ExecutionPolicy = PDELab::Execution::SequencedPolicy>
 class LocalOperatorDiffusionReactionCG
 {
 
@@ -59,8 +59,8 @@ class LocalOperatorDiffusionReactionCG
   mutable std::vector<FieldMatrix<RF, 1, dim>> _jacphi_i, _jacphi_o;
   mutable std::vector<FieldVector<RF, 1>> _phi_i, _phi_o;
 
-  using MembraneScalarFunction = typename LocalEquations<MDGrid>::MembraneScalarFunction;
-  using CompartmentNode = typename LocalEquations<MDGrid>::CompartmentNode;
+  using MembraneScalarFunction = typename LocalEquations<dim>::MembraneScalarFunction;
+  using CompartmentNode = typename LocalEquations<dim>::CompartmentNode;
   struct Outflow
   {
     const MembraneScalarFunction& outflow;
@@ -78,7 +78,7 @@ class LocalOperatorDiffusionReactionCG
   bool _has_outflow = true;
 
   PDELab::SharedStash<LocalBasisCache<LBT>> _fe_cache;
-  PDELab::SharedStash<LocalEquations<MDGrid>> _local_values;
+  PDELab::SharedStash<LocalEquations<dim>> _local_values;
 
   ExecutionPolicy _execution_policy;
 
@@ -178,7 +178,7 @@ public:
                                    LocalOperatorType lop_type,
                                    bool is_linear,
                                    const ParameterTree& config,
-                                   std::shared_ptr<const FunctorFactory<MDGrid>> functor_factory,
+                                   std::shared_ptr<const FunctorFactory<dim>> functor_factory,
                                    ExecutionPolicy execution_policy = {})
     : _test_basis{ test_basis }
     , _is_linear{ is_linear }
@@ -186,12 +186,12 @@ public:
     , _local_values([_lop_type = lop_type,
                      _basis = _test_basis,
                      _config = config,
-                     _functor_factory = std::move(functor_factory)]() {
-      std::unique_ptr<LocalEquations<MDGrid>> ptr;
+                     _functor_factory = functor_factory]() {
+      std::unique_ptr<LocalEquations<dim>> ptr;
       if (_lop_type == LocalOperatorType::Mass)
-        ptr = LocalEquations<MDGrid>::make_mass(_basis.localView(), _config, *_functor_factory);
+        ptr = LocalEquations<dim>::make_mass(_basis.localView(), _config, _functor_factory);
       else if (_lop_type == LocalOperatorType::Stiffness)
-        ptr = LocalEquations<MDGrid>::make_stiffness(_basis.localView(), _config, *_functor_factory);
+        ptr = LocalEquations<dim>::make_stiffness(_basis.localView(), _config, _functor_factory);
       if (not ptr)
         std::terminate();
       return ptr;

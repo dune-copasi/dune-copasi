@@ -32,14 +32,14 @@ class ReductionError : public Dune::Exception {};
 // Evaluates a evaluation/reduction/transformation algorigthm over the grid.
 // Starting with val = 0, the this function evaluates `val = reduction(val, evaluation(), weight)` for each quadrature point of the grid. Finally, the result gets transformed by `value = transformation(value)`
 // For each sub-tree in the parameter tree, the evaluation and reduce expressions are extracted to form the evaluation/reduce operation for its key.
-template<PDELab::Concept::Basis Basis, Dune::Concept::Grid Grid>
+template<PDELab::Concept::Basis Basis>
   requires Concept::LocalBasisTree<typename Basis::LocalView::Tree>
 inline static std::map<std::string, double>
 reduce(const Basis& basis,
                 const auto& coefficients,
                 auto time,
                 const ParameterTree& config,
-                std::shared_ptr<const FunctorFactory<Grid>> functor_factory = nullptr)
+                std::shared_ptr<const FunctorFactory<Basis::EntitySet::GridView::dimension>> functor_factory = nullptr)
 {
   constexpr std::size_t dim = Basis::EntitySet::GridView::dimension;
   TRACE_EVENT("dune", "Reduce");
@@ -49,7 +49,7 @@ reduce(const Basis& basis,
   }
 
   std::shared_ptr<const ParserContext> parser_context;
-  auto functor_factory_parser = std::dynamic_pointer_cast<const FunctorFactoryParser<Grid>>(functor_factory);
+  auto functor_factory_parser = std::dynamic_pointer_cast<const FunctorFactory<dim>>(functor_factory);
   if (functor_factory_parser) {
     parser_context = functor_factory_parser->parser_context();
   }
@@ -79,7 +79,7 @@ reduce(const Basis& basis,
 
   using FEM = std::decay_t<decltype(first_finite_element(lbasis.tree()))>;
 
-  auto leqs = LocalEquations<Grid>::make(lbasis);
+  auto leqs = LocalEquations<dim>::make(lbasis);
   leqs->time = time;
   LocalBasisCache<typename FEM::Traits::LocalBasisType::Traits> fe_cache;
   std::vector<FieldVector<double, dim>> gradphi;

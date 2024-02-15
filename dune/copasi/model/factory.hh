@@ -48,7 +48,7 @@ template<class Model>
 std::unique_ptr<Model>
 make_model(
   const ParameterTree& config,
-  std::shared_ptr<const FunctorFactory<typename Model::Grid>> functor_factory = nullptr)
+  std::shared_ptr<const FunctorFactory<Model::Grid::dimensionworld>> functor_factory = nullptr)
 {
   if (not functor_factory) {
     functor_factory = std::make_shared<FunctorFactoryParser<typename Model::Grid>>();
@@ -91,11 +91,11 @@ make_model(
       [&](auto fem_order) {
         if (field_blocked) {
           model = std::make_unique<
-            ModelDiffusionReaction<Impl::SingleCompartmentTraits<Model, fem_order, true>, typename Model::Grid>>(
+            ModelDiffusionReaction<Impl::SingleCompartmentTraits<Model, fem_order, true> > >(
             functor_factory);
         } else {
           model = std::make_unique<
-            ModelDiffusionReaction<Impl::SingleCompartmentTraits<Model, fem_order, false>, typename Model::Grid>>(
+            ModelDiffusionReaction<Impl::SingleCompartmentTraits<Model, fem_order, false> > >(
             functor_factory);
         }
       } /*,

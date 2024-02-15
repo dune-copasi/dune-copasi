@@ -19,7 +19,7 @@ static inline const std::regex float_regex("-?([0-9]+)?([\\.]?)([0-9]+)?");
 static inline const std::regex zero_regex("-?([0]+)?([\\.]?)([0]+)?");
 } // namespace Impl
 
-template<Dune::Concept::Grid Grid>
+template<std::size_t dim>
 class LocalEquations;
 
 template<Dune::Concept::Grid Grid>
@@ -153,11 +153,10 @@ FunctorFactoryParser<Grid>::parse_scalar_expression(const ParameterTree& config,
     // make gmsh_id available during assembly (only compartment)
     parser_ptr->define_variable("gmsh_id", &(local_values.gmsh_id));
     for(const auto& node : local_values.cell_data){
-      std::cout << "Defining grid data variable: " << node.first << std::endl;
       parser_ptr->define_variable(node.first, &(node.second));
     }
 
-    LocalEquations<Grid> const* d = dynamic_cast<LocalEquations<Grid> const*>(&local_values);
+    LocalEquations<dim> const* d = dynamic_cast<LocalEquations<dim> const*>(&local_values);
     if (d != nullptr)
       PDELab::forEach(d->nodes(), [&](auto& compartments) {
         for (auto& compartment_fncs : compartments)

@@ -50,10 +50,9 @@ public:
   template<PDELab::Concept::MultiIndex MultiIndex, Dune::Concept::GridView EntitySet>
   using Container = PDELab::AffineConstraintsContainer<double, MultiIndex, EntitySet>;
 
-  template<Dune::Concept::Grid HostGrid>
   explicit Constraints( std::shared_ptr<BoundaryEntityMapper<GridView>> mapper,
                         const ParameterTree& config = {},
-                        std::shared_ptr<const FunctorFactory<HostGrid>> functor_factory = nullptr)
+                        std::shared_ptr<const FunctorFactory<dim>> functor_factory = nullptr)
     : TypeTree::LeafNode()
     , _mapper{ mapper }
     , _data_volume([_config = config.sub("volume"),

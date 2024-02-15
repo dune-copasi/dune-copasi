@@ -9,6 +9,9 @@ tags: [Electrophysiology, Dune Copasi]
 hide_table_of_contents: false
 ---
 
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
 In this blog I will show you can configure the Dune Copasi simulation environment to perform a very simple cardiac electrophysiology simulation. I will show you how you can simulate the Mitchell-Schaeffer cardiomyocyte electrophysiology model in a 2D environment. First, I will show you how you can obtain a working version of Dune Copasi within a docker environment. Thereafter, I will introduce the electrophysiology model and how to implement it.
 
 <!-- truncate -->
@@ -133,3 +136,108 @@ $$
   0 &= \nabla \cdot \sigma_i \nabla V_m + \nabla \cdot (\sigma_i + \sigma_e) \nabla \varphi_e . \\
 \end{aligned}
 $$
+
+## EP simulations using Dune Copasi
+
+### The Dune Copasi Ini file
+
+Now that we have discussed the mathematical problem we can tend our attention to implementing this so that we can simulate it using Dune Copasi. To do this we will write a configuration file (typically we use the .ini extension) that entails all the information that is needed for the Dune Copasi solver to construct the problem at hand. The configuration file consists of a parameter tree containing the parameters. The nodes at the top level can be divided in 4 categories: grid, parser_context, compartments, model.
+
+| Category | Description  |
+|     ---- | -----------  |
+| `grid`                  | The nodes under the grid header describe the basic properties of the grid. For example the dimension, extension, origin, etc.
+| `parser_context`        | Under the parser_context node we are able to define constant and functions that can be used to define the mathematical model.
+| `compartments`          | In this category we define the properties related to division of the problem to multiple compartments.
+| `model`                 | This is the heart of the mathematical problem where we define the reaction terms, diffusion, etc.
+
+The ini files we use follow the DUNE convention. In short, the data is composed of a key–value pairs on the form ```key = value```. For example, to define a property of the category grid we write
+
+```ini
+grid.property = value
+```
+
+In essence the ini file is nothing else than a parameter tree of key-value pairs. For convenience one can use sections to avoid rewriting the leading part and provide more structure. This is done by using ``` [section.subsection] ``` syntax. The keys below will now be within the designated subsection. As an example, the three following ini files, are equivalent
+
+<Tabs
+  defaultValue="form1"
+  values={[
+      {label: 'No grouping', value: 'form1', },
+      {label: 'Grouping', value: 'form2', },
+      {label: 'Nested grouping', value: 'form3', },
+    ]
+  }>
+
+  <TabItem value="form1">
+
+```ini
+# No preceding section
+section.subsection.first = 1.0
+section.subsection.second = 2.0
+```
+
+  </TabItem>
+  <TabItem value="form2">
+
+```ini
+[section]
+subsection.first = 1.0
+subsection.second = 2.0
+```
+
+  </TabItem>
+
+
+  <TabItem value="form3">
+
+```ini
+[section.subsection]
+first = 1.0
+second = 2.0
+```
+
+  </TabItem>
+</Tabs>
+
+
+### Setting up the Mitchell-Schaefer model
+
+Let us get started with creating the ini file for our electrophysiology simulation. First we will define our grid:
+
+ ```ini
+ [grid]
+ dimension = 2
+ extensions = 3 3
+ refinement_level = 8
+ ```
+
+ This will create a square grid existing of 2 triangles with 3 by 3 extension. Thereafter the grid will be refined 8 times. The solver can also load Gmsh meshes but we will come to that at a later point. For the moment this will be all that we need to define our grid. The next step is the  ```parser_context```. In the parser context we will define the constants and functions that we will use in our model.
+
+ ```ini
+ [parser_context]
+ tau_in.type = constant
+ tau_in.value = 0.1 # ms
+
+ tau_out.type = constant
+ tau_out.value = 1 # ms
+
+ tau_open.type = constant
+ tau_open.value = 150 # ms
+
+ tau_close.type = constant
+ tau_close.value = 120 # ms
+
+ gamma_i.type = constant
+ gamma_i.value = 3e-3 # 1/(\Omega*cm)
+
+ A_m.type = constant
+ A_m.value = 20e-1
+
+ u_0.type = constant
+ u_0.value = 0.13
+
+ gauss.type = function
+ gauss.expression = x, y, z: exp(-(x^2+y^2+z^2)/(4*0.0001)) / (4*3.14159265359*0.0001)/400
+
+ periodic.type = function
+ periodic.expression = t : cos(t) > 0.95 ? 1 : 0
+ ```

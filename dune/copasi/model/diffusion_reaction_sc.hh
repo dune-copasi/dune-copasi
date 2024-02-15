@@ -16,7 +16,7 @@
 
 namespace Dune::Copasi {
 
-template<class Traits, Dune::Concept::Grid HostGrid>
+template<class Traits>
 class ModelDiffusionReaction
   : public Model<typename Traits::Grid,
                  typename Traits::CompartmentEntitySet,
@@ -44,10 +44,9 @@ public:
   using GridFunction = typename Base::GridFunction;
 
   explicit ModelDiffusionReaction(
-    std::shared_ptr<const FunctorFactory<HostGrid>> functor_factory)
-     //: _functor_factory{ functor_factory } // ?? std::move ??
+    std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory)
+     : _functor_factory{ functor_factory } // ?? std::move ??
   {
-    _functor_factory = functor_factory;
     assert(_functor_factory);
   };
 
@@ -73,16 +72,16 @@ public:
                                                         std::string_view,
                                                         const std::vector<std::string>&,
                                                         const ParameterTree& = {},
-                                                        std::shared_ptr<const FunctorFactory<HostGrid>> = nullptr);
+                                                        std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> = nullptr);
 
 private:
-  static ScalarPreBasis make_scalar_field_pre_basis(std::shared_ptr<BoundaryEntityMapper<CompartmentEntitySet>>, const CompartmentEntitySet&, std::string_view, const ParameterTree&, std::shared_ptr<const FunctorFactory<HostGrid>>);
-  static void setup_basis(State&, const Grid&, const ParameterTree&, std::shared_ptr<const FunctorFactory<HostGrid>>);
+  static ScalarPreBasis make_scalar_field_pre_basis(std::shared_ptr<BoundaryEntityMapper<CompartmentEntitySet>>, const CompartmentEntitySet&, std::string_view, const ParameterTree&, std::shared_ptr<const FunctorFactory<Grid::dimensionworld>>);
+  static void setup_basis(State&, const Grid&, const ParameterTree&, std::shared_ptr<const FunctorFactory<Grid::dimensionworld>>);
   static void setup_coefficient_vector(State&);
   static CompartmentEntitySet get_entity_set(const Grid&, std::size_t);
 
   mutable std::unordered_map<std::string, std::vector<double>> _writer_timesteps;
-  std::shared_ptr<const FunctorFactory<HostGrid>> _functor_factory;
+  std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> _functor_factory;
 };
 
 } // namespace Dune::Copasi

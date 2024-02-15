@@ -21,11 +21,11 @@
 
 namespace Dune::Copasi {
 
-template<class GridFunction, Dune::Concept::Grid Grid, Dune::Concept::Grid HostGrid>
+template<class GridFunction, Dune::Concept::Grid Grid>
 [[nodiscard]] inline static std::unordered_map<std::string, GridFunction>
 make_initial(const Grid& grid,
              const ParameterTree& config,
-             const FunctorFactory<HostGrid>& functor_factory)
+             std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory)
 {
   TRACE_EVENT("dune", "InitialCondition");
 
@@ -61,7 +61,7 @@ make_initial(const Grid& grid,
       }
       auto local_domain = std::make_shared<LocalDomain<Grid::dimensionworld>>();
       local_domain->time = time;
-      auto fcn = functor_factory.make_scalar(prefix, config.sub(prefix), *local_domain);
+      auto fcn = functor_factory->make_scalar(prefix, config.sub(prefix), *local_domain);
       if (not fcn) {
         continue;
       }

@@ -33,6 +33,12 @@ concept SubDomainGrid =
   };
 
 /**
+ *  @brief Concept for subdomain entity
+ */
+template<class E>
+concept SubDomainEntity = Dune::Concept::Entity<E> && SubDomainGrid< typename E::GridImp>;
+
+/**
  * @brief   Concept for dune multidomain grids
  * @details Checks whether the type fits the most of the dune interface
  *          for grid and is extended to a multidomain grid.
@@ -74,6 +80,12 @@ concept MultiDomainGrid =
       g.removeFromAllSubDomains(entity);
     };
   };
+
+  /**
+   *  @brief Concept for multidomain entity
+   */
+  template<class E>
+  concept MultiDomainEntity = Dune::Concept::Entity<E> && MultiDomainGrid< typename E::GridImp>;
 
 } // namespace Dune::Copasi::Concept
 

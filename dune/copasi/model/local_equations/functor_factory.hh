@@ -22,14 +22,10 @@ struct LocalDomain;
 
 // the owner of the resulting function must hold the local equations for the lifetime of created
 // functors
-template<Dune::Concept::Grid Grid>
+template<std::size_t dim>
 class FunctorFactory
 {
 public:
-
-  static constexpr int dim = Grid::dimensionworld;
-  using GridView = typename Grid::LeafGridView;
-  using Entity = typename Grid::template Codim<0>::Entity;
 
   using Scalar = FieldVector<double, 1>;
   using Vector = FieldVector<double, dim>;
@@ -48,6 +44,9 @@ public:
 
   virtual ~FunctorFactory() = default;
 
+  // ---------------------------------------------------------------------------
+  // Defines the interface for making functors that can be evaluated
+  // ---------------------------------------------------------------------------
   [[nodiscard]] virtual ScalarFunctor make_scalar(std::string_view,
                                                   const ParameterTree&,
                                                   const LocalDomain<dim>&,
@@ -66,7 +65,14 @@ public:
 
   virtual std::shared_ptr<const ParserContext> parser_context() const = 0;
 
-  virtual std::shared_ptr<const ParserGridContext<Grid>> parser_grid_context() const = 0;
+  // ---------------------------------------------------------------------------
+  // Defines the interface for updating grid entity specific values
+  // ---------------------------------------------------------------------------
+  virtual double get_gmsh_id( std::any entity) const = 0;
+
+  virtual void update_grid_data(std::unordered_map<std::string, double>& cell_data, std::any entity) const = 0;
+
+  virtual const std::unordered_map<std::string, std::function<double*(std::size_t)>>& get_cell_functor() const = 0;
 
 };
 

@@ -5,11 +5,13 @@
 
 
 #include <memory>
+#include <fstream>
+#include <iostream>
 
 namespace Dune::Copasi {
 
 template<Dune::Concept::Grid Grid>
-class FunctorFactoryParser final : public FunctorFactory<Grid>
+class FunctorFactoryParser final : public FunctorFactory<Grid::dimensionworld>
 {
 public:
 
@@ -19,14 +21,14 @@ public:
   using Vector = FieldVector<double, dim>;
   using Tensor = FieldMatrix<double, dim, dim>;
 
-  using ScalarFunctor = typename FunctorFactory<Grid>::ScalarFunctor;
-  using VectorFunctor = typename FunctorFactory<Grid>::VectorFunctor;
-  using TensorApplyFunctor = typename FunctorFactory<Grid>::TensorApplyFunctor;
+  using ScalarFunctor = typename FunctorFactory<dim>::ScalarFunctor;
+  using VectorFunctor = typename FunctorFactory<dim>::VectorFunctor;
+  using TensorApplyFunctor = typename FunctorFactory<dim>::TensorApplyFunctor;
 
   explicit FunctorFactoryParser(ParserType parser_type = default_parser,
                                 std::shared_ptr<const ParserContext> parser_context = nullptr,
                                 std::shared_ptr<const ParserGridContext<Grid>> parser_grid_context = nullptr)
-    : FunctorFactory<Grid>()
+    : FunctorFactory<dim>()
     , _parser_type{ parser_type }
     , _parser_context{ std::move(parser_context)}
     , _parser_grid_context{ std::move(parser_grid_context) }
@@ -58,7 +60,17 @@ public:
 
   std::shared_ptr<const ParserContext> parser_context() const { return _parser_context; };
 
-  std::shared_ptr<const ParserGridContext<Grid>> parser_grid_context() const { return _parser_grid_context; };
+  double get_gmsh_id( std::any entity) const{
+    return _parser_grid_context->get_gmsh_id(entity);
+  }
+
+  void update_grid_data(std::unordered_map<std::string, double>& cell_data, std::any entity) const {
+    _parser_grid_context->update_grid_data( cell_data, entity);
+  }
+
+  const std::unordered_map<std::string, std::function<double*(std::size_t)>>& get_cell_functor() const {
+    return _parser_grid_context->get_cell_functor();
+  }
 
 private:
   [[nodiscard]] ScalarFunctor parse_scalar_expression(const ParameterTree& /*config*/,

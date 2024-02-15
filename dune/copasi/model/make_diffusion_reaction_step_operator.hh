@@ -23,27 +23,26 @@ template<class LocalBasisTraits,
          class Residual,
          class ResidualQuantity,
          class TimeQuantity,
-         Dune::Concept::Grid MDGrid,
          PDELab::Concept::Basis Basis>
 [[nodiscard]] inline static std::unique_ptr<PDELab::Operator<Coefficients, Coefficients>>
 make_diffusion_reaction_step_operator(const ParameterTree& config,
                                       const Basis& basis,
                                       std::size_t halo,
-                                      const auto& functor_factory)
+                                      std::shared_ptr<const FunctorFactory<Basis::EntitySet::GridView::dimension>> functor_factory)
 {
 
   std::unique_ptr<PDELab::Operator<Coefficients, Coefficients>> one_step;
   const auto& assembly_cfg = config.sub("assembly");
   auto exec_policy = assembly_cfg.get("type", "parallel");
 
-  auto make_one_step_op = [&]<class ExecutionPolicy, PDELab::Concept::Basis OperatorBasis>(
+  auto make_one_step_op = [&, functor_factory]<class ExecutionPolicy, PDELab::Concept::Basis OperatorBasis>(
                             ExecutionPolicy execution_policy, const OperatorBasis& operator_basis) {
     spdlog::info("Creating mass/stiffness local operator");
     const auto& time_step_cfg = config.sub("time_step_operator");
     const auto& scalar_field_cfg = config.sub("scalar_field");
     bool is_linear = config.get("is_linear", false);
     using LocalOperator =
-      LocalOperatorDiffusionReactionCG<OperatorBasis, LocalBasisTraits, MDGrid, ExecutionPolicy>;
+      LocalOperatorDiffusionReactionCG<OperatorBasis, LocalBasisTraits, ExecutionPolicy>;
     LocalOperator const stiff_lop(operator_basis,
                                   LocalOperatorType::Stiffness,
                                   is_linear,

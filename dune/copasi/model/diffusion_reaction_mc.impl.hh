@@ -56,7 +56,7 @@ auto
 ModelMultiCompartmentDiffusionReaction<Traits>::make_multi_compartment_pre_basis(
   const Grid& grid,
   const ParameterTree& config,
-  std::shared_ptr<const FunctorFactory<Grid>> functor_factory) -> MultiCompartmentPreBasis
+  std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory) -> MultiCompartmentPreBasis
 {
   TRACE_EVENT("dune", "Basis::SetUp");
   spdlog::info("Setup basis functions");
@@ -79,7 +79,7 @@ ModelMultiCompartmentDiffusionReaction<Traits>::make_multi_compartment_pre_basis
     CompartmentEntitySet sub_grid_view = grid.subDomain(domain_id).leafGridView();
 
     CompartmentPreBasis compartment_pre_basis =
-      ModelDiffusionReaction<Traits, Grid>::make_compartment_pre_basis(
+      ModelDiffusionReaction<Traits>::make_compartment_pre_basis(
         sub_grid_view, compartment, components, scalar_fields_config, functor_factory);
     compartment_pre_basis_vec.emplace_back(compartment_pre_basis);
   }
@@ -157,7 +157,7 @@ ModelMultiCompartmentDiffusionReaction<Traits>::make_initial(const Grid& grid,
                                                              const ParameterTree& config) const
   -> std::unordered_map<std::string, GridFunction>
 {
-  return Dune::Copasi::make_initial<GridFunction>(grid, config, *_functor_factory);
+  return Dune::Copasi::make_initial<GridFunction>(grid, config, _functor_factory);
 }
 
 template<class Traits>
@@ -191,7 +191,7 @@ ModelMultiCompartmentDiffusionReaction<Traits>::make_step_operator(
   using LocalBasisTraits = typename ScalarFiniteElementMap::Traits::FiniteElement::Traits::LocalBasisType::Traits;
 
   const auto& basis = any_cast<const MultiCompartmentBasis&>(state.basis);
-  std::shared_ptr one_step = make_diffusion_reaction_step_operator<LocalBasisTraits, Coefficients, Residual, ResidualQuantity, TimeQuantity, Grid>(config, basis, 2, _functor_factory);
+  std::shared_ptr one_step = make_diffusion_reaction_step_operator<LocalBasisTraits, Coefficients, Residual, ResidualQuantity, TimeQuantity>(config, basis, 2, _functor_factory);
 
   // type erase the original runge kutta operator
   auto type_erased_one_step = std::make_unique<PDELab::OperatorAdapter<State, State>>(

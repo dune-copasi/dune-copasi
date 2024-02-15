@@ -54,21 +54,13 @@ struct LocalDomain
 // this class holds a data-structure for each equation that contains functors to be evaluated.
 // Additionally, it contains the values with respect these functors may be evaluated if they are
 // non-linear All the functors are require to be thread-safe!
-template<Dune::Concept::Grid MDGrid>
-class LocalEquations : public LocalDomain<MDGrid::dimensionworld>
+template<std::size_t dim>
+class LocalEquations : public LocalDomain<dim>
 {
-
-  static constexpr int dim =  MDGrid::dimensionworld;
 
   using Scalar = FieldVector<double, 1>;
   using Vector = FieldVector<double, dim>;
   using Tensor = FieldMatrix<double, dim, dim>;
-
-  using SDGrid = MDGrid::SubDomainGrid;
-  using HostGrid = MDGrid::HostGrid;
-  using SDEntity = typename SDGrid::template Codim<0>::Entity;
-  using MDEntity = typename MDGrid::template Codim<0>::Entity;
-  using HostEntity = typename HostGrid::template Codim<0>::Entity;
 
   using CompartmentPath = TypeTree::HybridTreePath<index_constant<0>, std::size_t, std::size_t>;
   using MembranePath = TypeTree::HybridTreePath<index_constant<1>, std::size_t, std::size_t>;
@@ -292,7 +284,7 @@ public:
   [[nodiscard]] static std::unique_ptr<LocalEquations> make(
     const PDELab::Concept::LocalBasis auto& lbasis,
     const ParameterTree& config = {},
-    FunctorFactory<MDGrid> const * functor_factory = nullptr,
+    std::shared_ptr<const FunctorFactory<dim>> functor_factory = nullptr,
     BitFlags<FactoryFalgs> opts = BitFlags<FactoryFalgs>::no_flags())
   {
     auto local_values = std::unique_ptr<LocalEquations>(new LocalEquations{});
@@ -324,7 +316,7 @@ public:
       if (not functor_factory) {
         throw format_exception(InvalidStateException{}, "Equations cannot be configured without a functor factory");
       }
-      local_values->configure(config, *functor_factory, opts);
+      local_values->configure(config, functor_factory, opts);
     }
     return local_values;
   }
@@ -332,12 +324,12 @@ public:
   static std::unique_ptr<LocalEquations> make_stiffness(
     const PDELab::Concept::LocalBasis auto& lbasis,
     const ParameterTree& config,
-    const FunctorFactory<MDGrid>& functor_factory
+    std::shared_ptr<const FunctorFactory<dim>> functor_factory
   )
   {
     return make(lbasis,
                 config,
-                &functor_factory,
+                functor_factory,
                 FactoryFalgs::Reaction | FactoryFalgs::Diffusion | FactoryFalgs::Velocity |
                   FactoryFalgs::Outflow);
   }
@@ -345,12 +337,12 @@ public:
   static std::unique_ptr<LocalEquations> make_mass(
     const PDELab::Concept::LocalBasis auto& lbasis,
     const ParameterTree& config,
-    const FunctorFactory<MDGrid>& functor_factory
+    std::shared_ptr<const FunctorFactory<dim>> functor_factory
   )
   {
     return make(lbasis,
                 config,
-                &functor_factory,
+                functor_factory,
                 FactoryFalgs::Storage);
   }
 
@@ -378,46 +370,19 @@ public:
     return PDELab::containerEntry(_nodes, make_path(tree)).gradient;
   }
 
-  // Extract the HostEntity -> update gmsh id
-  void update_gmsh_id(const SDEntity& entity)
-  {
-    update_gmsh_id(_parser_grid_mapper->getHostEntity(entity));
-  }
-
-  // Extract the HostEntity -> update gmsh id
-  void update_gmsh_id(const MDEntity& entity)
-  {
-    update_gmsh_id(_parser_grid_mapper->getHostEntity(entity));
-  }
-
   // The idea is to update this to update_grid_data
   // Should be included in one function with above one
-  void update_gmsh_id(const HostEntity& entity)
+  template <class Entity>
+  void update_gmsh_id(const Entity& entity)
   {
-    if(_update_gmsh_id){
-      this->gmsh_id = _update_gmsh_id(entity);
-    }else
-      this->gmsh_id = -1;
+    this->gmsh_id = _functor_factory->get_gmsh_id(entity);
   }
 
-  // TO DO: merge with gmsh_id section above
-  // Extract the HostEntity -> update grid data
-  void update_grid_data(const SDEntity& entity)
+  // -> update grid data
+  template <class Entity>
+  void update_grid_data(const Entity& entity)
   {
-    update_grid_data(_parser_grid_mapper->getHostEntity(entity));
-  }
-
-  // Extract the HostEntity -> update grid data
-  void update_grid_data(const MDEntity& entity)
-  {
-    update_grid_data(_parser_grid_mapper->getHostEntity(entity));
-  }
-
-  // The idea is to update this to update_grid_data
-  // Should be included in one function with above one
-  void update_grid_data(const HostEntity& entity)
-  {
-    _grid_context->update_grid_data(this->cell_data, entity);
+    _functor_factory->update_grid_data(this->cell_data, entity);
   }
 
 
@@ -482,10 +447,7 @@ private:
   std::vector<Vector> _gradients;
 
   // grid related functor
-  std::function<double (const HostEntity& entity)> _update_gmsh_id;
-  std::shared_ptr<const ParserGridContext<MDGrid>> _grid_context;
-  //std::unordered_map<std::string, std::function<double*(std::size_t)>> _update_element_data;
-  std::shared_ptr<ParserGridMapper<MDGrid>> _parser_grid_mapper;
+  std::shared_ptr<const FunctorFactory<dim>> _functor_factory;
 
   auto compartment_index(const Concept::CompartmentLocalBasisTree auto&) const
   {
@@ -536,7 +498,7 @@ private:
   }
 
   void configure(const ParameterTree& config,
-                 const FunctorFactory<MDGrid>& functor_factory,
+                 std::shared_ptr<const FunctorFactory<dim>> functor_factory,
                  BitFlags<FactoryFalgs> opts)
   {
 
@@ -545,14 +507,12 @@ private:
     using TensorApplyTag = index_constant<2>;
 
     // configure grid context data
-    _grid_context = functor_factory.parser_grid_context();
-    _update_gmsh_id = _grid_context->get_gmsh_id();
-    _parser_grid_mapper = _grid_context->get_parser_grid_mapper();
+    _functor_factory = functor_factory;
 
-    const std::unordered_map<std::string, std::function<double*(std::size_t)>>& cell_data = _grid_context->get_cell_data();
-    this->cell_data.reserve( cell_data.size() );
+    const std::unordered_map<std::string, std::function<double*(std::size_t)>>& cell_functor = _functor_factory->get_cell_functor();
+    this->cell_data.reserve( cell_functor.size() );
 
-    for (const auto& node : cell_data){
+    for (const auto& node : cell_functor){
       this->cell_data[node.first] = 0.0;
     }
 
@@ -560,12 +520,12 @@ private:
     auto make_functor = overload(
       [&](std::string_view prefix, const ParameterTree& config, int codim, ScalarTag)
         -> fu2::unique_function<Scalar() const noexcept> {
-        return functor_factory.make_scalar(
+        return functor_factory->make_scalar(
           prefix, config, std::as_const(*this), codim);
       },
       [&](std::string_view prefix, const ParameterTree& config, int codim, VectorTag)
         -> fu2::unique_function<Vector() const noexcept> {
-        return functor_factory.make_vector(
+        return functor_factory->make_vector(
           prefix, config, std::as_const(*this), codim);
       },
       [&](std::string_view prefix,
@@ -573,7 +533,7 @@ private:
           int codim,
           TensorApplyTag)
         -> fu2::unique_function<Vector(Vector) const noexcept> {
-        return functor_factory.make_tensor_apply(
+        return functor_factory->make_tensor_apply(
           prefix, config, std::as_const(*this), codim);
       });
 
