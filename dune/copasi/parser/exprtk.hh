@@ -49,9 +49,6 @@ public:
   [[nodiscard]] RangeField operator()() const noexcept override final;
 
 private:
-  void register_functions();
-  void unregister_functions();
-
   using Parser::_compiled;
   using Parser::_expression;
   using Parser::_symbols;

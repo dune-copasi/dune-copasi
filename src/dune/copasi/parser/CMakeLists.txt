@@ -24,7 +24,6 @@ if ((NOT ExprTk_FOUND) AND (NOT CMAKE_DISABLE_FIND_PACKAGE_ExprTk) AND (NOT DUNE
   endif()
 endif()
 if(${ExprTk_FOUND})
-  set(DUNE_COPASI_EXPRTK_MAX_FUNCTIONS 5000 CACHE STRING "Maximum number of functions that ExprTk can store in its context")
   list(APPEND parser_list ExprTk)
 endif()
 
@@ -95,7 +94,6 @@ target_include_directories(dune-copasi-parser
 target_compile_definitions(dune-copasi-parser
   PRIVATE
     $<$<TARGET_EXISTS:muparser::muparser>:DUNE_COPASI_MUPARSER_MAX_FUNCTIONS=${DUNE_COPASI_MUPARSER_MAX_FUNCTIONS}>
-    $<$<BOOL:${ExprTk_FOUND}>:DUNE_COPASI_EXPRTK_MAX_FUNCTIONS=${DUNE_COPASI_EXPRTK_MAX_FUNCTIONS}>
 )
 
 # target configuration for downstream projects
