@@ -48,7 +48,7 @@ struct LocalDomain
   double in_boundary = 0;
   double in_skeleton = 0;
   double gmsh_id = -1;
-  std::unordered_map<std::string, double> cell_data;  // data adresses to be bound to the parser
+  std::unordered_map<std::string, double> cell_data;  // data addresses to be bound to the parser
 };
 
 // this class holds a data-structure for each equation that contains functors to be evaluated.

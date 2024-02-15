@@ -245,7 +245,7 @@ private:
         double doubleValue;
         for (int i = 0; i < numDataLines; ++i) {
             if (!(gridDataFile >> intValue >> doubleValue)) {
-                throw format_exception(IOError{}, "IO format error -> error readig the dataformat");
+                throw format_exception(IOError{}, "IO format error -> error reading the dataformat");
             }
 
             data[intValue-1] = doubleValue; // Gmsh starts at 1 -> The current index starts at 0 !!!!
@@ -255,7 +255,7 @@ private:
         std::cout << "size of data: " << data.size() << std::endl;
         // ======================= END FILE IO =================================
 
-        // create a functor to access the unordered map with hashtable to gaurantee O(1) look-up time
+        // create a functor to access the unordered map with hashtable to guarantee O(1) look-up time
         std::function<double*(std::size_t)> cell_data_functor = [data = std::move(data)](std::size_t index) mutable  -> double*{
           if( auto it = data.find(index); it != data.end())
             return &(it->second);
