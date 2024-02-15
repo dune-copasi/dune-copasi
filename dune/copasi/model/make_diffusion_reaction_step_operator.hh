@@ -33,7 +33,6 @@ make_diffusion_reaction_step_operator(const ParameterTree& config,
 
   std::unique_ptr<PDELab::Operator<Coefficients, Coefficients>> one_step;
   const auto& assembly_cfg = config.sub("assembly");
-  auto exec_policy = assembly_cfg.get("type", "parallel");
 
   auto make_one_step_op = [&]<class ExecutionPolicy, PDELab::Concept::Basis OperatorBasis>(
                             ExecutionPolicy execution_policy, const OperatorBasis& operator_basis) {
@@ -64,7 +63,7 @@ make_diffusion_reaction_step_operator(const ParameterTree& config,
     assembly_cfg.get("partition.patches", static_cast<std::size_t>(entity_set.size(0) / 40));
 
 #if DUNE_COPASI_CONCURRENT_ASSEMBLY
-  auto make_parallel_one_step_op =
+  auto make_concurrent_one_step_op =
     [&]<class ExecutionPolicy>(const ExecutionPolicy execution_policy) {
       auto entity_set = basis.entitySet();
       auto default_part_type =
@@ -75,7 +74,7 @@ make_diffusion_reaction_step_operator(const ParameterTree& config,
 #endif // HAVE_METIS
       auto part_type = assembly_cfg.get("partition.type", default_part_type);
       auto part_coloring = assembly_cfg.get("partition.coloring", "None");
-      spdlog::info("  Parallel Partitioning:");
+      spdlog::info("  Concurrent Partitioning:");
       spdlog::info("    Type:      {}", part_type);
       spdlog::info("    Patches:   {}", part_patches);
       spdlog::info("    Halo:      {}", halo);
@@ -118,6 +117,10 @@ make_diffusion_reaction_step_operator(const ParameterTree& config,
         throw format_exception(IOError{}, "Not known partition algorithm '{}' known", part_type);
       }
     };
+  
+  auto exec_policy = assembly_cfg.get("type", "concurrent");
+#else
+  auto exec_policy = assembly_cfg.get("type", "sequential");
 #endif // DUNE_COPASI_CONCURRENT_ASSEMBLY
 
   spdlog::info("Creating time-step operator with '{}' execution policy", exec_policy);
@@ -129,8 +132,8 @@ make_diffusion_reaction_step_operator(const ParameterTree& config,
   if (exec_policy == "sequential") {
     one_step = make_one_step_op(PDELab::Execution::seq, basis);
 #if DUNE_COPASI_CONCURRENT_ASSEMBLY
-  } else if (exec_policy == "parallel") {
-    one_step = make_parallel_one_step_op(PDELab::Execution::par);
+  } else if (exec_policy == "concurrent") {
+    one_step = make_concurrent_one_step_op(PDELab::Execution::par);
 #endif // DUNE_COPASI_CONCURRENT_ASSEMBLY
   } else {
     throw format_exception(IOError{}, "Not known execution '{}' policy known", exec_policy);

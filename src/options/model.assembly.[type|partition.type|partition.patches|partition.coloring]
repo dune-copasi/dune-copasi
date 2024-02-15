@@ -4,10 +4,10 @@ Options forh the execution policy on the assembly of residuals and jacobians
 type=<string>
   Type of execution policy
     * sequential:     The assembly of residuals/jacobians is sequenced one after the other.
-    * parallel:       The assembly of residuals/jacobians is made in parallel
+    * concurrent:       The assembly of residuals/jacobians is made concurrently
 
 partition.type=<string>
-  Type of partition of the grid entities. Only used if 'model.assembly.partition.type=parallel'
+  Type of partition of the grid entities. Only used if 'model.assembly.partition.type=concurrent'
     * METIS:          Partition the grid patches using METIS library
     * Simple:         Partition the grid patches by naively splitting the grid iterator
 
