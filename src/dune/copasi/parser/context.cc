@@ -332,10 +332,10 @@ ParserContext::parse_function_expression(std::string_view fnc_expr)
         arg,
         fnc_expr);
     }
-    if (not std::ranges::all_of(arg, [](auto lchar) { return std::isalnum(lchar); })) {
+    if (not std::ranges::all_of(arg, [](auto lchar) { return std::isalnum(lchar) or lchar == '_'; })) {
       throw format_exception(
         IOError{},
-        "Function argument '{}' must contain only alphanumeric character.\nExpression: {}",
+        "Function argument '{}' must contain only alphanumeric character or underscores.\nExpression: {}",
         arg,
         fnc_expr);
     }
