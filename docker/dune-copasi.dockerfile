@@ -77,12 +77,14 @@ ENV CMAKE_INSTALL_PREFIX=/duneci/install
 # ENV DUNE_OPTS_FILE=/duneci/dune.opts
 ENV DUNE_OPTS_FILE=/duneci/cmake-flags/dune-copasi.opts
 
+USER duneci
 COPY --chown=duneci ./dune-copasi.opts /duneci/cmake-flags/
 COPY --chown=duneci ./.ci /duneci/modules/dune-copasi/.ci
 
 ENV DUNE_ENABLE_PYTHONBINDINGS=OFF
 ENV CMAKE_CXX_COMPILER=clang++
 ENV CMAKE_C_COMPILER=clang
+ENV CMAKE_GENERATOR="Ninja"
 # RUN    ln -s /duneci/toolchains/${TOOLCHAIN} /duneci/toolchain \
 #     && export PATH=/duneci/install/bin:$PATH
 WORKDIR /duneci/modules
@@ -94,6 +96,7 @@ FROM ${BUILD_BASE_IMAGE} AS build-env
 
 ENV CMAKE_CXX_COMPILER=clang++
 ENV CMAKE_C_COMPILER=clang
+ENV CMAKE_GENERATOR="Ninja"
 ENV CPACK_GENERATORS=DEB
 ENV CPACK_PACKAGE_DIRECTORY=/duneci/packages
 

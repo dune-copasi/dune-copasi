@@ -16,7 +16,6 @@ RUN export DEBIAN_FRONTEND=noninteractive; \
 RUN rm -rf /packages
 
 # disable sudo user
-RUN adduser --disabled-password --home /dunecopasi --uid 50000 dunecopasi
 USER dunecopasi
 WORKDIR /dunecopasi
 
