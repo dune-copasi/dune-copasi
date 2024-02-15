@@ -14,7 +14,7 @@
 namespace Dune::Copasi {
 
 namespace Impl {
-// TODO: match scientific notation
+static inline const std::regex scientific_notation_regex("/[+\\-]?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+\\-]?\\d+)?/");
 static inline const std::regex float_regex("-?([0-9]+)?([\\.]?)([0-9]+)?");
 static inline const std::regex zero_regex("-?([0]+)?([\\.]?)([0]+)?");
 } // namespace Impl
@@ -123,7 +123,8 @@ FunctorFactoryParser<dim>::parse_scalar_expression(const ParameterTree& config,
   if (expression.empty() or std::regex_match(expression, Impl::zero_regex)) {
     return nullptr;
   }
-  if (std::regex_match(expression, Impl::float_regex)) {
+  if (std::regex_match(expression, Impl::float_regex)
+      or std::regex_match(expression, Impl::scientific_notation_regex)) {
     double value = std::stod(expression);
     return [_value = value]() noexcept { return Scalar{ _value }; };
   } else {
