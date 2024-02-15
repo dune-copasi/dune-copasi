@@ -171,7 +171,7 @@ private:
 
     if (const MDEntity* p = std::any_cast<const MDEntity>(&any_entity)){
       const MDEntity e = std::any_cast<const MDEntity>(any_entity);
-      entity =  _parser_grid_mapper->getHostEntity(e);
+      entity = _md_grid_ptr->hostEntity(e);
     }else if (const SDEntity* p = std::any_cast<const SDEntity>(&any_entity)){
       const SDEntity e = std::any_cast<const SDEntity>(any_entity);
       entity = _md_grid_ptr->hostEntity(e);
