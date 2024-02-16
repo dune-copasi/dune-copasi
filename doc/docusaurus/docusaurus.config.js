@@ -59,6 +59,11 @@ module.exports = {
           to: '/math_model',
         },
         {
+          to: 'blog',
+          label: 'Blog',
+          position: 'left',
+        },
+        {
           type: 'docsVersionDropdown',
           position: 'left',
           dropdownActiveClassDisabled: true,
@@ -226,6 +231,11 @@ module.exports = {
             '**/__tests__/**',
           ],
           mdxPageComponent: '@theme/MDXPage',
+          remarkPlugins: [remarkMath],
+          rehypePlugins: [rehypeKatex],
+        },
+        blog: {
+          path: 'blog',
           remarkPlugins: [remarkMath],
           rehypePlugins: [rehypeKatex],
         },
