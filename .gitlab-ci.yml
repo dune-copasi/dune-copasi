@@ -44,7 +44,7 @@ variables:
   BASE_IMAGE: debian:trixie
   DEPENDENCIES_IMAGE: ${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${TOOLCHAIN}-${BASE_IMAGE_VERSION}
 
-.setup: &setup
+.setup_exec: &setup_exec
   image: ${DOCKER_IMAGE}
   stage: setup
   script:
@@ -56,6 +56,26 @@ variables:
         --target setup-env
         -t ${DEPENDENCIES_IMAGE} .
     - podman push ${DEPENDENCIES_IMAGE}
+    - podman logout $CI_REGISTRY/copasi/dune-copasi
+  rules:
+    - if: '$FORCE_REBUILD_BASE_IMAGE == "true"'
+    - if: '$CI_COMMIT_TAG'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_COMMIT_BRANCH == "latest"'
+
+.setup_wasm: &setup_wasm
+  image: ${DOCKER_IMAGE}
+  stage: setup
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | podman login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY/copasi/dune-copasi
+    - podman build
+        --format docker
+        --build-arg BASE_IMAGE=${BASE_IMAGE}
+        --build-arg BUILDKIT_INLINE_CACHE=1
+        --target setup-env
+        -t ${DEPENDENCIES_IMAGE}-wasm
+        -f docker/emscripten.dockerfile .
+    - podman push ${DEPENDENCIES_IMAGE}-wasm
     - podman logout $CI_REGISTRY/copasi/dune-copasi
   rules:
     - if: '$FORCE_REBUILD_BASE_IMAGE == "true"'
@@ -129,33 +149,57 @@ codespell:
   - codespell
     --skip=./doc/docusaurus/yarn.lock
 
-setup:debian_clang:
+setup_exec:debian_clang:
   variables:
     <<: *docker_variables
     <<: *debian_clang
-  <<: *setup
+  <<: *setup_exec
 
-build:debian_clang:
+build_exec:debian_clang:
   variables:
     <<: *debian_clang
   <<: *build
   dependencies:
-    - setup:debian_clang
+    - setup_exec:debian_clang
 
 codequality:debian_clang:
   variables:
     <<: *debian_clang
   <<: *codequality
   dependencies:
-    - setup:debian_clang
+    - setup_exec:debian_clang
 
-deploy:debian_clang:
+deploy_exec:debian_clang:
   variables:
     <<: *docker_variables
     <<: *debian_clang
   <<: *deploy
   dependencies:
-    - build:debian_clang
+    - build_exec:debian_clang
+
+setup_wasam:debian_emscripten:
+  variables:
+    <<: *docker_variables
+    <<: *debian_clang
+  <<: *setup_wasm
+
+build_wasm:debian_emscripten:
+  variables:
+    CPACK_GENERATORS: 'TGZ'
+    CPACK_PACKAGE_DIRECTORY: $CI_PROJECT_DIR/tmp
+    <<: *debian_clang
+  dependencies:
+    - setup_wasam:debian_emscripten
+  image: ${DEPENDENCIES_IMAGE}-wasm
+  stage: build
+  script:
+    - source /duneci/modules/emsdk/emsdk_env.sh && ./.ci/install $DUNE_OPTS_FILE
+    - mkdir -p packages
+    - mv tmp/dune-copasi-* packages/
+  artifacts:
+    paths:
+      - packages
+    expire_in: 1h
 
 deploy:documentation:
   image: ${DEPENDENCIES_IMAGE}
