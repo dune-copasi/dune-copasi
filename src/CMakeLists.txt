@@ -55,6 +55,13 @@ if (${DUNE_COPASI_WITH_EXECUTABLE})
   # target configuration for downstream projects
   install(TARGETS dune-copasi-exec EXPORT dune-copasi-targets RUNTIME COMPONENT Runtime)
 
+  # install wasm executable if compiled with emscripten
+  install(
+    FILES $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/>${CMAKE_INSTALL_BINDIR}/dune-copasi.wasm
+    TYPE BIN
+    COMPONENT Runtime
+    OPTIONAL)
+
   # generate configuration file options out of file descriptors in the "options/" folder
   file(GLOB opt_files CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/options/*")
   set(opt_header "static const std::vector<std::array<std::string, 4>> config_file_opts = \{\n")
