@@ -27,39 +27,6 @@
 
 namespace Dune::Copasi {
 
-  // helper class to obtain HostEntity
-  template<Dune::Concept::Grid MDGrid>
-  class ParserGridMapper
-  {
-
-  public:
-
-    using SDGrid = typename MDGrid::SubDomainGrid;
-    using HostGrid = typename MDGrid::HostGrid;
-
-    using HostEntity = typename HostGrid::template Codim<0>::Entity;
-    using SDEntity = typename SDGrid::template Codim<0>::Entity;
-    using MDEntity = typename MDGrid::template Codim<0>::Entity;
-
-    ParserGridMapper(std::shared_ptr<MDGrid> md_grid_ptr): _md_grid_ptr(md_grid_ptr) {};
-
-    const HostEntity& getHostEntity(const SDEntity& entity) {
-        return _md_grid_ptr->hostEntity(entity);
-    };
-
-    const HostEntity& getHostEntity(const MDEntity&  entity) {
-        return _md_grid_ptr->hostEntity(entity);
-    };
-
-    const HostEntity& getHostEntity(const HostEntity& entity) {
-        return entity;
-    };
-
-  private:
-    std::shared_ptr<const MDGrid> _md_grid_ptr = nullptr;
-
-  };
-
 // Class that manages the grid data
 template<Dune::Concept::Grid MDGrid>
 class ParserGridContext
@@ -82,9 +49,8 @@ public:
     _host_grid_ptr = host_grid_ptr;
     _md_grid_ptr = md_grid_ptr;
 
-    _parser_grid_mapper = std::make_shared<ParserGridMapper<MDGrid>>(md_grid_ptr);
-
     if (grid_config.hasKey("path")) {
+        has_griddata = true;
         auto grid_path = grid_config.template get<std::string>("path");
 
         auto host_grid_factory = Dune::GridFactory<HostGrid>{};
@@ -116,10 +82,17 @@ public:
         // load grid data
         load_grid_data(grid_config);
 
+    }else{
+
     }
   };
 
   void update_grid_data(std::unordered_map<std::string, double>& cell_data, std::any any_entity) const {
+
+    // Check whether grid is created from Gmsh path -> if not return
+    // (cannot assign data to a grid created by refine!)
+    if( not has_griddata)
+      return;
 
     const HostEntity entity = getHostEntity( any_entity);
 
@@ -141,12 +114,14 @@ public:
   }
 
   double get_gmsh_id( std::any any_entity) const {
+
+    // Check whether grid is created from Gmsh path -> if not return -1.0
+    // (cannot assign data to a grid created by refine!)
+    if( not has_griddata)
+      return -1.0;
+
     const HostEntity entity = getHostEntity( any_entity );
     return _update_gmsh_id(entity);
-  }
-
-  std::shared_ptr<ParserGridMapper<MDGrid>> get_parser_grid_mapper() const {
-    return _parser_grid_mapper;
   }
 
   const std::unordered_map<std::string, std::function<double*(std::size_t)>>& get_cell_functor() const{
@@ -277,9 +252,12 @@ private:
     }
   };
 
+  // disable functionality if grid is not read from Gmsh path
+  bool has_griddata = false;
+  // The grid pointers
   std::shared_ptr<const MDGrid> _md_grid_ptr = nullptr;
   std::shared_ptr<const HostGrid> _host_grid_ptr = nullptr;
-  std::shared_ptr<ParserGridMapper<MDGrid>> _parser_grid_mapper;
+
   std::function<double (const HostEntity& entity)> _update_gmsh_id;
   // a lambda giving the index based on the entity
   std::function<std::size_t (const HostEntity& entity)> _update_index;
