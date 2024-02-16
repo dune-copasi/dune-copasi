@@ -28,13 +28,13 @@ template<class LocalBasisTraits,
 make_diffusion_reaction_step_operator(const ParameterTree& config,
                                       const Basis& basis,
                                       std::size_t halo,
-                                      const auto& functor_factory)
+                                      std::shared_ptr<const FunctorFactory<Basis::EntitySet::GridView::dimension>> functor_factory)
 {
 
   std::unique_ptr<PDELab::Operator<Coefficients, Coefficients>> one_step;
   const auto& assembly_cfg = config.sub("assembly");
 
-  auto make_one_step_op = [&]<class ExecutionPolicy, PDELab::Concept::Basis OperatorBasis>(
+  auto make_one_step_op = [&, functor_factory]<class ExecutionPolicy, PDELab::Concept::Basis OperatorBasis>(
                             ExecutionPolicy execution_policy, const OperatorBasis& operator_basis) {
     spdlog::info("Creating mass/stiffness local operator");
     const auto& time_step_cfg = config.sub("time_step_operator");

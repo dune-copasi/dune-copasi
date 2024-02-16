@@ -1,6 +1,7 @@
 #ifndef DUNE_COPASI_MODEL_LOCAL_EQUATIONS_LOCAL_EQUATIONS_HH
 #define DUNE_COPASI_MODEL_LOCAL_EQUATIONS_LOCAL_EQUATIONS_HH
 
+#include <dune/copasi/concepts/grid.hh>
 #include <dune/copasi/common/bit_flags.hh>
 #include <dune/copasi/common/exceptions.hh>
 #include <dune/copasi/concepts/compartment_tree.hh>
@@ -23,6 +24,7 @@
 #include <utility>
 #include <variant>
 #include <set>
+#include <any>
 
 namespace Dune::Copasi {
 
@@ -45,6 +47,8 @@ struct LocalDomain
   double in_volume = 0;
   double in_boundary = 0;
   double in_skeleton = 0;
+  double gmsh_id = -1;
+  std::unordered_map<std::string, double> cell_data;  // data addresses to be bound to the parser
 };
 
 // this class holds a data-structure for each equation that contains functors to be evaluated.
@@ -280,7 +284,7 @@ public:
   [[nodiscard]] static std::unique_ptr<LocalEquations> make(
     const PDELab::Concept::LocalBasis auto& lbasis,
     const ParameterTree& config = {},
-    FunctorFactory<dim> const * functor_factory = nullptr,
+    std::shared_ptr<const FunctorFactory<dim>> functor_factory = nullptr,
     BitFlags<FactoryFalgs> opts = BitFlags<FactoryFalgs>::no_flags())
   {
     auto local_values = std::unique_ptr<LocalEquations>(new LocalEquations{});
@@ -312,7 +316,7 @@ public:
       if (not functor_factory) {
         throw format_exception(InvalidStateException{}, "Equations cannot be configured without a functor factory");
       }
-      local_values->configure(config, *functor_factory, opts);
+      local_values->configure(config, functor_factory, opts);
     }
     return local_values;
   }
@@ -320,20 +324,26 @@ public:
   static std::unique_ptr<LocalEquations> make_stiffness(
     const PDELab::Concept::LocalBasis auto& lbasis,
     const ParameterTree& config,
-    const FunctorFactory<dim>& functor_factory)
+    std::shared_ptr<const FunctorFactory<dim>> functor_factory
+  )
   {
     return make(lbasis,
                 config,
-                &functor_factory,
+                functor_factory,
                 FactoryFalgs::Reaction | FactoryFalgs::Diffusion | FactoryFalgs::Velocity |
                   FactoryFalgs::Outflow);
   }
 
-  static std::unique_ptr<LocalEquations> make_mass(const PDELab::Concept::LocalBasis auto& lbasis,
-                                                   const ParameterTree& config,
-                                                   const FunctorFactory<dim>& functor_factory)
+  static std::unique_ptr<LocalEquations> make_mass(
+    const PDELab::Concept::LocalBasis auto& lbasis,
+    const ParameterTree& config,
+    std::shared_ptr<const FunctorFactory<dim>> functor_factory
+  )
   {
-    return make(lbasis, config, &functor_factory, FactoryFalgs::Storage);
+    return make(lbasis,
+                config,
+                functor_factory,
+                FactoryFalgs::Storage);
   }
 
   template<class Tree>
@@ -359,6 +369,22 @@ public:
   {
     return PDELab::containerEntry(_nodes, make_path(tree)).gradient;
   }
+
+  // The idea is to update this to update_grid_data
+  // Should be included in one function with above one
+  template <class Entity>
+  void update_gmsh_id(const Entity& entity)
+  {
+    this->gmsh_id = _functor_factory->get_gmsh_id(entity);
+  }
+
+  // -> update grid data
+  template <class Entity>
+  void update_grid_data(const Entity& entity)
+  {
+    _functor_factory->update_grid_data(this->cell_data, entity);
+  }
+
 
   void clear()
   {
@@ -420,6 +446,9 @@ private:
   std::vector<Scalar> _values;
   std::vector<Vector> _gradients;
 
+  // grid related functor
+  std::shared_ptr<const FunctorFactory<dim>> _functor_factory;
+
   auto compartment_index(const Concept::CompartmentLocalBasisTree auto&) const
   {
     return Indices::_0;
@@ -469,7 +498,7 @@ private:
   }
 
   void configure(const ParameterTree& config,
-                 const FunctorFactory<dim>& functor_factory,
+                 std::shared_ptr<const FunctorFactory<dim>> functor_factory,
                  BitFlags<FactoryFalgs> opts)
   {
 
@@ -477,15 +506,26 @@ private:
     using VectorTag = index_constant<1>;
     using TensorApplyTag = index_constant<2>;
 
+    // configure grid context data
+    _functor_factory = functor_factory;
+
+    const std::unordered_map<std::string, std::function<double*(std::size_t)>>& cell_functor = _functor_factory->get_cell_functor();
+    this->cell_data.reserve( cell_functor.size() );
+
+    for (const auto& node : cell_functor){
+      this->cell_data[node.first] = 0.0;
+    }
+
+    // configure functors
     auto make_functor = overload(
       [&](std::string_view prefix, const ParameterTree& config, int codim, ScalarTag)
         -> fu2::unique_function<Scalar() const noexcept> {
-        return functor_factory.make_scalar(
+        return functor_factory->make_scalar(
           prefix, config, std::as_const(*this), codim);
       },
       [&](std::string_view prefix, const ParameterTree& config, int codim, VectorTag)
         -> fu2::unique_function<Vector() const noexcept> {
-        return functor_factory.make_vector(
+        return functor_factory->make_vector(
           prefix, config, std::as_const(*this), codim);
       },
       [&](std::string_view prefix,
@@ -493,7 +533,7 @@ private:
           int codim,
           TensorApplyTag)
         -> fu2::unique_function<Vector(Vector) const noexcept> {
-        return functor_factory.make_tensor_apply(
+        return functor_factory->make_tensor_apply(
           prefix, config, std::as_const(*this), codim);
       });
 

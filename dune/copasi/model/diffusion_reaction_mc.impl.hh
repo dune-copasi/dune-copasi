@@ -157,7 +157,7 @@ ModelMultiCompartmentDiffusionReaction<Traits>::make_initial(const Grid& grid,
                                                              const ParameterTree& config) const
   -> std::unordered_map<std::string, GridFunction>
 {
-  return Dune::Copasi::make_initial<GridFunction>(grid, config, *_functor_factory);
+  return Dune::Copasi::make_initial<GridFunction>(grid, config, _functor_factory);
 }
 
 template<class Traits>

@@ -4,7 +4,7 @@ Sets up a token '{tkn}' in the dune-copasi parsers
 type=<string>
   Type of token '{tkn}' within the dune-copasi parsers
     Possible selections are:
-      * constat:        Sets token '{tkn}' as a constant float. Options: 'parser_context.{tkn}.value'
+      * constant:       Sets token '{tkn}' as a constant float. Options: 'parser_context.{tkn}.value'
       * function:       Sets token '{tkn}' as an inline function. Options: 'parser_context.{tkn}.[expression|interpolate|interpolation.[...]]'
       * tiff:           Sets token '{tkn}' as a 2D function with the contents of a tiff file. Options: 'parser_context.{tkn}.path'
       * interpolation:  Sets token '{tkn}' as a 1D interpolation function. Options: 'parser_context.{tkn}.[domain|range]'

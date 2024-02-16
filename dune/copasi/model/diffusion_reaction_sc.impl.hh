@@ -67,7 +67,7 @@ ModelDiffusionReaction<Traits>::make_scalar_field_pre_basis(std::shared_ptr<Boun
                                                             const CompartmentEntitySet& entity_set,
                                                             std::string_view name,
                                                             const ParameterTree& scalar_field_config,
-                                                            std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory) -> ScalarPreBasis
+                                                            std::shared_ptr<const FunctorFactory< Grid::dimensionworld >> functor_factory) -> ScalarPreBasis
 {
   spdlog::info("Setup basis functions for component '{}'", name);
   auto scalar_field_pre_basis =
@@ -85,7 +85,7 @@ ModelDiffusionReaction<Traits>::make_compartment_pre_basis(
   std::string_view compartment_name,
   const std::vector<std::string>& scalar_field_names,
   const ParameterTree& scalar_fields_config,
-  std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory) -> CompartmentPreBasis
+  std::shared_ptr<const FunctorFactory< Grid::dimensionworld >> functor_factory) -> CompartmentPreBasis
 {
   spdlog::info("Setup compartment basis functions for compartment '{}'", compartment_name);
 
@@ -114,7 +114,7 @@ void
 ModelDiffusionReaction<Traits>::setup_basis(State& state,
                                             const Grid& grid,
                                             const ParameterTree& config,
-                                            std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory)
+                                            std::shared_ptr<const FunctorFactory< Grid::dimensionworld >> functor_factory)
 {
   TRACE_EVENT("dune", "Basis::SetUp");
   using CompartmentBasis = PDELab::Basis<PDELab::EntitySetPartitioner::Identity<CompartmentEntitySet>, CompartmentPreBasis>;
@@ -190,7 +190,7 @@ auto
 ModelDiffusionReaction<Traits>::make_initial(const Grid& grid, const ParameterTree& config) const
   -> std::unordered_map<std::string, GridFunction>
 {
-  return Dune::Copasi::make_initial<GridFunction>(grid, config, *_functor_factory);
+  return Dune::Copasi::make_initial<GridFunction>(grid, config, _functor_factory);
 }
 
 template<class Traits>
@@ -312,7 +312,7 @@ ModelDiffusionReaction<Traits>::write_vtk(const State& state,
   if (coeff_ptr.use_count() != 1) {
     throw format_exception(
       InvalidStateException{},
-      "Fake shared pointer from coefficient vector may have been leaked outsie of this"
+      "Fake shared pointer from coefficient vector may have been leaked outside of this"
       "function!");
   }
 }

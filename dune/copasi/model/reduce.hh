@@ -49,7 +49,7 @@ reduce(const Basis& basis,
   }
 
   std::shared_ptr<const ParserContext> parser_context;
-  auto functor_factory_parser = std::dynamic_pointer_cast<const FunctorFactoryParser<dim>>(functor_factory);
+  auto functor_factory_parser = std::dynamic_pointer_cast<const FunctorFactory<dim>>(functor_factory);
   if (functor_factory_parser) {
     parser_context = functor_factory_parser->parser_context();
   }

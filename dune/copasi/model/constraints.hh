@@ -18,16 +18,18 @@
 namespace Dune::Copasi {
 
 /**
- * @brief Constraints parser and operator for a leaf basis 
+ * @brief Constraints parser and operator for a leaf basis
  * @warning Expressions with time dependency are not supported: the 'time'
  *          token will be evaluated to NaN
- * 
+ *
  * @tparam GridView The grid view of the basis to constrain
  */
+
 template<Dune::Concept::GridView GridView>
 class Constraints : public TypeTree::LeafNode
 {
   constexpr static auto dim = GridView::dimension;
+
   struct Data
   {
     std::unique_ptr<LocalDomain<dim>> local_domain;
@@ -48,9 +50,9 @@ public:
   template<PDELab::Concept::MultiIndex MultiIndex, Dune::Concept::GridView EntitySet>
   using Container = PDELab::AffineConstraintsContainer<double, MultiIndex, EntitySet>;
 
-  explicit Constraints(std::shared_ptr<BoundaryEntityMapper<GridView>> mapper,
-                       const ParameterTree& config = {},
-                       std::shared_ptr<const FunctorFactory<dim>> functor_factory = nullptr)
+  explicit Constraints( std::shared_ptr<BoundaryEntityMapper<GridView>> mapper,
+                        const ParameterTree& config = {},
+                        std::shared_ptr<const FunctorFactory<dim>> functor_factory = nullptr)
     : TypeTree::LeafNode()
     , _mapper{ mapper }
     , _data_volume([_config = config.sub("volume"),

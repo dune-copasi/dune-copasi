@@ -1,0 +1,25 @@
+<type | path>
+Sets up a token '{tkn}' in the dune-copasi parsers based on grid data corresponding with the loaded grid
+
+type=<string>
+  Type of token '{tkn}' within the dune-copasi parsers
+    Possible selections are:
+      * scalar:        	Sets token '{tkn}' as a scalar double.
+      * vector:       	Sets token '{tkn}' as a vector double. [not implemented - WIP]
+      * tensor:         Sets token '{tkn}' as a tensor double. [not implemented - WIP]
+
+path=<string>
+  The path of the file containing values for '{tkn}' for the defined entities values
+    This option can only be used together if the grid was loaded from a Gmsh file (i.e. using grid.path)
+    The griddata file needs to provide the values (can be scalar (double), vector (D x double) or tensor (D x D x double))
+    of the entities to which the values needs to be assigned. To do this you need to take advantage of the Gmsh file type (v2).
+    Each cell entity in the Gmsh has a unique integer as identifier (lets call it gmsh_cell_id_n). The first line in the
+    data-file should contain the number of values to assign. The following lines contain the data and start with the
+    gmsh_cell_id followed by the values (scalar one double, vector D double and tensor DxD doubles space separated). Lines
+    starting with '#' are not read. A simple example for a scalar is:
+
+    	# not read
+	N_values
+	gmsh_cell_id1 double
+	gmsh_cell_id2 double
+	...

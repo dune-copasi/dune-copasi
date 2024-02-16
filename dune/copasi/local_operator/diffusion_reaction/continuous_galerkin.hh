@@ -173,9 +173,9 @@ public:
                      _functor_factory = functor_factory]() {
       std::unique_ptr<LocalEquations<dim>> ptr;
       if (_lop_type == LocalOperatorType::Mass)
-        ptr = LocalEquations<dim>::make_mass(_basis.localView(), _config, *_functor_factory);
+        ptr = LocalEquations<dim>::make_mass(_basis.localView(), _config, _functor_factory);
       else if (_lop_type == LocalOperatorType::Stiffness)
-        ptr = LocalEquations<dim>::make_stiffness(_basis.localView(), _config, *_functor_factory);
+        ptr = LocalEquations<dim>::make_stiffness(_basis.localView(), _config, _functor_factory);
       if (not ptr)
         std::terminate();
       return ptr;
@@ -186,9 +186,9 @@ public:
                          _functor_factory = std::move(functor_factory)]() {
       std::unique_ptr<LocalEquations<dim>> ptr;
       if (_lop_type == LocalOperatorType::Mass)
-        ptr = LocalEquations<dim>::make_mass(_basis.localView(), _config, *_functor_factory);
+        ptr = LocalEquations<dim>::make_mass(_basis.localView(), _config, _functor_factory);
       else if (_lop_type == LocalOperatorType::Stiffness)
-        ptr = LocalEquations<dim>::make_stiffness(_basis.localView(), _config, *_functor_factory);
+        ptr = LocalEquations<dim>::make_stiffness(_basis.localView(), _config, _functor_factory);
       if (not ptr)
         std::terminate();
       return ptr;
@@ -385,6 +385,11 @@ public:
     _local_values_in->entity_volume = geo.volume();
     _local_values_in->in_volume = 1;
 
+    // Call the gridContext to update the gmsh_id
+    _local_values_in->update_gmsh_id(entity);
+    // Call the gridContext to update the grid variables
+    _local_values_in->update_grid_data(entity);
+
     auto intorder = integrationOrder(ltrial);
     const auto& quad_rule = QuadratureRules<DF, dim>::rule(geo.type(), intorder);
 
@@ -504,6 +509,11 @@ public:
     _local_values_in->time = time;
     _local_values_in->entity_volume = geo.volume();
     _local_values_in->in_volume = 1;
+
+    // Call the gridContext to update the gmsh_id
+    _local_values_in->update_gmsh_id(entity);
+    // Call the gridContext to update the grid variables
+    _local_values_in->update_grid_data(entity);
 
     auto intorder = integrationOrder(ltrial);
     const auto& quad_rule = QuadratureRules<DF, dim>::rule(geo.type(), intorder);
@@ -1010,7 +1020,7 @@ public:
         if (not geojacinv_opt_o or not geo_o.affine())
           geojacinv_opt_o.emplace(geo_o.jacobianInverse(position_o));
         const auto& geojacinv_o = *geojacinv_opt_o;
- 
+
         // evaluate concentrations at quadrature point (outside part)
         forEachLeafNode(ltrial_out.tree(), [&](const auto& node_out, auto path) {
           const auto& node_in = PDELab::containerEntry(ltrial_in.tree(), path);

@@ -36,7 +36,7 @@ using SDGridView = typename MDGrid::SubDomainGrid::Traits::LeafGridView;
 
 namespace Copasi {
 
-template class FunctorFactoryParser<DUNE_COPASI_GRID_DIMENSION>;
+template class FunctorFactoryParser<MDGrid>;
 
 template class ModelDiffusionReaction<ModelDiffusionPkReactionTraits<HostGrid,
                                                                      HostGridView,

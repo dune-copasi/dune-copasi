@@ -36,8 +36,7 @@ public:
   using CompartmentEntitySet = typename Traits::CompartmentEntitySet;
   using ScalarFiniteElementMap = typename Traits::ScalarFiniteElementMap;
   using ScalarMergingStrategy = typename Traits::ScalarMergingStrategy;
-  using ScalarPreBasis =
-    PDELab::PreBasis<ScalarMergingStrategy, ScalarFiniteElementMap, Constraints<CompartmentEntitySet>>;
+  using ScalarPreBasis = PDELab::PreBasis<ScalarMergingStrategy, ScalarFiniteElementMap, Constraints<CompartmentEntitySet>>;
   using CompartmentMergingStrategy = typename Traits::CompartmentMergingStrategy;
   using CompartmentPreBasis = PDELab::PreBasisVector<CompartmentMergingStrategy, ScalarPreBasis>;
   using ResidualQuantity = ScalarQuantity;
@@ -46,10 +45,10 @@ public:
 
   explicit ModelDiffusionReaction(
     std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory)
-    : _functor_factory{ std::move(functor_factory) }
+     : _functor_factory{ functor_factory } // ?? std::move ??
   {
     assert(_functor_factory);
-  }
+  };
 
   std::unique_ptr<State> make_state(const std::shared_ptr<const Grid>&,
                                     const ParameterTree&) const override;

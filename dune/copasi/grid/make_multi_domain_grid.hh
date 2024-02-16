@@ -6,6 +6,7 @@
 #include <dune/copasi/common/axis_names.hh>
 #include <dune/copasi/concepts/grid.hh>
 #include <dune/copasi/parser/context.hh>
+#include <dune/copasi/parser/grid_context.hh>
 
 #include <dune/grid/common/exceptions.hh>
 #include <dune/grid/common/gridinfo.hh>
@@ -35,14 +36,15 @@ namespace Dune::Copasi {
  * @return std::unique_ptr<MDGrid>  Pointer to the resulting grid
  */
 template<Concept::MultiDomainGrid MDGrid>
-std::unique_ptr<MDGrid>
+std::shared_ptr<MDGrid>
 make_multi_domain_grid(Dune::ParameterTree& config,
-                       std::shared_ptr<const ParserContext> parser_context = {})
+                       std::shared_ptr<const ParserContext> parser_context = {},
+                       std::shared_ptr<ParserGridContext<MDGrid>> parser_grid_context = {})
 {
   using HostGrid = typename MDGrid::HostGrid;
   using HostEntity = typename HostGrid::template Codim<0>::Entity;
 
-  const auto& grid_config = config.sub("grid");
+  auto& grid_config = config.sub("grid");
   std::size_t const dim = grid_config.get("dimension", std::size_t{ MDGrid::dimensionworld });
   if (dim != MDGrid::dimensionworld) {
     throw format_exception(IOError{},
@@ -52,13 +54,14 @@ make_multi_domain_grid(Dune::ParameterTree& config,
   auto out_guard = ostream2spdlog();
   auto& compartments_config = config.sub("compartments");
 
-  std::unique_ptr<HostGrid> host_grid_ptr;
-  std::unique_ptr<MDGrid> md_grid_ptr;
+  std::shared_ptr<HostGrid> host_grid_ptr;
+  std::shared_ptr<MDGrid> md_grid_ptr;
 
   std::vector<std::pair<std::string,std::function<bool(const HostEntity&)>>> compartments;
 
   double gmsh_id = std::numeric_limits<double>::max();
   std::function<void(HostEntity)> update_gmsh_id;
+  std::function<double(HostEntity)> get_gmsh_id;
 
   if (grid_config.hasKey("path")) {
     auto grid_path = grid_config.template get<std::string>("path");
@@ -79,6 +82,16 @@ make_multi_domain_grid(Dune::ParameterTree& config,
       }
       assert(_entity.level() == 0);
       gmsh_id = gmsh_physical_entity[mcmg.index(_entity)];
+    };
+
+    // Create a get grid gmsh_id function to add to the parserContext (TO DO: @Dylan)
+    get_gmsh_id = [gmsh_physical_entity, mcmg](const HostEntity& entity) {
+      HostEntity _entity = entity;
+      while (_entity.hasFather()) {
+        _entity = _entity.father();
+      }
+      assert(_entity.level() == 0);
+      return gmsh_physical_entity[mcmg.index(_entity)];
     };
 
   } else {
@@ -192,6 +205,8 @@ make_multi_domain_grid(Dune::ParameterTree& config,
     std::cout << fmt::format("  SubDomain {{{}: {}}}", id, compartments[id].first);
     gridinfo(md_grid_ptr->subDomain(id), "      ");
   }
+
+  parser_grid_context->configure(grid_config, md_grid_ptr, host_grid_ptr);
 
   return md_grid_ptr;
 }

@@ -44,8 +44,7 @@ public:
   using CompartmentMergingStrategy = typename Traits::CompartmentMergingStrategy;
   using MultiCompartmentMergingStrategy = typename Traits::MultiCompartmentMergingStrategy;
 
-  using ScalarPreBasis =
-    PDELab::PreBasis<ScalarMergingStrategy, ScalarFiniteElementMap, Constraints<CompartmentEntitySet>>;
+  using ScalarPreBasis = PDELab::PreBasis<ScalarMergingStrategy, ScalarFiniteElementMap, Constraints<CompartmentEntitySet>>;
   using CompartmentPreBasis = PDELab::PreBasisVector<CompartmentMergingStrategy, ScalarPreBasis>;
   using MultiCompartmentPreBasis =
     PDELab::PreBasisVector<MultiCompartmentMergingStrategy, CompartmentPreBasis>;
@@ -56,7 +55,7 @@ public:
 
   explicit ModelMultiCompartmentDiffusionReaction(
     std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory)
-    : _functor_factory{ std::move(functor_factory) }
+    : _functor_factory{ functor_factory } // ?? std::move(functor_factory) ??
   {
     assert(_functor_factory);
   }
