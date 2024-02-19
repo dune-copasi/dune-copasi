@@ -78,7 +78,7 @@ public:
   template<std::ranges::input_range R,
            class Proj = std::identity,
            std::indirect_unary_predicate<std::projected<std::ranges::iterator_t<R>, Proj>> Pred>
-    requires std::convertible_to<T, std::ranges::range_value_t<R>>
+    requires std::assignable_from<T&, std::ranges::range_value_t<R>>
   void addData(std::string_view key, R&& r, Pred pred, Proj proj = {})
   {
     auto ei = size();
@@ -87,9 +87,8 @@ public:
     auto cap = capacity();
     auto it = r.begin();
     for (std::size_t i = 0; i != _index_mapper.size(); ++i, ++it) {
-      auto v = proj(*it);
-      bool mask = _cell_mask[i * cap + ei] = pred(v);
-      _cell_data[i * cap + ei] = mask ? v : std::numeric_limits<T>::quiet_NaN();
+      bool mask = _cell_mask[i * cap + ei] = std::invoke(pred, std::invoke(proj, *it));
+      _cell_data[i * cap + ei] = mask ? *it : std::numeric_limits<T>::quiet_NaN();
     }
     if (it != r.end())
       throw format_exception(
@@ -99,19 +98,19 @@ public:
         _index_mapper.size());
   }
 
-  template<std::ranges::input_range R, class Proj = std::identity>
-    requires std::convertible_to<T, std::ranges::range_value_t<R>>
-  void addData(std::string_view key, R&& r, Proj proj = {})
+  template<std::ranges::input_range R>
+  requires std::assignable_from<T&, std::ranges::range_value_t<R>>
+  void addData(std::string_view key, R&& r)
   {
     addData(
-      key, std::forward<R>(r), [](auto&&) { return std::true_type{}; }, proj);
+      key, std::forward<R>(r), [](auto&&) { return std::true_type{}; }, std::identity{});
   }
 
   // map range
   template<std::ranges::input_range R,
            class Proj = std::identity,
            std::indirect_unary_predicate<std::projected<std::ranges::iterator_t<R>, Proj>> Pred>
-    requires std::convertible_to<std::pair<const std::size_t, T>, std::ranges::range_value_t<R>>
+    requires std::assignable_from<T&, std::tuple_element_t<1, std::ranges::range_value_t<R>>>
   void addData(std::string_view key, R&& r, Pred pred, Proj proj = {})
   {
     auto ei = size();
@@ -122,19 +121,18 @@ public:
     for (const auto& [i, val] : r) {
       if(i >= _index_mapper.size())
         throw format_exception(RangeError{}, "Key '{}' assinges a values in an index '{}' bigger than the size of the grid view '{}'", key, i, imsz);
-      auto v = proj(val);
-      bool mask = _cell_mask[i * cap + ei] = pred(v);
-      _cell_data[i * cap + ei] = mask ? v : std::numeric_limits<T>::quiet_NaN();
+      bool mask = _cell_mask[i * cap + ei] = std::invoke(pred, std::invoke(proj, val));
+      _cell_data[i * cap + ei] = mask ? val : std::numeric_limits<T>::quiet_NaN();
     }
   }
 
   // map range
-  template<std::ranges::input_range R, class Proj = std::identity>
-    requires std::convertible_to<std::pair<const std::size_t, T>, std::ranges::range_value_t<R>>
-  void addData(std::string_view key, R&& r, Proj proj = {})
+  template<std::ranges::input_range R>
+  requires std::assignable_from<T&, std::tuple_element_t<1, std::ranges::range_value_t<R>>>
+  void addData(std::string_view key, R&& r)
   {
     addData(
-      key, std::forward<R>(r), [](auto&&) { return std::true_type{}; }, proj);
+      key, std::forward<R>(r), [](auto&&) { return std::true_type{}; }, std::identity{});
   }
 
   // copies data and data mask into buffers
