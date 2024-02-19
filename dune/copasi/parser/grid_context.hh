@@ -238,8 +238,6 @@ private:
             return nullptr;
         };
 
-        std::cout << "size of data: " << data.size() << std::endl;
-
         _cell_data[sub] = cell_data_functor;
 
       } else if (type == "vector") {
