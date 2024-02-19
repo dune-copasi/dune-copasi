@@ -12,8 +12,9 @@ endif()
 
 list(APPEND CMAKE_MODULE_PATH "${dune-common_MODULE_PATH}")
 include(DuneMacros)
+include(DuneAddGTest)
 
-# add_subdirectory(dune)
+add_subdirectory(dune)
 
 enable_testing()
 

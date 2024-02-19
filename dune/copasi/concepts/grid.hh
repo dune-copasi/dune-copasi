@@ -12,6 +12,14 @@ namespace Dune::Copasi::Concept {
 
 using namespace Dune::Concept;
 
+template<class E, class IS>
+concept IndexableEntity =
+  Dune::Concept::Entity<E> && Dune::Concept::IndexSet<IS> && requires(const E entity, const IS is) {
+    {
+      is.index(entity)
+    } -> std::same_as<typename IS::IndexType>;
+  };
+
 /**
  * @brief   Concept for dune subdomain grids of multidomain grids
  * @details Checks whether the type fits the most of the dune interface
