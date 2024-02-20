@@ -17,6 +17,8 @@
 
 namespace Dune::Copasi {
 
+using SupportedTypes = std::tuple<uint8_t, uint16_t, uint32_t, uint64_t>;
+
 TIFFGrayscale::TIFFGrayscaleRow::TIFFGrayscaleRow(const TIFFFile& tiff, const std::size_t& row)
   : _tiff_ptr(&tiff)
   , _row(row)
@@ -29,21 +31,16 @@ TIFFGrayscale::TIFFGrayscaleRow::TIFFGrayscaleRow(const TIFFFile& tiff, const st
   std::size_t bytes = _tiff_ptr->info().bits_per_sample / CHAR_BIT;
 
   // depending on the encoding, we need to interpret ponters differently
-  using Types = std::tuple<uint8_t, uint16_t, uint32_t, uint64_t>;
-  Hybrid::forEach(std::make_index_sequence<std::tuple_size_v<Types>>{}, [&](auto type_id) {
-    using Type = std::tuple_element_t<type_id, Types>;
-    if (bytes == sizeof(Type) and tiff_buffer) {
+  Hybrid::forEach(SupportedTypes{}, [&](auto type_inst) {
+    if (bytes == sizeof(type_inst) and tiff_buffer) {
       _read_col = [bytes,
                    _tiff_buffer = std::move(tiff_buffer)](std::size_t col) noexcept -> std::size_t {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-        return *reinterpret_cast<Type* const>(_tiff_buffer.get() + (bytes * col));
+        return *reinterpret_cast<decltype(type_inst)* const>(_tiff_buffer.get() + (bytes * col));
       };
     }
   });
-  if (tiff_buffer) {
-    throw format_exception(
-      NotImplemented{}, "Encoding with {} bits not implemented", _tiff_ptr->info().bits_per_sample);
-  }
+  assert(not tiff_buffer);
 }
 
 auto
@@ -71,6 +68,17 @@ TIFFGrayscale::TIFFGrayscale(const std::filesystem::path& filename, std::size_t 
   : _tiff{ filename }
   , _max_cache(max_cache)
 {
+  bool supported_encoding = false;
+  std::size_t bytes = _tiff.info().bits_per_sample / CHAR_BIT;
+  // depending on the encoding, we need to interpret ponters differently
+  Hybrid::forEach(SupportedTypes{}, [&](auto type_inst) {
+    if (bytes == sizeof(type_inst))
+      supported_encoding = true;
+  });
+  if (not supported_encoding) {
+    throw format_exception(
+      NotImplemented{}, "Encoding with {} bits not implemented", _tiff.info().bits_per_sample);
+  }
 }
 
 auto

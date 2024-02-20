@@ -22,3 +22,5 @@ doc/docusaurus/.cache-loader
 doc/docusaurus/npm-debug.log*
 doc/docusaurus/yarn-debug.log*
 doc/docusaurus/yarn-error.log*
+
+test/build/

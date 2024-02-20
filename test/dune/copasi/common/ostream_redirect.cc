@@ -5,11 +5,11 @@
 
 #include <iostream>
 
-int
-main(int argc, char** argv)
-{
+#include <gtest/gtest.h>
 
-  std::cout << "Foo" << std::endl;
+// very simple test to debug, this actually doesn't check anything
+TEST(TestOSteamRedirect, Simple)
+{
   {
     std::stringbuf sb;
     auto oldbuff = std::cerr.rdbuf(&sb);

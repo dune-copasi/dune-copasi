@@ -3,66 +3,36 @@
 
 #include <dune/common/exceptions.hh>
 
+#include <gtest/gtest.h>
+
 #include <cassert>
-#include <iostream>
+#include <filesystem>
 
-int
-main(int argc, char** argv)
+const std::filesystem::path filename_04("data/tiff/flower-minisblack-04.tif");
+const std::filesystem::path filename_08("data/tiff/flower-minisblack-08.tif");
+const std::filesystem::path filename_16("data/tiff/flower-minisblack-16.tif");
+
+TEST(TestTIFFGrayscale, UnsupportedEncoding)
 {
-  bool failed = false;
+  EXPECT_THROW({ Dune::Copasi::TIFFGrayscale tiff_04(filename_04); }, Dune::NotImplemented);
+}
 
-  try {
+TEST(TestTIFFGrayscale, Compare16vs8Bits)
+{
+  Dune::Copasi::TIFFGrayscale tiff_08(filename_08);
+  Dune::Copasi::TIFFGrayscale tiff_16(filename_16);
 
-    std::string filename_04("data/tiff/flower-minisblack-04.tif");
-    std::string filename_08("data/tiff/flower-minisblack-08.tif");
-    std::string filename_16("data/tiff/flower-minisblack-16.tif");
+  EXPECT_EQ(tiff_08.cols(), tiff_16.cols());
+  EXPECT_EQ(tiff_08.rows(), tiff_16.rows());
 
-    Dune::Copasi::TIFFGrayscale tiff_08(filename_08);
-    Dune::Copasi::TIFFGrayscale tiff_16(filename_16);
-
-    try {
-      Dune::Copasi::TIFFGrayscale tiff_08(filename_04);
-      failed |= true;
-    } catch (...) {
+  short res_unit = 72;
+  for (size_t i = 0; i < tiff_08.rows(); i++) {
+    for (size_t j = 0; j < tiff_08.cols(); j++) {
+      double threshold = 2. / (std::numeric_limits<unsigned char>::max());
+      EXPECT_NEAR(tiff_08[i][j] - tiff_16[i][j], 0, threshold);
+      double x = (double)j / res_unit;
+      double y = (double)i / res_unit;
+      EXPECT_NEAR(tiff_08(x, y) - tiff_16(x, y), 0, threshold);
     }
-
-    try {
-      Dune::Copasi::TIFFGrayscale tiff_08(filename_16);
-      failed |= true;
-    } catch (...) {
-    }
-
-    try {
-      Dune::Copasi::TIFFGrayscale tiff_16(filename_04);
-      failed |= true;
-    } catch (...) {
-    }
-
-    try {
-      Dune::Copasi::TIFFGrayscale tiff_16(filename_08);
-      failed |= true;
-    } catch (...) {
-    }
-
-    assert(tiff_08.cols() == tiff_16.cols());
-    assert(tiff_08.rows() == tiff_16.rows());
-
-    short res_unit = 72;
-
-    for (size_t i = 0; i < tiff_08.rows(); i++) {
-      for (size_t j = 0; j < tiff_08.cols(); j++) {
-        double threshold = 1. / (std::numeric_limits<unsigned char>::max());
-        failed |= std::abs(tiff_08[i][j] - tiff_16[i][j]) > threshold;
-        double x = (double)j / res_unit;
-        double y = (double)i / res_unit;
-        failed |= std::abs(tiff_08(x, y) - tiff_16(x, y)) > threshold;
-      }
-    }
-
-    return failed;
-  } catch (Dune::Exception& e) {
-    std::cerr << "Dune reported error: " << e << std::endl;
-  } catch (...) {
-    std::cerr << "Unknown exception thrown!" << std::endl;
   }
 }

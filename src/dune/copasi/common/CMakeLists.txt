@@ -17,11 +17,11 @@ if(NOT function2_POPULATED)
   message("-- Populating function2")
   FetchContent_Populate(function2)
   add_library(function2 INTERFACE)
-  install(DIRECTORY ${function2_SOURCE_DIR}/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dune/external/function2)
+  install(DIRECTORY ${function2_SOURCE_DIR}/include/function2 DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dune/external)
   target_include_directories(function2
     INTERFACE
       $<BUILD_INTERFACE:${function2_SOURCE_DIR}/include>
-      $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/dune/external/function2>)
+      $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/dune/external>)
   install(TARGETS function2 EXPORT dune-copasi-targets ARCHIVE COMPONENT Development)
 endif()
 
@@ -50,7 +50,7 @@ target_include_directories(dune-copasi-common
   PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
-    $<INSTALL_INTERFACE:${PROJECT_BINARY_INCLUDEDIR}>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
 target_link_libraries(dune-copasi-common
@@ -63,6 +63,10 @@ target_link_libraries(dune-copasi-common
     spdlog::spdlog
     ${DUNE_LIBS}
 )
+
+foreach(module ${ALL_DEPENDENCIES})
+  target_include_directories(dune-copasi-common PUBLIC ${${module}_INCLUDE_DIRS})
+endforeach()
 
 target_compile_features(dune-copasi-common PUBLIC cxx_std_20)
 

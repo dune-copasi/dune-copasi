@@ -4,6 +4,9 @@ add_library(Dune::Copasi::Model ALIAS dune-copasi-model)
 set_target_properties(dune-copasi-model PROPERTIES EXPORT_NAME Copasi::Model)
 
 find_package(METIS)
+if(${METIS_FOUND})
+  set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}\nfind_package(METIS REQUIRED)" PARENT_SCOPE)
+endif()
 
 set(DUNE_COPASI_GRID_DIMENSIONS "2" CACHE STRING "List of grid dimension for models")
 option(DUNE_COPASI_CONCURRENT_ASSEMBLY "Whether dune-copasi should be compiled with support for concurrent for assembly" ON)

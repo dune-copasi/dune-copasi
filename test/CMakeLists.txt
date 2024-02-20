@@ -11,9 +11,11 @@ else()
 endif()
 
 list(APPEND CMAKE_MODULE_PATH "${dune-common_MODULE_PATH}")
+list(APPEND CMAKE_MODULE_PATH "${dune-pdelab_MODULE_PATH}")
 include(DuneMacros)
+include(DuneAddGTest)
 
-# add_subdirectory(dune)
+add_subdirectory(dune)
 
 enable_testing()
 
@@ -26,8 +28,9 @@ if (TARGET Dune::Copasi::Executable)
   foreach(simple_opt help;help-full;version;parser-list;dump-config)
     dune_add_test(
       NAME            ${simple_opt}
-      TARGET          Dune::Copasi::Executable
       LABELS          system
+      TIMEOUT         10
+      TARGET          Dune::Copasi::Executable
       CMD_ARGS        --${simple_opt})
   endforeach()
 
@@ -35,19 +38,33 @@ if (TARGET Dune::Copasi::Executable)
     NAME            empty
     TARGET          Dune::Copasi::Executable
     LABELS          system
+    TIMEOUT         10
     EXPECT_FAIL)
+
+  # over|exact|under the proper time-step to snap time to the end time
+  foreach(init_step 0.199999 0.100000 0.999999)
+    dune_add_test(
+      NAME            time-snap-${init_step}
+      TIMEOUT         10
+      LABELS          system
+      TARGET          Dune::Copasi::Executable
+      CMD_ARGS        --config=${CMAKE_CURRENT_SOURCE_DIR}/time_snap.ini
+                      --model.time_step_operator.time_step_initial=${init_step})
+  endforeach()
 
   if(ExprTk IN_LIST DUNE_COPASI_PARSER_LIST)
     dune_add_test(
-      NAME            disk
+      NAME            two_disks
+      TIMEOUT         10
       TARGET          Dune::Copasi::Executable
-      CMD_ARGS        --config=${CMAKE_CURRENT_SOURCE_DIR}/disk.ini
+      CMD_ARGS        --config=${CMAKE_CURRENT_SOURCE_DIR}/two_disks.ini
       LABELS          system)
 
       dune_add_test(
         NAME            mitchell-schaefer
-        TARGET          Dune::Copasi::Executable
         LABELS          system
+        TIMEOUT         10
+        TARGET          Dune::Copasi::Executable
         CMD_ARGS        --config=${CMAKE_CURRENT_SOURCE_DIR}/mitchell_schaefer.ini
                         --grid.refinement_level=1
                         --model.time_step_operator.time_end=0.01
@@ -65,10 +82,20 @@ if (TARGET Dune::Copasi::Executable)
   foreach(dim ${DUNE_COPASI_GRID_DIMENSIONS})
     dune_add_test(
       NAME            exp-${dim}D
-      TARGET          Dune::Copasi::Executable
+      TIMEOUT         10
       LABELS          system
+      TARGET          Dune::Copasi::Executable
       CMD_ARGS        --config=${CMAKE_CURRENT_SOURCE_DIR}/exp.ini
                       --grid.dimension=${dim})
+
+    dune_add_test(
+      NAME            poisson-${dim}D
+      TIMEOUT         10
+      LABELS          system
+      TARGET          Dune::Copasi::Executable
+      CMD_ARGS        --config=${CMAKE_CURRENT_SOURCE_DIR}/poisson.ini
+                      --grid.dimension=${dim}
+                      --parser_context.dim.value=${dim})
 
     set(grid_extensions "2")
     set(grid_origin "-1")
@@ -80,8 +107,9 @@ if (TARGET Dune::Copasi::Executable)
     foreach(parser ${DUNE_COPASI_PARSER_LIST})
       dune_add_test(
         NAME            gauss-${dim}D-${parser}
-        TARGET          Dune::Copasi::Executable
+        TIMEOUT         10
         LABELS          system
+        TARGET          Dune::Copasi::Executable
         CMD_ARGS        --config=${CMAKE_CURRENT_SOURCE_DIR}/gauss.ini
                         --grid.dimension=${dim}
                         --grid.extensions=${grid_extensions}

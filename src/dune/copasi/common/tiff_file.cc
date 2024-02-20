@@ -7,15 +7,17 @@
 #include <tiff.h>
 #include <tiffio.h>
 
-#include <filesystem>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 
 namespace Dune::Copasi {
 
 TIFFFile::TIFFFile(const std::filesystem::path& filename)
-  : _tiff_file(static_cast<TIFF*>(TIFFOpen(filename.string().c_str(), "r")))
 {
+  if (not exists(filename))
+    throw format_exception(IOError{}, "File '{}' does not exists.", absolute(filename).string());
+  _tiff_file = static_cast<TIFF*>(TIFFOpen(filename.string().c_str(), "r"));
   TIFF* tiff_file = static_cast<TIFF*>(_tiff_file);
   if (tiff_file == nullptr) {
     throw format_exception(IOError{}, "Error opening TIFF file '{}'", filename.string());
