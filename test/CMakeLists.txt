@@ -79,6 +79,10 @@ if (TARGET Dune::Copasi::Executable)
       set_tests_properties(mitchell-schaefer-pattern PROPERTIES DEPENDS mitchell-schaefer)
   endif()
 
+  set(gauss_grid_extensions_nd  ";2;2 2;2 2 2")
+  set(gauss_grid_origin_nd      ";-1;-1 -1;-1 -1 -1")
+  set(gauss_grid_refinement_nd  ";7;5;2")
+
   foreach(dim ${DUNE_COPASI_GRID_DIMENSIONS})
     dune_add_test(
       NAME            exp-${dim}D
@@ -97,12 +101,9 @@ if (TARGET Dune::Copasi::Executable)
                       --grid.dimension=${dim}
                       --parser_context.dim.value=${dim})
 
-    set(grid_extensions "2")
-    set(grid_origin "-1")
-    foreach(i RANGE 2 ${dim})
-      set(grid_extensions "${grid_extensions} 2")
-      set(grid_origin "${grid_origin} -1")
-    endforeach()
+    list(GET gauss_grid_extensions_nd  ${dim} grid_extensions)
+    list(GET gauss_grid_origin_nd      ${dim} grid_origin)
+    list(GET gauss_grid_refinement_nd  ${dim} grid_refinement)
 
     foreach(parser ${DUNE_COPASI_PARSER_LIST})
       dune_add_test(
@@ -112,6 +113,7 @@ if (TARGET Dune::Copasi::Executable)
         TARGET          Dune::Copasi::Executable
         CMD_ARGS        --config=${CMAKE_CURRENT_SOURCE_DIR}/gauss.ini
                         --grid.dimension=${dim}
+                        --grid.refinement_level=${grid_refinement}
                         --grid.extensions=${grid_extensions}
                         --grid.origin=${grid_origin}
                         --model.parser_type=${parser})

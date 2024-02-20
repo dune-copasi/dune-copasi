@@ -8,7 +8,7 @@ if(${METIS_FOUND})
   set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}\nfind_package(METIS REQUIRED)" PARENT_SCOPE)
 endif()
 
-set(DUNE_COPASI_GRID_DIMENSIONS "2" CACHE STRING "List of grid dimension for models")
+set(DUNE_COPASI_GRID_DIMENSIONS "1;2;3" CACHE STRING "List of grid dimension for models")
 option(DUNE_COPASI_CONCURRENT_ASSEMBLY "Whether dune-copasi should be compiled with support for concurrent for assembly" ON)
 option(DUNE_COPASI_PRECOMPILED_MODE "Whether dune-copasi should be pre-compile object libraries for model classes" ON)
 
