@@ -117,9 +117,9 @@ public:
   {
     if (lbasis_in.size() == 0)
       return;
-    _data_boundary->local_domain->in_boundary = not intersection.neighbor();
 
-    add_intersection_constraints(true, _data_boundary,
+    add_intersection_constraints(1,
+                                 _data_boundary,
                                  lbasis_in,
                                  intersection,
                                  intersection.geometryInInside(),
@@ -134,10 +134,9 @@ public:
   {
     if (lbasis_in.size() == 0 and lbasis_out.size() == 0)
       return;
-    _data_skeleton->local_domain->in_skeleton = intersection.neighbor();
 
     if (lbasis_in.size() != 0)
-      add_intersection_constraints(false,
+      add_intersection_constraints(1,
                                    _data_skeleton,
                                    lbasis_in,
                                    intersection,
@@ -146,7 +145,7 @@ public:
                                    container);
 
     if (intersection.neighbor() and lbasis_out.size() != 0)
-      add_intersection_constraints(false,
+      add_intersection_constraints(-1,
                                    _data_skeleton,
                                    lbasis_out,
                                    intersection,
@@ -156,7 +155,7 @@ public:
   }
 
 private:
-  auto add_intersection_constraints(bool boundary,
+  auto add_intersection_constraints(char dir_sign,
                                     const auto& data,
                                     const auto& lbasis,
                                     const auto& intersection,
@@ -168,6 +167,8 @@ private:
     // find dof indices that belong to the intersection
     const auto& refelem = referenceElement(entity.geometry());
     data->local_domain->entity_volume = intersection.geometry().volume();
+    data->local_domain->in_boundary = static_cast<double>(not intersection.neighbor());
+    data->local_domain->in_skeleton = static_cast<double>(intersection.neighbor());
 
     const auto& lkeys = lbasis.finiteElement().localCoefficients();
     for (std::size_t dof = 0; dof != lbasis.size(); ++dof) {
@@ -180,9 +181,9 @@ private:
 
       for (int j = 0; j != refelem.size(face, 1, codim); ++j) {
         if (sub_entity == refelem.subEntity(face, 1, j, codim)) {
-          if (boundary == _mapper->isBoundary(entity, sub_entity, codim)) {
+          if (data->local_domain->in_boundary == _mapper->isBoundary(entity, sub_entity, codim)) {
             auto inside_pos = refelem.position(sub_entity, codim);
-            data->local_domain->normal = intersection.unitOuterNormal(ig_geometry.local(inside_pos));
+            data->local_domain->normal = dir_sign * intersection.unitOuterNormal(ig_geometry.local(inside_pos));
             data->local_domain->position = entity.geometry().global(inside_pos);
             double constraint = data->constrain_fnc();
             if (constraint != std::numeric_limits<double>::max())
