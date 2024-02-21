@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 project(dune-copasi-tests CXX C)
 
 # check if this project is called as its own cmake project (i.e. not as subdirectory)
@@ -10,8 +10,6 @@ else()
   set(DUNE_BUILD_TESTS_ON_MAKE_ALL OFF)
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${dune-common_MODULE_PATH}")
-list(APPEND CMAKE_MODULE_PATH "${dune-pdelab_MODULE_PATH}")
 include(DuneMacros)
 include(DuneAddGTest)
 
@@ -73,7 +71,7 @@ if (TARGET Dune::Copasi::Executable)
                         --model.time_step_operator.linear_solver.layout.writer.svg.path=mitchell_schaefer_pattern.svg)
       add_test(
         NAME      mitchell-schaefer-pattern
-        COMMAND   ${CMAKE_COMMAND} -E compare_files 
+        COMMAND   ${CMAKE_COMMAND} -E compare_files
                   mitchell_schaefer_pattern.svg
                   ${CMAKE_CURRENT_SOURCE_DIR}/data/pattern/mitchell_schaefer_pattern.svg)
       set_tests_properties(mitchell-schaefer-pattern PROPERTIES DEPENDS mitchell-schaefer)

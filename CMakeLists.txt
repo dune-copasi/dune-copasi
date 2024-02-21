@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 project(dune-copasi CXX)
 
 ########## Setup dependencies ##########
@@ -31,10 +31,68 @@ add_subdirectory(doc)
 
 # include targets file in config file
 set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}
-find_package(TBB CONFIG REQUIRED)
+set(DUNE_COPASI_GRID_DIMENSIONS ${DUNE_COPASI_GRID_DIMENSIONS})
+set(DUNE_COPASI_PARSER_LIST ${DUNE_COPASI_PARSER_LIST})
+
+include(CMakeFindDependencyMacro)
+")
+
 foreach(module ${ALL_DEPENDENCIES})
-  find_package(\${module})
+  if(${${module}_FOUND})
+    set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}
+find_dependency(${module} REQUIRED)
+list(APPEND CMAKE_MODULE_PATH \"\${${module}_MODULE_PATH}\")")
+  endif()
 endforeach()
+
+
+if(TARGET MPI::MPI_C)
+  set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}
+find_dependency(MPI 3.0 REQUIRED COMPONENTS C)")
+endif()
+
+set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}
+find_dependency(TIFF REQUIRED)
+find_dependency(spdlog REQUIRED)
+find_dependency(fmt REQUIRED)
+find_dependency(TBB CONFIG REQUIRED)")
+
+if(TARGET METIS::METIS)
+  set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}
+find_dependency(METIS REQUIRED)")
+endif()
+
+if(TARGET Dune::Wrapper::SymEngine)
+  set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}
+find_dependency(SymEngine 0.8.0 REQUIRED)
+add_library(Dune::Wrapper::SymEngine INTERFACE IMPORTED)
+target_link_libraries(Dune::Wrapper::SymEngine INTERFACE \${SYMENGINE_LIBRARIES})
+target_include_directories(Dune::Wrapper::SymEngine INTERFACE \${SYMENGINE_INCLUDE_DIRS})")
+endif()
+
+if(TARGET muparser::muparser)
+  set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}
+find_dependency(muparser REQUIRED)")
+endif()
+
+if(TARGET parafields::parafields)
+  set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}
+find_dependency(parafields REQUIRED)")
+endif()
+
+if(TARGET SuiteSparse::UMFPACK)
+  set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}
+find_dependency(SuiteSparse REQUIRED COMPONENTS UMFPACK)")
+endif()
+
+if(TARGET SuperLU::SuperLU)
+  set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}
+find_dependency(SuperLU REQUIRED)")
+endif()
+
+set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}
+
+list(REMOVE_DUPLICATES CMAKE_MODULE_PATH)
 get_filename_component(_dir \"\${CMAKE_CURRENT_LIST_FILE}\" PATH)
 include(\"\${_dir}/dune-copasi-installed-targets.cmake\")")
 
@@ -49,10 +107,9 @@ install(EXPORT dune-copasi-targets
         DESTINATION "${DUNE_INSTALL_LIBDIR}/cmake/dune-copasi"
 )
 
-
 # export targets to be used with build tree
 export(EXPORT dune-copasi-targets
-       FILE "${CMAKE_CURRENT_BINARY_DIR}/dune-copasi-targets.cmake"
+       FILE "${CMAKE_CURRENT_BINARY_DIR}/dune-copasi-installed-targets.cmake"
        NAMESPACE Dune::
 )
 # include tests as a sub project

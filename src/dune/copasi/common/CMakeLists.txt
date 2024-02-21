@@ -25,15 +25,6 @@ if(NOT function2_POPULATED)
   install(TARGETS function2 EXPORT dune-copasi-targets ARCHIVE COMPONENT Development)
 endif()
 
-# include dependencies in config file
-set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}
-find_package(TIFF REQUIRED)
-find_package(spdlog REQUIRED)
-find_package(fmt REQUIRED)
-")
-
-set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}" PARENT_SCOPE)
-
 add_library(dune-copasi-common STATIC)
 add_library(Dune::Copasi::Common ALIAS dune-copasi-common)
 set_target_properties(dune-copasi-common PROPERTIES EXPORT_NAME Copasi::Common)

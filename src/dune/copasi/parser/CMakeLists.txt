@@ -2,8 +2,10 @@
 set(parser_list)
 find_package(SymEngine 0.8.0)
 if(${SymEngine_FOUND})
-  set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}\nfind_package(SymEngine 0.8.0 REQUIRED)")
   list(APPEND parser_list SymEngine SymEngineSBML)
+  add_library(Dune::Wrapper::SymEngine INTERFACE IMPORTED GLOBAL)
+  target_link_libraries(Dune::Wrapper::SymEngine INTERFACE ${SYMENGINE_LIBRARIES})
+  target_include_directories(Dune::Wrapper::SymEngine INTERFACE ${SYMENGINE_INCLUDE_DIRS})
 endif()
 
 find_package(ExprTk)
@@ -29,7 +31,6 @@ endif()
 
 find_package(muparser)
 if(${muparser_FOUND})
-  set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}\nfind_package(muparser REQUIRED)")
   set(DUNE_COPASI_MUPARSER_MAX_FUNCTIONS 5000 CACHE STRING "Maximum number of functions that muparser can store in its context")
   list(APPEND parser_list MuParser)
 endif()
@@ -53,12 +54,8 @@ if((NOT parafields_FOUND) AND (NOT CMAKE_DISABLE_FIND_PACKAGE_parafields) AND (N
     set(parafields_FOUND ON)
   endif()
 endif()
-if(${parafields_FOUND})
-  set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}\nfind_package(parafields REQUIRED)")
-endif()
 
 set(DUNE_COPASI_PARSER_LIST ${parser_list} CACHE INTERNAL "List of parsers found found and used in dune-copasi-parser")
-set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}\nset(DUNE_COPASI_PARSER_LIST ${parser_list})" PARENT_SCOPE)
 
 add_library(dune-copasi-parser STATIC)
 add_library(Dune::Copasi::Parser ALIAS dune-copasi-parser)
@@ -72,7 +69,7 @@ target_link_libraries(dune-copasi-parser
   PRIVATE
     $<TARGET_NAME_IF_EXISTS:parafields::parafields>
     $<TARGET_NAME_IF_EXISTS:muparser::muparser>
-    $<$<BOOL:${SymEngine_FOUND}>:${SYMENGINE_LIBRARIES}>
+    $<TARGET_NAME_IF_EXISTS:Dune::Wrapper::SymEngine>
   )
 
 target_sources(dune-copasi-parser
@@ -82,12 +79,11 @@ target_sources(dune-copasi-parser
     parser.cc
     $<$<BOOL:${ExprTk_FOUND}>:${CMAKE_CURRENT_SOURCE_DIR}/exprtk.cc>
     $<$<TARGET_EXISTS:muparser::muparser>:${CMAKE_CURRENT_SOURCE_DIR}/mu.cc>
-    $<$<BOOL:${SymEngine_FOUND}>:${CMAKE_CURRENT_SOURCE_DIR}/symengine.cc>
+    $<$<TARGET_EXISTS:Dune::Wrapper::SymEngine>:${CMAKE_CURRENT_SOURCE_DIR}/symengine.cc>
 )
 
 target_include_directories(dune-copasi-parser
   PRIVATE
-    $<$<BOOL:${SymEngine_FOUND}>:${SYMENGINE_INCLUDE_DIRS}>
     $<$<BOOL:${ExprTk_FOUND}>:${ExprTk_INCLUDE_DIRS}>
 )
 
