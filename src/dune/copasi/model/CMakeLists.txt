@@ -40,8 +40,9 @@ foreach(dim ${DUNE_COPASI_GRID_DIMENSIONS})
       target_compile_definitions(${target}
         INTERFACE
           DUNE_COPASI_PRECOMPILED_MODE
-        PRIVATE
+        PUBLIC
           ${model_definitions}
+        PRIVATE
           DUNE_COPASI_GRID_DIMENSION=${dim}
           DUNE_COPASI_FEM_ORDER=${order}
       )
