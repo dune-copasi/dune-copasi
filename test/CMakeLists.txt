@@ -10,6 +10,8 @@ else()
   set(DUNE_BUILD_TESTS_ON_MAKE_ALL OFF)
 endif()
 
+list(APPEND CMAKE_MODULE_PATH "${dune-common_MODULE_PATH}")
+list(APPEND CMAKE_MODULE_PATH "${dune-pdelab_MODULE_PATH}")
 include(DuneMacros)
 include(DuneAddGTest)
 

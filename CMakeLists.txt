@@ -33,6 +33,9 @@ add_subdirectory(doc)
 set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}
 set(DUNE_COPASI_GRID_DIMENSIONS ${DUNE_COPASI_GRID_DIMENSIONS})
 set(DUNE_COPASI_PARSER_LIST ${DUNE_COPASI_PARSER_LIST})
+# ensure dune cmake modules are found and used
+set(PREVIOUS_CMAKE_MODULE_PATH \${CMAKE_MODULE_PATH})
+list(PREPEND CMAKE_MODULE_PATH \"\${dune-copasi_MODULE_PATH}\")
 
 include(CMakeFindDependencyMacro)
 ")
@@ -94,7 +97,11 @@ set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}
 
 list(REMOVE_DUPLICATES CMAKE_MODULE_PATH)
 get_filename_component(_dir \"\${CMAKE_CURRENT_LIST_FILE}\" PATH)
-include(\"\${_dir}/dune-copasi-installed-targets.cmake\")")
+include(\"\${_dir}/dune-copasi-installed-targets.cmake\")
+# restore previous CMAKE_MODULE_PATH
+set(CMAKE_MODULE_PATH \${PREVIOUS_CMAKE_MODULE_PATH})
+unset(PREVIOUS_CMAKE_MODULE_PATH)
+")
 
 # finalize the dune project: Generate and install config headers, cmake targets and version files
 finalize_dune_project()
