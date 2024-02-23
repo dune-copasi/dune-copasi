@@ -57,9 +57,6 @@ for module in common geometry grid istl localfunctions; do
   eval SETUP_dune_${module}_REPO=\"https://gitlab.dune-project.org/core/dune-${module}.git\"
 done
 
-# before deprecated CollectiveCommunication is removed (not yet fixed in multidomain-grid)
-SETUP_dune_grid_BRANCH="8c55e87b9663c9f74c74c66482e79436ef090e02"
-
 for module in functions uggrid typetree; do
   eval SETUP_dune_${module}_BRANCH=\"master\"
   eval SETUP_dune_${module}_REPO=\"https://gitlab.dune-project.org/staging/dune-${module}.git\"
