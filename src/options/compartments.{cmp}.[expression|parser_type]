@@ -1,10 +1,12 @@
 <string|math-expr|integer>
-Compartment definition of with name '{cmp}' as a sub-domain of the grid
-Compartments represent one sub-domain within the grid where the model scalar fields have support.
-There must be at least one non-empty compartment.
+Compartment definition with name '{cmp}' as a sub-domain of the grid
+Compartments represent one sub-domain within the grid where the model scalar
+fields have support. There must be at least one non-empty compartment and there
+may be at most 64 compartments. If more compartments are needed, recompilation with
+other grid traits is possible.
 
 expression=<math-expr>
-  Expression that defines a compartment in terms of a function evaluated on grid entities
+  Expression that defines a compartment in terms of a function evaluated on grid elements
     If the expression evaluates to a value different than zero in the center of a grid entity,
     such entity is assigned to the compartment '{cmp}'. For example, an the expression
     'compartments.top.expression=\"position_y > 0.5\"' defines a compartment '{cmp}' with

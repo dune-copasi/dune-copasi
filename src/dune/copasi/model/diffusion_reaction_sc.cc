@@ -30,7 +30,7 @@ using HostGrid = Dune::UGGrid<DUNE_COPASI_GRID_DIMENSION>;
 #endif
 using HostGridView = typename HostGrid::Traits::LeafGridView;
 
-using MDGTraits = Dune::mdgrid::DynamicSubDomainCountTraits<DUNE_COPASI_GRID_DIMENSION, 10>;
+using MDGTraits = Dune::mdgrid::FewSubDomainsTraits<DUNE_COPASI_GRID_DIMENSION, 64>;
 using MDGrid = Dune::mdgrid::MultiDomainGrid<HostGrid, MDGTraits>;
 using SDGridView = typename MDGrid::SubDomainGrid::Traits::LeafGridView;
 

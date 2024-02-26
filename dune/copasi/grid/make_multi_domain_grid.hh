@@ -19,6 +19,8 @@
 
 #include <memory>
 
+#include <fmt/ranges.h>
+
 namespace Dune::Copasi {
 
 /**
@@ -147,7 +149,7 @@ make_multi_domain_grid(Dune::ParameterTree& config,
     }
   }
 
-  typename MDGrid::MDGridTraits const md_grid_traits(compartments.size());
+  typename MDGrid::MDGridTraits const md_grid_traits{};
   md_grid_ptr = std::make_unique<MDGrid>(std::move(host_grid_ptr), md_grid_traits);
 
   auto level = grid_config.get("refinement_level", int{ 0 });
@@ -158,11 +160,12 @@ make_multi_domain_grid(Dune::ParameterTree& config,
 
   spdlog::info("Applying sub-domain partition");
   md_grid_ptr->startSubDomainMarking();
-  std::size_t max_domains = 0;
   std::size_t max_domains_per_entity = 0;
+  std::set<std::size_t> used_sub_domains;
   for (const auto& cell : elements(md_grid_ptr->leafGridView())) {
     for (std::size_t id = max_domains_per_entity = 0; id != compartments.size(); ++id) {
       if (compartments[id].second(md_grid_ptr->hostEntity(cell))) {
+        used_sub_domains.insert(id);
         ++max_domains_per_entity;
         md_grid_ptr->addToSubDomain(id, cell);
       }
@@ -173,12 +176,11 @@ make_multi_domain_grid(Dune::ParameterTree& config,
                              " have more than {} domains per entity!",
                              md_grid_traits.maxSubDomainIndex() + 1);
     }
-    max_domains = std::max(max_domains, max_domains_per_entity);
   }
 
-  if (max_domains != compartments.size())  {
-    spdlog::warn("Grid has {} sub-domain{} but config has {} compartment{}",
-      max_domains, max_domains == 1 ? "" : "s",
+  if (used_sub_domains.size() != compartments.size())  {
+    spdlog::warn("Grid partition uses sub-domain{} {} but config file has {} compartment{}",
+      used_sub_domains.size() == 1 ? "" : "s", used_sub_domains, 
       compartments.size(), compartments.size() == 1 ? "" : "s");
   }
 

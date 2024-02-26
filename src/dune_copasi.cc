@@ -263,8 +263,9 @@ main(int argc, char** argv)
       config_dim,
       [&](auto dim) {
         // get a pointer to the grid
+        const auto max_subdomains = 64;
         auto md_grid_ptr = [&] {
-          using MDGTraits = Dune::mdgrid::DynamicSubDomainCountTraits<dim, 10>;
+          using MDGTraits = Dune::mdgrid::FewSubDomainsTraits<dim, max_subdomains>;
           if constexpr (dim < 2) {
             using MDGrid = Dune::mdgrid::MultiDomainGrid<Dune::YaspGrid<dim, Dune::EquidistantOffsetCoordinates<double,dim>>, MDGTraits>;
             return make_multi_domain_grid<MDGrid>(config, parser_context);
@@ -279,6 +280,13 @@ main(int argc, char** argv)
           spdlog::warn(
             "The section '[model.compartments]' will be ignored, use '[compartments]' instead");
         config.sub("model.compartments") = config.sub("compartments");
+
+        if (auto comp_size = model_config.sub("compartments").getSubKeys().size();
+            comp_size > max_subdomains)
+          spdlog::error("The model can have at most '{}' compartments but '{}' were defined. To "
+                        "have more compartments recompile with appropriate grid triats!",
+                        max_subdomains,
+                        comp_size);
 
         using MDGrid = std::decay_t<decltype(*md_grid_ptr)>;
         using SDGridView = typename MDGrid::SubDomainGrid::Traits::LeafGridView;
