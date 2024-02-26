@@ -85,12 +85,12 @@ make_diffusion_reaction_step_operator(const ParameterTree& config,
           return make_one_step_op(
             execution_policy,
             basis.subSpace(
-              PDELab::EntitySetPartitioner::MetisColored{ entity_set, part_patches, halo },
+              PDELab::EntitySetPartitioner::Metis{ entity_set, part_patches, halo },
               TypeTree::treePath()));
         } else if (part_coloring == "DSatur") {
           return make_one_step_op(
             execution_policy,
-            basis.subSpace(PDELab::EntitySetPartitioner::Metis{ entity_set, part_patches, halo },
+            basis.subSpace(PDELab::EntitySetPartitioner::MetisColored{ entity_set, part_patches, halo },
                            TypeTree::treePath()));
         } else {
           throw format_exception(IOError{}, "Not known coloring algorithm '{}' known", part_coloring);
