@@ -124,7 +124,7 @@ public:
   LinearSolver(const ParameterTree& config)
     : _config{ config }
     , _lin_type{_config.template get<std::string>("type", std::string{ DUNE_COPASI_DEFAULT_LINEAR_SOLVER })}
-    , _prec_type{_config.get("preconditioner.type", std::string{ "Richardson" })}
+    , _prec_type{_config.get("preconditioner.type", std::string{ "SSOR" })}
   {
     spdlog::info("Creating linear solver with '{}' type", _lin_type);
     // TODO: Listed even if using direct solver
