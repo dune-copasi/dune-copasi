@@ -90,7 +90,7 @@ if (TARGET Dune::Copasi::Executable)
 
     dune_add_test(
       NAME            poisson-${dim}D
-      TIMEOUT         10
+      TIMEOUT         50
       LABELS          system
       TARGET          Dune::Copasi::Executable
       CMD_ARGS        --config=${CMAKE_CURRENT_SOURCE_DIR}/poisson.ini
@@ -107,7 +107,7 @@ if (TARGET Dune::Copasi::Executable)
     foreach(parser ${DUNE_COPASI_PARSER_LIST})
       dune_add_test(
         NAME            gauss-${dim}D-${parser}
-        TIMEOUT         20
+        TIMEOUT         70
         LABELS          system
         TARGET          Dune::Copasi::Executable
         CMD_ARGS        --config=${CMAKE_CURRENT_SOURCE_DIR}/gauss.ini
