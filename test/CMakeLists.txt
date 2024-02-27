@@ -77,6 +77,18 @@ if (TARGET Dune::Copasi::Executable)
                   mitchell_schaefer_pattern.svg
                   ${CMAKE_CURRENT_SOURCE_DIR}/data/pattern/mitchell_schaefer_pattern.svg)
       set_tests_properties(mitchell-schaefer-pattern PROPERTIES DEPENDS mitchell-schaefer)
+
+    foreach(dim ${DUNE_COPASI_GRID_DIMENSIONS})
+      dune_add_test(
+        NAME            poisson-${dim}D
+        TIMEOUT         50
+        LABELS          system
+        TARGET          Dune::Copasi::Executable
+        CMD_ARGS        --config=${CMAKE_CURRENT_SOURCE_DIR}/poisson.ini
+                        --grid.dimension=${dim}
+                        --parser_context.dim.value=${dim})
+    endforeach()
+
   endif()
 
   foreach(dim ${DUNE_COPASI_GRID_DIMENSIONS})
@@ -87,15 +99,6 @@ if (TARGET Dune::Copasi::Executable)
       TARGET          Dune::Copasi::Executable
       CMD_ARGS        --config=${CMAKE_CURRENT_SOURCE_DIR}/exp.ini
                       --grid.dimension=${dim})
-
-    dune_add_test(
-      NAME            poisson-${dim}D
-      TIMEOUT         50
-      LABELS          system
-      TARGET          Dune::Copasi::Executable
-      CMD_ARGS        --config=${CMAKE_CURRENT_SOURCE_DIR}/poisson.ini
-                      --grid.dimension=${dim}
-                      --parser_context.dim.value=${dim})
 
     set(grid_extensions "2")
     set(grid_origin "-1")
