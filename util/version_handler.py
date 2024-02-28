@@ -76,8 +76,9 @@ def update_gitlab_ci(old_version, new_version):
   print(f"GitLab CI config '{path}' was updated from '{old_version}' to '{new_version}'")
 
 if __name__ == "__main__":
-  parser = argparse.ArgumentParser(description="Version handler for dune-copasi")
-  parser.add_argument("--new-version")
+  parser = argparse.ArgumentParser(description="Version handler for dune-copasi", exit_on_error= False)
+  parser.add_argument('-v', '--verbose', action='store_true')
+  parser.add_argument("--override-version")
   parser.add_argument("--replace-major")
   parser.add_argument("--replace-minor")
   parser.add_argument("--replace-patch")
@@ -93,11 +94,12 @@ if __name__ == "__main__":
   args = parser.parse_args()
 
   old_version = get_dune_module_version()
-  print(f"Current version is '{old_version}'")
+  if (args.verbose):
+    print(f"Current version is '{old_version}'")
 
   new_version = old_version
-  if args.new_version:
-    new_version = semver.Version.parse(args.new_version)
+  if args.override_version:
+    new_version = semver.Version.parse(args.override_version)
 
   if args.next:
     new_version = new_version.next_version(args.next)
@@ -116,10 +118,10 @@ if __name__ == "__main__":
   if args.finalize_version:
     new_version = new_version.finalize_version()
 
-  if str(new_version) == str(old_version):
-    raise ValueError(f"New version '{new_version}' is equal to current version '{old_version}'")
-
-  print(f"New version is '{new_version}'\n")
+  if (args.verbose):
+    print(f"New version is '{new_version}'\n")
+  else:
+    print(new_version)
 
   if args.update_all or args.update_changelog:
     if new_version != old_version:
@@ -131,7 +133,7 @@ if __name__ == "__main__":
   # if args.update_all or args.update_python_module:
   #   update_python_module(old_version, new_version)
 
-  if args.update_all:
+  if args.update_all and args.verbose:
     print("\nIf this is a definitive change, please update documentation and set a new tag in the repository\n")
     print(f"\tgit tag -s v{new_version}\n")
     print("\nAlso remember to forward the branch latest to the most recent tag\n")

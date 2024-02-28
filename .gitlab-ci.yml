@@ -21,8 +21,7 @@ default:
 variables:
   DUNECONTROL: dunecontrol
   CMAKE_GENERATOR: "Ninja"
-  CPACK_GENERATORS: 'DEB'
-  CPACK_PACKAGE_DIRECTORY: $CI_PROJECT_DIR/tmp
+  PACKAGE_REGISTRY: ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/dune-copasi
   MASTER_IMAGE: debian:trixie
   BASE_IMAGE_VERSION:
     value: "v2.0.0-git"
@@ -40,11 +39,29 @@ variables:
 .docker_variables: &docker_variables
   DOCKER_BUILDKIT: 1
 
-.debian_clang: &debian_clang
+.debian_base: &debian_base
   DUNECI_OS: debian
   BASE_IMAGE: debian:trixie
+
+.debian_clang: &debian_clang
+  <<: *debian_base
+  CPACK_GENERATORS: 'DEB'
+  CPACK_PACKAGE_DIRECTORY: $CI_PROJECT_DIR/tmp
   TOOLCHAIN: clang-17
   DEPENDENCIES_IMAGE: ${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${TOOLCHAIN}-${BASE_IMAGE_VERSION}
+
+.debian_emscripten: &debian_emscripten
+  <<: *debian_base
+  CPACK_GENERATORS: 'DEB'
+  CPACK_PACKAGE_DIRECTORY: $CI_PROJECT_DIR/tmp
+  TOOLCHAIN: emscripten-3.1.51
+  DEPENDENCIES_IMAGE: ${CI_REGISTRY}/copasi/dune-copasi/dependencies:${DUNECI_OS}-${TOOLCHAIN}-${BASE_IMAGE_VERSION}
+
+.deploy_rules: &deploy_rules
+  rules:
+    - if: '$CI_COMMIT_TAG'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_COMMIT_BRANCH == "latest"'
 
 .setup_exec: &setup_exec
   image: ${DOCKER_IMAGE}
@@ -60,10 +77,8 @@ variables:
     - podman push ${DEPENDENCIES_IMAGE}
     - podman logout $CI_REGISTRY/copasi/dune-copasi
   rules:
+    - !reference [.deploy_rules, rules]
     - if: '$FORCE_REBUILD_BASE_IMAGE == "true"'
-    - if: '$CI_COMMIT_TAG'
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
-    - if: '$CI_COMMIT_BRANCH == "latest"'
 
 .setup_wasm: &setup_wasm
   image: ${DOCKER_IMAGE}
@@ -75,15 +90,13 @@ variables:
         --build-arg BASE_IMAGE=${BASE_IMAGE}
         --build-arg BUILDKIT_INLINE_CACHE=1
         --target setup-env
-        -t ${DEPENDENCIES_IMAGE}-wasm
+        -t ${DEPENDENCIES_IMAGE}
         -f docker/emscripten.dockerfile .
-    - podman push ${DEPENDENCIES_IMAGE}-wasm
+    - podman push ${DEPENDENCIES_IMAGE}
     - podman logout $CI_REGISTRY/copasi/dune-copasi
   rules:
+    - !reference [.deploy_rules, rules]
     - if: '$FORCE_REBUILD_BASE_IMAGE == "true"'
-    - if: '$CI_COMMIT_TAG'
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
-    - if: '$CI_COMMIT_BRANCH == "latest"'
 
 .build: &build
   image: ${DEPENDENCIES_IMAGE}
@@ -116,7 +129,7 @@ variables:
     - echo "$CI_REGISTRY_PASSWORD" | podman login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY/copasi/dune-copasi
     - DOCKER_TAG="${DUNECI_OS}-${TOOLCHAIN}-${CI_COMMIT_REF_NAME}"
     - DOCKER_DEPLOY_IMAGE=$CI_REGISTRY/copasi/dune-copasi/dune-copasi:${DOCKER_TAG}
-    # set directory to get packages from the image
+    # set directory to get packages within the image (prepared by build job)
     - mkdir -p $CI_PROJECT_DIR/packages
     # build final production image using packages from artifacts
     - podman build
@@ -139,9 +152,7 @@ variables:
       fi
     - podman logout ${CI_REGISTRY}/copasi/dune-copasi
   rules:
-    - if: '$CI_COMMIT_TAG'
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
-    - if: '$CI_COMMIT_BRANCH == "latest"'
+    - !reference [.deploy_rules, rules]
 
 codespell:
   variables:
@@ -172,7 +183,21 @@ codequality:debian_clang:
   dependencies:
     - setup_exec:debian_clang
 
-deploy_exec:debian_clang:
+deploy_deb:debian_clang:
+  image: ${DEPENDENCIES_IMAGE}
+  variables:
+    <<: *debian_clang
+  stage: deploy
+  script:
+    - |
+      VERSION=$(./util/version_handler.py)
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file packages/dune-copasi-runtime.deb "${PACKAGE_REGISTRY}/${VERSION}/dune-copasi-runtime.deb"
+  dependencies:
+    - build_exec:debian_clang
+  rules:
+    - !reference [.deploy_rules, rules]
+
+deploy_docker:debian_clang:
   variables:
     <<: *docker_variables
     <<: *debian_clang
@@ -183,32 +208,46 @@ deploy_exec:debian_clang:
 setup_wasam:debian_emscripten:
   variables:
     <<: *docker_variables
-    <<: *debian_clang
+    <<: *debian_emscripten
   <<: *setup_wasm
 
 build_wasm:debian_emscripten:
   variables:
-    CPACK_GENERATORS: 'TGZ'
     CPACK_PACKAGE_DIRECTORY: $CI_PROJECT_DIR/tmp
-    <<: *debian_clang
+    <<: *debian_emscripten
   dependencies:
     - setup_wasam:debian_emscripten
-  image: ${DEPENDENCIES_IMAGE}-wasm
+  image: ${DEPENDENCIES_IMAGE}
   stage: build
   script:
     - ./util/version_handler.py --replace-build build.dune.gitlab.wasam.${CI_JOB_ID} --update-dune-module
     - source /duneci/modules/emsdk/emsdk_env.sh && ./.ci/install $DUNE_OPTS_FILE
     - mkdir -p packages
-    - mv tmp/dune-copasi-* packages/
+    - mv /duneci/install/bin/dune-copasi.js /duneci/install/bin/dune-copasi.wasm packages
   artifacts:
     paths:
       - packages
     expire_in: 1h
 
+deploy_wasam:debian_emscripten:
+  image: ${DEPENDENCIES_IMAGE}
+  variables:
+    <<: *debian_emscripten
+  stage: deploy
+  script:
+    - |
+      VERSION=$(./util/version_handler.py)
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file $CI_PROJECT_DIR/packages/dune-copasi.js "${PACKAGE_REGISTRY}/${VERSION}/dune-copasi.wasm"
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file $CI_PROJECT_DIR/packages/dune-copasi.wasm "${PACKAGE_REGISTRY}/${VERSION}/dune-copasi.js"
+  dependencies:
+    - build_wasm:debian_emscripten
+  rules:
+    - !reference [.deploy_rules, rules]
+
 deploy:documentation:
   image: ${DEPENDENCIES_IMAGE}
   variables:
-    <<: *debian_clang
+    <<: *debian_emscripten
     GIT_STRATEGY: none
   stage: deploy
   script:
@@ -219,9 +258,7 @@ deploy:documentation:
     url: https://${CI_COMMIT_REF_SLUG}--dune-copasi.netlify.app
   allow_failure: true
   rules:
-    - if: '$CI_COMMIT_TAG'
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
-    - if: '$CI_COMMIT_BRANCH == "latest"'
+    - !reference [.deploy_rules, rules]
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - doc/**/*
