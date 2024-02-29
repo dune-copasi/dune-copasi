@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=debian:trixie
+ARG BASE_IMAGE=debian:bookworm
 
 ARG SETUP_BASE_IMAGE=${BASE_IMAGE}
 ARG BUILD_BASE_IMAGE=setup-env

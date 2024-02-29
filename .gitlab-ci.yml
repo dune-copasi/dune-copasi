@@ -22,7 +22,7 @@ variables:
   DUNECONTROL: dunecontrol
   CMAKE_GENERATOR: "Ninja"
   PACKAGE_REGISTRY: ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/dune-copasi
-  MASTER_IMAGE: debian:trixie
+  MASTER_IMAGE: debian:bookworm
   BASE_IMAGE_VERSION:
     value: "v2.0.0-git"
     options:
@@ -41,7 +41,7 @@ variables:
 
 .debian_base: &debian_base
   DUNECI_OS: debian
-  BASE_IMAGE: debian:trixie
+  BASE_IMAGE: debian:bookworm
 
 .debian_clang: &debian_clang
   <<: *debian_base
@@ -161,7 +161,7 @@ codespell:
   image: ${DEPENDENCIES_IMAGE}
   script:
   - codespell
-    --skip=./doc/docusaurus/yarn.lock
+    --skip="./doc/docusaurus/yarn.lock,./.git/**/*"
 
 setup_exec:debian_clang:
   variables:

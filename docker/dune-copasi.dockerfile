@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=debian:trixie
+ARG BASE_IMAGE=debian:bookworm
 
 # ARG SETUP_BASE_IMAGE=registry.dune-project.org/docker/ci/${BASE_IMAGE}
 ARG SETUP_BASE_IMAGE=${BASE_IMAGE}
@@ -23,8 +23,6 @@ RUN export DEBIAN_FRONTEND=noninteractive; \
   dpkg \
   dpkg-dev \
   file \
-  g++-13 \
-  gcc-13 \
   gcovr \
   git \
   git-lfs \
@@ -53,7 +51,7 @@ RUN export DEBIAN_FRONTEND=noninteractive; \
   && apt-get clean
 
 RUN  wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - \
-  && add-apt-repository "deb http://apt.llvm.org/unstable/ llvm-toolchain-unstable-17 main" \
+  && echo "deb http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-17 main" > /etc/apt/sources.list.d/llvm.list \
   && export DEBIAN_FRONTEND=noninteractive; \
   apt-get update \
   && apt-get install --no-install-recommends --yes \
