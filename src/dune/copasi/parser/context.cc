@@ -230,8 +230,8 @@ ParserContext::add_context(Parser& parser) const
         // replace actual function with an interpolation
         if constexpr (dim == 1) {
           const auto intervals_u = config.get("interpolation.intervals", 1000u);
-          const auto intervals_f = static_cast<double>(intervals_u)/1e5;
-          if (std::trunc(intervals_f) != 0.0)
+          const auto intervals_f = static_cast<double>(intervals_u);
+          if (std::trunc(intervals_f/1e5) != 0.0)
             throw format_exception(IOError{}, "Number of interpolation intervals is too big!");
           if (intervals_u < 1u)
             throw format_exception(IOError{}, "At least one interval is required in function {}", name);

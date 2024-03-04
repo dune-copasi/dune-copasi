@@ -6,7 +6,7 @@
 #include <dune/copasi/common/axis_names.hh>
 #include <dune/copasi/concepts/grid.hh>
 #include <dune/copasi/parser/context.hh>
-#include <dune/copasi/parser/grid_context.hh>
+#include <dune/copasi/grid/grid_data_context.hh>
 
 #include <dune/grid/common/exceptions.hh>
 #include <dune/grid/common/gridinfo.hh>
@@ -38,8 +38,7 @@ namespace Dune::Copasi {
 template<Concept::MultiDomainGrid MDGrid>
 std::shared_ptr<MDGrid>
 make_multi_domain_grid(Dune::ParameterTree& config,
-                       std::shared_ptr<const ParserContext> parser_context = {},
-                       std::shared_ptr<ParserGridContext<MDGrid>> parser_grid_context = {})
+                       std::shared_ptr<const ParserContext> parser_context = {})
 {
   using HostGrid = typename MDGrid::HostGrid;
   using HostEntity = typename HostGrid::template Codim<0>::Entity;
@@ -71,6 +70,8 @@ make_multi_domain_grid(Dune::ParameterTree& config,
 
     host_grid_parser.read(grid_path);
     auto& gmsh_physical_entity = host_grid_parser.elementIndexMap();
+
+    // [TO DO]: Here we should add the gmsh_physical_entity to the grid_data_context!
 
     host_grid_ptr = host_grid_factory.createGrid();
     auto mcmg = MultipleCodimMultipleGeomTypeMapper<typename HostGrid::LeafGridView>(host_grid_ptr->leafGridView(), mcmgElementLayout());
@@ -205,8 +206,6 @@ make_multi_domain_grid(Dune::ParameterTree& config,
     std::cout << fmt::format("  SubDomain {{{}: {}}}", id, compartments[id].first);
     gridinfo(md_grid_ptr->subDomain(id), "      ");
   }
-
-  parser_grid_context->configure(grid_config, md_grid_ptr, host_grid_ptr);
 
   return md_grid_ptr;
 }

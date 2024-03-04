@@ -9,7 +9,7 @@
 #include <dune/copasi/model/diffusion_reaction_sc.hh>
 #include <dune/copasi/model/diffusion_reaction_sc_traits.hh>
 
-#include <dune/copasi/model/local_equations/functor_factory_parser.hh>
+#include <dune/copasi/parser/context.hh>
 
 // comma separated list of fem orders to compile for each dimension
 #ifndef DUNE_COPASI_1D_FEM_ORDERS
@@ -47,12 +47,10 @@ template<class Model>
            Concept::SubDomainGrid<typename Model::GridView::Grid>
 std::unique_ptr<Model>
 make_model(
+  std::shared_ptr<typename Model::Grid> md_grid_ptr,
   const ParameterTree& config,
-  std::shared_ptr<const FunctorFactory<Model::Grid::dimensionworld>> functor_factory = nullptr)
+  std::shared_ptr<ParserContext> parser_context  )
 {
-  if (not functor_factory) {
-    functor_factory = std::make_shared<FunctorFactoryParser<typename Model::Grid>>();
-  }
 
   const auto fem_orders = []() {
     if constexpr (Model::Grid::dimensionworld == 1) {
@@ -64,14 +62,16 @@ make_model(
     }
     return std::index_sequence<1>{};
   }();
-  auto config_fem_order = config.get("order", std::size_t{ 1 });
 
-  auto field_blocked = config.get("blocked_layout.scalar_fields", false);
-  auto compartments_blocked = config.get("blocked_layout.compartments", false);
+  auto model_config = config.sub("model");
+  auto config_fem_order = model_config.get("order", std::size_t{ 1 });
+
+  auto field_blocked = model_config.get("blocked_layout.scalar_fields", false);
+  auto compartments_blocked = model_config.get("blocked_layout.compartments", false);
 
   std::set<std::string> compartments;
-  for (const auto& component : config.sub("scalar_field").getSubKeys()) {
-    compartments.insert(config[fmt::format("scalar_field.{}.compartment", component)]);
+  for (const auto& component : model_config.sub("scalar_field").getSubKeys()) {
+    compartments.insert(model_config[fmt::format("scalar_field.{}.compartment", component)]);
   }
 
   // default case when order is unknown
@@ -91,15 +91,13 @@ make_model(
       [&](auto fem_order) {
         if (field_blocked) {
           model = std::make_unique<
-            ModelDiffusionReaction<Impl::SingleCompartmentTraits<Model, fem_order, true> > >(
-            functor_factory);
+            ModelDiffusionReaction<Impl::SingleCompartmentTraits<Model, fem_order, true> > >(md_grid_ptr, config, std::move(parser_context));
         } else {
           model = std::make_unique<
-            ModelDiffusionReaction<Impl::SingleCompartmentTraits<Model, fem_order, false> > >(
-            functor_factory);
+            ModelDiffusionReaction<Impl::SingleCompartmentTraits<Model, fem_order, false> > >(md_grid_ptr, config, std::move(parser_context));
         }
-      } /*,
-      not_know_order */);
+      },
+      not_know_order );
   } else {
     // unroll static switch case for dynamic order case
     Dune::Hybrid::switchCases(
@@ -109,22 +107,22 @@ make_model(
         if (compartments_blocked) {
           if (field_blocked) {
             model = std::make_unique<ModelMultiCompartmentDiffusionReaction<
-              Impl::MultiCompartmentTraits<Model, fem_order, true, true>>>(functor_factory);
+              Impl::MultiCompartmentTraits<Model, fem_order, true, true>>>(md_grid_ptr, config, std::move(parser_context));
           } else {
             model = std::make_unique<ModelMultiCompartmentDiffusionReaction<
-              Impl::MultiCompartmentTraits<Model, fem_order, false, true>>>(functor_factory);
+              Impl::MultiCompartmentTraits<Model, fem_order, false, true>>>(md_grid_ptr, config, std::move(parser_context));
           }
         } else {
           if (field_blocked) {
             model = std::make_unique<ModelMultiCompartmentDiffusionReaction<
-              Impl::MultiCompartmentTraits<Model, fem_order, true, false>>>(functor_factory);
+              Impl::MultiCompartmentTraits<Model, fem_order, true, false>>>(md_grid_ptr, config, std::move(parser_context));
           } else {
             model = std::make_unique<ModelMultiCompartmentDiffusionReaction<
-              Impl::MultiCompartmentTraits<Model, fem_order, false, false>>>(functor_factory);
+              Impl::MultiCompartmentTraits<Model, fem_order, false, false>>>(md_grid_ptr, config, std::move(parser_context));
           }
         }
-      } /*,
-      not_know_order*/);
+      } ,
+      not_know_order);
   }
 
   assert(model); // this should not be reachable if parameters are invalid

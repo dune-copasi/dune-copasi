@@ -4,7 +4,6 @@
 #include <dune-copasi-config.hh>
 #include <dune/copasi/concepts/grid.hh>
 #include <dune/copasi/parser/context.hh>
-#include <dune/copasi/parser/grid_context.hh>
 
 #include <dune/common/fmatrix.hh>
 #include <dune/common/fvector.hh>
@@ -64,15 +63,6 @@ public:
 
 
   virtual std::shared_ptr<const ParserContext> parser_context() const = 0;
-
-  // ---------------------------------------------------------------------------
-  // Defines the interface for updating grid entity specific values
-  // ---------------------------------------------------------------------------
-  virtual double get_gmsh_id( std::any entity) const = 0;
-
-  virtual void update_grid_data(std::unordered_map<std::string, double>& cell_data, std::any entity) const = 0;
-
-  virtual const std::unordered_map<std::string, std::function<double*(std::size_t)>>& get_cell_functor() const = 0;
 
 };
 

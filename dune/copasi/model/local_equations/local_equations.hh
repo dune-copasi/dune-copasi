@@ -7,6 +7,7 @@
 #include <dune/copasi/concepts/compartment_tree.hh>
 #include <dune/copasi/model/local_equations/functor_factory.hh>
 #include <dune/copasi/parser/factory.hh>
+#include <dune/copasi/grid/grid_data_context.hh>
 
 #include <dune/pdelab/concepts/basis.hh>
 #include <dune/pdelab/common/container_entry.hh>
@@ -40,6 +41,7 @@ struct LocalDomain
 
   virtual ~LocalDomain() {}
 
+  // local data related to general position metrics
   FieldVector<double, dim> position;
   FieldVector<double, dim> normal;
   double time = 0.;
@@ -47,16 +49,22 @@ struct LocalDomain
   double in_volume = 0;
   double in_boundary = 0;
   double in_skeleton = 0;
-  double gmsh_id = -1;
-  std::unordered_map<std::string, double> cell_data;  // data addresses to be bound to the parser
+
+  // local data related to the cell element
+  //double gmsh_id = -1; <--- should be included in the cell data (e.g always index == 0)
+  std::vector<double> cell_data;  // data addresses used by the parser
+  std::vector<bool> cell_mask;
+  std::vector<std::string> keys;  // data member names
 };
 
 // this class holds a data-structure for each equation that contains functors to be evaluated.
 // Additionally, it contains the values with respect these functors may be evaluated if they are
 // non-linear All the functors are require to be thread-safe!
-template<std::size_t dim>
-class LocalEquations : public LocalDomain<dim>
+template<Dune::Concept::GridView GV>
+class LocalEquations : public LocalDomain<GV::dimension>
 {
+
+  constexpr static auto dim = GV::dimension;
 
   using Scalar = FieldVector<double, 1>;
   using Vector = FieldVector<double, dim>;
@@ -285,6 +293,7 @@ public:
     const PDELab::Concept::LocalBasis auto& lbasis,
     const ParameterTree& config = {},
     std::shared_ptr<const FunctorFactory<dim>> functor_factory = nullptr,
+    std::shared_ptr<const GridDataContext<GV>> grid_data_context = nullptr,
     BitFlags<FactoryFalgs> opts = BitFlags<FactoryFalgs>::no_flags())
   {
     auto local_values = std::unique_ptr<LocalEquations>(new LocalEquations{});
@@ -316,7 +325,7 @@ public:
       if (not functor_factory) {
         throw format_exception(InvalidStateException{}, "Equations cannot be configured without a functor factory");
       }
-      local_values->configure(config, functor_factory, opts);
+      local_values->configure(config, functor_factory, grid_data_context, opts);
     }
     return local_values;
   }
@@ -324,12 +333,14 @@ public:
   static std::unique_ptr<LocalEquations> make_stiffness(
     const PDELab::Concept::LocalBasis auto& lbasis,
     const ParameterTree& config,
-    std::shared_ptr<const FunctorFactory<dim>> functor_factory
+    std::shared_ptr<const FunctorFactory<dim>> functor_factory,
+    std::shared_ptr<const GridDataContext<GV>> grid_data_context
   )
   {
     return make(lbasis,
                 config,
                 functor_factory,
+                grid_data_context,
                 FactoryFalgs::Reaction | FactoryFalgs::Diffusion | FactoryFalgs::Velocity |
                   FactoryFalgs::Outflow);
   }
@@ -337,12 +348,14 @@ public:
   static std::unique_ptr<LocalEquations> make_mass(
     const PDELab::Concept::LocalBasis auto& lbasis,
     const ParameterTree& config,
-    std::shared_ptr<const FunctorFactory<dim>> functor_factory
+    std::shared_ptr<const FunctorFactory<dim>> functor_factory,
+    std::shared_ptr<const GridDataContext<GV>> grid_data_context
   )
   {
     return make(lbasis,
                 config,
                 functor_factory,
+                grid_data_context,
                 FactoryFalgs::Storage);
   }
 
@@ -370,19 +383,11 @@ public:
     return PDELab::containerEntry(_nodes, make_path(tree)).gradient;
   }
 
-  // The idea is to update this to update_grid_data
-  // Should be included in one function with above one
-  template <class Entity>
-  void update_gmsh_id(const Entity& entity)
-  {
-    this->gmsh_id = _functor_factory->get_gmsh_id(entity);
-  }
-
   // -> update grid data
   template <class Entity>
   void update_grid_data(const Entity& entity)
   {
-    _functor_factory->update_grid_data(this->cell_data, entity);
+    _grid_data_context->update_cell_data(entity, this->cell_data, this->cell_mask);
   }
 
 
@@ -446,8 +451,8 @@ private:
   std::vector<Scalar> _values;
   std::vector<Vector> _gradients;
 
-  // grid related functor
-  std::shared_ptr<const FunctorFactory<dim>> _functor_factory;
+  // grid data context class (handling data updates for each entity)
+  std::shared_ptr<const GridDataContext<GV>> _grid_data_context;
 
   auto compartment_index(const Concept::CompartmentLocalBasisTree auto&) const
   {
@@ -499,6 +504,7 @@ private:
 
   void configure(const ParameterTree& config,
                  std::shared_ptr<const FunctorFactory<dim>> functor_factory,
+                 std::shared_ptr<const GridDataContext<GV>> grid_data_context,
                  BitFlags<FactoryFalgs> opts)
   {
 
@@ -507,14 +513,10 @@ private:
     using TensorApplyTag = index_constant<2>;
 
     // configure grid context data
-    _functor_factory = functor_factory;
-
-    const std::unordered_map<std::string, std::function<double*(std::size_t)>>& cell_functor = _functor_factory->get_cell_functor();
-    this->cell_data.reserve( cell_functor.size() );
-
-    for (const auto& node : cell_functor){
-      this->cell_data[node.first] = 0.0;
-    }
+    _grid_data_context = grid_data_context;
+    this->cell_data.resize( _grid_data_context->cell_data_size() );
+    this->cell_mask.resize( _grid_data_context->cell_data_size() );
+    this->keys = _grid_data_context->keys();
 
     // configure functors
     auto make_functor = overload(

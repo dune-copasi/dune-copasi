@@ -41,14 +41,15 @@ enum class LocalOperatorType
 template<PDELab::Concept::Basis TestBasis, class LBT, class ExecutionPolicy = PDELab::Execution::SequencedPolicy>
 class LocalOperatorDiffusionReactionCG
 {
+  using GV = typename TestBasis::EntitySet::GridView;
 
   // utility types
   using DF = typename LBT::DomainFieldType;
   using RF = typename LBT::RangeFieldType;
   static constexpr int dim = LBT::dimDomain;
 
-  using MembraneScalarFunction = typename LocalEquations<dim>::MembraneScalarFunction;
-  using CompartmentNode = typename LocalEquations<dim>::CompartmentNode;
+  using MembraneScalarFunction = typename LocalEquations<GV>::MembraneScalarFunction;
+  using CompartmentNode = typename LocalEquations<GV>::CompartmentNode;
   struct Outflow
   {
     const MembraneScalarFunction& outflow;
@@ -66,8 +67,8 @@ class LocalOperatorDiffusionReactionCG
   bool _has_outflow = true;
 
   PDELab::SharedStash<LocalBasisCache<LBT>> _fe_cache;
-  PDELab::SharedStash<LocalEquations<dim>> _local_values_in;
-  PDELab::SharedStash<LocalEquations<dim>> _local_values_out;
+  PDELab::SharedStash<LocalEquations<GV>> _local_values_in;
+  PDELab::SharedStash<LocalEquations<GV>> _local_values_out;
 
   ExecutionPolicy _execution_policy;
 
@@ -163,6 +164,7 @@ public:
                                    bool is_linear,
                                    const ParameterTree& config,
                                    std::shared_ptr<const FunctorFactory<dim>> functor_factory,
+                                   std::shared_ptr<const GridDataContext<GV>> grid_data_context,
                                    ExecutionPolicy execution_policy = {})
     : _test_basis{ test_basis }
     , _is_linear{ is_linear }
@@ -170,12 +172,13 @@ public:
     , _local_values_in([_lop_type = lop_type,
                      _basis = _test_basis,
                      _config = config,
-                     _functor_factory = functor_factory]() {
-      std::unique_ptr<LocalEquations<dim>> ptr;
+                     _functor_factory = functor_factory,
+                     _grid_data_context = grid_data_context]() {
+      std::unique_ptr<LocalEquations<GV>> ptr;
       if (_lop_type == LocalOperatorType::Mass)
-        ptr = LocalEquations<dim>::make_mass(_basis.localView(), _config, _functor_factory);
+        ptr = LocalEquations<GV>::make_mass(_basis.localView(), _config, _functor_factory, _grid_data_context);
       else if (_lop_type == LocalOperatorType::Stiffness)
-        ptr = LocalEquations<dim>::make_stiffness(_basis.localView(), _config, _functor_factory);
+        ptr = LocalEquations<GV>::make_stiffness(_basis.localView(), _config, _functor_factory, _grid_data_context);
       if (not ptr)
         std::terminate();
       return ptr;
@@ -183,12 +186,13 @@ public:
     , _local_values_out([_lop_type = lop_type,
                          _basis = _test_basis,
                          _config = config,
-                         _functor_factory = std::move(functor_factory)]() {
-      std::unique_ptr<LocalEquations<dim>> ptr;
+                         _functor_factory = std::move(functor_factory),
+                         _grid_data_context = std::move(grid_data_context)]() {
+      std::unique_ptr<LocalEquations<GV>> ptr;
       if (_lop_type == LocalOperatorType::Mass)
-        ptr = LocalEquations<dim>::make_mass(_basis.localView(), _config, _functor_factory);
+        ptr = LocalEquations<GV>::make_mass(_basis.localView(), _config, _functor_factory, _grid_data_context);
       else if (_lop_type == LocalOperatorType::Stiffness)
-        ptr = LocalEquations<dim>::make_stiffness(_basis.localView(), _config, _functor_factory);
+        ptr = LocalEquations<GV>::make_stiffness(_basis.localView(), _config, _functor_factory, _grid_data_context);
       if (not ptr)
         std::terminate();
       return ptr;
@@ -385,8 +389,6 @@ public:
     _local_values_in->entity_volume = geo.volume();
     _local_values_in->in_volume = 1;
 
-    // Call the gridContext to update the gmsh_id
-    _local_values_in->update_gmsh_id(entity);
     // Call the gridContext to update the grid variables
     _local_values_in->update_grid_data(entity);
 
@@ -510,8 +512,6 @@ public:
     _local_values_in->entity_volume = geo.volume();
     _local_values_in->in_volume = 1;
 
-    // Call the gridContext to update the gmsh_id
-    _local_values_in->update_gmsh_id(entity);
     // Call the gridContext to update the grid variables
     _local_values_in->update_grid_data(entity);
 

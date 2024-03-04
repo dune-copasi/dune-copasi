@@ -4,7 +4,7 @@
 // file: diffusion reaction for multi compartment models
 
 #include <dune/copasi/concepts/grid.hh>
-#include <dune/copasi/model/local_equations/functor_factory.hh>
+#include <dune/copasi/model/local_equations/functor_factory_parser.hh>
 #include <dune/copasi/model/model.hh>
 #include <dune/copasi/model/constraints.hh>
 
@@ -54,9 +54,13 @@ public:
   using GridFunction = typename Base::GridFunction;
 
   explicit ModelMultiCompartmentDiffusionReaction(
-    std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory)
-    : _functor_factory{ functor_factory } // ?? std::move(functor_factory) ??
+    const std::shared_ptr<const Grid>& grid,
+    const ParameterTree& config,
+    std::shared_ptr<const ParserContext> parser_context = nullptr)
   {
+    auto parser_type = string2parser.at(config.get("model.parser_type", Dune::Copasi::default_parser_str));
+    _functor_factory = std::make_shared<FunctorFactoryParser<MultiCompartmentEntitySet>>(parser_type, std::move(parser_context));
+    _grid_data_context = std::make_shared<GridDataContext<MultiCompartmentEntitySet>>(config, grid->leafGridView());
     assert(_functor_factory);
   }
 
@@ -88,6 +92,7 @@ private:
 
   mutable std::unordered_map<std::string, std::vector<double>> _writer_timesteps;
   std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> _functor_factory;
+  std::shared_ptr<const GridDataContext<MultiCompartmentEntitySet>> _grid_data_context;
 };
 
 } // namespace Dune::Copasi
