@@ -54,13 +54,13 @@ public:
   using GridFunction = typename Base::GridFunction;
 
   explicit ModelMultiCompartmentDiffusionReaction(
-    const std::shared_ptr<const Grid>& grid,
+    const Grid& grid,
     const ParameterTree& config,
     std::shared_ptr<const ParserContext> parser_context = nullptr)
   {
     auto parser_type = string2parser.at(config.get("model.parser_type", Dune::Copasi::default_parser_str));
     _functor_factory = std::make_shared<FunctorFactoryParser<MultiCompartmentEntitySet>>(parser_type, std::move(parser_context));
-    _grid_data_context = std::make_shared<GridDataContext<MultiCompartmentEntitySet>>(config, grid->leafGridView());
+    _grid_data_context = std::make_shared<GridDataContext<MultiCompartmentEntitySet>>(config, grid.leafGridView());
     assert(_functor_factory);
   }
 

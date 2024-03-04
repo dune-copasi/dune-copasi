@@ -45,7 +45,7 @@ public:
   using GridFunction = typename Base::GridFunction;
 
   explicit ModelDiffusionReaction(
-    const std::shared_ptr<const Grid>& grid,
+    const Grid& grid,
     const ParameterTree& config,
     std::shared_ptr<const ParserContext> parser_context = nullptr )
   {
@@ -53,12 +53,12 @@ public:
     _functor_factory = std::make_shared<FunctorFactoryParser<typename Traits::CompartmentEntitySet>>(parser_type, parser_context);
 
     if constexpr (std::same_as<typename Grid::LeafGridView, CompartmentEntitySet>) {
-      _grid_data_context = std::make_shared<GridDataContext<typename Traits::CompartmentEntitySet>>(config, grid->leafGridView());
+      _grid_data_context = std::make_shared<GridDataContext<typename Traits::CompartmentEntitySet>>(config, grid.leafGridView());
     } else if constexpr (Concept::SubDomainGrid<typename CompartmentEntitySet::Grid>) {
       static_assert(std::same_as<typename Grid::SubDomainGrid::LeafGridView, CompartmentEntitySet>);
-      if(grid->maxSubDomainIndex() != 1)
+      if(grid.maxSubDomainIndex() != 1)
           throw("Number of subdomains is not equal to 1 while trying to create a single compartment model! \n");
-      _grid_data_context = std::make_shared<GridDataContext<typename Traits::CompartmentEntitySet>>(config, grid->subDomain(0).leafGridView());
+      _grid_data_context = std::make_shared<GridDataContext<typename Traits::CompartmentEntitySet>>(config, grid.subDomain(0).leafGridView());
     }
 
     assert(_functor_factory);

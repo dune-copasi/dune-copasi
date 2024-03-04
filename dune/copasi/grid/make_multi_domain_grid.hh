@@ -36,7 +36,7 @@ namespace Dune::Copasi {
  * @return std::unique_ptr<MDGrid>  Pointer to the resulting grid
  */
 template<Concept::MultiDomainGrid MDGrid>
-std::shared_ptr<MDGrid>
+std::unique_ptr<MDGrid>
 make_multi_domain_grid(Dune::ParameterTree& config,
                        std::shared_ptr<const ParserContext> parser_context = {})
 {
@@ -54,7 +54,7 @@ make_multi_domain_grid(Dune::ParameterTree& config,
   auto& compartments_config = config.sub("compartments");
 
   std::shared_ptr<HostGrid> host_grid_ptr;
-  std::shared_ptr<MDGrid> md_grid_ptr;
+  std::unique_ptr<MDGrid> md_grid_ptr;
 
   std::vector<std::pair<std::string,std::function<bool(const HostEntity&)>>> compartments;
 

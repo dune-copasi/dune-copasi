@@ -289,10 +289,7 @@ main(int argc, char** argv)
         using DurationQuantity = double;
         using Model = Model<MDGrid, SDGridView, SpeciesQuantity, TimeQuantity>;
 
-        //auto parser_type = string2parser.at(config.get("model.parser_type", default_parser_str));
-        //auto functor_factory = std::make_shared<FunctorFactoryParser<SDGridView>>(parser_type, std::move(parser_context));
-        std::shared_ptr model = make_model<Model>(md_grid_ptr, config, std::move(parser_context));
-
+        std::shared_ptr model = make_model<Model>(*md_grid_ptr, config, std::move(parser_context));
 
         // create time stepper
         const auto& time_config = model_config.sub("time_step_operator");

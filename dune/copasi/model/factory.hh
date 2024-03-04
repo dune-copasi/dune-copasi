@@ -47,7 +47,7 @@ template<class Model>
            Concept::SubDomainGrid<typename Model::GridView::Grid>
 std::unique_ptr<Model>
 make_model(
-  std::shared_ptr<typename Model::Grid> md_grid_ptr,
+  const typename Model::Grid& md_grid,
   const ParameterTree& config,
   std::shared_ptr<ParserContext> parser_context  )
 {
@@ -91,10 +91,10 @@ make_model(
       [&](auto fem_order) {
         if (field_blocked) {
           model = std::make_unique<
-            ModelDiffusionReaction<Impl::SingleCompartmentTraits<Model, fem_order, true> > >(md_grid_ptr, config, std::move(parser_context));
+            ModelDiffusionReaction<Impl::SingleCompartmentTraits<Model, fem_order, true> > >(md_grid, config, std::move(parser_context));
         } else {
           model = std::make_unique<
-            ModelDiffusionReaction<Impl::SingleCompartmentTraits<Model, fem_order, false> > >(md_grid_ptr, config, std::move(parser_context));
+            ModelDiffusionReaction<Impl::SingleCompartmentTraits<Model, fem_order, false> > >(md_grid, config, std::move(parser_context));
         }
       },
       not_know_order );
@@ -107,18 +107,18 @@ make_model(
         if (compartments_blocked) {
           if (field_blocked) {
             model = std::make_unique<ModelMultiCompartmentDiffusionReaction<
-              Impl::MultiCompartmentTraits<Model, fem_order, true, true>>>(md_grid_ptr, config, std::move(parser_context));
+              Impl::MultiCompartmentTraits<Model, fem_order, true, true>>>(md_grid, config, std::move(parser_context));
           } else {
             model = std::make_unique<ModelMultiCompartmentDiffusionReaction<
-              Impl::MultiCompartmentTraits<Model, fem_order, false, true>>>(md_grid_ptr, config, std::move(parser_context));
+              Impl::MultiCompartmentTraits<Model, fem_order, false, true>>>(md_grid, config, std::move(parser_context));
           }
         } else {
           if (field_blocked) {
             model = std::make_unique<ModelMultiCompartmentDiffusionReaction<
-              Impl::MultiCompartmentTraits<Model, fem_order, true, false>>>(md_grid_ptr, config, std::move(parser_context));
+              Impl::MultiCompartmentTraits<Model, fem_order, true, false>>>(md_grid, config, std::move(parser_context));
           } else {
             model = std::make_unique<ModelMultiCompartmentDiffusionReaction<
-              Impl::MultiCompartmentTraits<Model, fem_order, false, false>>>(md_grid_ptr, config, std::move(parser_context));
+              Impl::MultiCompartmentTraits<Model, fem_order, false, false>>>(md_grid, config, std::move(parser_context));
           }
         }
       } ,

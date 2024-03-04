@@ -92,7 +92,7 @@ private:
 
     // reserve the data needed to store the griddata
     // --> Every element can contain griddata for every key
-    // --> Fixed look up table adresses providing (potentially) highest performance
+    // --> Fixed look up table addresses providing (potentially) highest performance
     // --> First spot is always reserved for the gmsh_id (notice +1)
     _cell_data.reserve(griddata_config.getSubKeys().size() + 1 );
 
@@ -133,9 +133,6 @@ private:
     }();
 
     auto grid_path = grid_config.template get<std::string>("path");
-
-    //auto grid_factory = Dune::GridFactory<Grid>{};
-    //auto grid_parser = Dune::GmshReaderParser<Grid>{ grid_factory, false, false };
 
     grid_parser.read(grid_path);
     auto& gmsh_physical_entity = grid_parser.elementIndexMap();
