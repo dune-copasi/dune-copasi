@@ -699,6 +699,11 @@ public:
     _local_values_in->in_boundary = _local_values_out->in_boundary = static_cast<double>(not intersection.neighbor());
     _local_values_in->in_skeleton = _local_values_out->in_skeleton = static_cast<double>(intersection.neighbor());
 
+    // Call the gridContext to update the grid variables (of inside entity)
+    _local_values_in->update_grid_data(entity_i);
+    // Call the gridContext to update the grid variables (of outside entity)
+    _local_values_out->update_grid_data(entity_o);
+
     _outflow_i.clear();
     _outflow_o.clear();
 
@@ -890,6 +895,11 @@ public:
     _local_values_in->entity_volume = _local_values_out->entity_volume = geo_f.volume();
     _local_values_in->in_boundary = _local_values_out->in_boundary = static_cast<double>(not intersection.neighbor());
     _local_values_in->in_skeleton = _local_values_out->in_skeleton = static_cast<double>(intersection.neighbor());
+
+    // Call the gridContext to update the grid variables (of inside entity)
+    _local_values_in->update_grid_data(entity_i);
+    // Call the gridContext to update the grid variables (of outside entity)
+    _local_values_out->update_grid_data(entity_o);
 
     _outflow_i.clear();
     _outflow_o.clear();
