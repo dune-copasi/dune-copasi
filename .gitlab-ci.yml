@@ -237,8 +237,8 @@ deploy_wasam:debian_emscripten:
   script:
     - |
       VERSION=$(./util/version_handler.py)
-      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file $CI_PROJECT_DIR/packages/dune-copasi.js "${PACKAGE_REGISTRY}/${VERSION}/dune-copasi.wasm"
-      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file $CI_PROJECT_DIR/packages/dune-copasi.wasm "${PACKAGE_REGISTRY}/${VERSION}/dune-copasi.js"
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file $CI_PROJECT_DIR/packages/dune-copasi.js "${PACKAGE_REGISTRY}/${VERSION}/dune-copasi.js"
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file $CI_PROJECT_DIR/packages/dune-copasi.wasm "${PACKAGE_REGISTRY}/${VERSION}/dune-copasi.wasm"
   dependencies:
     - build_wasm:debian_emscripten
   rules:
