@@ -4,6 +4,11 @@ __pycache__/
 *$py.class
 
 build-cmake/
+build-em/*
+!build-em/.gitkeep
+dist/
+dune-copasi.js
+dune-copasi.wasm
 
 python/dune/copasi/cli/cmake_variables.py
 
@@ -23,4 +28,12 @@ doc/docusaurus/npm-debug.log*
 doc/docusaurus/yarn-debug.log*
 doc/docusaurus/yarn-error.log*
 
+# editor files
+*.swo
+*.swp
+
 test/build/
+
+# editor files
+*.swo
+*.swp

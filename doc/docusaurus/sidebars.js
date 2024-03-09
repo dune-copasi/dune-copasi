@@ -26,6 +26,10 @@ module.exports = {
         'output',
         'api',
       ]
+    },
+    {
+      type: "doc",
+      id: "try"
     }
   ],
 };

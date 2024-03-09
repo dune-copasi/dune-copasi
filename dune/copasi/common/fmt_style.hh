@@ -5,7 +5,7 @@
 
 #include <fmt/color.h>
 
-#if FMT_VERSION >= 90000
+#if FMT_VERSION >= 90000 && !DUNE_COPASI_DISABLE_FMT_STYLE
 #define DUNE_COPASI_FMT_STYLED_BOLD(key) fmt::styled(key, fmt::emphasis::bold)
 #define DUNE_COPASI_FMT_STYLED_ITALIC(key) fmt::styled(key, fmt::emphasis::italic)
 #define DUNE_COPASI_FMT_STYLED_DARK_GRAY(key) fmt::styled(key, fmt::fg(fmt::color::dark_gray))
