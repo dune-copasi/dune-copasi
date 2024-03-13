@@ -30,12 +30,18 @@ option(DUNE_COPASI_WITH_EXECUTABLE "Build dune-copasi executable" ON)
 
 if (${DUNE_COPASI_WITH_EXECUTABLE})
 
+  include(FetchContent)
+
+  FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
+  FetchContent_MakeAvailable(json)
+
   add_executable(dune-copasi-exec)
   add_executable(Dune::Copasi::Executable ALIAS dune-copasi-exec)
   target_sources(dune-copasi-exec PRIVATE dune_copasi.cc)
   target_link_libraries(dune-copasi-exec
     PRIVATE
       Dune::Copasi
+      nlohmann_json::nlohmann_json
   )
 
   string(JOIN "," comp_def_dims ${DUNE_COPASI_GRID_DIMENSIONS})
@@ -61,23 +67,11 @@ if (${DUNE_COPASI_WITH_EXECUTABLE})
     COMPONENT Runtime
     OPTIONAL)
 
-  # generate configuration file options out of file descriptors in the "options/" folder
-  file(GLOB opt_files CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/options/*")
-  set(opt_header "static const std::vector<std::array<std::string, 4>> config_file_opts = \{\n")
-  foreach(opt_file ${opt_files})
-    file(STRINGS ${opt_file} opt_content)
-    # the file name is the key name
-    get_filename_component(opt ${opt_file} NAME)
-    # first line is the type of the option
-    list(POP_FRONT opt_content opt_type)
-    # second line is short description
-    list(POP_FRONT opt_content opt_short_doc)
-    # the rest is its description
-    string(JOIN "\\n" opt_content ${opt_content})
-    # append to header
-    set(opt_header "${opt_header}  \{\"${opt}\", \"${opt_type}\", \"${opt_short_doc}\", \"${opt_content}\" \},\n")
-  endforeach()
+  file(READ "${CMAKE_CURRENT_SOURCE_DIR}/config_opts.json" CONFIGURE_OPTIONS_JSON)
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/config_opts.json")
+  configure_file("config_opts.hh.in" "${PROJECT_BINARY_DIR}/config_opts.hh")
 
-  set(opt_header "${opt_header} \}\;\n")
-  file(WRITE "${PROJECT_BINARY_DIR}/dune-copasi-config-file-options.hh" ${opt_header})
+  target_include_directories(dune-copasi-exec PRIVATE
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/config_opts.hh>
+  )
 endif()

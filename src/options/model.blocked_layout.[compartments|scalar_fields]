@@ -1,4 +1,0 @@
-<bool>
-Control data layout of the matrices and vectors. Note that this affects the allowed solvers.
-To visualize the resulting layout of a matrix use the
-'model.time_step_operator.linear_solver.layout.writer.svg.path' option.

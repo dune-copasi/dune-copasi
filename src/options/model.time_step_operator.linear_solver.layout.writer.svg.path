@@ -1,3 +1,0 @@
-<string>
-Path to write SVG pattern of the matrix
-This option can only be used together with 'matrix_free=false'.

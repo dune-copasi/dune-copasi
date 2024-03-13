@@ -42,12 +42,10 @@
 #include <fmt/core.h>
 #include <fmt/ranges.h>
 
-// Generated options for the done-copasi configuration ini-file
-#if __has_include("dune-copasi-config-file-options.hh")
-#include "dune-copasi-config-file-options.hh"
-#else
-static const std::vector<std::array<std::string, 4>> config_file_opts;
-#endif
+#include <nlohmann/json.hpp>
+
+// includes a string with json contents generated a configuration time 
+#include "config_opts.hh"
 
 #include <algorithm>
 #include <array>
@@ -65,6 +63,72 @@ static const std::vector<std::array<std::string, 4>> config_file_opts;
 #include <utility>
 #include <vector>
 
+void collapse_subtypes(const auto& json, std::set<std::string_view>& set) {
+  if (json.contains(".type"))
+    set.insert(json.at(".type").template get<std::string_view>());
+  if (json.contains(".options")) {
+    for (auto& [key, values] : json.at(".options").items())
+      collapse_subtypes(values, set);
+  }
+}
+
+void print_config_node(const auto& config_node, unsigned verbosity, unsigned indent_level) {
+  auto& [key, json] = config_node;
+  std::string indent(indent_level * 2, ' ');
+  fmt::print("{}{}", indent, DUNE_COPASI_FMT_STYLED_BOLD(key));
+  std::set<std::string_view> type_set;
+  collapse_subtypes(json, type_set);
+  if (not type_set.empty()) {
+    std::string types_str = fmt::format("{}", fmt::join(type_set, "|"));
+    fmt::print("={}\n", fmt::format("<{}>",DUNE_COPASI_FMT_STYLED_ITALIC(types_str)));
+  }
+  else
+    fmt::print("\n");
+
+  indent += "    ";
+  if (json.contains(".brief"))
+    fmt::print("{}{}\n", indent, DUNE_COPASI_FMT_STYLED_DARK_GRAY(json.at(".brief").template get<std::string_view>()));
+  if (json.contains(".default"))
+    fmt::print("{}{}{}\n", indent, DUNE_COPASI_FMT_STYLED_ITALIC("Default: "), DUNE_COPASI_FMT_STYLED_ITALIC(json.at(".default").template get<std::string_view>()));
+
+
+  if (verbosity == 0)
+    return;
+  
+  indent += "  ";
+  if (json.contains(".details")) {
+    fmt::print("\n");
+    for (auto& details_j : json.at(".details")) {
+      auto details = details_j.template get<std::string_view>();
+      if (indent.size() >= 120)
+        throw Dune::Copasi::format_exception(Dune::IOError{}, "Maximum indentation reached!");
+      std::size_t max_width = 120u - indent.size();
+      std::size_t l = 0;
+      // find lines to print
+      while (l < details.size()) {
+        // split lines by max text width
+        auto line = details.substr(l, max_width);
+        // split lines by new lines
+        line = line.substr(0, line.find('\n'));
+        // break last word into the next line
+        if (line.size() == max_width and not line.ends_with(' ') and
+            not details.substr(l + line.size()).starts_with(' ') and
+            line.rfind(' ') != line.find(' '))
+          line = line.substr(0, line.rfind(' '));
+        l += line.size();
+        // trim spaces
+        line.remove_prefix(std::min(line.find_first_not_of(' '), line.size()));
+        fmt::print("{}{}\n", indent, DUNE_COPASI_FMT_STYLED_DARK_GRAY(line));
+      }
+    }
+    fmt::print("\n");
+  }
+
+  if (json.contains(".options")) {
+    for (auto& node : json.at(".options").items())
+      print_config_node(node, std::max(verbosity,1u) - 1, indent.size() / 2);
+  }
+}
 
 void
 program_help(std::string_view prog_name, bool long_help)
@@ -85,22 +149,13 @@ program_help(std::string_view prog_name, bool long_help)
     "  --{{key}}={{value}}      - Overrides key=value sections of the config file. See Configuration Options.\n\n",
     prog_name);
 
-  if (not config_file_opts.empty()) {
+  auto data = nlohmann::json::parse(config_opts_json);
+  if (not data.empty()) {
     fmt::print("Configuration Options:\n\n");
-    for (auto [key, type, short_doc, long_doc] : config_file_opts) {
-      auto key_stg = "--" + key;
-      fmt::print("  {}={}\n     {}\n",
-        DUNE_COPASI_FMT_STYLED_BOLD(key),
-        DUNE_COPASI_FMT_STYLED_ITALIC(type),
-        DUNE_COPASI_FMT_STYLED_DARK_GRAY(short_doc));
-      if (long_help and not long_doc.empty()) {
-        std::istringstream iss(long_doc);
-        for (std::string line; std::getline(iss, line);) {
-          fmt::print("       {}\n", DUNE_COPASI_FMT_STYLED_DARK_GRAY(line));
-        }
-      }
-    }
+    for(auto& node : data.items())
+      print_config_node(node, long_help ? 1000 : 0, 1);
   }
+
   std::cout << std::endl;
   if (long_help) {
     fmt::print(

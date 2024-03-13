@@ -1,7 +1,0 @@
-<float>
-Time-step settings of the simulation. Default: {0.1, 0.5, 1.1, <empty>, <empty>}
-* 'time_step_initial':         Initial time step when starting the simulation
-* 'time_step_increase_factor': In case of time-step success, the subsequent time-step will be increased by this factor
-* 'time_step_decrease_factor': In case of time-step failure, the subsequent time-step will be decreased by this factor
-* 'time_step_max':             Maximum time-step that the simulation is allowed to make
-* 'time_step_min':             Minimum time-step that the simulation is allowed to make

@@ -1,2 +1,0 @@
-<double|integer-pair>
-Convergence condition options for the non-linear solver. Default: {1e-4, <empty>, {1, 40}}

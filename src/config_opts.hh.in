@@ -1,0 +1,1 @@
+const char* config_opts_json = R"(@CONFIGURE_OPTIONS_JSON@)";

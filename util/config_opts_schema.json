@@ -1,0 +1,54 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "patternProperties": {
+        "^\\S+$": {
+            "type": "object",
+            "properties": {
+                ".type": {
+                    "enum": [
+                        "float",
+                        "float-list",
+                        "float-pair",
+                        "integer",
+                        "integer-list",
+                        "integer-pair",
+                        "string",
+                        "string-list",
+                        "enum",
+                        "bool",
+                        "math-expr",
+                        "function-expr",
+                        "path"
+                    ]
+                },
+                ".brief": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 120
+                },
+                ".details": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    ]
+                },
+                ".default": {
+                    "type": "string"
+                },
+                ".options": {
+                    "$ref": "#"
+                }
+            },
+            "additionalProperties": false
+        }
+    },
+    "additionalProperties": false
+}

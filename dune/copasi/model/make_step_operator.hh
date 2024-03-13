@@ -149,7 +149,7 @@ public:
     auto scalar_product_op = std::make_shared<Dune::ScalarProduct<Range>>();
     auto verbosity = _config.template get<int>("verbosity", 0);
     auto it_range =
-      _config.get("convergence_condition.iteration_range", std::array<std::size_t, 2>{ 0, 40 });
+      _config.get("convergence_condition.iteration_range", std::array<std::size_t, 2>{ 1, 500 });
 
     auto [min_iterations, max_iterations] = it_range;
 

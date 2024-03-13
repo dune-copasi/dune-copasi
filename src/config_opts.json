@@ -1,0 +1,659 @@
+{
+  "compartments.{cmp}.[expression|parser_type]": {
+    ".brief": "Compartment definition with name '{cmp}' as a sub-domain of the grid",
+    ".details": [
+      "Compartments represent one sub-domain within the grid where the model scalar fields have support.",
+      "There must be at least one non-empty compartment."
+    ],
+    ".options": {
+      "expression": {
+        ".type": "math-expr",
+        ".brief": "Expression that defines a compartment in terms of a function evaluated on grid elements",
+        ".details": [
+          "If the expression evaluates to a value different than zero in the center of a grid entity,",
+          "such entity is assigned to the compartment '{cmp}'. For example, an the expression",
+          "'compartments.top.expression=\"position_y > 0.5\"' defines a compartment '{cmp}' with",
+          "name 'top' that is only defined for the top half of an squared grid.",
+          "If the grid was read from a gmsh file (i.e., 'grid.path=path/to/gmsh/file'), the parser",
+          "will additionally know the 'gmsh_id' for each of entity. For example, an expression of the form",
+          "'compartments.gmsh_domain.expression = (gmsh_id == 2)' will be a compartment with name",
+          "'gmsh_domain' with entities that have a gmsh id equal to '2'."
+        ]
+      },
+      "parser_type": {
+        ".type": "enum",
+        ".brief": "Parser type of the compartment expression"
+      }
+    }
+  },
+  "grid.[dimension|path|cells|extensions|origin|refinement_level|axis_names]": {
+    ".brief": "Parameters to read or define a grid",
+    ".details": [
+      "Reads or defines a grid. If a file is not provided with the 'path' option, an",
+      "structured grid will be automatically generated with a given 'origin', 'extensions', and 'cells'."
+    ],
+    ".options": {
+      "dimension": {
+        ".type": "integer",
+        ".brief": "Dimension of the simulation",
+        ".default": "<deduced from 'grid.extensions' if define, otherwise 2>"
+      },
+      "path": {
+        ".type": "path",
+        ".brief": "Path to a Gmsh file containing a grid"
+      },
+      "cells": {
+        ".type": "integer-list",
+        ".brief": "Numbers of cells per dimension direction",
+        ".default": "<one-per-dimension (e.g., '1 1 1' in 3D)>",
+        ".details": "This option can only be used if no 'grid.path=/path/to/grid' was given"
+      },
+      "extensions": {
+        ".type": "float-list",
+        ".brief": "Extensions of an squared domain",
+        ".default": "1 1",
+        ".details": "This option can only be used if no 'grid.path=/path/to/grid' was given"
+      },
+      "origin": {
+        ".type": "float-list",
+        ".brief": "Position of the origin of an squared domain",
+        ".default": "<caresian-origin (e.g., '0. 0. 0.' in 3D)>",
+        ".details": "This option can only be used if no 'grid.path=/path/to/grid' was given"
+      },
+      "refinement_level": {
+        ".type": "integer",
+        ".brief": "Number of global refinements to make to the initial grid",
+        ".default": "0"
+      },
+      "axis_names": {
+        ".type": "string-list",
+        ".brief": "Names given to the axis of the grid",
+        ".default": "\"x, y, z\"",
+        ".details": [
+          "These names are used to identify the cartesian components of several parameters in the",
+          "program (e.g. 'position_x', 'model.scalar_field.{var}.velocity.z.initial.expression', etc).",
+          "Through the rest of the documentation, they are assumed to be the default ones."
+        ]
+      }
+    }
+  },
+  "model.[order|is_linear|parser_type]": {
+    ".brief": "General options of the model",
+    ".options": {
+      "is_linear": {
+        ".type": "bool",
+        ".brief": "Whether the problem is linear",
+        ".default": "false"
+      },
+      "order": {
+        ".type": "integer",
+        ".brief": "Polynomail order of the finite elements",
+        ".default": "1"
+      },
+      "parser_type": {
+        ".type": "enum",
+        ".brief": "Default underlying parser for dune-copasi models",
+        ".details": "Whenever a 'model.*' option doesn't define its own parser, this one is selected",
+        ".default": "<see '--parser-default' option>"
+      }
+    }
+  },
+  "model.assembly.[type|partition.type|partition.patches|partition.coloring]": {
+    ".brief": "Options for the execution policy on the assembly of residuals and jacobians",
+    ".options": {
+      "type": {
+        ".type": "enum",
+        ".brief": "Type of execution policy",
+        ".default": "'concurrent'",
+        ".options": {
+          "'sequential'": {
+            ".brief": "The assembly of residuals/jacobians is sequenced one after the other"
+          },
+          "'concurrent'": {
+            ".brief": "The assembly of residuals/jacobians is made concurrently"
+          }
+        }
+      },
+      "partition.type": {
+        ".type": "enum",
+        ".brief": "Type of partition of the grid entities. Only used if 'model.assembly.partition.type=concurrent'",
+        ".default": "<'METIS' if found, otherwise 'Simple'>",
+        ".options": {
+          "'METIS'": {
+            ".brief": "Partition the grid patches using METIS library"
+          },
+          "'Simple'": {
+            ".brief": "Partition the grid patches by naively splitting the grid iterator"
+          }
+        }
+      },
+      "partition.patches": {
+        ".type": "integer",
+        ".brief": "Number of patches to partition the grid",
+        ".default": "<cells / 40>"
+      },
+      "partition.coloring": {
+        ".type": "enum",
+        ".brief": "Whether to use a coloring for a synchronization free assembly",
+        ".default": "'None'",
+        ".options": {
+          "'None'": {
+            ".brief": "No Coloring and use local basis lock to sincronize accumulation to residuals/jacobians"
+          },
+          "'DSatur'": {
+            ".brief": "Use DSatur algorithm to find patches free of synchronization requirements"
+          }
+        }
+      }
+    }
+  },
+  "model.blocked_layout.[compartments|scalar_fields]": {
+    ".type": "bool",
+    ".brief": "Control data layout of the matrices and vectors. Note that this affects the allowed solvers",
+    ".details": "To visualize the resulting layout of a matrix use the 'model.time_step_operator.linear_solver.layout.writer.svg.path' option."
+  },
+  "model.scalar_field.{var}.[reaction|storage|velocity.[x|y|z]|outflow.{cmp}].jacobian.{wrt}.[expression|parser_type]": {
+    ".brief": "Expression options for the jacobian wrt variable '{wrt}' of the scalar field equation in variable '{var}'",
+    ".options": {
+      "expression": {
+        ".type": "math-expr"
+      },
+      "parser_type": {
+        ".type": "enum",
+        ".default": "<see '--parser-default' option>"
+      }
+    }
+  },
+  "model.scalar_field.{var}.[reaction|storage|velocity.[x|y|z]|outflow.{cmp}|initial].[expression|parser_type]": {
+    ".brief": "Expression options for the scalar field equation in variable '{var}'",
+    ".options": {
+      "reaction.expression": {
+        ".type": "math-expr",
+        ".brief": "Math expression for the reaction part for equation on variable '{var}'"
+      },
+      "storage.expression": {
+        ".type": "math-expr",
+        ".brief": "Math expression for the storage part on the temporal derivative for equation on variable '{var}'"
+      },
+      "velocity.[x|y|z].expression": {
+        ".type": "math-expr",
+        ".brief": "Math expression for the convection part for equation on variable '{var}'"
+      },
+      "outflow.{cmp}.expression": {
+        ".type": "math-expr",
+        ".brief": "Math expression for the outflow condition w.r.t compartment '{cmp}' for equation on variable '{var}'"
+      },
+      "initial.expression": {
+        ".type": "math-expr",
+        ".brief": "Math expression for the initial condition for equation on variable '{var}'"
+      },
+      "[reaction|storage|velocity.[x|y|z]|outflow.{cmp}|initial].parser_type": {
+        ".type": "enum",
+        ".default": "<see '--parser-default' option>"
+      }
+    }
+  },
+  "model.scalar_field.{var}.compartment": {
+    ".type": "string",
+    ".brief": "Compartment name '{cmp}' where the scalar field '{var}' is has support"
+  },
+  "model.scalar_field.{var}.constrain.[boundary|skeleton|volume].[expression|parser_type]": {
+    ".brief": "Constraints expressions for '{var}' on 'boundary', 'skeleton' and 'volume' degrees of freedom",
+    ".details": [
+      "When the expression evaluates to 'no_value' the degree of freedom will be left unconstrained",
+      "and left to be solved. Otherwise, the resulting value on the expression will be set as a constrain",
+      "and the degree of freedom won't be modified when the system is solved. When this option not set,",
+      "the all the degrees of freedom for '{var}' will automatically be unconstrained. The 'boundary'",
+      "degrees of freedom refer to the coefficients bound to the boundary of the entire grid  (i.e., not",
+      "necessarily the compartment boundary). Warning: Time dependent constraints are currently unsupported."
+    ],
+    ".options": {
+      "expression": {
+        ".type": "math-expr"
+      },
+      "parser_type": {
+        ".type": "enum",
+        ".default": "<see '--parser-default' option>"
+      }
+    }
+  },
+  "model.scalar_field.{var}.cross_diffusion.{dwrt}.jacobian.type": {
+    ".type": "enum",
+    ".brief": "Selects the kind of cross diffusion jacobian of the variable '{drwt}' diffusing into variable '{var}'",
+    ".default": "'scalar'",
+    ".options": {
+      "'scalar'": {
+        ".details": "The cross diffusion jacobian is an scalar and it must be set with the 'model.scalar_field.{var}.cross_diffusion.{dwrt}.jacobian.{wrt}.[expression|parser_type]' options."
+      },
+      "'tensor'": {
+        ".details": "The cross diffusion jacobian is a tensor and it must be set with the 'model.scalar_field.{var}.cross_diffusion.{dwrt}.jacobian.[xx|xy|xz|yx|yy|yz|zx|zy|zz].{wrt}.[expression|parser_type]' options where each sub-section 'xx|xy|xz|yx|yy|yz|zx|zy|zz' has its own 'expression' and 'parser_type' definition."
+      }
+    }
+  },
+  "model.scalar_field.{var}.cross_diffusion.{dwrt}.jacobian[.xx|.xy|.xz|.yx|.yy|.yz|.zx|.zy|.zz].{wrt}.[expression|parser_type]": {
+    ".brief": "Options for the cross diffusion jacobian wrt variable '{wrt}' of the variable '{drwt}' diffusing into variable '{var}'",
+    ".options": {
+      "expression": {
+        ".type": "math-expr"
+      },
+      "parser_type": {
+        ".type": "enum",
+        ".default": "<see '--parser-default' option>"
+      }
+    }
+  },
+  "model.scalar_field.{var}.cross_diffusion.{dwrt}.type": {
+    ".type": "enum",
+    ".brief": "Selects the kind of cross diffusion of the variable '{drwt}' diffusing into variable '{var}'",
+    ".default": "'scalar'",
+    ".options": {
+      "'scalar'": {
+        ".details": "The cross diffusion is an scalar and it must be set with the 'model.scalar_field.{var}.cross_diffusion.{dwrt}.[expression|parser_type]' options."
+      },
+      "'tensor'": {
+        ".details": "The cross diffusion is a tensor and it must be set with the 'model.scalar_field.{var}.cross_diffusion.{dwrt}.[xx|xy|xz|yx|yy|yz|zx|zy|zz].[expression|parser_type]' options where each sub-section 'xx|xy|xz|yx|yy|yz|zx|zy|zz' has its own 'expression' and 'parser_type' definition."
+      }
+    }
+  },
+  "model.scalar_field.{var}.cross_diffusion.{dwrt}[.xx|.xy|.xz|.yx|.yy|.yz|.zx|.zy|.zz].[expression|parser_type]": {
+    ".brief": "Expression options for the cross diffusion of the variable '{drwt}' diffusing into variable '{var}'",
+    ".options": {
+      "expression": {
+        ".type": "math-expr"
+      },
+      "parser_type": {
+        ".type": "enum",
+        ".default": "<see '--parser-default' option>"
+      }
+    }
+  },
+  "model.time_step_operator.linear_solver.[type|verbosity|matrix_free|restart]": {
+    ".brief": "Options of the linear solver",
+    ".options": {
+      "type": {
+        ".type": "enum",
+        ".brief": "Type of the linear solver",
+        ".default": "<first found from 'UMFPack', 'SuperLU', and 'BiCGSTAB'>",
+        ".options": {
+          "'RestartedGMRes'": {},
+          "'CG'": {},
+          "'BiCGSTAB'": {},
+          "'UMFPack'": {},
+          "'SuperLU'": {}
+        }
+      },
+      "restart": {
+        ".type": "integer",
+        ".brief": "Number of iterations before the Gram-Schmidt orthognialization is restarted",
+        ".details": "This option can only be used together with 'type=RestartedGMRes'"
+      },
+      "matrix_free": {
+        ".type": "bool",
+        ".brief": "Whether to perform computations with matrix-free methods in the linear solver",
+        ".default": "false",
+        ".details": [
+          "In general, the matrix-free version will require less memory but will take more",
+          "computation time to calculate the jacobian application. Additionally,",
+          "it is not compatible with direct solvers."
+        ]
+      }
+    }
+  },
+  "model.time_step_operator.linear_solver.convergence_condition.[relative_tolerance|iteration_range]": {
+    ".brief": "Convergence condition options for the linear solver",
+    ".options": {
+      "relative_tolerance": {
+        ".type": "float",
+        ".brief": "Minimum relative tolerance (defect₀/defectᵢ) to accept convergence",
+        ".default": "1e-4"
+      },
+      "iteration_range": {
+        ".type": "integer-pair",
+        ".brief": "Iteration range [min_it, max_it] allowed to assert convergence",
+        ".default": "\"1, 500\""
+      }
+    }
+  },
+  "model.time_step_operator.linear_solver.layout.writer.svg.path": {
+    ".type": "path",
+    ".brief": "Path to write SVG pattern of the matrix",
+    ".details": "This option can only be used together with 'matrix_free=false'"
+  },
+  "model.time_step_operator.nonlinear_solver.[norm|linearization_threshold|dx_inverse_fixed_tolerance|dx_inverse_min_relative_tolerance]": {
+    ".brief": "Options of the non-linear solver",
+    ".options": {
+      "norm": {
+        ".type": "enum",
+        ".brief": "Type of norm to evaluate the resuldual",
+        ".default": "'l_2'",
+        ".options": {
+          "'l_2'": {},
+          "'l_inf'": {},
+          "'l_1'": {}
+        }
+      },
+      "linearization_threshold": {
+        ".type": "float",
+        ".brief": "Threshold to trigger linearization of the jacobian",
+        ".default": "0.0",
+        ".details": "Whenever the defect rate (defectᵢ/defectᵢ₋₁) between iterations is lower than this threshold, the system is linearized at a new linearization once again. Notice that the default behavior linearizes on every newton iteration."
+      },
+      "dx_inverse_fixed_tolerance": {
+        ".type": "bool",
+        ".brief": "Whether jacobian inverse relative reduction is fixed between newton iterations",
+        ".default": "false",
+        ".details": "The newton method may have a better guess for a relative reduction for the jacobian inverse correction at each iteration. If this is set to 'false', the newton application will modify the 'convergence_condition.relative_tolerance' on the jacobian inverse solver property before each iteration of the newton method"
+      },
+      "dx_inverse_min_relative_tolerance": {
+        ".type": "float",
+        ".brief": "Minimum relative reduction of the jacobian inverse solver",
+        ".default": "0.1"
+      }
+    }
+  },
+  "model.time_step_operator.nonlinear_solver.convergence_condition.[relative_tolerance|absolute_tolerance|iteration_range]": {
+    ".brief": "Convergence condition options for the non-linear solver",
+    ".options": {
+      "relative_tolerance": {
+        ".type": "float",
+        ".brief": "Minimum relative tolerance (defect₀/defectᵢ) to accept convergence",
+        ".default": "1e-8"
+      },
+      "absolute_tolerance": {
+        ".type": "float",
+        ".brief": "Minimum absolute tolerance (defectᵢ) to accept convergence",
+        ".details": [
+          "Note that the absence of an absolute tolerance might be hurtful for convergence",
+          "since good initial guesses will have very hard time to converge with the relative tolerance"
+        ]
+      },
+      "iteration_range": {
+        ".type": "integer-pair",
+        ".brief": "Iteration range [min_it, max_it] allowed to assert convergence",
+        ".default": "\"0, 45\""
+      }
+    }
+  },
+  "model.time_step_operator.time_[begin|end]": {
+    ".type": "float",
+    ".brief": "Initial and final time the simulation",
+    ".options": {
+      "time_begin": {
+        ".default": "0."
+      },
+      "time_end": {
+        ".default": "1."
+      }
+    }
+  },
+  "model.time_step_operator.time_step_[initial|increase_factor|decrease_factor|max|min]": {
+    ".brief": "Time-step settings of the simulation",
+    ".options": {
+      "time_step_initial": {
+        ".type": "float",
+        ".brief": "Initial time step when starting the simulation",
+        ".default": "0.1"
+      },
+      "time_step_increase_factor": {
+        ".type": "float",
+        ".brief": "In case of time-step success, the subsequent time-step will be increased by this factor",
+        ".default": "0.5"
+      },
+      "time_step_decrease_factor": {
+        ".type": "float",
+        ".brief": "In case of time-step failure, the subsequent time-step will be decreased by this factor",
+        ".default": "1.1"
+      },
+      "time_step_max": {
+        ".type": "float",
+        ".brief": "Maximum time-step that the simulation is allowed to make"
+      },
+      "time_step_min": {
+        ".type": "float",
+        ".brief": "Minimum time-step that the simulation is allowed to make"
+      }
+    }
+  },
+  "model.time_step_operator.type": {
+    ".type": "enum",
+    ".brief": "Type of the time-stepping scheme for the operator",
+    ".default": "'Alexander2'",
+    ".options": {
+      "'ExplicitEuler'": {},
+      "'ImplicitEuler'": {},
+      "'Heun'": {},
+      "'Shu3'": {},
+      "'RungeKutta4'": {},
+      "'Alexander2'": {},
+      "'Alexander3'": {},
+      "'FractionalStepTheta'": {}
+    }
+  },
+  "model.transform_reduce.{key}.[evaluation|reduction|transformation|error|warn].[expression|parser_type]": {
+    ".brief": "Define an evaluation/reduction/transformation algorithm on grid functions",
+    ".details": [
+      "The token '{key}' defines the context for a generic reduction algorithm over grid functions.",
+      "In general, this allows to evaluate a pointwise function over the whole grid",
+      "```",
+      "   # set initial value from options",
+      "   value := initial.value",
+      "   for entity in grid:",
+      "     for [pos, weight] in quadrature(entity):",
+      "       # contextual evaluation to the current quadrature position",
+      "       quad_eval := evaluation.expression() ",
+      "       # apply weighted reduction to new and old value",
+      "       value = reduction.expression(quad_eval, value, weight) ",
+      "   # apply final transformation to last reduced value",
+      "   value = transformation.expression(value) ",
+      "```",
+      "Finally, the warn and error expressions allow to control whether the final value must be",
+      "reported as an error or a warning."
+    ],
+    ".options": {
+      "evaluation.expression": {
+        ".type": "math-expr",
+        ".brief": "Pointwise math expression to evaluate. Its context includes values defined in the 'scalar_field' sections"
+      },
+      "reduction.expression": {
+        ".type": "function-expr",
+        ".details": [
+          "Function expression with exactly 3 arguments:",
+          "  1. New value: Contextual evaluation of 'evaluation.expression'",
+          "  2. Old value: previous result of 'reduction.expression' or 'initial.value'",
+          "  3. Weight: Weight of the quadrature evaluation"
+        ]
+      },
+      "transformation.expression": {
+        ".type": "function-expr",
+        ".details": [
+          "Function expression with exactly 1 argument:",
+          "  1. Old value: Value after a reduction over all of the quadrature points"
+        ]
+      },
+      "error.expression": {
+        ".type": "function-expr",
+        ".brief": "If expression evaluates different than 0, an error is thrown",
+        ".details": [
+          "Function expression with exactly 1 argument:",
+          "  1. Final value: Value after a transformation"
+        ]
+      },
+      "warn.expression": {
+        ".type": "function-expr",
+        ".brief": "If expression evaluates different than 0, an warning is thrown",
+        ".details": [
+          "Function expression with exactly 1 argument:",
+          "  1. Final value: Value after a transformation"
+        ]
+      }
+    }
+  },
+  "model.transform_reduce.{key}.[initial.value|quiet]": {
+    ".brief": "Define the initial value and quietness of an evaluation/reduction/transformation algorithm on grid functions",
+    ".options": {
+      "initial.value": {
+        ".type": "float",
+        ".brief": "Initial value of the evaluation/reduction/transformation algorithm for the token '{key}'",
+        ".default": "0."
+      },
+      "quiet": {
+        ".type": "bool",
+        ".brief": "Initial value of the evaluation/reduction/transformation algorithm for the token '{key}'",
+        ".default": "false"
+      }
+    }
+  },
+  "model.writer.vtk.path": {
+    ".type": "path",
+    ".brief": "If not empty, path to write VTK results"
+  },
+  "parser_context.{tkn}.[type|expression|parser_type|domain|range|value|path|interpolate|seed]": {
+    ".brief": "Sets up a token '{tkn}' in the dune-copasi parsers",
+    ".options": {
+      "type": {
+        ".type": "enum",
+        ".brief": "Type of token '{tkn}' within the dune-copasi parsers",
+        ".options": {
+          "'constant'": {
+            ".brief": "Sets token '{tkn}' as a constant float. Options: 'parser_context.{tkn}.value'"
+          },
+          "'function'": {
+            ".brief": "Sets token '{tkn}' as an inline function. Options: 'parser_context.{tkn}.[expression|interpolate|interpolation.[...]]'"
+          },
+          "'tiff'": {
+            ".brief": "Sets token '{tkn}' as a 2D function with the contents of a tiff file. Options: 'parser_context.{tkn}.path'"
+          },
+          "'interpolation'": {
+            ".brief": "Sets token '{tkn}' as a 1D interpolation function. Options: 'parser_context.{tkn}.[domain|range]'"
+          },
+          "'random_field'": {
+            ".brief": "Sets token '{tkn}' as a random field function. Options: 'parser_context.{tkn}.[seed|grid|...]'"
+          }
+        }
+      },
+      "value": {
+        ".type": "float",
+        ".brief": "Value of the token '{tkn}' as a float",
+        ".details": "This option can only be used together with 'parser_context.{tkn}.type=constat'"
+      },
+      "function": {
+        ".options": {
+          "expression": {
+            ".type": "math-expr",
+            ".brief": "Expression of an inline function for the token '{tkn}'",
+            ".details": [
+              "The expression must start with a comma serparated list of arguments",
+              "followed by a colon which splits the function arguments from the function definition.",
+              "For example: 'parser_context.pow2.expression=\"x: x^2\"' defines a function",
+              "that may be called as 'pow2(1.)' in the context of parsed expressions. Note",
+              "that inline functions know other contexts defined in the parser (e.g., random_field,",
+              "constant, interpolation, etc.), except other inline functions. Thus, inline",
+              "functions are not recursive nor composable with other inline functions.",
+              "This option can only be used together with 'parser_context.{tkn}.type=function'."
+            ]
+          }
+        }
+      },
+      "interpolate": {
+        ".type": "bool",
+        ".brief": "Whether 1D functions should be interpolated",
+        ".default": "false",
+        ".details": "If a function is expensive to evaluate, this option will help to reduce the cost by automatically interpolating the function on a given domain."
+      },
+      "domain": {
+        ".type": "float-list",
+        ".brief": "Domain of values to be interpolated for token '{tkn}'",
+        ".details": "For example, the options 'parser_context.f.domain=\"0 1 2\"' and 'parser_context.f.range=\".5 .1 .3\"' will define an interpolated function f: domain -> range within the parser. This option can only be used together with 'parser_context.{tkn}.type=interpolation'"
+      },
+      "range": {
+        ".type": "float-list",
+        ".brief": "Range of values to be interpolated for token '{tkn}'",
+        ".details": [
+          "The number of arguments in the list must be the same as for 'parser_context.{tkn}.range'",
+          "This option can only be used together with 'parser_context.{tkn}.type=interpolation'"
+        ]
+      },
+      "parser_type": {
+        ".type": "enum",
+        ".brief": "Underlying parser for inlined function of the token '{tkn}'",
+        ".default": "<see '--parser-default' option>",
+        ".details": "This option can only be used together with 'parser_context.{tkn}.type=function'"
+      },
+      "path": {
+        ".type": "path",
+        ".brief": "File path of a TIFF image to set token '{tkn}' as a 2D function",
+        ".details": "This option can only be used together with 'parser_context.{tkn}.type=tiff'"
+      },
+      "seed": {
+        ".type": "integer",
+        ".brief": "Seed to be used in the pseudorandom number field generator",
+        ".details": "This option can only be used together with 'parser_context.{tkn}.type=random_field'"
+      }
+    }
+  },
+  "parser_context.{tkn}.grid.[cells|extensions|refinement_level]": {
+    ".brief": "Parameters to define a structured grid of the random field in token '{tkn}'",
+    ".options": {
+      "cells": {
+        ".type": "integer-list",
+        ".brief": "Numbers of cells per dimension direction"
+      },
+      "extensions": {
+        ".type": "float-list",
+        ".brief": "Extensions of an squared domain"
+      },
+      "refinement_level": {
+        ".type": "integer",
+        ".brief": "Number of global refinements to make to the initial grid",
+        ".default": "0"
+      }
+    }
+  },
+  "parser_context.{tkn}.interpolation.[domain.{arg}|intervals|out_of_bounds]": {
+    ".brief": "Interpolation options for the context function '{tkn}'",
+    ".options": {
+      "domain.{arg}": {
+        ".type": "float-pair",
+        ".brief": "Domain interval for the function argument '{arg}' where the interpolation needs to be made"
+      },
+      "intervals": {
+        ".type": "integer",
+        ".brief": "Number of sub-divisions to split the interpolation scheme. Default: 1000",
+        ".default": "1000"
+      },
+      "out_of_bounds": {
+        ".type": "enum",
+        ".brief": "Type of behavior when function is evaluated out of the defined domain bounds",
+        ".default": "'error'",
+        ".options": {
+          "'error'": {
+            ".brief": "Throw an error when function '{tkn}' is evaluated outside of 'domain.{arg}'"
+          },
+          "'clamp'": {
+            ".brief": "Clamps the arguments of the function '{tkn}' to be evaluated inside of 'domain.{arg}'"
+          }
+        }
+      }
+    }
+  },
+  "parser_context.{tkn}.writer.vtk.path": {
+    ".type": "path",
+    ".brief": "Path to write VTK file of 'random_field' contexts",
+    ".default": "<empty>",
+    ".details": [
+      "If empty, no output will be written.",
+      "This option can only be used together with 'parser_context.{tkn}.type=random_field'."
+    ]
+  },
+  "parser_context.parser_type": {
+    ".type": "enum",
+    ".default": "<see '--parser-default' option>",
+    ".brief": "Selects default underlying parser for the 'parser_context' sub-sections",
+    ".details": "Whenever an 'parser_context.*' option doesn't define its own parser, this one is selected."
+  },
+  "trace.path": {
+    ".type": "path",
+    ".brief": "File path to store the trace of the program",
+    ".details": "Only available if binary is built with Perfetto. To visualize the trace, use <https://ui.perfetto.dev/>"
+  }
+}

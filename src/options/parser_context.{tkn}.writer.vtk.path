@@ -1,4 +1,0 @@
-<string>
-Path to write VTK file of 'random_field' contexts. Default: <empty>
-If empty, no output will be written
-This option can only be used together with 'parser_context.{tkn}.type=random_field'.

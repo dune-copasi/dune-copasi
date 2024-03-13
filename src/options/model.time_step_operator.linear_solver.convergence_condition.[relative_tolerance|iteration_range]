@@ -1,2 +1,0 @@
-<double|integer-list>
-Convergence condition options for the linear solver. Default: {1e-4, <empty>, {1, 40}}
