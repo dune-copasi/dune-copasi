@@ -169,7 +169,7 @@ config_format:
   stage: check
   image: ${DEPENDENCIES_IMAGE}
   script:
-  - ./util/validate_json.py  -j src/config_opts.json -s util/config_opts_schema.json
+  - ./util/validate_json.py  -j doc/docusaurus/docs/assets/config_opts.json -s util/config_opts_schema.json
 
 setup_exec:debian_clang:
   variables:

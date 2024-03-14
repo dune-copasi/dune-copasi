@@ -67,7 +67,7 @@ if (${DUNE_COPASI_WITH_EXECUTABLE})
     COMPONENT Runtime
     OPTIONAL)
 
-  file(READ "${CMAKE_CURRENT_SOURCE_DIR}/config_opts.json" CONFIGURE_OPTIONS_JSON)
+  file(READ "${CMAKE_CURRENT_SOURCE_DIR}/../doc/docusaurus/docs/assets/config_opts.json" CONFIGURE_OPTIONS_JSON)
   set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/config_opts.json")
   configure_file("config_opts.hh.in" "${PROJECT_BINARY_DIR}/config_opts.hh")
 

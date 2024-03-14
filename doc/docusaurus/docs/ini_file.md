@@ -31,7 +31,7 @@ list of possible accepted types
 | `float`       | Decimal number in floating point representation
 | `integer`     | Integer number
 | `path`        | String that represent filesystem paths absolute or relative to a program
-| `math_expr`   | [Mathematical Expression](math_expr.md)
+| `math-expr`   | [Mathematical Expression](math_expr.md)
 
 Examples
 
