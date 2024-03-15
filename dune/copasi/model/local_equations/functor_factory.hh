@@ -2,8 +2,6 @@
 #define DUNE_COPASI_MODEL_LOCAL_EQUATIONS_FUNCTOR_FACTORY_HH
 
 #include <dune-copasi-config.hh>
-#include <dune/copasi/concepts/grid.hh>
-#include <dune/copasi/parser/context.hh>
 
 #include <dune/common/fmatrix.hh>
 #include <dune/common/fvector.hh>

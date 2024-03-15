@@ -23,39 +23,41 @@ template<class LocalBasisTraits,
          class Residual,
          class ResidualQuantity,
          class TimeQuantity,
-         PDELab::Concept::Basis Basis>
+         PDELab::Concept::Basis Basis,
+         Dune::Concept::GridView CellDataGridView = typename Basis::EntitySet,
+         class CellDataType = double>
 [[nodiscard]] inline static std::unique_ptr<PDELab::Operator<Coefficients, Coefficients>>
 make_diffusion_reaction_step_operator(const ParameterTree& config,
                                       const Basis& basis,
                                       std::size_t halo,
                                       std::shared_ptr<const FunctorFactory<Basis::EntitySet::dimension>> functor_factory,
-                                      std::shared_ptr<const GridDataContext<typename Basis::EntitySet>> grid_data_context )
+                                      std::shared_ptr<const CellData<CellDataGridView, CellDataType>> grid_cell_data = nullptr)
 {
 
   std::unique_ptr<PDELab::Operator<Coefficients, Coefficients>> one_step;
   const auto& assembly_cfg = config.sub("assembly");
 
-  auto make_one_step_op = [&, functor_factory, grid_data_context]<class ExecutionPolicy, PDELab::Concept::Basis OperatorBasis>(
+  auto make_one_step_op = [&, functor_factory, grid_cell_data]<class ExecutionPolicy, PDELab::Concept::Basis OperatorBasis>(
                             ExecutionPolicy execution_policy, const OperatorBasis& operator_basis) {
     spdlog::info("Creating mass/stiffness local operator");
     const auto& time_step_cfg = config.sub("time_step_operator");
     const auto& scalar_field_cfg = config.sub("scalar_field");
     bool is_linear = config.get("is_linear", false);
     using LocalOperator =
-      LocalOperatorDiffusionReactionCG<OperatorBasis, LocalBasisTraits, ExecutionPolicy>;
+      LocalOperatorDiffusionReactionCG<OperatorBasis, LocalBasisTraits, CellDataGridView, CellDataType, ExecutionPolicy>;
     LocalOperator const stiff_lop(operator_basis,
                                   LocalOperatorType::Stiffness,
                                   is_linear,
                                   scalar_field_cfg,
                                   functor_factory,
-                                  grid_data_context,
+                                  grid_cell_data,
                                   execution_policy);
     LocalOperator const mass_lop(operator_basis,
                                  LocalOperatorType::Mass,
                                  is_linear,
                                  scalar_field_cfg,
                                  functor_factory,
-                                 grid_data_context,
+                                 grid_cell_data,
                                  execution_policy);
     return Dune::Copasi::make_step_operator<Coefficients, Residual, ResidualQuantity, TimeQuantity>(
       time_step_cfg, operator_basis, mass_lop, stiff_lop);

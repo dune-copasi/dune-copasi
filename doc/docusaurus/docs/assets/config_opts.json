@@ -79,7 +79,7 @@
     }
   },
   "grid.cell_data.{dtkn}.[type|path]": {
-    ".brif": "Sets up a token `{dtkn}` in the dune-copasi parsers based on grid data corresponding with the loaded grid",
+    ".brief": "Sets up a token `{dtkn}` in the dune-copasi parsers that holds cell data loaded from a file",
     ".options": {
       "type": {
         ".type": "enum",
@@ -97,26 +97,27 @@
       },
       "path": {
         ".type": "path",
-        ".brief": "The path of the file containing values for `{dtkn}` for the defined entities values"
+        ".brief": "The path of the file containing values for `{dtkn}` for the entities values"
       }
     },
     ".details": [
-      "This option can only be used if the grid was loaded from a Gmsh file (i.e. using `grid.path`).",
       "The cell data file needs to provide the values of the entities to which the values needs to be assigned.",
-      "To do this you need to take advantage of the Gmsh file type (v2).",
-      "Each cell entity in the Gmsh has a unique integer as identifier (lets call it `gmsh_cell_id_n`). The first line in the",
-      "data-file should contain the number of values to assign. The following lines contain the data and start with the",
-      "`gmsh_cell_id` followed by the values:",
-      " - `'scalar'`: one `float`",
-      " - `'vector'`: D `float`s",
-      " - `'tensor'`: DxD `float`s\n",
-      "Lines starting with `#` are not read. A simple example for a `'scalar'` is:",
+      "The first entry in the file should contain the total number of cells to assign data to.",
+      "The subsequent entries should contain the data, starting with the `grid_cell_id`,",
+      "followed by the n `floats`s and terminating with a end of line character:",
+      " - `'scalar'`: n := 1",
+      " - `'vector'`: n := `grid.dimension`",
+      " - `'tensor'`: n := `grid.dimension` * `grid.dimension`",
+      "",
+      "Lines starting with `#` are not read. A simple example for a `'scalar'` case is:",
       "```",
-      "# this line not read",
-      "N_values",
-      "gmsh_cell_id1 float",
-      "gmsh_cell_id2 float",
-      "```"
+      "# this line is ignored",
+      "2",
+      "50 +0.5",
+      "51 -0.5",
+      "```",
+      "This example would assign the values `+0.5` and `-0.5` to the cells `50` and `51` respectively for the coarsest entities of the grid.",
+      "Note that the indexation of the entities starts with `0`, whereas file formats like GMSH v2.0 start their indices with `1`."
     ]
   },
   "model.[order|is_linear|parser_type]": {

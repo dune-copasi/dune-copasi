@@ -18,8 +18,6 @@ template<class BaseTraits, bool CompartmentBlocking = false>
            Concept::SubDomainGrid<typename BaseTraits::CompartmentEntitySet::Grid>
 struct ModelMultiCompartmentDiffusionReactionPkTraits : public BaseTraits
 {
-  // using MultiCompartmentEntitySet = std::conditional_t<MultiThread,
-  // PDELab::EntitySetThreadPool<typename G::LeafGridView>, typename G::LeafGridView>;
   using MultiCompartmentEntitySet = typename BaseTraits::Grid::LeafGridView;
   using MultiCompartmentMergingStrategy = PDELab::Lexicographic<CompartmentBlocking>;
 };

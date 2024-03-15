@@ -19,12 +19,12 @@ static inline const std::regex float_regex("-?([0-9]+)?([\\.]?)([0-9]+)?");
 static inline const std::regex zero_regex("-?([0]+)?([\\.]?)([0]+)?");
 } // namespace Impl
 
-template<Dune::Concept::GridView GV>
+template<std::size_t dim>
 class LocalEquations;
 
-template<Dune::Concept::GridView GV>
+template<std::size_t dim>
 auto
-FunctorFactoryParser<GV>::make_scalar(std::string_view /*prefix*/,
+FunctorFactoryParser<dim>::make_scalar(std::string_view /*prefix*/,
                                        const ParameterTree& config,
                                        const LocalDomain<dim>& local_values,
                                        int codim) const -> ScalarFunctor
@@ -32,9 +32,9 @@ FunctorFactoryParser<GV>::make_scalar(std::string_view /*prefix*/,
   return parse_scalar_expression(config, local_values, codim);
 }
 
-template<Dune::Concept::GridView GV>
+template<std::size_t dim>
 auto
-FunctorFactoryParser<GV>::make_vector(std::string_view /*prefix*/,
+FunctorFactoryParser<dim>::make_vector(std::string_view /*prefix*/,
                                        const ParameterTree& config,
                                        const LocalDomain<dim>& local_values,
                                        int codim) const -> VectorFunctor
@@ -61,9 +61,9 @@ FunctorFactoryParser<GV>::make_vector(std::string_view /*prefix*/,
   } };
 }
 
-template<Dune::Concept::GridView GV>
+template<std::size_t dim>
 auto
-FunctorFactoryParser<GV>::make_tensor_apply(std::string_view prefix,
+FunctorFactoryParser<dim>::make_tensor_apply(std::string_view prefix,
                                              const ParameterTree& config,
                                              const LocalDomain<dim>& local_values,
                                              int codim) const
@@ -112,9 +112,9 @@ FunctorFactoryParser<GV>::make_tensor_apply(std::string_view prefix,
   }
 }
 
-template<Dune::Concept::GridView GV>
+template<std::size_t dim>
 auto
-FunctorFactoryParser<GV>::parse_scalar_expression(const ParameterTree& config,
+FunctorFactoryParser<dim>::parse_scalar_expression(const ParameterTree& config,
                                                    const LocalDomain<dim>& local_values,
                                                    int codim) const
   -> ScalarFunctor
@@ -151,13 +151,12 @@ FunctorFactoryParser<GV>::parse_scalar_expression(const ParameterTree& config,
       }
     }
 
-    // make gmsh_id available during assembly (only compartment)
-    for(std::size_t j = 0; j<local_values.keys.size(); ++j){
-      parser_ptr->define_variable(local_values.keys[j], &local_values.cell_data[j]);
+    // bind cell keys with cell key values
+    for (std::size_t j = 0; j < local_values.cell_keys.size(); ++j) {
+      parser_ptr->define_variable(local_values.cell_keys[j], &local_values.cell_values[j]);
     }
 
-
-    LocalEquations<GV> const* d = dynamic_cast<LocalEquations<GV> const*>(&local_values);
+    LocalEquations<dim> const* d = dynamic_cast<LocalEquations<dim> const*>(&local_values);
     if (d != nullptr)
       PDELab::forEach(d->nodes(), [&](auto& compartments) {
         for (auto& compartment_fncs : compartments)

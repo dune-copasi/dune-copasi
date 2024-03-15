@@ -4,10 +4,10 @@
 // file: diffusion reaction for single compartment models
 
 #include <dune/copasi/model/constraints.hh>
-#include <dune/copasi/model/local_equations/functor_factory_parser.hh>
+#include <dune/copasi/model/local_equations/functor_factory.hh>
 #include <dune/copasi/model/model.hh>
 #include <dune/copasi/grid/boundary_entity_mapper.hh>
-#include <dune/copasi/grid/grid_data_context.hh>
+#include <dune/copasi/grid/cell_data.hh>
 
 #include <dune/pdelab/basis/prebasis/composite.hh>
 #include <dune/pdelab/basis/prebasis/leaf.hh>
@@ -46,24 +46,12 @@ public:
   using GridFunction = typename Base::GridFunction;
 
   explicit ModelDiffusionReaction(
-    const Grid& grid,
-    const ParameterTree& config,
-    std::shared_ptr<const ParserContext> parser_context = nullptr )
+    std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory,
+    std::shared_ptr<const CellData<typename Grid::LevelGridView, ScalarQuantity>> coarse_cell_data = nullptr)
+    : _functor_factory{ std::move(functor_factory) }
+    , _coarse_cell_data{ std::move(coarse_cell_data) }
   {
-    auto parser_type = string2parser.at(config.get("model.parser_type", Dune::Copasi::default_parser_str));
-    _functor_factory = std::make_shared<FunctorFactoryParser<typename Traits::CompartmentEntitySet>>(parser_type, parser_context);
-
-    if constexpr (std::same_as<typename Grid::LeafGridView, CompartmentEntitySet>) {
-      _grid_data_context = std::make_shared<GridDataContext<typename Traits::CompartmentEntitySet>>(config, grid.leafGridView());
-    } else if constexpr (Concept::SubDomainGrid<typename CompartmentEntitySet::Grid>) {
-      static_assert(std::same_as<typename Grid::SubDomainGrid::LeafGridView, CompartmentEntitySet>);
-      if(grid.maxSubDomainIndex() != 1)
-          throw("Number of subdomains is not equal to 1 while trying to create a single compartment model! \n");
-      _grid_data_context = std::make_shared<GridDataContext<typename Traits::CompartmentEntitySet>>(config, grid.subDomain(0).leafGridView());
-    }
-
     assert(_functor_factory);
-    assert(_grid_data_context);
   }
 
   std::unique_ptr<State> make_state(const std::shared_ptr<const Grid>&,
@@ -97,8 +85,8 @@ private:
   static CompartmentEntitySet get_entity_set(const Grid&, std::size_t);
 
   mutable std::unordered_map<std::string, std::vector<double>> _writer_timesteps;
-  std::shared_ptr<const FunctorFactoryParser<typename Traits::CompartmentEntitySet>> _functor_factory;
-  std::shared_ptr<const GridDataContext<CompartmentEntitySet>> _grid_data_context;
+  std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> _functor_factory;
+  std::shared_ptr<const CellData<typename Grid::LevelGridView, ScalarQuantity>> _coarse_cell_data;
 };
 
 } // namespace Dune::Copasi

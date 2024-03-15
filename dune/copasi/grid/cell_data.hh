@@ -120,7 +120,8 @@ public:
     auto cap = capacity();
     auto imsz = _index_mapper.size();
     for (const auto& [i, val] : r) {
-      assert(i < imsz);
+      if(i >= _index_mapper.size())
+        throw format_exception(RangeError{}, "Key '{}' assinges a values in an index '{}' bigger than the size of the grid view '{}'", key, i, imsz);
       auto v = proj(val);
       bool mask = _cell_mask[i * cap + ei] = pred(v);
       _cell_data[i * cap + ei] = mask ? v : std::numeric_limits<T>::quiet_NaN();
@@ -250,7 +251,7 @@ private:
   IndexMapper _index_mapper;
 
   // the level of the grid view, if none, leaf grid view or empty level grid view
-  std::optional<std::size_t> _grid_view_level;
+  std::optional<int> _grid_view_level;
 
   std::vector<std::string> _keys;
 

@@ -1,13 +1,12 @@
 #ifndef DUNE_COPASI_MODEL_LOCAL_EQUATIONS_LOCAL_EQUATIONS_HH
 #define DUNE_COPASI_MODEL_LOCAL_EQUATIONS_LOCAL_EQUATIONS_HH
 
-#include <dune/copasi/concepts/grid.hh>
 #include <dune/copasi/common/bit_flags.hh>
 #include <dune/copasi/common/exceptions.hh>
 #include <dune/copasi/concepts/compartment_tree.hh>
 #include <dune/copasi/model/local_equations/functor_factory.hh>
 #include <dune/copasi/parser/factory.hh>
-#include <dune/copasi/grid/grid_data_context.hh>
+#include <dune/copasi/grid/cell_data.hh>
 
 #include <dune/pdelab/concepts/basis.hh>
 #include <dune/pdelab/common/container_entry.hh>
@@ -49,22 +48,18 @@ struct LocalDomain
   double in_boundary = 0;
   double in_skeleton = 0;
 
-  // local data related to the cell element
-  //double gmsh_id = -1; <--- should be included in the cell data (e.g always index == 0)
-  std::vector<double> cell_data;  // data addresses used by the parser
-  std::vector<bool> cell_mask;
-  std::vector<std::string> keys;  // data member names
+  // local data related to the cell element and intended to be used by the CellData
+  std::vector<double> cell_values;  // data addresses used by the parser
+  std::vector<bool> cell_mask; // masks whether data is valid
+  std::vector<std::string> cell_keys;  // data member names
 };
 
 // this class holds a data-structure for each equation that contains functors to be evaluated.
 // Additionally, it contains the values with respect these functors may be evaluated if they are
 // non-linear All the functors are require to be thread-safe!
-template<Dune::Concept::GridView GV>
-class LocalEquations : public LocalDomain<GV::dimension>
+template<std::size_t dim>
+class LocalEquations : public LocalDomain<dim>
 {
-
-  constexpr static auto dim = GV::dimension;
-
   using Scalar = FieldVector<double, 1>;
   using Vector = FieldVector<double, dim>;
   using Tensor = FieldMatrix<double, dim, dim>;
@@ -288,11 +283,12 @@ public:
     }
   };
 
+  template<PDELab::Concept::LocalBasis LocalBasis, class CellDataGridView = typename LocalBasis::GlobalBasis::EntitySet, class CellDataType = double>
   [[nodiscard]] static std::unique_ptr<LocalEquations> make(
-    const PDELab::Concept::LocalBasis auto& lbasis,
+    const LocalBasis& lbasis,
     const ParameterTree& config = {},
     std::shared_ptr<const FunctorFactory<dim>> functor_factory = nullptr,
-    std::shared_ptr<const GridDataContext<GV>> grid_data_context = nullptr,
+    std::shared_ptr<const CellData<CellDataGridView, CellDataType>> grid_cell_data = nullptr,
     BitFlags<FactoryFalgs> opts = BitFlags<FactoryFalgs>::no_flags())
   {
     auto local_values = std::unique_ptr<LocalEquations>(new LocalEquations{});
@@ -324,37 +320,39 @@ public:
       if (not functor_factory) {
         throw format_exception(InvalidStateException{}, "Equations cannot be configured without a functor factory");
       }
-      local_values->configure(config, functor_factory, grid_data_context, opts);
+      local_values->configure(config, functor_factory, grid_cell_data, opts);
     }
     return local_values;
   }
 
+  template<class CellDataGridView, class CellDataType = double>
   static std::unique_ptr<LocalEquations> make_stiffness(
     const PDELab::Concept::LocalBasis auto& lbasis,
     const ParameterTree& config,
     std::shared_ptr<const FunctorFactory<dim>> functor_factory,
-    std::shared_ptr<const GridDataContext<GV>> grid_data_context
+    std::shared_ptr<const CellData<CellDataGridView, CellDataType>> grid_cell_data
   )
   {
     return make(lbasis,
                 config,
                 functor_factory,
-                grid_data_context,
+                grid_cell_data,
                 FactoryFalgs::Reaction | FactoryFalgs::Diffusion | FactoryFalgs::Velocity |
                   FactoryFalgs::Outflow);
   }
 
+  template<class CellDataGridView, class CellDataType = double>
   static std::unique_ptr<LocalEquations> make_mass(
     const PDELab::Concept::LocalBasis auto& lbasis,
     const ParameterTree& config,
     std::shared_ptr<const FunctorFactory<dim>> functor_factory,
-    std::shared_ptr<const GridDataContext<GV>> grid_data_context
+    std::shared_ptr<const CellData<CellDataGridView, CellDataType>> grid_cell_data
   )
   {
     return make(lbasis,
                 config,
                 functor_factory,
-                grid_data_context,
+                grid_cell_data,
                 FactoryFalgs::Storage);
   }
 
@@ -381,14 +379,6 @@ public:
   {
     return PDELab::containerEntry(_nodes, make_path(tree)).gradient;
   }
-
-  // -> update grid data
-  template <class Entity>
-  void update_grid_data(const Entity& entity)
-  {
-    _grid_data_context->update_cell_data(entity, this->cell_data, this->cell_mask);
-  }
-
 
   void clear()
   {
@@ -450,9 +440,6 @@ private:
   std::vector<Scalar> _values;
   std::vector<Vector> _gradients;
 
-  // grid data context class (handling data updates for each entity)
-  std::shared_ptr<const GridDataContext<GV>> _grid_data_context;
-
   auto compartment_index(const Concept::CompartmentLocalBasisTree auto&) const
   {
     return Indices::_0;
@@ -501,9 +488,10 @@ private:
     initialize_nodes(tree.child(_1), fname, 0);
   }
 
+  template<class CellDataGridView, class CellDataType>
   void configure(const ParameterTree& config,
                  std::shared_ptr<const FunctorFactory<dim>> functor_factory,
-                 std::shared_ptr<const GridDataContext<GV>> grid_data_context,
+                 std::shared_ptr<const CellData<CellDataGridView, CellDataType>> grid_cell_data,
                  BitFlags<FactoryFalgs> opts)
   {
 
@@ -512,10 +500,11 @@ private:
     using TensorApplyTag = index_constant<2>;
 
     // configure grid context data
-    _grid_data_context = grid_data_context;
-    this->cell_data.resize( _grid_data_context->cell_data_size() );
-    this->cell_mask.resize( _grid_data_context->cell_data_size() );
-    this->keys = _grid_data_context->keys();
+    if (grid_cell_data) {
+      this->cell_values.resize( grid_cell_data->size() );
+      this->cell_mask.resize( grid_cell_data->size() );
+      this->cell_keys = grid_cell_data->keys();
+    }
 
     // configure functors
     auto make_functor = overload(

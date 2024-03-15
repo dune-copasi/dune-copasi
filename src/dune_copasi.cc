@@ -15,7 +15,6 @@
 #endif
 
 #include <dune/copasi/grid/make_multi_domain_grid.hh>
-#include <dune/copasi/grid/grid_data_context.hh>
 #include <dune/copasi/model/factory.hh>
 #include <dune/copasi/model/local_equations/functor_factory_parser.hh>
 #include <dune/copasi/model/model.hh>
@@ -320,14 +319,14 @@ main(int argc, char** argv)
       [&](auto dim) {
         // get a pointer to the grid
         const auto max_subdomains = 64;
-        auto md_grid_ptr = [&] {
+        auto [md_grid_ptr, cell_data] = [&] {
           using MDGTraits = Dune::mdgrid::FewSubDomainsTraits<dim, max_subdomains>;
           if constexpr (dim < 2) {
             using MDGrid = Dune::mdgrid::MultiDomainGrid<Dune::YaspGrid<dim, Dune::EquidistantOffsetCoordinates<double,dim>>, MDGTraits>;
-            return make_multi_domain_grid<MDGrid>(config, parser_context);
+            return make_multi_domain_grid_with_cell_data<MDGrid>(config, parser_context);
           } else {
             using MDGrid = Dune::mdgrid::MultiDomainGrid<Dune::UGGrid<dim>, MDGTraits>;
-            return make_multi_domain_grid<MDGrid>(config, parser_context);
+            return make_multi_domain_grid_with_cell_data<MDGrid>(config, parser_context);
           }
         }();
 
@@ -351,7 +350,10 @@ main(int argc, char** argv)
         using DurationQuantity = double;
         using Model = Model<MDGrid, SDGridView, SpeciesQuantity, TimeQuantity>;
 
-        std::shared_ptr model = make_model<Model>(*md_grid_ptr, config, std::move(parser_context));
+        auto parser_type = string2parser.at(config.get("model.parser_type", default_parser_str));
+        auto functor_factory =
+          std::make_shared<FunctorFactoryParser<dim>>(parser_type, std::move(parser_context));
+        std::shared_ptr model = make_model<Model>(model_config, functor_factory, std::move(cell_data));
 
         // create time stepper
         const auto& time_config = model_config.sub("time_step_operator");

@@ -2,20 +2,16 @@
 #define DUNE_COPASI_MODEL_LOCAL_EQUATIONS_FUNCTOR_FACTORY_PARSER_HH
 
 #include <dune/copasi/model/local_equations/functor_factory.hh>
+#include <dune/copasi/parser/context.hh>
 
 #include <memory>
-#include <fstream>
-#include <iostream>
 
 namespace Dune::Copasi {
 
-template<Dune::Concept::GridView GV>
-class FunctorFactoryParser final : public FunctorFactory<GV::dimension>
+template<std::size_t dim>
+class FunctorFactoryParser final : public FunctorFactory<dim>
 {
 public:
-
-  static constexpr int dim = GV::dimension;
-
   using Scalar = FieldVector<double, 1>;
   using Vector = FieldVector<double, dim>;
   using Tensor = FieldMatrix<double, dim, dim>;

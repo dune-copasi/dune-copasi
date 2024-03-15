@@ -6,6 +6,8 @@
 #include <dune/copasi/common/axis_names.hh>
 #include <dune/copasi/concepts/grid.hh>
 #include <dune/copasi/parser/context.hh>
+#include <dune/copasi/grid/cell_data.hh>
+#include <dune/copasi/grid/cell_data_parser.hh>
 
 #include <dune/grid/common/exceptions.hh>
 #include <dune/grid/common/gridinfo.hh>
@@ -28,21 +30,22 @@ namespace Dune::Copasi {
  * From given configuration file with grid and compartment section as described
  * in the program documentation (--grid.* and --compartment.*), this funcition
  * will read or create a grid and its sub-domains (or compartments).
- * Additionally, it will assign a unique subdomain 'id' to each compartment in the
- * configuration file.
+ * It will also assign a unique subdomain 'id' to each compartment in the
+ * configuration file. Finally, it will create a cell data with the contents of the
+ * `gmsh_id` if the file was read by gmsh, and the data files parsed with `cell_data_parser`. 
  *
  * @tparam MDGrid                   The type of the multidomain-grid
+* @tparam CellDataType              The type to store values in the cell data object
  * @param config                    The configuration file
  * @param parser_context            A parser context to interpret parsed math expression
- * @return std::unique_ptr<MDGrid>  Pointer to the resulting grid
+ * @return std::pair<std::unique_ptr<MDGrid>, std::unique_ptr<CellData<typename MDGrid::LevelGridView, CellDataType>>> Pointer to the resulting grid and cell data
  */
-template<Concept::MultiDomainGrid MDGrid>
-std::unique_ptr<MDGrid>
-make_multi_domain_grid(Dune::ParameterTree& config,
-                       std::shared_ptr<const ParserContext> parser_context = {})
+template<Concept::MultiDomainGrid MDGrid, class CellDataType = double>
+std::tuple<std::unique_ptr<MDGrid>, std::unique_ptr<CellData<typename MDGrid::LevelGridView, CellDataType>>>
+make_multi_domain_grid_with_cell_data(Dune::ParameterTree& config, std::shared_ptr<const ParserContext> parser_context = {})
 {
   using HostGrid = typename MDGrid::HostGrid;
-  using HostEntity = typename HostGrid::template Codim<0>::Entity;
+  using MDEntity = typename MDGrid::template Codim<0>::Entity;
 
   const auto& grid_config = config.sub("grid");
   std::size_t const dim = grid_config.get("dimension", std::size_t{ MDGrid::dimensionworld });
@@ -56,11 +59,9 @@ make_multi_domain_grid(Dune::ParameterTree& config,
 
   std::unique_ptr<HostGrid> host_grid_ptr;
   std::unique_ptr<MDGrid> md_grid_ptr;
+  std::vector<int> gmsh_physical_entity;
 
-  std::vector<std::pair<std::string,std::function<bool(const HostEntity&)>>> compartments;
-
-  double gmsh_id = std::numeric_limits<double>::max();
-  std::function<void(HostEntity)> update_gmsh_id;
+  std::vector<std::pair<std::string,std::function<bool(const MDEntity&)>>> compartments;
 
   if (grid_config.hasKey("path")) {
     auto grid_path = grid_config.template get<std::string>("path");
@@ -69,20 +70,9 @@ make_multi_domain_grid(Dune::ParameterTree& config,
     auto host_grid_parser = Dune::GmshReaderParser<HostGrid>{ host_grid_factory, false, false };
 
     host_grid_parser.read(grid_path);
-    auto& gmsh_physical_entity = host_grid_parser.elementIndexMap();
+    gmsh_physical_entity = host_grid_parser.elementIndexMap();
 
     host_grid_ptr = host_grid_factory.createGrid();
-    auto mcmg = MultipleCodimMultipleGeomTypeMapper<typename HostGrid::LeafGridView>(host_grid_ptr->leafGridView(), mcmgElementLayout());
-
-    update_gmsh_id = [gmsh_physical_entity, mcmg, &gmsh_id](const HostEntity& entity) {
-      HostEntity _entity = entity;
-      while (_entity.hasFather()) {
-        _entity = _entity.father();
-      }
-      assert(_entity.level() == 0);
-      gmsh_id = gmsh_physical_entity[mcmg.index(_entity)];
-    };
-
   } else {
     std::array<unsigned int, MDGrid::dimensionworld> cells{};
     std::fill_n(begin(cells), MDGrid::dimensionworld, 1);
@@ -100,6 +90,31 @@ make_multi_domain_grid(Dune::ParameterTree& config,
     }
   }
 
+  typename MDGrid::MDGridTraits const md_grid_traits{};
+  md_grid_ptr = std::make_unique<MDGrid>(std::move(host_grid_ptr), md_grid_traits);
+
+  auto level = grid_config.get("refinement_level", int{ 0 });
+  if (level > 0) {
+    spdlog::info("Applying refinement of level: {}", level);
+    md_grid_ptr->globalRefine(level);
+  }
+
+  std::cout << fmt::format("MultiDomainGrid: ");
+  gridinfo(*md_grid_ptr, "    ");
+
+  auto cell_data = std::make_unique<CellData<typename MDGrid::LevelGridView, CellDataType>>(md_grid_ptr->levelGridView(0));
+  
+  // inject gmsh id into cell_data
+  if (not gmsh_physical_entity.empty())
+    cell_data->addData("gmsh_id", gmsh_physical_entity);
+
+  // parse and inject data-file contents into cell_data
+  if (grid_config.hasSub("cell_data"))
+    cell_data_parser(grid_config, *cell_data);
+
+  std::vector<CellDataType> cell_values(cell_data->size());
+  std::vector<bool> cell_mask(cell_data->size());
+
   // assign ids to dynamically generated compartments
   for (const auto& compartment : compartments_config.getSubKeys()) {
     auto& compartment_config = compartments_config.sub(compartment);
@@ -112,8 +127,8 @@ make_multi_domain_grid(Dune::ParameterTree& config,
         auto parser_type =
           string2parser.at(compartment_config.get("parser_type", default_parser_str));
         std::shared_ptr const parser_ptr = make_parser(parser_type);
-        if (update_gmsh_id)
-          parser_ptr->define_variable("gmsh_id", &gmsh_id);
+        for (std::size_t i = 0; i != cell_data->size(); ++i)
+          parser_ptr->define_variable(cell_data->keys()[i], &cell_values[i]);
         parser_ptr->set_expression(compartment_config["expression"]);
         if (parser_context)
           parser_context->add_context(*parser_ptr);
@@ -127,10 +142,9 @@ make_multi_domain_grid(Dune::ParameterTree& config,
           }
         }
         parser_ptr->compile();
-        compartments.emplace_back(compartment, [position, parser_ptr, update_gmsh_id](const HostEntity& entity) {
+        compartments.emplace_back(compartment, [position, parser_ptr, &cell_data, &cell_values, &cell_mask](const MDEntity& entity) {
           (*position) = entity.geometry().center();
-          if (update_gmsh_id)
-            update_gmsh_id(entity);
+          cell_data->getData(entity, cell_values, cell_mask);
           return FloatCmp::ne(std::invoke(*parser_ptr), 0.);
         });
       } else {
@@ -149,22 +163,13 @@ make_multi_domain_grid(Dune::ParameterTree& config,
     }
   }
 
-  typename MDGrid::MDGridTraits const md_grid_traits{};
-  md_grid_ptr = std::make_unique<MDGrid>(std::move(host_grid_ptr), md_grid_traits);
-
-  auto level = grid_config.get("refinement_level", int{ 0 });
-  if (level > 0) {
-    spdlog::info("Applying refinement of level: {}", level);
-    md_grid_ptr->globalRefine(level);
-  }
-
   spdlog::info("Applying sub-domain partition");
   md_grid_ptr->startSubDomainMarking();
   std::size_t max_domains_per_entity = 0;
   std::set<std::size_t> used_sub_domains;
   for (const auto& cell : elements(md_grid_ptr->leafGridView())) {
     for (std::size_t id = max_domains_per_entity = 0; id != compartments.size(); ++id) {
-      if (compartments[id].second(md_grid_ptr->hostEntity(cell))) {
+      if (compartments[id].second(cell)) {
         used_sub_domains.insert(id);
         ++max_domains_per_entity;
         md_grid_ptr->addToSubDomain(id, cell);
@@ -188,14 +193,26 @@ make_multi_domain_grid(Dune::ParameterTree& config,
   md_grid_ptr->updateSubDomains();
   md_grid_ptr->postUpdateSubDomains();
 
-  std::cout << fmt::format("MultiDomainGrid: ");
-  gridinfo(*md_grid_ptr, "    ");
   for (std::size_t id = 0; id != compartments.size(); ++id) {
     std::cout << fmt::format("  SubDomain {{{}: {}}}", id, compartments[id].first);
     gridinfo(md_grid_ptr->subDomain(id), "      ");
   }
 
-  return md_grid_ptr;
+  return std::make_tuple(std::move(md_grid_ptr), std::move(cell_data));
+}
+
+
+/**
+ * @copydoc make_multi_domain_grid_with_cell_data
+ * 
+ * @return std::unique_ptr<MDGrid> Pointer to the resulting grid
+ */
+template<Concept::MultiDomainGrid MDGrid>
+std::unique_ptr<MDGrid>
+make_multi_domain_grid(Dune::ParameterTree& config,
+                       std::shared_ptr<const ParserContext> parser_context = {})
+{
+  return std::get<0>(make_multi_domain_grid_with_cell_data<MDGrid>(config, parser_context));
 }
 
 } // namespace Dune::Copasi
