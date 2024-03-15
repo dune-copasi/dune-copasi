@@ -147,7 +147,7 @@ private:
 
   // Read a datafile for the scalar griddata type & add it to cell_data
   void add_scalar_griddata(std::string datafile_path, std::string key){
-    std::cout << "Adding datafile: " << datafile_path << std::endl;
+    spdlog::info("Reading grid cell data: {}", datafile_path);
 
     // read the data file:
     std::ifstream gridDataFile;
