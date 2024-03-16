@@ -54,29 +54,36 @@ if (TARGET Dune::Copasi::Executable)
 
   if(ExprTk IN_LIST DUNE_COPASI_PARSER_LIST)
     dune_add_test(
-      NAME            two_disks
+      NAME            two-disks
       TIMEOUT         10
       TARGET          Dune::Copasi::Executable
       CMD_ARGS        --config=${CMAKE_CURRENT_SOURCE_DIR}/two_disks.ini
       LABELS          system)
 
-      dune_add_test(
-        NAME            mitchell-schaefer
-        LABELS          system
-        TIMEOUT         10
-        TARGET          Dune::Copasi::Executable
-        CMD_ARGS        --config=${CMAKE_CURRENT_SOURCE_DIR}/mitchell_schaefer.ini
-                        --grid.refinement_level=1
-                        --model.time_step_operator.time_end=0.01
-                        --parser_context.rng.type=function
-                        --parser_context.rng.expression=x,y:0
-                        --model.time_step_operator.linear_solver.layout.writer.svg.path=mitchell_schaefer_pattern.svg)
-      add_test(
-        NAME      mitchell-schaefer-pattern
-        COMMAND   ${CMAKE_COMMAND} -E compare_files
-                  mitchell_schaefer_pattern.svg
-                  ${CMAKE_CURRENT_SOURCE_DIR}/data/pattern/mitchell_schaefer_pattern.svg)
-      set_tests_properties(mitchell-schaefer-pattern PROPERTIES DEPENDS mitchell-schaefer)
+    dune_add_test(
+      NAME            two-disks-cell-data
+      TIMEOUT         10
+      TARGET          Dune::Copasi::Executable
+      CMD_ARGS        --config=${CMAKE_CURRENT_SOURCE_DIR}/two_disks_cell_data.ini
+      LABELS          system)
+  
+    dune_add_test(
+      NAME            mitchell-schaefer
+      LABELS          system
+      TIMEOUT         10
+      TARGET          Dune::Copasi::Executable
+      CMD_ARGS        --config=${CMAKE_CURRENT_SOURCE_DIR}/mitchell_schaefer.ini
+                      --grid.refinement_level=1
+                      --model.time_step_operator.time_end=0.01
+                      --parser_context.rng.type=function
+                      --parser_context.rng.expression=x,y:0
+                      --model.time_step_operator.linear_solver.layout.writer.svg.path=mitchell_schaefer_pattern.svg)
+    add_test(
+      NAME      mitchell-schaefer-pattern
+      COMMAND   ${CMAKE_COMMAND} -E compare_files
+                mitchell_schaefer_pattern.svg
+                ${CMAKE_CURRENT_SOURCE_DIR}/data/pattern/mitchell_schaefer_pattern.svg)
+    set_tests_properties(mitchell-schaefer-pattern PROPERTIES DEPENDS mitchell-schaefer)
 
     foreach(dim ${DUNE_COPASI_GRID_DIMENSIONS})
       dune_add_test(

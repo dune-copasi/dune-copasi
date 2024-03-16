@@ -2,16 +2,20 @@
 #define DUNE_COPASI_MODEL_LOCAL_EQUATIONS_FUNCTOR_FACTORY_PARSER_HH
 
 #include <dune/copasi/model/local_equations/functor_factory.hh>
-#include <dune/copasi/parser/context.hh>
 
 #include <memory>
+#include <fstream>
+#include <iostream>
 
 namespace Dune::Copasi {
 
-template<std::size_t dim>
-class FunctorFactoryParser final : public FunctorFactory<dim>
+template<Dune::Concept::GridView GV>
+class FunctorFactoryParser final : public FunctorFactory<GV::dimension>
 {
 public:
+
+  static constexpr int dim = GV::dimension;
+
   using Scalar = FieldVector<double, 1>;
   using Vector = FieldVector<double, dim>;
   using Tensor = FieldMatrix<double, dim, dim>;
@@ -46,11 +50,10 @@ public:
                                           const LocalDomain<dim>& /*local_domain*/,
                                           int /*codim*/ = 0) const override;
 
-  [[nodiscard]] TensorApplyFunctor make_tensor_apply(
-    std::string_view /*prefix*/,
-    const ParameterTree& /*config*/,
-    const LocalDomain<dim>& /*local_domain*/,
-    int /*codim*/ = 0) const override;
+  [[nodiscard]] TensorApplyFunctor make_tensor_apply( std::string_view /*prefix*/,
+                                                      const ParameterTree& /*config*/,
+                                                      const LocalDomain<dim>& /*local_domain*/,
+                                                      int /*codim*/ = 0) const override;
 
   std::shared_ptr<const ParserContext> parser_context() const { return _parser_context; };
 

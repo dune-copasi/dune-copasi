@@ -15,6 +15,7 @@
 #endif
 
 #include <dune/copasi/grid/make_multi_domain_grid.hh>
+#include <dune/copasi/grid/grid_data_context.hh>
 #include <dune/copasi/model/factory.hh>
 #include <dune/copasi/model/local_equations/functor_factory_parser.hh>
 #include <dune/copasi/model/model.hh>
@@ -350,10 +351,7 @@ main(int argc, char** argv)
         using DurationQuantity = double;
         using Model = Model<MDGrid, SDGridView, SpeciesQuantity, TimeQuantity>;
 
-        auto parser_type = string2parser.at(config.get("model.parser_type", default_parser_str));
-        auto functor_factory =
-          std::make_shared<FunctorFactoryParser<dim>>(parser_type, std::move(parser_context));
-        std::shared_ptr model = make_model<Model>(model_config, functor_factory);
+        std::shared_ptr model = make_model<Model>(*md_grid_ptr, config, std::move(parser_context));
 
         // create time stepper
         const auto& time_config = model_config.sub("time_step_operator");
@@ -378,11 +376,19 @@ main(int argc, char** argv)
 
         // setup functor for each step
         std::function<void(const State&)> on_each_step;
+        // setup the vtk writer
         auto vtk_path = model_config.get("writer.vtk.path", "");
-        on_each_step = [model_config, vtk_path, model](const auto& state) {
+        // define each time step to write out (standard value = 0. implies every step is written out)
+        auto time_step = model_config.get("writer.time_step", TimeQuantity{ 0. });
+        auto time_write = begin_time;
+
+        on_each_step = [model_config, vtk_path, &time_write, time_step, model](const auto& state) {
           // write to vtk if requested
-          if (not vtk_path.empty()) {
-            model->write_vtk(state, vtk_path, true);
+          if (not vtk_path.empty() ) {
+            if( state.time >= time_write - 1e-9 * time_step){ // small epsilon correction
+              model->write_vtk(state, vtk_path, true);
+              time_write += time_step;
+            }
           }
           // evaluate transform/reduce operations on the model state
           if (model_config.hasSub("reduce")) {

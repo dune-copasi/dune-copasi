@@ -28,13 +28,14 @@ template<class LocalBasisTraits,
 make_diffusion_reaction_step_operator(const ParameterTree& config,
                                       const Basis& basis,
                                       std::size_t halo,
-                                      const auto& functor_factory)
+                                      std::shared_ptr<const FunctorFactory<Basis::EntitySet::dimension>> functor_factory,
+                                      std::shared_ptr<const GridDataContext<typename Basis::EntitySet>> grid_data_context )
 {
 
   std::unique_ptr<PDELab::Operator<Coefficients, Coefficients>> one_step;
   const auto& assembly_cfg = config.sub("assembly");
 
-  auto make_one_step_op = [&]<class ExecutionPolicy, PDELab::Concept::Basis OperatorBasis>(
+  auto make_one_step_op = [&, functor_factory, grid_data_context]<class ExecutionPolicy, PDELab::Concept::Basis OperatorBasis>(
                             ExecutionPolicy execution_policy, const OperatorBasis& operator_basis) {
     spdlog::info("Creating mass/stiffness local operator");
     const auto& time_step_cfg = config.sub("time_step_operator");
@@ -47,12 +48,14 @@ make_diffusion_reaction_step_operator(const ParameterTree& config,
                                   is_linear,
                                   scalar_field_cfg,
                                   functor_factory,
+                                  grid_data_context,
                                   execution_policy);
     LocalOperator const mass_lop(operator_basis,
                                  LocalOperatorType::Mass,
                                  is_linear,
                                  scalar_field_cfg,
                                  functor_factory,
+                                 grid_data_context,
                                  execution_policy);
     return Dune::Copasi::make_step_operator<Coefficients, Residual, ResidualQuantity, TimeQuantity>(
       time_step_cfg, operator_basis, mass_lop, stiff_lop);
@@ -117,7 +120,7 @@ make_diffusion_reaction_step_operator(const ParameterTree& config,
         throw format_exception(IOError{}, "Not known partition algorithm '{}' known", part_type);
       }
     };
-  
+
   auto exec_policy = assembly_cfg.get("type", "concurrent");
 #else
   auto exec_policy = assembly_cfg.get("type", "sequential");

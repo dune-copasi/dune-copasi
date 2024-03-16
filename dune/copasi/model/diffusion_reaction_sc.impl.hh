@@ -208,7 +208,7 @@ ModelDiffusionReaction<Traits>::make_step_operator(const State& state,
 
   const auto& basis = any_cast<const CompartmentBasis&>(state.basis);
 
-  std::shared_ptr one_step = make_diffusion_reaction_step_operator<LocalBasisTraits, Coefficients, Residual, ResidualQuantity, TimeQuantity>(config, basis, 1, _functor_factory);
+  std::shared_ptr one_step = make_diffusion_reaction_step_operator<LocalBasisTraits, Coefficients, Residual, ResidualQuantity, TimeQuantity>(config, basis, 1, _functor_factory, _grid_data_context);
 
   // type erase the original runge kutta operator
   auto type_erased_one_step = std::make_unique<PDELab::OperatorAdapter<State, State>>(
@@ -312,7 +312,7 @@ ModelDiffusionReaction<Traits>::write_vtk(const State& state,
   if (coeff_ptr.use_count() != 1) {
     throw format_exception(
       InvalidStateException{},
-      "Fake shared pointer from coefficient vector may have been leaked outsie of this"
+      "Fake shared pointer from coefficient vector may have been leaked outside of this"
       "function!");
   }
 }

@@ -78,6 +78,47 @@
       }
     }
   },
+  "grid.cell_data.{dtkn}.[type|path]": {
+    ".brif": "Sets up a token `{dtkn}` in the dune-copasi parsers based on grid data corresponding with the loaded grid",
+    ".options": {
+      "type": {
+        ".type": "enum",
+        ".options": {
+          "'scalar'": {
+            ".brief": "Sets token `{dtkn}` as a scalar double."
+          },
+          "'vector'": {
+            ".brief": "Sets token `{dtkn}` as a vector double. (Not implemented - WIP)."
+          },
+          "'tensor'": {
+            ".brief": "Sets token `{dtkn}` as a tensor double. (Not implemented - WIP)."
+          }
+        }
+      },
+      "path": {
+        ".type": "path",
+        ".brief": "The path of the file containing values for `{dtkn}` for the defined entities values"
+      }
+    },
+    ".details": [
+      "This option can only be used if the grid was loaded from a Gmsh file (i.e. using `grid.path`).",
+      "The cell data file needs to provide the values of the entities to which the values needs to be assigned.",
+      "To do this you need to take advantage of the Gmsh file type (v2).",
+      "Each cell entity in the Gmsh has a unique integer as identifier (lets call it `gmsh_cell_id_n`). The first line in the",
+      "data-file should contain the number of values to assign. The following lines contain the data and start with the",
+      "`gmsh_cell_id` followed by the values:",
+      " - `'scalar'`: one `float`",
+      " - `'vector'`: D `float`s",
+      " - `'tensor'`: DxD `float`s\n",
+      "Lines starting with `#` are not read. A simple example for a `'scalar'` is:",
+      "```",
+      "# this line not read",
+      "N_values",
+      "gmsh_cell_id1 float",
+      "gmsh_cell_id2 float",
+      "```"
+    ]
+  },
   "model.[order|is_linear|parser_type]": {
     ".brief": "General options of the model",
     ".options": {

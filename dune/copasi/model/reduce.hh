@@ -39,9 +39,9 @@ reduce(const Basis& basis,
                 const auto& coefficients,
                 auto time,
                 const ParameterTree& config,
-                std::shared_ptr<const FunctorFactory<Basis::EntitySet::GridView::dimension>> functor_factory = nullptr)
+                std::shared_ptr<const FunctorFactory<Basis::EntitySet::dimension>> functor_factory = nullptr)
 {
-  constexpr std::size_t dim = Basis::EntitySet::GridView::dimension;
+  constexpr std::size_t dim = Basis::EntitySet::dimension;
   TRACE_EVENT("dune", "Reduce");
 
   if (basis.entitySet().size(0) == 0) {
@@ -49,7 +49,7 @@ reduce(const Basis& basis,
   }
 
   std::shared_ptr<const ParserContext> parser_context;
-  auto functor_factory_parser = std::dynamic_pointer_cast<const FunctorFactoryParser<dim>>(functor_factory);
+  auto functor_factory_parser = std::dynamic_pointer_cast<const FunctorFactoryParser<typename Basis::EntitySet>>(functor_factory);
   if (functor_factory_parser) {
     parser_context = functor_factory_parser->parser_context();
   }
@@ -79,7 +79,7 @@ reduce(const Basis& basis,
 
   using FEM = std::decay_t<decltype(first_finite_element(lbasis.tree()))>;
 
-  auto leqs = LocalEquations<dim>::make(lbasis);
+  auto leqs = LocalEquations<typename Basis::EntitySet>::make(lbasis);
   leqs->time = time;
   LocalBasisCache<typename FEM::Traits::LocalBasisType::Traits> fe_cache;
 
@@ -124,7 +124,7 @@ reduce(const Basis& basis,
     lbasis.bind(cell);
     lcoeff.load(lbasis, std::false_type{});
     const auto& finite_element = first_finite_element(lbasis.tree());
-  
+
     std::size_t const order = 4;
     const auto& quad_rule = QuadratureRules<typename Geometry::ctype, Geometry::coorddimension>::rule(geo.type(), order);
 

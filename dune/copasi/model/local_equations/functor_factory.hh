@@ -2,6 +2,8 @@
 #define DUNE_COPASI_MODEL_LOCAL_EQUATIONS_FUNCTOR_FACTORY_HH
 
 #include <dune-copasi-config.hh>
+#include <dune/copasi/concepts/grid.hh>
+#include <dune/copasi/parser/context.hh>
 
 #include <dune/common/fmatrix.hh>
 #include <dune/common/fvector.hh>
@@ -29,8 +31,7 @@ public:
 
   using ScalarFunctor = fu2::unique_function<Scalar() const noexcept>;
   using VectorFunctor = fu2::unique_function<Vector() const noexcept>;
-  using TensorApplyFunctor =
-    fu2::unique_function<Vector(Vector) const noexcept>;
+  using TensorApplyFunctor = fu2::unique_function<Vector(Vector) const noexcept>;
 
   FunctorFactory() = default;
   FunctorFactory(const FunctorFactory&) = delete;
@@ -41,6 +42,9 @@ public:
 
   virtual ~FunctorFactory() = default;
 
+  // ---------------------------------------------------------------------------
+  // Defines the interface for making functors that can be evaluated
+  // ---------------------------------------------------------------------------
   [[nodiscard]] virtual ScalarFunctor make_scalar(std::string_view,
                                                   const ParameterTree&,
                                                   const LocalDomain<dim>&,

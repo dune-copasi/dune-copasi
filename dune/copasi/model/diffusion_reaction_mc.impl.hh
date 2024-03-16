@@ -191,7 +191,7 @@ ModelMultiCompartmentDiffusionReaction<Traits>::make_step_operator(
   using LocalBasisTraits = typename ScalarFiniteElementMap::Traits::FiniteElement::Traits::LocalBasisType::Traits;
 
   const auto& basis = any_cast<const MultiCompartmentBasis&>(state.basis);
-  std::shared_ptr one_step = make_diffusion_reaction_step_operator<LocalBasisTraits, Coefficients, Residual, ResidualQuantity, TimeQuantity>(config, basis, 2, _functor_factory);
+    std::shared_ptr one_step = make_diffusion_reaction_step_operator<LocalBasisTraits, Coefficients, Residual, ResidualQuantity, TimeQuantity>(config, basis, 2, _functor_factory, _grid_data_context);
 
   // type erase the original runge kutta operator
   auto type_erased_one_step = std::make_unique<PDELab::OperatorAdapter<State, State>>(
