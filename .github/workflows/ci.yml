@@ -41,6 +41,8 @@ jobs:
         sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-17 100
         sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-17 100
     - uses: actions/checkout@v4
+      with:
+        lfs: true
     - name: Setup static dependencies
       run: ./.ci/setup_static_deps $PWD/dune-copasi.opts
     - name: Setup dune dependencies
@@ -68,6 +70,8 @@ jobs:
         with:
           xcode-version: "14.3"
       - uses: actions/checkout@v4
+        with:
+          lfs: true
       - name: Setup static dependencies
         run: ./.ci/setup_static_deps $PWD/dune-copasi.opts
       - name: Setup dune dependencies
@@ -93,9 +97,9 @@ jobs:
         with:
           msystem: UCRT64
           update: true
-          install: mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake make git dos2unix
+          install: mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake make git mingw-w64-ucrt-x86_64-git-lfs dos2unix
       - name: Clone repo
-        run: pwd && ls && git clone -b ${{ github.head_ref || github.ref_name }} https://github.com/${{ github.repository }} . && ls
+        run: pwd && ls && git lfs install && git clone -b ${{ github.head_ref || github.ref_name }} https://github.com/${{ github.repository }} . && git lfs pull && ls
       - name: Setup static dependencies
         run: pwd && ls && ./.ci/setup_static_deps $PWD/dune-copasi.opts
       - name: Setup dune dependencies

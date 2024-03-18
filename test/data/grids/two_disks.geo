@@ -1,30 +1,3 @@
-// Refinement value
-lc = 1e-1;
-
-// Cell and nucleioid points
-Point(1) = {-2, 0, 0, lc};
-Point(2) = {-1, 0, 0, lc};
-Point(3) = {0, 0, 0, lc};
-Point(4) = {1, 0, 0, lc};
-Point(5) = {2, 0, 0, lc};
-
-// Cell lines
-Circle(1) = {1,3,5};
-Circle(2) = {5,3,1};
-
-// Cell curve
-Curve Loop(1) = {1,2};
-
-// Nucleoid lines
-Circle(3) = {2,3,4};
-Circle(4) = {4,3,2};
-
-// Nuceloid curve
-Curve Loop(2) = {3,4};
-
-
-Plane Surface(1) = {1,2};
-Physical Surface("Cell") = {1};
-
-Plane Surface(2) = {2};
-Physical Surface("Nucleoid") = {2};
+version https://git-lfs.github.com/spec/v1
+oid sha256:d85d2d9d3fbde0b6ee39bd738706aa7b1db716075e19428c6f9271a5e27e8f6d
+size 511
