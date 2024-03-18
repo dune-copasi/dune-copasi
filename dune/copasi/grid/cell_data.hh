@@ -27,6 +27,9 @@ class CellData
   using IndexMapper = MultipleCodimMultipleGeomTypeMapper<GV>;
   using IndexSet = typename GV::IndexSet;
 
+  // Allow makeLeafGridViewCellData to see the contents of the level grid view case 
+  friend CellData<typename GV::Grid::LevelGridView, T>;
+
 public:
   using GridView = GV;
 
@@ -41,6 +44,44 @@ public:
       auto entity_it = grid_view.template begin<0>();
       if (entity_it != grid_view.template end<0>())
         _grid_view_level.emplace(0);
+    }
+  }
+
+  //! creates a cell data object with a copy data for the leaf grid view
+  /**
+   * @brief Create cell data for leaf grid view
+   * @details Makes a copy of this CellData into another CellData that operates in the
+   * leaf grid view
+   * 
+   * @return std::unique_ptr<CellData<typename GV::Grid::LeafGridView, T>> Cell data for leaf grid view
+   */
+  std::unique_ptr<CellData<typename GV::Grid::LeafGridView, T>> makeLeafGridViewCellData() const {
+    using LeafGridView = typename GV::Grid::LeafGridView;
+    if constexpr (std::same_as<GV, LeafGridView>) {
+      return std::make_unique<CellData<LeafGridView, T>>(*this);
+    } else {
+      if (_grid_view_level and _grid_view_level.value() != 0)
+        throw format_exception(
+          InvalidStateException{},
+          "Leaf grid view cell data can only be made out of other leaf grid view (copy) or a 0-th level grid view (projection)");
+      
+      // copy values level grid view values into leaf grid view values
+      auto leaf_gv = _index_mapper.gridView().grid().leafGridView();
+      auto leaf_cd = std::make_unique<CellData<LeafGridView, T>>(leaf_gv);
+      leaf_cd->reserve(_keys.size());
+      auto lvl_cap = capacity();
+      auto leaf_cap = leaf_cd->capacity();
+      auto sz = size();
+      for (const auto& entity : elements(leaf_gv)) {
+        auto lvl_offset = index(entity) * lvl_cap;
+        auto leaf_offset = leaf_cd->index(entity) * leaf_cap;
+        for (std::size_t id = 0; id != sz; ++id) {
+          bool mask = leaf_cd->_cell_mask[leaf_offset + id] = _cell_mask[lvl_offset + id];
+          leaf_cd->_cell_data[leaf_offset + id] = mask ? _cell_data[lvl_offset + id] : std::numeric_limits<T>::quiet_NaN();
+        }
+      }
+      leaf_cd->_keys = _keys;
+      return leaf_cd;
     }
   }
 
@@ -145,10 +186,10 @@ public:
     auto sz = size();
     cell_data.resize(sz);
     cell_mask.resize(sz);
+    auto offset = entity_index * cap;
     for (std::size_t id = 0; id != sz; ++id) {
-      auto data_id = entity_index * cap + id;
-      bool mask = cell_mask[id] = _cell_mask[data_id];
-      cell_data[id] = mask ? _cell_data[data_id] : std::numeric_limits<T>::quiet_NaN();
+      bool mask = cell_mask[id] = _cell_mask[offset + id];
+      cell_data[id] = mask ? _cell_data[offset + id] : std::numeric_limits<T>::quiet_NaN();
     }
   }
 

@@ -56,9 +56,9 @@ public:
 
   explicit ModelMultiCompartmentDiffusionReaction(
     std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory,
-    std::shared_ptr<const CellData<typename Grid::LevelGridView, ScalarQuantity>> coarse_cell_data = nullptr)
+    std::shared_ptr<const CellData<typename Grid::LeafGridView, ScalarQuantity>> cell_data = nullptr)
     : _functor_factory{ std::move(functor_factory) }
-    , _coarse_cell_data{ std::move(coarse_cell_data) }
+    , _cell_data{ std::move(cell_data) }
   {
     assert(_functor_factory);
   }
@@ -91,7 +91,7 @@ private:
 
   mutable std::unordered_map<std::string, std::vector<double>> _writer_timesteps;
   std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> _functor_factory;
-  std::shared_ptr<const CellData<typename Grid::LevelGridView, ScalarQuantity>> _coarse_cell_data;
+  std::shared_ptr<const CellData<typename Grid::LeafGridView, ScalarQuantity>> _cell_data;
 };
 
 } // namespace Dune::Copasi

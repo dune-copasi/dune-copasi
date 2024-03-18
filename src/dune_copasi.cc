@@ -319,7 +319,7 @@ main(int argc, char** argv)
       [&](auto dim) {
         // get a pointer to the grid
         const auto max_subdomains = 64;
-        auto [md_grid_ptr, cell_data] = [&] {
+        auto [md_grid_ptr, coarse_cell_data] = [&] {
           using MDGTraits = Dune::mdgrid::FewSubDomainsTraits<dim, max_subdomains>;
           if constexpr (dim < 2) {
             using MDGrid = Dune::mdgrid::MultiDomainGrid<Dune::YaspGrid<dim, Dune::EquidistantOffsetCoordinates<double,dim>>, MDGTraits>;
@@ -350,10 +350,12 @@ main(int argc, char** argv)
         using DurationQuantity = double;
         using Model = Model<MDGrid, SDGridView, SpeciesQuantity, TimeQuantity>;
 
+        auto leaf_cell_data = std::move(coarse_cell_data)->makeLeafGridViewCellData();
+
         auto parser_type = string2parser.at(config.get("model.parser_type", default_parser_str));
         auto functor_factory =
           std::make_shared<FunctorFactoryParser<dim>>(parser_type, std::move(parser_context));
-        std::shared_ptr model = make_model<Model>(model_config, functor_factory, std::move(cell_data));
+        std::shared_ptr model = make_model<Model>(model_config, functor_factory, std::move(leaf_cell_data));
 
         // create time stepper
         const auto& time_config = model_config.sub("time_step_operator");

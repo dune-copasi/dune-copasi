@@ -50,7 +50,7 @@ std::unique_ptr<Model>
 make_model(
   const ParameterTree& config,
   std::shared_ptr<const FunctorFactory<Model::Grid::dimensionworld>> functor_factory = nullptr,
-  std::shared_ptr<const CellData<typename Model::Grid::LevelGridView, typename Model::RangeQuatinty>> coarse_cell_data = nullptr
+  std::shared_ptr<const CellData<typename Model::Grid::LeafGridView, typename Model::RangeQuatinty>> cell_data = nullptr
 )
 {
   if (not functor_factory) {
@@ -95,11 +95,11 @@ make_model(
         if (field_blocked) {
           model = std::make_unique<
             ModelDiffusionReaction<Impl::SingleCompartmentTraits<Model, fem_order, true>>>(
-            functor_factory, coarse_cell_data);
+            functor_factory, cell_data);
         } else {
           model = std::make_unique<
             ModelDiffusionReaction<Impl::SingleCompartmentTraits<Model, fem_order, false>>>(
-            functor_factory, coarse_cell_data);
+            functor_factory, cell_data);
         }
       },
       not_know_order);
@@ -112,18 +112,18 @@ make_model(
         if (compartments_blocked) {
           if (field_blocked) {
             model = std::make_unique<ModelMultiCompartmentDiffusionReaction<
-              Impl::MultiCompartmentTraits<Model, fem_order, true, true>>>(functor_factory, coarse_cell_data);
+              Impl::MultiCompartmentTraits<Model, fem_order, true, true>>>(functor_factory, cell_data);
           } else {
             model = std::make_unique<ModelMultiCompartmentDiffusionReaction<
-              Impl::MultiCompartmentTraits<Model, fem_order, false, true>>>(functor_factory, coarse_cell_data);
+              Impl::MultiCompartmentTraits<Model, fem_order, false, true>>>(functor_factory, cell_data);
           }
         } else {
           if (field_blocked) {
             model = std::make_unique<ModelMultiCompartmentDiffusionReaction<
-              Impl::MultiCompartmentTraits<Model, fem_order, true, false>>>(functor_factory, coarse_cell_data);
+              Impl::MultiCompartmentTraits<Model, fem_order, true, false>>>(functor_factory, cell_data);
           } else {
             model = std::make_unique<ModelMultiCompartmentDiffusionReaction<
-              Impl::MultiCompartmentTraits<Model, fem_order, false, false>>>(functor_factory, coarse_cell_data);
+              Impl::MultiCompartmentTraits<Model, fem_order, false, false>>>(functor_factory, cell_data);
           }
         }
       },
