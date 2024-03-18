@@ -2,6 +2,7 @@
 #define DUNE_COPASI_SOLVER_ISTL_FACTORY_ITERATIVE_HH
 
 #include <dune/copasi/common/exceptions.hh>
+#include <dune/copasi/common/parameterized_object.hh>
 #include <dune/copasi/solver/istl/concepts.hh>
 #include <dune/copasi/solver/istl/util.hh>
 
@@ -12,7 +13,6 @@
 
 #include <dune/common/classname.hh>
 #include <dune/common/exceptions.hh>
-#include <dune/common/parameterizedobject.hh>
 
 #include <fmt/ranges.h>
 
@@ -30,7 +30,7 @@ using IterativeSolverFactorySignature =
                                          const A&);
 template<class X, class Y, class A>
 using IterativeSolverRegistry =
-  ParameterizedObjectFactory<IterativeSolverFactorySignature<X, Y, A>>;
+  ParameterizedObjectFactoryWrapper<IterativeSolverFactorySignature<X, Y, A>>;
 
 namespace Impl {
 template<class Solver, class Alloc>
@@ -131,7 +131,7 @@ makeIterativeSolver(
       IOError{},
       "The key '{}' is not a known iterative solver type. Allowed types are {}",
       type_name,
-      /*registry.keys()*/ "<unknown>");
+      registry.keys());
 }
 
 } // Dune::Copasi::ISTL

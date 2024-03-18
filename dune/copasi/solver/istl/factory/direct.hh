@@ -2,6 +2,7 @@
 #define DUNE_COPASI_SOLVER_ISTL_FACTORY_DIRECT_HH
 
 #include <dune/copasi/common/exceptions.hh>
+#include <dune/copasi/common/parameterized_object.hh>
 #include <dune/copasi/solver/istl/concepts.hh>
 #include <dune/copasi/solver/istl/dense_inverse.hh>
 
@@ -15,7 +16,6 @@
 
 #include <dune/common/exceptions.hh>
 #include <dune/common/indices.hh>
-#include <dune/common/parameterizedobject.hh>
 
 #include <fmt/ranges.h>
 
@@ -28,7 +28,7 @@ using DirectSolverFactorySignature =
                                          const ParameterTree&,
                                          const A&);
 template<class M, class X, class Y, class A>
-using DirectSolverRegistry = ParameterizedObjectFactory<DirectSolverFactorySignature<M, X, Y, A>>;
+using DirectSolverRegistry = ParameterizedObjectFactoryWrapper<DirectSolverFactorySignature<M, X, Y, A>>;
 
 namespace Impl {
 template<class Op, class Alloc>
@@ -149,7 +149,7 @@ makeDirectSolver(const std::shared_ptr<Op>& op,
     throw format_exception(IOError{},
                            "The key '{}' is not a known direct solver type. Allowed types are {}",
                            type_name,
-                           /*registry.keys()*/ "<unknown>");
+                           registry.keys());
 }
 
 } // Dune::Copasi::ISTL

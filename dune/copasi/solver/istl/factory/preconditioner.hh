@@ -1,6 +1,7 @@
 #ifndef DUNE_COPASI_SOLVER_ISTL_FACTORY_PRECONDITIONER_HH
 #define DUNE_COPASI_SOLVER_ISTL_FACTORY_PRECONDITIONER_HH
 
+#include <dune/copasi/common/parameterized_object.hh>
 #include <dune/copasi/solver/istl/block_jacobi.hh>
 #include <dune/copasi/solver/istl/concepts.hh>
 #include <dune/copasi/solver/istl/util.hh>
@@ -24,7 +25,7 @@ using PreconditionerFactorySignature =
     const ParameterTree&,
     const A&);
 template<Concept::LinearOperator O, class A>
-using PreconditionerRegistry = ParameterizedObjectFactory<PreconditionerFactorySignature<O, A>>;
+using PreconditionerRegistry = ParameterizedObjectFactoryWrapper<PreconditionerFactorySignature<O, A>>;
 
 namespace Impl {
 
@@ -132,7 +133,7 @@ makePreconditioner(const std::shared_ptr<Op>& op,
     throw format_exception(IOError{},
                            "The key '{}' is not a known preconditioner type. Allowed types are {}",
                            type_name,
-                           /*registry.keys()*/ "<unknown>");
+                           registry.keys());
 }
 
 } // Dune::Copasi::ISTL
