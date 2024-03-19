@@ -2,12 +2,6 @@
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 
-const copyright = `Copyright © ${new Date().getFullYear()} Ruprecht-Karls-Universität Heidelberg`
-const impressum = `<a href="https://www.uni-heidelberg.de/impressum.html" rel="noreferrer">Impressum</a>`
-const datenschutz = `<a href="https://www.uni-heidelberg.de/datenschutzerklaerung_web.html" rel="noreferrer">Datenschutzerklärung</a>`
-const disclaimer = `<a href="https://www.uni-heidelberg.de/haftungsausschluss_web.html" rel="noreferrer">Haftungsausschluss</a>`
-
-
 module.exports = {
   title: 'Dune Copasi',
   tagline: 'Solver for reaction-diffusion systems in multiple compartments',
@@ -57,14 +51,12 @@ module.exports = {
       },
       items: [
         {
-          to: 'docs/category/info',
-          label: 'Info',
-          position: 'left',
+          to: '/docs/category/docs',
+          label: 'Docs',
         },
         {
-          to: 'docs/category/docs',
-          label: 'Docs',
-          position: 'left',
+          label: 'Math Model',
+          to: '/math_model',
         },
         {
           type: 'docsVersionDropdown',
@@ -115,13 +107,99 @@ module.exports = {
     },
     footer: {
       style: 'light',
-      links: [],
+      links: [
+        {
+          title: 'Learn',
+          items: [
+            {
+              label: 'About',
+              to: '/about',
+            },
+            {
+              label: 'Math Model',
+              to: '/math_model',
+            },
+            {
+              label: 'Config Options',
+              to: '/docs/param_tree',
+            },
+            {
+              label: 'Docs',
+              to: '/docs/category/docs',
+            },
+          ],
+        },
+        {
+          title: 'Community',
+          items: [
+            {
+              label: 'Community',
+              to: '/community',
+            },
+            {
+              label: 'Participate',
+              to: '/participate',
+            },
+          ],
+        },
+        {
+          title: 'More',
+          items: [
+            {
+              label: 'GitLab',
+              href: 'https://gitlab.dune-project.org/copasi/dune-copasi',
+            },
+            {
+              label: 'GitHub',
+              href: 'https://github.com/dune-copasi/dune-copasi',
+            },
+            {
+              label: 'Docker Registry',
+              href: 'https://gitlab.dune-project.org/copasi/dune-copasi/container_registry',
+            },
+            {
+              href: 'https://gitlab.dune-project.org/copasi/dune-copasi/-/releases',
+              label: 'Releases',
+            },
+            {
+              href: 'https://gitlab.dune-project.org/copasi/dune-copasi/-/blob/master/CHANGELOG.md',
+              label: 'Changelog',
+            },
+            {
+              href: 'https://gitlab.dune-project.org/copasi/dune-copasi/-/issues?label_name%5B%5D=Bug',
+              label: 'Bug tracker',
+            },
+          ],
+        },
+        {
+          title: 'Legal',
+          items: [
+            {
+              href: 'https://gitlab.dune-project.org/copasi/dune-copasi/-/blob/master/LICENSE.md',
+              label: 'Licence',
+            },
+            {
+              label: 'Impressum',
+              href: 'https://www.uni-heidelberg.de/impressum.html',
+            },
+            {
+              label: 'Datenschutzerklärung',
+              href: 'https://www.uni-heidelberg.de/datenschutzerklaerung_web.html',
+            },
+            {
+              label: 'Haftungsausschluss',
+              href: 'https://www.uni-heidelberg.de/haftungsausschluss_web.html',
+            },
+          ],
+        },
+      ],
+
       logo: {
-        alt: 'Meta Open Source Logo',
+        href: 'https://www.bmbf.de',
+        alt: 'BMBF Logo',
         src: 'img/BMBF_logo.svg',
       },
-      // copyright: `Research funded by the German federal Ministry of Education and Research (BMBF) FKZ 031L0158</br>${copyright} | ${impressum} | ${datenschutz} | ${disclaimer}`,
-      copyright: `Research funded by the German federal Ministry of Education and Research (BMBF) FKZ 031L0158`,
+      copyright: `Research funded by the German federal Ministry of Education and Research (BMBF) FKZ 031L0158</br>Copyright © ${new Date().getFullYear()} Ruprecht-Karls-Universität Heidelberg`,
     },
   },
   presets: [
@@ -132,10 +210,24 @@ module.exports = {
           path: 'docs',
           sidebarPath: require.resolve('./sidebars.js'),
           editUrl: 'https://gitlab.dune-project.org/copasi/dune-copasi/-/edit/master/doc/docusaurus/',
-          remarkPlugins: [ remarkMath ],
-          rehypePlugins: [ rehypeKatex ],
+          remarkPlugins: [remarkMath],
+          rehypePlugins: [rehypeKatex],
           showLastUpdateTime: true,
           showLastUpdateAuthor: true,
+        },
+        pages: {
+          path: 'src/pages',
+          routeBasePath: '',
+          include: ['**/*.{js,jsx,ts,tsx,md,mdx}'],
+          exclude: [
+            '**/_*.{js,jsx,ts,tsx,md,mdx}',
+            '**/_*/**',
+            '**/*.test.{js,jsx,ts,tsx}',
+            '**/__tests__/**',
+          ],
+          mdxPageComponent: '@theme/MDXPage',
+          remarkPlugins: [remarkMath],
+          rehypePlugins: [rehypeKatex],
         },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),

@@ -1,1 +1,2 @@
 test/data/** filter=lfs diff=lfs merge=lfs -text
+doc/docusaurus/versioned_docs/** filter=lfs diff=lfs merge=lfs -text

@@ -175,6 +175,7 @@ codespell:
   script:
   - codespell
     --skip="./doc/docusaurus/yarn.lock,./.git/**/*"
+    --ignore-words-list="warn"
 
 config_format:
   variables:
