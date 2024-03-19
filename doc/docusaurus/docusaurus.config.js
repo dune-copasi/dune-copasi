@@ -1,6 +1,6 @@
 // Enable latex render
-const math = require('remark-math')
-const katex = require('rehype-katex')
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 
 const copyright = `Copyright © ${new Date().getFullYear()} Ruprecht-Karls-Universität Heidelberg`
 const impressum = `<a href="https://www.uni-heidelberg.de/impressum.html" rel="noreferrer">Impressum</a>`
@@ -15,7 +15,6 @@ module.exports = {
   baseUrl: '/',
   onBrokenLinks: 'throw',
   favicon: 'img/favicon.ico',
-  organizationName: 'dune-copasi',
   projectName: 'dune-copasi',
 
   // CSS for latex
@@ -34,7 +33,21 @@ module.exports = {
       disableSwitch: true,
     },
     prism: {
-      additionalLanguages: ['ini','cmake'],
+      additionalLanguages: ['ini', 'cmake', 'bash'],
+      magicComments: [
+        // First one: default highlighted line by docusaurus
+        {
+          className: 'theme-code-block-highlighted-line',
+          line: '%highlight',
+          block: { start: '%highlight-start', end: '%highlight-end' },
+        },
+        // Custom highlighted line
+        {
+          className: 'code-block-highlighted-error-line',
+          line: '%highlight-error',
+          block: { start: '%highlight-start-error', end: '%highlight-end-error' },
+        },
+      ],
     },
     navbar: {
       title: 'DuneCopasi',
@@ -44,8 +57,13 @@ module.exports = {
       },
       items: [
         {
-          to: 'docs/math_model',
-          label: 'Learn',
+          to: 'docs/category/info',
+          label: 'Info',
+          position: 'left',
+        },
+        {
+          to: 'docs/category/docs',
+          label: 'Docs',
           position: 'left',
         },
         {
@@ -59,19 +77,19 @@ module.exports = {
           items: [
             {
               href: 'https://gitlab.dune-project.org/copasi/dune-copasi/-/releases',
-              label: 'Releases',
+              label: '🚀 Releases',
             },
             {
               href: 'https://gitlab.dune-project.org/copasi/dune-copasi/-/blob/master/LICENSE.md',
-              label: 'Licence',
+              label: '⚖️ Licence',
             },
             {
               href: 'https://gitlab.dune-project.org/copasi/dune-copasi/-/blob/master/CHANGELOG.md',
-              label: 'Changelog',
+              label: '🚧 Changelog',
             },
             {
               href: 'https://gitlab.dune-project.org/copasi/dune-copasi/-/issues?label_name%5B%5D=Bug',
-              label: 'Bug tracker',
+              label: '🐛 Bug tracker',
             },
           ],
         },
@@ -113,10 +131,9 @@ module.exports = {
         docs: {
           path: 'docs',
           sidebarPath: require.resolve('./sidebars.js'),
-          // Please change this to your repo.
           editUrl: 'https://gitlab.dune-project.org/copasi/dune-copasi/-/edit/master/doc/docusaurus/',
-          remarkPlugins: [ math ],
-          rehypePlugins: [ katex ],
+          remarkPlugins: [ remarkMath ],
+          rehypePlugins: [ rehypeKatex ],
           showLastUpdateTime: true,
           showLastUpdateAuthor: true,
         },
@@ -126,4 +143,8 @@ module.exports = {
       },
     ],
   ],
+  plugins: [
+    require.resolve("@cmfcmf/docusaurus-search-local"),
+    process.env.NODE_ENV === 'production' && '@docusaurus/plugin-debug',
+  ].filter(Boolean),
 };

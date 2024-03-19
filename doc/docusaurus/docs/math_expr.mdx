@@ -1,55 +1,457 @@
 ---
 id: math_expr
 title: Mathematical Expressions
+description: Allowed syntax for mathematical expressions
 sidebar_label: Math Expressions
 ---
 
-Mathematical expressions are permitted on different sections of the
-[Parameter Tree](param_tree.md). Such expressions may contain typical math
-operations such as `+`, `-`, `*`, `^`, `sin`, `tan`, etc. The complete list of
-possibilities is found [here](https://beltoforion.de/en/muparser/features.php).
-That is, the `muParser` built in operators.
+import Markdown from 'react-markdown';
+import ConfigOptsJSON from './assets/config_opts.json';
+import Tag from '@theme/Tag';
+import CodeBlock from '@theme/CodeBlock';
+import CodeBlockLine from '@theme/CodeBlock/Line';
 
-Furthermore, we provide extra variables/functions that may be included on the
-math expressions.
+export const JoinDetailsArray = (a) => {return Array.isArray(a) ? a.join('\n') : a}
 
-## Variables
-### Context-Independent
+<!-- somehow the markdown title is not rendered :-| so this is a workaround -->
+# Math Expressions
 
-The following list of variables are unconditionally available when defining
-expressions:
+Mathematical expressions `{math-expr}` are permitted on different arguments of the
+[configuration options](param_tree). They consist of a string
+that when interpreted and evaluated returns a numeric value. Such expressions may contain typical math
+operations such as `+`, `-`, `*`, `sin`, `tan`, `sqrt`, etc.
 
-| Variable | Description |
-| -------- | ----------- |
-| `t`      | Time
-| `x`      | First dimension in the cartesian coordinate system
-| `y`      | Second dimension in the cartesian coordinate system
-| `z`      | Third dimension in the cartesian coordinate system (only in 3D)
-| `dim`    | Dimension of the euclidean space
-| `pi`     | Approximation to the number π
-
-### Context-Dependent
-
-Additionally, there are other variables that are conditionally available to
-define the expression. These variables depend on the context of its definition.
-An example of it is the reaction expressions within a compartment. If the
-section `[model.nucleus.reaction]` defines expressions `u`, `v`, and `w`,
-then, they all will be available to each other. E.g.
-
-```ini
-[model.nucleus.reaction]
-u = u*v*w
-v = u*v*w
-w = u*v*w
+:::tip Example
+The example below initializes the variable `u` with $\texttt{u}_{(0)}=1+2\cdot 10^{-10}$ and sets its diffusion coefficient to $\mathsf{D}_{\texttt{u}} = \sqrt{2\cdot 10^{-10}}$.
+```ini title="config.ini"
+[model.scalar_value.u]
+initial.expression = 1.0 + 2e-10
+cross_diffusion.u.expression = sqrt(2e-10)
 ```
+Note how the contents of these arguments need to be understood by a suitable math interpreter.
+:::
 
-## Functions
+::::note Syntax
+The exact syntax permitted within math expressions `{math-expr}` depends on the parser type used to interpret
+the expression. Every expression may be instructed to be interpreted with a different parser by setting `[*.]parser_type={enum}`. The possible parsers are:
 
-### Context-Dependent
+<details>
+<summary>
+`'ExprTk'`
+</summary>
+The C++ Mathematical Expression Toolkit Library. Focuses in functionality and [performance](https://github.com/ArashPartow/math-parser-benchmark-project).
 
-There are also functions that may be conditionally available depending on the
-context. In such case, the function will have a custom name and fixed number of
-arguments and will be available for use on the mathematical expression.
+https://www.partow.net/programming/exprtk/index.html
+</details>
 
-Currently we only provide these for defining TIFF input images as 2D functions
-for initial conditions (See [Input Data](input_data.md) section).
+<details>
+<summary>
+`'MuParser'`
+</summary>
+A fast math parser library. Available in most package managers.
+
+https://beltoforion.de/en/muparser
+</details>
+
+<details>
+<summary>
+`'SymEngine'`
+</summary>
+A symbolic manipulation library. Best known for its python bindings: [`SymPy`](https://www.sympy.org/en/index.html).
+
+https://symengine.org
+</details>
+
+<details>
+<summary>
+`'SymEngineSBML'`
+</summary>
+A [SBML](https://sbml.org/software/libsbml/5.18.0/docs/formatted/csharp-api/libsbml-csharp-math.html) flavored syntax of the `'SymEngine'` parser.
+
+https://symengine.org
+</details>
+
+
+:::caution Parser availability
+Some parsers may not be available depending on how `dune-copasi` is compiled. To see the available parsers use the `--parser-list` command.
+:::
+
+:::tip Parser composition
+Every expression in `{math-expr}` is compiled independently. This means that different parser types may be used in the same model definition. This is helful when the syntax of one parser is more convenient to write one expression. For example, the
+`ExprTk` parser allows the usage of [ternary conditional operator](https://en.wikipedia.org/wiki/Ternary_conditional_operator) `cond ? expr1 : expr2` whereas `SymEngine` does not:
+```ini title="config.ini"
+[parser_context.pulse]
+type = function
+# %highlight
+expression = t, t0, dt: abs(t-t0) < dt ? 1 : 0
+parser_type = ExprTk
+
+[model.scalar_value.u]
+reaction.expression = 1e10 + pulse(time, 10, 1)
+# %highlight
+reaction.parser_type = SymEngine
+```
+:::
+::::
+
+# Keywords
+
+Math expressions may be evaluated in many different contextual environments, such as, in the initialization of variables,
+a coefficient interpretation, or as an aid to define the cells that belong to a comartment. Depending on the context, several keywords are defined in order to help expressing the desired mathematical model. These keywords are declared and defined in the following way:
+
+## Contextual Transient Keyword
+
+Whenever the context of the evaluation is transient, the `time` keyword will evaluate to the corresponding simulation time $t$.
+In other words,
+
+$$
+\texttt{time}:=t.
+$$
+
+## Contextual Domain Keywords
+
+Whenever an expression is evaluated at a position $x\in\Omega\subset\mathbb{R}^d$ then this position is also available within the `{math-expr}`. Such position is made available through the `position_[x|y|z]` keywords such that
+
+$$
+[\texttt{position\_x},\,\texttt{position\_y},\,\texttt{position\_z}]:=\hat{x},
+$$
+
+where $\hat{x}\in \mathbb{R}^3$ is the extension of $x\in\Omega$ into $\mathbb{R}^3$.
+
+:::note mesh definition
+We assume that the domain $\Omega$ is covered by a mesh $\mathcal{T}_h = \{T_1, \ldots , T_M\}$ consisting of elements which are closed sets satisfying
+
+$$
+\bigcup_{T\in \mathcal{T}_h} T = \overline{\Omega}, \quad 
+\forall T, T' \in \mathcal{T}_h, T\neq T' : \mathring{T} \cap \mathring{T}' = \emptyset,
+$$
+
+The nonempty intersections $F = T_F^-\cap T_F^+$
+of codimension 1 form the interior skeleton $\mathcal{F}_h^i=\{F_1,\ldots,F_N\}$.
+Each intersection is equipped with a unit normal vector $\nu_F$ pointing from $T_F^-$ to $T_F^+$.
+The intersections of an element $F=T_F^-\cap\partial\Omega$ with the domain
+boundary form the set of boundary intersections $\mathcal{F}_h^{\partial\Omega}=
+\{F_1,\ldots,F_L\}$.
+Each boundary intersection is equipped with a unit normal vector
+$\nu_F$ which coincides with the unit outer normal to the domain.
+:::
+Furthermore, the contextual domain evaluation is always associated to a grid element $e$. Its properties are also expossed within the parser as:
+
+$$
+\begin{aligned}
+\texttt{entity\_volume}&:=|e|\\
+\texttt{in\_volume}&:=
+  \left\{
+  \begin{matrix}
+    \texttt{true} \quad& \text{if }e\in\mathcal{T}_h\\
+    \texttt{false} \quad& \text{otherwise}
+  \end{matrix}
+  \right.\\
+\texttt{in\_boundary}&:=
+  \left\{
+  \begin{matrix}
+    \texttt{true} \quad& \text{if }e\in\mathcal{F}_h^{\partial\Omega}\\
+    \texttt{false} \quad& \text{otherwise}
+  \end{matrix}
+  \right.\\
+\texttt{in\_skeleton}&:=
+  \left\{
+  \begin{matrix}
+    \texttt{true} \quad& \text{if }e\in\mathcal{F}_h^i\\
+    \texttt{false} \quad& \text{otherwise}
+  \end{matrix}
+  \right.
+\end{aligned}
+$$
+
+
+In the cases where $e\in\mathcal{F}_h^{\partial\Omega}\cup\mathcal{F}_h^i$ we also have that its unit outer normal vector is exposed with the keywords `normal_[x|y|z]` such that
+
+$$
+[\texttt{normal\_x}, \texttt{normal\_y}, \texttt{normal\_z}] := \hat{\nu}_F,
+$$
+
+where $\hat{\nu}_F\in \mathbb{R}^3$ is the extension of $\nu_F\in\mathbb{R}^d$ into $\mathbb{R}^3$.
+
+## Contextual Scalar Field Keywords
+
+There are cases where the evaluation of `{math-expr}` is made when the results of the scalar values `{var}` (or a trial function of them) are known. In such cases, the value of `{var}` evaluated at position $x$ is made available thoruhg the parsers. Additionally, its gradient $\frac{\partial}{\partial \hat{x}}$`{var}` is also represented by the `grad_{var}_[x|y|z]` tokens.
+
+:::tip example
+The configuration file to represent the system of ordinary differential equations
+$$
+\begin{aligned}
+\partial_t \texttt{u}& - \mathcal{R}_\texttt{u}(\texttt{u}, \texttt{z}),\\
+\partial_t \texttt{z}& - \mathcal{R}_\texttt{z}(\texttt{u}, \texttt{z})
+\end{aligned}
+$$
+
+with the reaction networks on the form of
+$$
+\begin{aligned}
+\mathcal{R}_\texttt{u}(\texttt{u}, \texttt{z})&:= \texttt{z}\cdot\texttt{u}^2\cdot(1-\texttt{u}) - \texttt{u},\\
+\mathcal{R}_\texttt{z}(\texttt{u}, \texttt{z})&:=
+  \left\{
+  \begin{matrix}
+    \frac{1 - \texttt{z}}{1.25} \quad& \text{if }\texttt{u} \leq 0.1\\
+    -\texttt{z} \quad& \text{otherwise}
+  \end{matrix}
+  \right.\\
+\end{aligned}
+$$
+will contain something similar to this:
+```ini title="config.ini"
+[model.scalar_field.u]
+storage.expression = 1
+# %highlight
+reaction.expression = z*u^2*(1-u) - u
+reaction.jacobian.u.expression = u*z*(2-3*u)-1
+reaction.jacobian.z.expression = (1-u)*u^2
+
+[model.scalar_field.z]
+storage.expression = 1
+# %highlight
+reaction.expression = (u <= 0.1) ? (1 - z)/1.25 : -z
+reaction.jacobian.z.expression = (u <= 0.1) ? -1/1.25 : -1
+```
+Notice how the tokens `u` and `z` are allowed in each `{math-expr}` across different scalar field sub-sections of `*.u` and `*.z`. This allows to express non-linearities in a natural form.
+:::
+
+## Custom Keywords
+
+:::note Config Options:
+* **`parser_context.{tkn}.type={enum}`**
+* **`parser_context.{tkn}.{...}={...}`**
+:::
+
+Independently of the evaluation context, you are allowed to inject keywords into the parser in order to express mathematical expressions easier. The defined keywords will be defined and allowed to be used within `math-expr` definitions.
+
+### Constants
+
+
+:::note Config Options: 
+* **`parser_context.{tkn}.type='constant'`**
+* **`parser_context.{tkn}.value={float}`**
+:::
+
+Defines a keyword `{tkn}` that when evaluated gets replaced by the constant contained in `{float}`.
+
+:::tip Example
+```ini title="config.ini"
+[parser_context.water_diffusion]
+type = constant
+value = 2.299E10−9
+```
+is equivalent to
+
+$$
+\texttt{water\_diffusion}:=2.299\cdot 10^{-9}
+$$
+
+:::
+
+### Function Math Expressions
+
+:::note Config Options:
+* **`parser_context.{tkn}.type='function'`**
+* **`parser_context.{tkn}.expression={func-expr}`**
+* **`parser_context.{tkn}.parser_type={enum}`**
+:::
+
+Declares a keyword `{tkn}` than may be used as a function within the parsers. The definition of the function starts with up to 4 comma separated string arguments followed by a colon and a math expression.
+
+* `{args} := {arg0}[, {arg1}[, {arg2}[, {arg3}]]]`
+* `{func-expr} := {args}: {math-expr}`
+
+The math expression `{math-expr}` is allowed to use the arguments `{args}` as numerical values and any other custom defined keywords exceptuating other function keywords.
+
+:::tip example
+This example defines a keyword `pulse` that may be used in other math expression config option argument to evaluate `{math-expr}` when provided with 3 arguments.
+
+```ini title="config.ini"
+[parser_context.pulse]
+type = function
+expression = t, t0, dt: abs(t-t0) < dt ? 1 : 0
+```
+is equivalent to
+$$
+\texttt{pulse(}t, t_0, \delta_t\texttt{)}:=
+\left\{
+  \begin{matrix}
+    1, \quad& \text{if }|t-t_0| < \delta_t\\
+    0,   \quad& \text{otherwise}
+  \end{matrix}
+  \right.
+  .
+$$
+:::
+
+
+::::tip Linear interpolation
+
+:::note Config Options:
+* **`parser_context.{tkn}.interpolate={bool}`**
+* **`parser_context.{tkn}.domain.{arg}={float-pair}`**
+* **`parser_context.{tkn}.intervals={integer}`**
+* **`parser_context.{tkn}.out_of_bounds={enum}`**
+:::
+
+In cases where `{math-expr}` is very expensive to compute and the function has one argument, these options allow to replace the function definition with a linear interpolation of `{math-expr}`.
+
+::::tip example
+This example defines a keyword `my_exp` referring to an interpolation of `exp(x)` evaluated in `100` sub-intervals between the domain values `0` and `10`.
+```ini title="config.ini"
+[parser_context.my_exp]
+type = function
+expression = x: exp(x)
+# %highlight-start
+interpolate = true
+domain.x = 0 10
+intervals = 100
+out_of_bounds = error
+# %highlight-end
+```
+The interpolation may be disabled by setting `interpolate=false`, in which case `exp(x)` will be compiled and evaluated as any other mathematical expression.
+::::
+
+::::caution Other functions
+A `{math-expr}` with `'function'` type is not allowed to contain other custom keywords defined as `'function'` type. This means that recursive and composition of functions is not allowed.
+
+
+:::note example
+```ini title="config.ini"
+[parser_context.factorial]
+type = function
+# %highlight-error
+expression = n: (n > 0) ? n * factorial(n-1) : n
+# error: 'factorial' keyword is not known
+
+[parser_context.f]
+type = function
+expression = x, y: sin(x) * cos(y)
+
+[parser_context.g]
+type = function
+# %highlight-error
+expression = x: f(x, x-1)
+# error: 'f' keyword is not known
+```
+:::
+::::
+
+:::caution muparser max limit
+There is a maximum limit to the number of functions may can be defined when the `{math-expr}` is compiled using `[*.]parser_type='MuParser'`. This limit is severely reduced when the assembly is made in concurrent mode. We recommend using other parsers when defining functions.
+:::
+
+### Random Field
+
+:::note Config Options:
+* **`parser_context.{tkn}.type='random_field'`**
+* **`parser_context.{tkn}.{parafields-key}={parafields-value}`**
+:::
+
+These options generate a Gaussian random field based on circulant embedding using [parafields](https://parafields.readthedocs.io/en/latest/intro.html) and declares it as a function with the keyword `{tkn}`. The number of arguments of such function depends on the dimension of the grid used to generate the random field. All parameters `{parafields-key}={parafields-value}` under the `parser_context.{tkn}` subsection will be forwarded to the [`parafields-core`](https://github.com/parafields/parafields-core) engine.
+
+:::tip example
+
+The example below shows the definition of the keyword `my_rng` in the parsers as a 2D function with the contents of a random field. Later, the keyword `my_rng` is used within a math expression to initialize the variable `u` using the contextual domain keywords `position_x` and `position_y`.
+
+```ini title="config.ini"
+[parser_context.my_rng]
+type = random_field
+grid.extensions = 1.0 1.0
+grid.cells = 1000 1000
+randomField.transform = logNormal
+stochastic.corrLength = 0.10
+stochastic.covariance = exponential
+stochastic.variance = 0.2
+
+[model.scalar_field.u]
+initial.expression = my_rng(2*position_x, 2*position_y)
+```
+:::
+
+
+
+
+:::info Out of domain behavior
+If the resulting function `{tkn}` is evaluated outside the domain values, the
+arguments will be [clamped](https://en.wikipedia.org/wiki/Clamping_(graphics)) to
+the nearest valid point in the domain.
+:::
+
+:::caution Random Fields availability
+This option is only available when `dune-copasi` is compiled with [parafields](https://github.com/parafields/parafields-core).
+:::
+
+### 1D Linear Interpolation
+
+:::note Config Options:
+* **`parser_context.{tkn}.type='interpolation'`**
+* **`parser_context.{tkn}.domain={float-list}`**
+* **`parser_context.{tkn}.range={float-list}`**
+:::
+
+A 1D function with a [linear interpolation](https://en.wikipedia.org/wiki/Interpolation) may be generated from of domain and range pairs.
+
+:::tip example
+A configuration file with the following input
+```ini title="config.ini"
+[parser_context.f]
+type   = interopation
+domain = 0       1       2       3       4       5       6
+range  = 0       0.8415  0.9093  0.1411  −0.7568 −0.9589 −0.2794
+```
+represents a function `f(x)` with this graphical representation:
+![Function `f` interpolation](https://upload.wikimedia.org/wikipedia/commons/6/67/Interpolation_example_linear.svg)
+:::
+
+:::info Out of domain behavior
+If the resulting function `{tkn}` is evaluated outside the domain values, the
+arguments will be [clamped](https://en.wikipedia.org/wiki/Clamping_(graphics)) to
+the nearest valid point in the domain.
+:::
+
+
+### Images (TIFF Format)
+
+:::note Config Options:
+* **`parser_context.{tkn}.type='tiff'`**
+* **`parser_context.{tkn}.path={path}`**
+:::
+
+<Markdown>
+{JoinDetailsArray(ConfigOptsJSON["parser_context.{tkn}.[type|expression|parser_type|domain|range|value|path|interpolate|seed]"][".options"]["type"][".options"]["'tiff'"][".details"])}
+</Markdown>
+
+:::tip Expample
+
+The example below shows the definition of the keyword `my_image` in the parsers as a 2D function with the contents of the file in `path/to/file.tif`. Later, the keyword `my_image` is used within a math expression to initialize the variable `u` using the contextual domain keywords `position_x` and `position_y`.
+```ini title="config.ini"
+[parser_context.my_image]
+type = tiff
+path = path/to/file.tif
+
+[model.scalar_field.u]
+initial.expression = my_image(2*position_x, 2*position_y)
+:::
+
+### Grid Cell Data (TXT Format)
+
+:::note Config Options:
+* **`grid.cell_data.{dtkn}.path={prefix}`**
+:::
+
+The keywords `{dtkn}` defined by `grid.cell_data.{dtkn}.path={prefix}` will be additionally available within the math expressions that are under a domain context. When evaluated it will contain the data defined within the `{prefix}` file.
+
+## Reserved Keywords
+
+The following keywords are reserved to have special meaning within the program:
+
+| Keyword    | Description |
+| ---------  | ----------- |
+| `no_value` | Indicates that the result of an expression does not represent a numeric value |
+
+:::caution Parser reserved keywords
+Additionally to those defined here, every underlying parser has its own set of keywords that are reserved. Visit the documentation of your preferred parser to learn more about its syntax and its reserved keywords.
+:::

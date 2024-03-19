@@ -63,6 +63,15 @@ variables:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
     - if: '$CI_COMMIT_BRANCH == "latest"'
 
+.build_rules: &build_rules
+  rules:
+    - !reference [.deploy_rules, rules]
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - dune/**/*
+        - src/**/*
+        - .ci/**/*
+
 .setup_exec: &setup_exec
   image: ${DOCKER_IMAGE}
   stage: setup
@@ -111,6 +120,8 @@ variables:
     paths:
       - packages
     expire_in: 1h
+  rules:
+    - !reference [.build_rules, rules]
 
 .codequality: &codequality
   image: ${DEPENDENCIES_IMAGE}
@@ -120,6 +131,8 @@ variables:
   artifacts:
     reports:
       codequality: $CI_PROJECT_DIR/code_checker_report/gl-code-quality-report.json
+  rules:
+    - !reference [.build_rules, rules]
 
 .deploy: &deploy
   image: ${DOCKER_IMAGE}
@@ -236,6 +249,8 @@ build_wasm:debian_emscripten:
     paths:
       - packages
     expire_in: 1h
+  rules:
+    - !reference [.build_rules, rules]
 
 deploy_wasam:debian_emscripten:
   image: ${DEPENDENCIES_IMAGE}

@@ -41,7 +41,11 @@
       },
       "path": {
         ".type": "path",
-        ".brief": "Path to a Gmsh file containing a grid"
+        ".brief": "Path to a Gmsh file containing a grid",
+        ".details": [
+          "Reads [`gmsh` format v2.0](https://gmsh.info/doc/texinfo/gmsh.html#MSH-file-format) and constructs the grid with it.",
+          "Additionally, the token `gmsh_id` will be added to the math parsers for each entity of the grid. It will contain the physical id in the gmsh file."
+        ]
       },
       "cells": {
         ".type": "integer-list",
@@ -117,7 +121,7 @@
       "51 -0.5",
       "```",
       "This example would assign the values `+0.5` and `-0.5` to the cells `50` and `51` respectively for the coarsest entities of the grid.",
-      "Note that the indexation of the entities starts with `0`, whereas file formats like GMSH v2.0 start their indices with `1`."
+      "Note that the indexation of the entities starts with `0`, whereas file formats like gmsh start their indices with `1`."
     ]
   },
   "model.[order|is_linear|parser_type]": {
@@ -359,8 +363,20 @@
   },
   "model.time_step_operator.linear_solver.layout.writer.svg.path": {
     ".type": "path",
-    ".brief": "Path to write SVG pattern of the matrix",
-    ".details": "This option can only be used together with `matrix_free=false`"
+    ".brief": "Path to write `svg` layout of the matrix",
+    ".details": [
+      "Writes a `svg` file with the matrix layout of the jacobian of the system in the current directory.",
+      "",
+      "There are a number of parameters that affect the resulting layout:",
+      "* The `model.blocked_layout.[compartments|scalar_fields]=<bool>` options affect the hierarchal structure of the matrix.",
+      "* The number of scalar fields in `model.scalar_field.{var}.*` and the compartment `{cmp}`  where the belong (i.e., `model.scalar_field.{var}.compartment={cmp}`) affacts the position of the matrix entries.",
+      "* The grid connectivity affects the position of the matrix entries.",
+      "* The jacobian options of the reaction operator (i.e. `model.scalar_field.{var}.reaction.jacobian.{wrt}.expression`) affects the appearance of many entries in the matrix.",
+      "",
+      "To visualize the results of this option use your web browser, [GIMP](https://www.gimp.org), [Inkscape](https://inkscape.org), [Affinity Designer](https://affinity.serif.com) or [another vector graphics editor](https://en.wikipedia.org/wiki/Comparison_of_vector_graphics_editors).",
+      "",
+      "This option will only have effect when the a matrix is created, (e.g., matrix-free computation won't write any file)."
+    ]
   },
   "model.time_step_operator.nonlinear_solver.[norm|linearization_threshold|dx_inverse_fixed_tolerance|dx_inverse_min_relative_tolerance]": {
     ".brief": "Options of the non-linear solver",
@@ -550,7 +566,12 @@
   },
   "model.writer.vtk.path": {
     ".type": "path",
-    ".brief": "If not empty, path to write VTK results"
+    ".brief": "If not empty, path to write VTK results",
+    ".details": [
+      "Writes a set `vtu` files with the scalar field solution of the problem in the file system under `{prefix}-{cmp}` directory for each `{cmp}` compartment.",
+      "Additionally, a compendium of all timesteps for each compartment is written in a `pvd` file on the same directory.",
+      "The resulting `vtu` and `pvd` files can be opened by [ParaView](https://www.paraview.org/) or [VisiIt](https://wci.llnl.gov/simulation/computer-codes/visit/) to visualize their results."
+    ]
   },
   "parser_context.{tkn}.[type|expression|parser_type|domain|range|value|path|interpolate|seed]": {
     ".brief": "Sets up a token `{tkn}` in the dune-copasi parsers",
@@ -566,7 +587,11 @@
             ".brief": "Sets token `{tkn}` as an inline function. Options: `parser_context.{tkn}.[expression|interpolate|interpolation.[...]]`"
           },
           "'tiff'": {
-            ".brief": "Sets token `{tkn}` as a 2D function with the contents of a tiff file. Options: `parser_context.{tkn}.path`"
+            ".brief": "Sets token `{tkn}` as a 2D function with the contents of a tiff file. Options: `parser_context.{tkn}.path`",
+            ".details": [
+              "Reads an image file with [`tiff` format](https://en.wikipedia.org/wiki/TIFF) and makes it available as a 2D function expression with the `{tkn}` token.",
+              "Images with grayscale values of `8`, `16`, `32`, and `64` bits are supported."
+            ]
           },
           "'interpolation'": {
             ".brief": "Sets token `{tkn}` as a 1D interpolation function. Options: `parser_context.{tkn}.[domain|range]`"
@@ -654,6 +679,10 @@
       }
     }
   },
+  "parser_context.{tkn}.{parafields-key}={parafields-value}": {
+    ".brief": "Parameters to generate the random field in token `{tkn}`",
+    ".details": "When the token `{tkn}` is a `'random_field'` type, all parameters `{parafields-key}={parafields-value}` under the `parser_context.{tkn}` subsection will be forwarded to the [`parafields-core`](https://github.com/parafields/parafields-core) engine."
+  },
   "parser_context.{tkn}.interpolation.[domain.{arg}|intervals|out_of_bounds]": {
     ".brief": "Interpolation options for the context function `{tkn}`",
     ".options": {
@@ -685,8 +714,9 @@
     ".type": "path",
     ".brief": "Path to write VTK file of `random_field` contexts",
     ".details": [
-      "If empty, no output will be written.",
-      "This option can only be used together with `parser_context.{tkn}.type=random_field`."
+      "Writes a `vtu` file with the contents of the generated random field in the filesystem with the `{tkn}` keyword as a base name.",
+      "This option can only be used together with `parser_context.{tkn}.type=random_field`.",
+      "The resulting `vtu` files can be opened by [ParaView](https://www.paraview.org/) or [VisiIt](https://wci.llnl.gov/simulation/computer-codes/visit/) to visualize their results."
     ]
   },
   "parser_context.parser_type": {
@@ -698,6 +728,10 @@
   "trace.path": {
     ".type": "path",
     ".brief": "File path to store the trace of the program",
-    ".details": "Only available if binary is built with Perfetto. To visualize the trace, use <https://ui.perfetto.dev/>"
+    ".details": [
+      "Writes a trace file with the timing information of the simulation on the current directory. ",
+      "To visualize the trace, use [Perfetto Trace Viewer](https://ui.perfetto.dev/).",
+      "Only available if binary is built with Perfetto. "
+    ]
   }
 }

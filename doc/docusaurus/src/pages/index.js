@@ -40,7 +40,7 @@ function Home() {
                 'button button--outline button--secondary button--lg',
                 styles.getStarted,
               )}
-              to={useBaseUrl('docs/install_use')}>
+              to={useBaseUrl('docs/category/docs')}>
               Get Started
             </Link>
           </div>

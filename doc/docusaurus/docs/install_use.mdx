@@ -1,6 +1,7 @@
 ---
 id: install_use
 title: Installation and Usage
+description: How to use the program
 sidebar_label: Install & Use
 ---
 
@@ -31,7 +32,7 @@ with just a pair of clicks on the major plataforms. Find more information
 
 In this form, `dune-copasi` provides one executable for single compartment
 systems (`dune-copasi-sd`) and another one for multiple compartment systems
-(`dune-copasi-md`). Both executables expect one [`INI` configuration file](ini_file.md)
+(`dune-copasi-md`). Both executables expect one [`INI` configuration file](ini_file)
 which shall contain all the information to perform the simulation.
 
 ```bash
@@ -39,7 +40,7 @@ dune-copasi-md config.ini
 ```
 
 Find more information about available configurations on the
-[Parameter Tree](param_tree.md) documentation. This form may be
+[Parameter Tree](param_tree) documentation. This form may be
 installed in one of the following procedures:
 
 * [Docker Runner](#docker-runner)
@@ -53,7 +54,7 @@ to generate custom simulation rules, to couple intermediate steps with other
 tools, or to implement another GUI, etc. In such a case, `dune-copasi` must be
 available in development mode and the downstream library is expected to
 [consume the library](#importing-cmake-targets) by using the
-[CMake build system](https://cmake.org) and use the [C++ objects](api.md) in code.
+[CMake build system](https://cmake.org) and use the [C++ objects](api) in code.
 This form is available on:
 
 * [Manual Installation](#manual-installation)
