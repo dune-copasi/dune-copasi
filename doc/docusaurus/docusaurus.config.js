@@ -59,8 +59,8 @@ module.exports = {
           to: '/math_model',
         },
         {
-          to: 'blog',
-          label: 'Blog',
+          to: 'tutorials',
+          label: 'Tutorials',
           position: 'left',
         },
         {
@@ -235,7 +235,10 @@ module.exports = {
           rehypePlugins: [rehypeKatex],
         },
         blog: {
-          path: 'blog',
+          id: 'tutorials',
+          path: 'tutorials',
+          routeBasePath: 'tutorials',
+          path: './tutorials',
           remarkPlugins: [remarkMath],
           rehypePlugins: [rehypeKatex],
         },

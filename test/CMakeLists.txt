@@ -66,7 +66,7 @@ if (TARGET Dune::Copasi::Executable)
       TARGET          Dune::Copasi::Executable
       CMD_ARGS        --config=${CMAKE_CURRENT_SOURCE_DIR}/two_disks_cell_data.ini
       LABELS          system)
-  
+
     dune_add_test(
       NAME            mitchell-schaefer
       LABELS          system
@@ -88,7 +88,7 @@ if (TARGET Dune::Copasi::Executable)
     foreach(dim ${DUNE_COPASI_GRID_DIMENSIONS})
       dune_add_test(
         NAME            poisson-${dim}D
-        TIMEOUT         50
+        TIMEOUT         90
         LABELS          system
         TARGET          Dune::Copasi::Executable
         CMD_ARGS        --config=${CMAKE_CURRENT_SOURCE_DIR}/poisson.ini

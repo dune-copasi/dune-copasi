@@ -20,8 +20,8 @@ set -e
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 source $SCRIPT_DIR/util
 
-SOURCEDIR=${SCRIPT_DIR}/../test
-
+TEST_SOURCEDIR=${SCRIPT_DIR}/../test
+TUTORIAL_SOURCEDIR=${SCRIPT_DIR}/../doc
 
 print_opts_file() {
   cat "${DUNE_OPTIONS_FILE}"
@@ -54,8 +54,8 @@ if [[ -n "$DUNE_OPTIONS_FILE" ]]; then
   DEBUG_CMAKE_FLAGS="$(. $DUNE_OPTIONS_FILE; eval echo \$CMAKE_FLAGS)"
 fi
 
-echo "cmake $DEBUG_CMAKE_FLAGS $SOURCEDIR"
-eval cmake $DEBUG_CMAKE_FLAGS $SOURCEDIR
+echo "cmake $DEBUG_CMAKE_FLAGS $TEST_SOURCEDIR"
+eval cmake $DEBUG_CMAKE_FLAGS $TEST_SOURCEDIR
 cmake --build . --target build_unit_tests
 ctest -j4 -L "unit" --output-on-failure
 
@@ -69,10 +69,25 @@ if [[ -n "$DUNE_OPTIONS_FILE" ]]; then
   RELEASE_CMAKE_FLAGS="$(. $DUNE_OPTIONS_FILE; eval echo \$CMAKE_FLAGS)"
 fi
 
-echo "cmake $RELEASE_CMAKE_FLAGS $SOURCEDIR"
-eval cmake $RELEASE_CMAKE_FLAGS $SOURCEDIR
+echo "cmake $RELEASE_CMAKE_FLAGS $TEST_SOURCEDIR"
+eval cmake $RELEASE_CMAKE_FLAGS $TEST_SOURCEDIR
 cmake --build . --target build_system_tests
 ctest -j4 -L "system" --output-on-failure
+
+echo $GREEN "============================ Tutorial Tests ============================" $RESET
+
+BUILD_PATH=/tmp/build-system-tutorials
+[[ -d ${BUILD_PATH} ]] && ONFAILURE_MESSAGE+="the folder '${BUILD_PATH}' should not exist prior running this script\n" && exit 1
+mkdir $BUILD_PATH && cd $BUILD_PATH
+
+if [[ -n "$DUNE_OPTIONS_FILE" ]]; then
+  RELEASE_CMAKE_FLAGS="$(. $DUNE_OPTIONS_FILE; eval echo \$CMAKE_FLAGS)"
+fi
+
+echo "cmake $RELEASE_CMAKE_FLAGS $TUTORIAL_SOURCEDIR"
+eval cmake $RELEASE_CMAKE_FLAGS $TUTORIAL_SOURCEDIR
+cmake --build . --target build_tutorial_tests
+ctest -j4 -L "tutorial" --output-on-failure
 
 cd $SCRIPT_PATH
 trap cleanup EXIT
