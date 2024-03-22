@@ -6,6 +6,7 @@ install(FILES axis_names.hh
               fmt_style.hh
               ostream_redirect.hh
               ostream_to_spdlog.hh
+              parameterized_object.hh
               stepper.hh
               tiff_file.hh
               tiff_grayscale.hh

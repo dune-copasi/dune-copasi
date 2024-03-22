@@ -16,6 +16,7 @@ workflow:
     - when: always
 
 default:
+  interruptible: true
   tags: [dune-copasi]
 
 variables:

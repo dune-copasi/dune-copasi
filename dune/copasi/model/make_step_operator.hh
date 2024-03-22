@@ -17,6 +17,7 @@
 #include <dune/pdelab/pattern/basis_to_pattern.hh>
 #include <dune/pdelab/pattern/pattern_to_matrix.hh>
 #include <dune/pdelab/pattern/sparsity_pattern.hh>
+#include <dune/copasi/solver/istl/factory/inverse.hh>
 
 #include <dune/istl/io.hh>
 #include <dune/istl/operators.hh>
@@ -36,25 +37,19 @@
 #include <concepts>
 #include <functional>
 #include <memory>
-
-#if HAVE_SUITESPARSE_UMFPACK
-#define DUNE_COPASI_DEFAULT_LINEAR_SOLVER "UMFPack"
-#elif HAVE_SUPERLU
-#define DUNE_COPASI_DEFAULT_LINEAR_SOLVER "SuperLU"
-#else
-#define DUNE_COPASI_DEFAULT_LINEAR_SOLVER "BiCGSTAB"
+#if (__cpp_lib_memory_resource >= 201603L) && (__cpp_lib_polymorphic_allocator >= 201902L)
+#include <memory_resource>
 #endif
-
 
 namespace Dune::Copasi {
 
 namespace Impl {
 inline auto jacobian_selector =
-  overload([](BlockVector<BlockVector<double>>) -> DynamicMatrix<BCRSMatrix<double>> { return {}; },
+  overload([](BlockVector<BlockVector<double>>) -> BCRSMatrix<BCRSMatrix<double>> { return {}; },
            [](BlockVector<BlockVector<BlockVector<double>>>)
-             -> DynamicMatrix<BCRSMatrix<BCRSMatrix<double>>> { return {}; },
+             -> BCRSMatrix<BCRSMatrix<BCRSMatrix<double>>> { return {}; },
            [](BlockVector<BlockVector<BlockVector<BlockVector<double>>>>)
-             -> DynamicMatrix<BCRSMatrix<BCRSMatrix<BCRSMatrix<double>>>> { return {}; });
+             -> BCRSMatrix<BCRSMatrix<BCRSMatrix<BCRSMatrix<double>>>> { return {}; });
 }
 
 template<class Domain, std::copy_constructible Range>
@@ -64,10 +59,10 @@ class LinearSolver : public PDELab::Operator<Range, Domain>
   using Jacobian = decltype(Impl::jacobian_selector(Range{}));
 
   // converts a forward operator into a dune-istl linear operator
-  class ISTLLinearAdapter : public Dune::LinearOperator<Domain, Range>
+  class MatrixFreeAdapter : public Dune::LinearOperator<Domain, Range>
   {
   public:
-    ISTLLinearAdapter(PDELab::Operator<Domain, Range>& forward_op)
+    MatrixFreeAdapter(PDELab::Operator<Domain, Range>& forward_op)
       : _forward{ forward_op }
     {
     }
@@ -99,38 +94,10 @@ class LinearSolver : public PDELab::Operator<Range, Domain>
     mutable Range tmp;
   };
 
-  std::shared_ptr<Preconditioner<Domain, Range>> make_preconditioner(
-    Jacobian const * matrix_ptr,
-    std::shared_ptr<Preconditioner<Domain, Range>> reuse_prec = {}) const
-  {
-    const auto& prec_config = _config.sub("preconditioner");
-    if (_prec_type == "Richardson") {
-      const auto relaxation = prec_config.get("relaxation", 1.);
-      reuse_prec = std::make_shared<Richardson<Domain, Range>>(relaxation);
-    } else if (_prec_type == "SSOR") {
-      if (not matrix_ptr)
-        throw format_exception(IOError{}, "Preconditioner cannot be a matrix-free operator");
-      const auto it = prec_config.get("iterations", std::size_t{ 1 });
-      const auto relaxation = prec_config.get("relaxation", 1.);
-      reuse_prec = std::make_shared<SeqSSOR<Jacobian, Domain, Range, Dune::blockLevel<Domain>()>>(
-        *matrix_ptr, it, relaxation);
-    } else {
-      throw format_exception(IOError{}, "Not known preconditioner of type '{}'", _prec_type);
-    }
-    return reuse_prec;
-  }
-
 public:
   LinearSolver(const ParameterTree& config)
     : _config{ config }
-    , _lin_type{_config.template get<std::string>("type", std::string{ DUNE_COPASI_DEFAULT_LINEAR_SOLVER })}
-    , _prec_type{_config.get("preconditioner.type", std::string{ "SSOR" })}
-  {
-    spdlog::info("Creating linear solver with '{}' type", _lin_type);
-    // TODO: Listed even if using direct solver
-    if (_lin_type != "UMFPack" and _lin_type != "SuperLU")
-      spdlog::info("Creating linear solver preconditioner with '{}' type", _prec_type);
-  }
+  {}
 
   virtual PDELab::ErrorCondition apply(Range& range, Domain& domain) override
   {
@@ -143,97 +110,36 @@ public:
     if (forward.hasKey("container"))
       jac = &forward.template get<const Jacobian>("container");
 
-    _preconditioner = make_preconditioner(jac, _preconditioner);
-    auto istl_forward_op = std::make_shared<ISTLLinearAdapter>(forward);
-
-    auto scalar_product_op = std::make_shared<Dune::ScalarProduct<Range>>();
-    auto verbosity = _config.template get<int>("verbosity", 0);
-    auto it_range =
-      _config.get("convergence_condition.iteration_range", std::array<std::size_t, 2>{ 1, 500 });
-
-    auto [min_iterations, max_iterations] = it_range;
+    // choose a solver from the solver factory based on whether the operator is matrix-free
+#if (__cpp_lib_memory_resource >= 201603L) && (__cpp_lib_polymorphic_allocator >= 201902L)
+    auto mr = std::pmr::monotonic_buffer_resource{};
+    std::pmr::polymorphic_allocator<std::byte> alloc{&mr};
+#else
+    auto alloc = std::allocator<void>{};
+#endif
+    std::shared_ptr<InverseOperator<Domain, Range>> solver;
+    if (jac) {
+      using Op = Dune::MatrixAdapter<Jacobian, Domain, Range>;
+      solver = ISTL::makeInverseOperator(std::make_shared<Op>(*jac), _config, alloc);
+    } else {
+      using Op = MatrixFreeAdapter;
+      solver = ISTL::makeInverseOperator(std::make_shared<Op>(forward), _config, alloc);
+    }
+    if (not solver)
+      throw format_exception(InvalidStateException{}, "Solver was configured incorrectly!");
 
     // relative tolerance may be dynamically changed by the newton solver
     auto rel_tol = this->template get<double>("convergence_condition.relative_tolerance");
-
+    // do solve the linear system
     Dune::InverseOperatorResult result;
-    PDELab::ErrorCondition ec{};
-    if (_lin_type == "BiCGSTAB") {
-      auto istl_solver = Dune::BiCGSTABSolver<Domain>(istl_forward_op,
-                                                      scalar_product_op,
-                                                      _preconditioner,
-                                                      rel_tol,
-                                                      int(max_iterations),
-                                                      verbosity);
-      istl_solver.apply(domain, range, result);
-    } else if (_lin_type == "CG") {
-      auto istl_solver = CGSolver<Domain>(
-        istl_forward_op, scalar_product_op, _preconditioner, rel_tol, max_iterations, verbosity);
-      istl_solver.apply(domain, range, result);
-    } else if (_lin_type == "RestartedGMRes") {
-      auto restart = this->get("restart", std::size_t{ 40 });
-      auto istl_solver = RestartedGMResSolver<Domain, Range>(istl_forward_op,
-                                                             scalar_product_op,
-                                                             _preconditioner,
-                                                             rel_tol,
-                                                             restart,
-                                                             int(max_iterations),
-                                                             verbosity);
-      istl_solver.apply(domain, range, result);
-    } else if (_lin_type == "SuperLU") {
-#if HAVE_SUPERLU
-      if constexpr (std::same_as<Jacobian, DynamicMatrix<BCRSMatrix<double>>>) {
-        if (domain.size() != 1 or range.size() != 1)
-          throw format_exception(
-            IOError{},
-            "Solver can only be used on semi-implicit or explicit time stepping methods");
-        if (not jac)
-          throw format_exception(IOError{}, "Solver cannot be a matrix-free operator");
-        auto istl_solver = Dune::SuperLU<BCRSMatrix<double>>((*jac)[0][0]);
-        istl_solver.apply(domain[0], range[0], result);
-      } else {
-        throw format_exception(IOError{},
-                               "Solver can only be used on flat matrices for semi-implicit or "
-                               "explicit time stepping methods");
-      }
-#else
-      throw format_exception(IOError{}, "Solver is not available");
-#endif
-    } else if (_lin_type == "UMFPack") {
-#if HAVE_SUITESPARSE_UMFPACK
-      if constexpr (std::same_as<Jacobian, DynamicMatrix<BCRSMatrix<double>>>) {
-        if (domain.size() != 1 or range.size() != 1)
-          throw format_exception(
-            IOError{},
-            "Solver can only be used on semi-implicit or explicit time stepping methods");
-        if (not jac)
-          throw format_exception(IOError{}, "Solver cannot be a matrix-free operator");
-        auto istl_solver = Dune::UMFPack<BCRSMatrix<double>>((*jac)[0][0]);
-        istl_solver.apply(domain[0], range[0], result);
-      } else {
-        throw format_exception(IOError{},
-                               "Solver can only be used on flat matrices for semi-implicit or "
-                               "explicit time stepping methods");
-      }
-#else
-      throw format_exception(IOError{}, "Solver is not available");
-#endif
-    } else {
-      throw format_exception(IOError{}, "Not known linear solver of type '{}'", _lin_type);
-    }
+    solver->apply(domain, range, rel_tol, result);
 
     TRACE_COUNTER("dune", "LinearSolver::Iterations", solver_timestamp, result.iterations);
-    TRACE_COUNTER("dune", "LinearSolver::Reduction", solver_timestamp, result.reduction);
-    TRACE_COUNTER("dune", "LinearSolver::Converged", solver_timestamp, result.converged);
-
-    if (result.iterations < static_cast<int>(min_iterations)) {
-      spdlog::warn("Minimum of {} iteration requested but {} were performed",
-                   min_iterations,
-                   result.iterations);
-    }
+    TRACE_COUNTER("dune", "LinearSolver::Reduction",  solver_timestamp, result.reduction);
+    TRACE_COUNTER("dune", "LinearSolver::Converged",  solver_timestamp, result.converged);
 
     if (result.converged) {
-      return ec;
+      return PDELab::ErrorCondition{};
     } else {
       return make_error_condition(PDELab::Convergence::Reason::DivergedByDivergenceTolarance);
     }
@@ -248,7 +154,6 @@ public:
 private:
   std::shared_ptr<Preconditioner<Domain, Range>> _preconditioner;
   ParameterTree _config;
-  std::string _lin_type, _prec_type;
 };
 
 template<class Coefficients,
@@ -388,7 +293,17 @@ make_step_operator(const ParameterTree& config,
     auto pattern_factory = [basis, stiffness_local_operator, mass_local_operator, svg_path](
                              const auto& /*op*/, RKJacobian& jac) {
       // TODO(sospinar): resize outer jacobian wrt instationary coefficients
-      jac.resize(1, 1);
+      if (jac.buildStage() == RKJacobian::BuildStage::notAllocated) {
+        jac.setBuildMode(RKJacobian::implicit);
+        jac.setImplicitBuildModeParameters(1,1.);
+        jac.setSize(1,1);
+        jac.entry(0,0);
+        jac.compress();
+        // jac = RKJacobian(1,1,1,RKJacobian::row_wise);
+        // for(auto row=jac.createbegin(); row!=jac.createend(); ++row)
+        //   for (std::size_t col = 0; col != row.size(); ++col)
+        //     row.insert(col);
+      }
 
       // all jacobian entries of the RK jacobian have the same pattern
       auto& entry = jac[0][0];
