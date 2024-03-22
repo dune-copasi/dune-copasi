@@ -1542,7 +1542,7 @@
     "@docusaurus/theme-search-algolia" "3.0.0"
     "@docusaurus/types" "3.0.0"
 
-"@docusaurus/react-loadable@5.5.2", "react-loadable@npm:@docusaurus/react-loadable@5.5.2":
+"@docusaurus/react-loadable@5.5.2":
   version "5.5.2"
   resolved "https://registry.yarnpkg.com/@docusaurus/react-loadable/-/react-loadable-5.5.2.tgz#81aae0db81ecafbdaee3651f12804580868fa6ce"
   integrity sha512-A3dYjdBGuy0IGT+wyLIGIKLRE+sAk1iNk0f1HjNDysO7u8lhL4N3VEm+FAubmJbAztn94F7MxBTPmnixbiyFdQ==
@@ -3774,10 +3774,10 @@ dot-prop@^6.0.1:
   dependencies:
     is-obj "^2.0.0"
 
-"dune-copasi-wasm-git@npm:@copasi/dune-copasi-wasm@2.0.3":
-  version "2.0.3"
-  resolved "https://gitlab.dune-project.org/api/v4/projects/819/packages/npm/@copasi/dune-copasi-wasm/-/@copasi/dune-copasi-wasm-2.0.3.tgz#bb65fb21018fa0d2b0eaba1bae57d038bb5d7174"
-  integrity sha1-u2X7IQGPoNKw6robrlfQOLtdcXQ=
+"dune-copasi-wasm-git@npm:@copasi/dune-copasi-wasm@canary":
+  version "2.0.0-git440d0f73"
+  resolved "https://gitlab.dune-project.org/api/v4/projects/819/packages/npm/@copasi/dune-copasi-wasm/-/@copasi/dune-copasi-wasm-2.0.0-git440d0f73.tgz#4b878e08d8d6d576de36516d4d3f99e97592473f"
+  integrity sha1-S4eOCNjW1XbeNlFtTT+Z6XWSRz8=
 
 "dune-copasi-wasm-local@file:../../npm":
   version "2.0.0-git"
@@ -7270,6 +7270,14 @@ react-loadable-ssr-addon-v5-slorber@^1.0.1:
   integrity sha512-lq3Lyw1lGku8zUEJPDxsNm1AfYHBrO9Y1+olAYwpUJ2IGFBskM0DMKok97A6LWUpHm+o7IvQBOWu9MLenp9Z+A==
   dependencies:
     "@babel/runtime" "^7.10.3"
+
+"react-loadable@npm:@docusaurus/react-loadable@5.5.2":
+  version "5.5.2"
+  resolved "https://registry.yarnpkg.com/@docusaurus/react-loadable/-/react-loadable-5.5.2.tgz#81aae0db81ecafbdaee3651f12804580868fa6ce"
+  integrity sha512-A3dYjdBGuy0IGT+wyLIGIKLRE+sAk1iNk0f1HjNDysO7u8lhL4N3VEm+FAubmJbAztn94F7MxBTPmnixbiyFdQ==
+  dependencies:
+    "@types/react" "*"
+    prop-types "^15.6.2"
 
 react-markdown@^9.0.1:
   version "9.0.1"
