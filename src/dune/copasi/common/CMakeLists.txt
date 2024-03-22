@@ -61,7 +61,9 @@ foreach(module ${ALL_DEPENDENCIES})
   target_include_directories(dune-copasi-common PUBLIC ${${module}_INCLUDE_DIRS})
 endforeach()
 
-target_compile_definitions(dune-copasi-common PUBLIC DUNE_COPASI_DISABLE_FMT_STYLE=${DUNE_COPASI_DISABLE_FMT_STYLE})
+if(DUNE_COPASI_DISABLE_FMT_STYLE)
+  target_compile_definitions(dune-copasi-common PUBLIC DUNE_COPASI_DISABLE_FMT_STYLE=1)
+endif()
 target_compile_features(dune-copasi-common PUBLIC cxx_std_20)
 
 # target configuration for downstream projects
