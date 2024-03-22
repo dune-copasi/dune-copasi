@@ -85,7 +85,7 @@ module.exports = {
               label: '🚧 Changelog',
             },
             {
-              href: 'https://gitlab.dune-project.org/copasi/dune-copasi/-/issues?label_name%5B%5D=Bug',
+              href: 'https://gitlab.dune-project.org/copasi/dune-copasi/-/issues',
               label: '🐛 Bug tracker',
             },
           ],
@@ -138,6 +138,10 @@ module.exports = {
           title: 'Community',
           items: [
             {
+              label: 'Spatial Model Editor',
+              to: '/spatial_model_editor',
+            },
+            {
               label: 'Community',
               to: '/community',
             },
@@ -151,11 +155,11 @@ module.exports = {
           title: 'More',
           items: [
             {
-              label: 'GitLab',
+              label: 'GitLab Repository',
               href: 'https://gitlab.dune-project.org/copasi/dune-copasi',
             },
             {
-              label: 'GitHub',
+              label: 'GitHub Repository',
               href: 'https://github.com/dune-copasi/dune-copasi',
             },
             {
@@ -171,7 +175,7 @@ module.exports = {
               label: 'Changelog',
             },
             {
-              href: 'https://gitlab.dune-project.org/copasi/dune-copasi/-/issues?label_name%5B%5D=Bug',
+              href: 'https://gitlab.dune-project.org/copasi/dune-copasi/-/issues',
               label: 'Bug tracker',
             },
           ],

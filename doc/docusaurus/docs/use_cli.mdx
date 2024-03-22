@@ -1,0 +1,36 @@
+---
+id: use_cli
+title: Command Line Interface Usage
+description: How to use the CLI
+sidebar_label: Use as CLI
+tags:
+  - CLI
+---
+
+import ExampleTerminal from '@site/src/components/ExampleTerminal'
+import DuneCopasiHelp from './DuneCopasiHelp'
+
+In this form, we provide one executable named `dune-copasi` for running forward simulations from the command line.
+This executable is completely configurable from the command line arguments passed to it:
+
+<DuneCopasiHelp/>
+
+:::caution TODO
+:::
+
+
+<ExampleTerminal prompt="~/workdir$" title="how to run dune-copasi">
+  {[
+    {
+      input: "dune-copasi --config=config.ini",
+      output: [
+      "[2024-03-21 12:38:32.479] [info] Reading configuration file '~/workdir/config.ini'",
+      "[2024-03-21 12:38:32.479] [info] Starting dune-copasi (version: 2.0.0)",
+      "[2024-03-21 12:38:32.580] [info] Axis names are set to: [\"x\", \"y\", \"z\"]",
+      "...",
+      "...",
+      "[2024-03-21 12:38:32.723] [info] dune-copasi successfully finished :)",
+      ]
+    }
+  ]}
+</ExampleTerminal>

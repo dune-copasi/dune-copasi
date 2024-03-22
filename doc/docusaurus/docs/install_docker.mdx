@@ -1,0 +1,178 @@
+---
+id: install_docker
+title: Install Docker Container
+description: How to install the Docker Container
+sidebar_label: Install from Docker
+tags:
+  - Docker
+  - CLI
+  - API
+---
+
+import ExampleTerminal from '@site/src/components/ExampleTerminal'
+import DuneCopasiHelp from './DuneCopasiHelp'
+
+One of the easiest form to use our executables for [CLI usage](use_cli), is by downloading and running a
+[Docker Container](https://www.docker.com/). This way, the software is boundled in a container
+such that no installation other than docker is required.
+
+### Install Docker
+First, get and install Docker following the
+[docker installation instructions](https://docs.docker.com/get-docker/).
+
+### Get the Container
+
+To get the container from the [container registry](https://gitlab.dune-project.org/copasi/dune-copasi/container_registry), type:
+
+```bash
+docker pull registry.dune-project.org/copasi/dune-copasi/dune-copasi:master
+docker tag registry.dune-project.org/copasi/dune-copasi/dune-copasi:master dune-copasi
+```
+
+The first line downloads the container from the internet while second one creates a tagged alias named `dune-copasi` so that it is easier to recall.
+
+:::tip alias collition
+If you want to work with different docker container versions of DuneCopasi, make sure that your local aliases do not collied!
+:::
+
+Once this is done, your terminal should look something similar to this:
+
+<ExampleTerminal title="pulling dune-copasi docker image">
+  {[
+    {
+      input: "docker pull registry.dune-project.org/copasi/dune-copasi/dune-copasi:master",
+      output: [
+        "master: Pulling from copasi/dune-copasi/dune-copasi",
+        "09dd50cc7a64: Pull complete",
+        "820c3cdfe17d: Pull complete",
+        "c91c7d9f3fb1: Pull complete",
+        "4928c27b1e25: Pull complete",
+        "6fe40e7737d8: Pull complete",
+        "7b80474789e1: Pull complete",
+        "bd9ddc54bea9: Pull complete",
+        "Digest: sha256:56feba94d0acf8f392eb835a9c25fdbd2124a199ea55cee3ff9635a3871fd597",
+        "Status: Downloaded newer image for registry.dune-project.org/copasi/dune-copasi/dune-copasi:master",
+        "registry.dune-project.org/copasi/dune-copasi/dune-copasi:master",
+      ]
+    },{
+      input: "docker tag registry.dune-project.org/copasi/dune-copasi/dune-copasi:master dune-copasi",
+    },{
+      input: "docker images",
+      output: [
+        "REPOSITORY    TAG        IMAGE ID       CREATED        SIZE",
+        "dune-copasi   master     acb239d6253e   2 seconds ago  337MB",
+        "...",
+      ]
+    }
+  ]}
+</ExampleTerminal>
+
+You can check that the container is working correctly by running the `--help` command.
+
+```bash
+docker run dune-copasi --help
+```
+
+An output similar to the following should be emitted:
+
+<DuneCopasiHelp prefix="docker run "/>
+
+### Prepare a working directory
+
+To be able to easily share data between your operating system and the docker
+container, prepare a working directory with read/write rights to _other users_
+(e.g., a folder named `workdir`):
+
+<ExampleTerminal prompt="~/workdir$" title="creating working directory">
+  {[
+    {
+      input: "mkdir -m o+rw workdir",
+      prompt: "~$",
+    },{
+      input: "cd workdir",
+      prompt: "~$",
+    }
+  ]}
+</ExampleTerminal>
+
+This working directory will be accessible to your text editor, paraview as
+well as to the `dune-copasi` executable inside the docker container. Now, you can
+move or create your configuration files into it at will:
+
+<ExampleTerminal prompt="~/workdir$" title="creating a configuration file">
+  {[{
+      input: [
+        "echo \"",
+        "[grid]",
+        "dimension = 2",
+        "...",
+        "[model.time_step_operator]",
+        "time_begin = 1",
+        "time_end = 4",
+        "\" > config.ini"],
+    }
+  ]}
+</ExampleTerminal>
+
+### Run the program
+
+Now you are ready to use the program through the [Command Line Interface](use_cli) via docker. To do so, call the docker container with a configuration
+file `config.ini`:
+
+```bash
+docker run -v $PWD dune-copasi --config=config.ini
+```
+
+This the docker container in the current directory (that's what `-v $PWD` means),
+passes the rest of the arguments to the `dune-copasi` executable that exists the docker container, and
+the results of the computations will be written on current directory.
+In this case, the argument passed to the underlying executable are `--config=config.ini`.
+Finally, when the simulation finishes, the last line of terminal should say whether the simulation was successful, for example:
+
+<ExampleTerminal prompt="~/workdir$" title="how to run dune-copasi">
+  {[
+    {
+      input: "docker run -v $PWD dune-copasi --config=config.ini",
+      output: [
+      "[2024-03-21 12:38:32.479] [info] Reading configuration file '~/workdir/config.ini'",
+      "[2024-03-21 12:38:32.479] [info] Starting dune-copasi (version: 2.0.0)",
+      "[2024-03-21 12:38:32.580] [info] Axis names are set to: [\"x\", \"y\", \"z\"]",
+      "...",
+      "...",
+      "[2024-03-21 12:38:32.723] [info] dune-copasi successfully finished :)",
+      ]
+    }
+  ]}
+</ExampleTerminal>
+
+:::tip[`docker run`]
+For more information about how to run docker containers, execute `docker run --help` or
+visit [its online documentation](https://docs.docker.com/engine/reference/run/).
+:::
+
+## Docker Build
+
+Advanced users, who may want to make modifications the DuneCopasi
+code but do not to install all the dependencies may opt for a [Docker Build](https://docs.docker.com/build/).
+In this case, you must download the DuneCopasi source code, modify it as needed, and build
+a new local docker image:
+
+```bash
+# fetch source code from git
+git clone https://gitlab.dune-project.org/copasi/dune-copasi
+
+# enter dune-copasi directory
+cd dune-copasi
+
+# checkout the branch you want to modify (e.g. latest)
+git checkout latest
+
+# modify source code at will
+# ...
+
+# build a new docker image from modified code (tag: dune-copasi)
+docker build -t dune-copasi .
+```
+
+This will build all dune dependencies as well as the new modified version of the
+`dune-copasi` executable within the docker container. Running the program works exactly as we discussed [above](##run-the-program).

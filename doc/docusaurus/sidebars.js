@@ -1,31 +1,62 @@
 module.exports = {
   docs: [
     {
-      type: 'category',
-      label: 'Documentation',
+      type: "category",
+      label: "Documentation",
       link: {
-        type: 'generated-index',
-        slug: '/category/docs',
+        type: "generated-index",
+        slug: "/category/docs",
       },
       items: [
-        'install_use',
         {
-          type: 'category',
-          label: 'Configuration Options',
+          type: "category",
+          label: "Install & Use",
           link: {
-            type: 'generated-index',
-            slug: '/category/docs/config',
+            type: "generated-index",
+            slug: "/category/docs/install_and_use",
           },
           items: [
-            'ini_file',
-            'param_tree',
-            'input_data',
-            'math_expr',
-          ]
+            {
+              type: "category",
+              label: "Installation",
+              link: {
+                type: "generated-index",
+                slug: "/category/docs/install",
+              },
+              items: [
+                "install_binary",
+                "install_docker",
+                "install_package",
+                "install_source",
+              ],
+            },
+            {
+              type: "category",
+              label: "Usage",
+              link: {
+                type: "generated-index",
+                slug: "/category/docs/use",
+              },
+              items: [
+                "use_cli",
+                "use_gui",
+                "use_api",
+              ],
+            },
+          ],
         },
-        'output',
-        'api',
-      ]
+        {
+          type: "category",
+          label: "Configuration Options",
+          link: {
+            type: "generated-index",
+            slug: "/category/docs/config",
+          },
+          items: ["ini_file", "param_tree", "input_data", "math_expr"],
+        },
+        "output",
+        "api",
+      ],
     },
     {
       type: "doc",

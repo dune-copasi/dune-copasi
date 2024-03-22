@@ -104,6 +104,7 @@ COPY --chown=duneci ./ /duneci/modules/dune-copasi
 
 # run installer
 ENV DUNE_ENABLE_PYTHONBINDINGS=OFF
+ENV DUNE_COPASI_DISABLE_FETCH_PACKAGE_parafields=OFF
 RUN ./dune-copasi/.ci/install $DUNE_OPTS_FILE
 
 # tests installer

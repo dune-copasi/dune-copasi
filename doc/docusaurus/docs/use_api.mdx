@@ -1,0 +1,42 @@
+---
+id: use_api
+title: Application Programming Interface Usage
+description: How to use the API
+sidebar_label: Use as API
+tags:
+  - API
+---
+
+
+:::caution TODO
+:::
+
+The DuneCopasi C++ objects may be consumed by other programs in order
+to generate custom simulation rules, to couple intermediate steps with other
+tools, or to implement a GUI, etc. In such a case, DuneCopasi must be
+available in development mode and the downstream library is expected to
+[consume the library](#importing-cmake-targets) by using the
+[CMake build system](https://cmake.org) and use the [C++ objects](api) in code.
+
+
+### Importing CMake targets
+
+To use the API for development, you must find and consume the CMake targets from DuneCopasi in your project as follows:
+
+```cmake title="CMakeLists.txt"
+cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
+project(my-app CXX)
+# ...
+find_package(dune-copasi IMPORTED REQUIRED)
+target_link_libraries(my_app PRIVATE Dune::Copasi)
+# ...
+```
+
+If DuneCopasi was installed on a custom directory
+(e.g. using `CMAKE_INSTALL_PREFIX=/opt/dune`), it may be possible that you need to
+pass such directory to the `CMAKE_PREFIX_PATH` when building the project. This way,
+CMake can find our targets and configuration:
+
+```bash
+cmake -DCMAKE_PREFIX_PATH:PATH=/opt/dune /path/to/app/source/
+```

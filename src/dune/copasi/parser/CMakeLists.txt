@@ -36,7 +36,7 @@ if(${muparser_FOUND})
 endif()
 
 find_package(parafields)
-option(DUNE_COPASI_DISABLE_FETCH_PACKAGE_parafields "Disable (internet) fetch package for parafields" OFF)
+option(DUNE_COPASI_DISABLE_FETCH_PACKAGE_parafields "Disable (internet) fetch package for parafields" ON)
 if((NOT parafields_FOUND) AND (NOT CMAKE_DISABLE_FIND_PACKAGE_parafields) AND (NOT DUNE_COPASI_DISABLE_FETCH_PACKAGE_parafields))
   include(FetchContent)
   message("-- Declaring ParaFields")

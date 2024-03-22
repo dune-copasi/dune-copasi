@@ -116,13 +116,13 @@ $$
 [\texttt{position\_x},\,\texttt{position\_y},\,\texttt{position\_z}]:=\hat{x},
 $$
 
-where $\hat{x}\in \mathbb{R}^3$ is the extension of $x\in\Omega$ into $\mathbb{R}^3$.
+where $\hat{x}\in \mathbb{R}^3$ is the extension of $x\in\mathbb{R}^d$ into $\mathbb{R}^3$.
 
 :::note mesh definition
 We assume that the domain $\Omega$ is covered by a mesh $\mathcal{T}_h = \{T_1, \ldots , T_M\}$ consisting of elements which are closed sets satisfying
 
 $$
-\bigcup_{T\in \mathcal{T}_h} T = \overline{\Omega}, \quad 
+\bigcup_{T\in \mathcal{T}_h} T = \overline{\Omega}, \quad
 \forall T, T' \in \mathcal{T}_h, T\neq T' : \mathring{T} \cap \mathring{T}' = \emptyset,
 $$
 
@@ -228,8 +228,7 @@ Independently of the evaluation context, you are allowed to inject keywords into
 
 ### Constants
 
-
-:::note Config Options: 
+:::note Config Options:
 * **`parser_context.{tkn}.type='constant'`**
 * **`parser_context.{tkn}.value={float}`**
 :::
@@ -370,8 +369,6 @@ stochastic.variance = 0.2
 initial.expression = my_rng(2*position_x, 2*position_y)
 ```
 :::
-
-
 
 
 :::info Out of domain behavior

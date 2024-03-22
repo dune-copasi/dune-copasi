@@ -205,6 +205,7 @@ setup_exec:debian_clang:
 
 build_exec:debian_clang:
   variables:
+    DUNE_COPASI_DISABLE_FETCH_PACKAGE_parafields: 'OFF'
     <<: *debian_clang
   <<: *build
   dependencies:

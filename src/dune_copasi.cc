@@ -44,7 +44,7 @@
 
 #include <nlohmann/json.hpp>
 
-// includes a string with json contents generated a configuration time 
+// includes a string with json contents generated a configuration time
 #include "config_opts.hh"
 
 #include <algorithm>
@@ -94,7 +94,7 @@ void print_config_node(const auto& config_node, unsigned verbosity, unsigned ind
 
   if (verbosity == 0)
     return;
-  
+
   indent += "  ";
   if (json.contains(".details")) {
     fmt::print("\n");
@@ -138,9 +138,9 @@ program_help(std::string_view prog_name, bool long_help)
     "Numerical simulator for diffusion-reaction systems on single or multiple compartments\n\n"
     "Website: <https://dune-copasi.netlify.app>\n\n"
     "OPTIONS:\n\n"
-    "  -h / --help          - Display this help\n"
-    "  --help-full          - Display this help with long descriptions\n"
-    "  --version            - Display the version of this program\n"
+    "  -h / --help          - Display this help.\n"
+    "  --help-full          - Display this help with long descriptions.\n"
+    "  --version            - Display the version of this program.\n"
     "  --parser-default     - Display the default parser.\n"
     "  --parser-list        - Display the parsers available for this program.\n"
     "  --dimension-list     - Display the grid dimensions available for this program.\n"

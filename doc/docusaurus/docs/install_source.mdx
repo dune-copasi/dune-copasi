@@ -1,0 +1,265 @@
+---
+id: install_source
+title: Install From Source
+description: How to build from source
+sidebar_label: Install from Source
+tags:
+  - API
+  - CLI
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import DuneCopasiHelp from './DuneCopasiHelp'
+
+:::caution development
+These are the instruction for the development branch of DuneCopasi!
+:::
+
+:::tip docker build
+This mode of installation is recommended only for [API usage](use_api), inmersive developemt,
+or cases where upstream dependencies need to be modified. In other cases, you can easily modify
+the source code, build it, and use it through a [docker installation](install_docker).
+:::
+
+{/* ## Manual Installation */}
+
+:::note Operating Systems and Compilers
+The installation from source is known to compile and run under Debian/Ubuntu, macOS, and Windows.
+In all three cases with [Clang](https://clang.llvm.org) and [GCC](https://gcc.gnu.org)
+based compilers. It is known to be **not** compatible with Microsoft Visual Studio.
+:::
+
+### Dependencies
+
+Locally building and installing DuneCopasi requires a variety of dependencies:
+
+:::caution development branches
+Many of these dependencies are in a development branch (e.g., `master`) because DuneCopasi is also under developemt
+or because the package does not offer other tagged release.
+:::
+
+| Software | Version/Branch |
+| ---------| -------------- |
+| [CMake](https://cmake.org/)                                                                 | >= 3.16 |
+| C++ compiler  | >= [C++20](https://en.wikipedia.org/wiki/List_of_compilers#C++_compilers)   |
+| [pkg-config](https://www.freedesktop.org/wiki/Software/pkg-config)                          | >= 1.8.1|
+| [\{fmt\}](https://fmt.dev/)                                                                 | >= 9.1.0 |
+| [spdlog](https://github.com/gabime/spdlog)                                                  | >= 1.10.0 |
+| [libTIFF](http://www.libtiff.org/)                                                          | >= 3.6.1 |
+| [muParser](https://beltoforion.de/article.php?a=muparser) (optional)                        | >= 2.2.5 |
+| [SymEngine](https://symengine.org) (optional)                                               | >= 0.8.0 |
+| [ExprTk](https://www.partow.net/programming/exprtk) (optional, automatic)                   | >= 0.0.2 |
+| [METIS](https://github.com/KarypisLab/METIS) (optional)                                     | >= 5.1.0 |
+| [parafields-core](https://github.com/parafields/parafields-core) (optional, automatic)      | `master` |
+| [MPI](https://www.mpi-forum.org) (optional)                                                 | >= 3.1   |
+| [FFTW](https://www.fftw.org) (optional)                                                     | >= 3.0.0 |
+| [TBB](https://oneapi-src.github.io) (optional)                                              | >= 2018.12 |
+| [GTest](https://google.github.io) (optional, automatic)                                     | >= 1.12.1 |
+| [function2](https://naios.github.io/function2/) (automatic)                                 | >= 4.2.3 |
+| [nlohmann::json](https://github.com/nlohmann/json) (automatic)                              | >= 3.11.3 |
+| [SuiteSparse](https://people.engr.tamu.edu/davis/suitesparse.html)                          | >= 2.3.3 |
+| [Perfetto](https://perfetto.dev)                                                            | >= 32.1 |
+| [dune-common](https://gitlab.dune-project.org/core/dune-common)                             | `master` |
+| [dune-geometry](https://gitlab.dune-project.org/core/dune-geometry)                         | `master` |
+| [dune-grid](https://gitlab.dune-project.org/core/dune-grid)                                 | `master` |
+| [dune-uggrid](https://gitlab.dune-project.org/staging/dune-uggrid)                          | `master` |
+| [dune-istl](https://gitlab.dune-project.org/core/dune-istl)                                 | `master` |
+| [dune-localfunctions](https://gitlab.dune-project.org/core/dune-localfunctions)             | `master` |
+| [dune-functions](https://gitlab.dune-project.org/staging/dune-functions)                    | `master` |
+| [dune-multidomaingrid](https://gitlab.dune-project.org/extensions/dune-multidomaingrid)     | `master` |
+| [dune-typetree](https://gitlab.dune-project.org/staging/dune-typetree)                       | `master` |
+| [dune-pdelab](https://gitlab.dune-project.org/copasi/dune-pdelab)                           | `feature/dune-assembler/main-multithreaded` |
+
+* **automatic**: The requirement is automatically fetched from the internet by CMake. See the cmake configuration options on how to disable this feature.
+* **optional**: The software package is not mandatory (but recommended) to build DuneCopasi.
+
+:::note MPI and FFTW requirements
+The MPI and FFTW packages are only to fulfill the requirements of parafields-core.
+If these packages are present if your system, CMake can resolve parafields-core automatically by setting the option
+`DUNE_COPASI_DISABLE_FETCH_PACKAGE_parafields` to `OFF` in CMake.
+:::
+
+
+Some of the dependencies can be obtained by package managers, e.g.,
+
+<Tabs
+  groupId="package-manager"
+  defaultValue="apt"
+  values={[
+      {label: 'Debian/Ubuntu (apt)', value: 'apt', },
+      {label: 'macOS/Linux (brew)', value: 'brew', },
+    ]
+  }>
+
+  <TabItem value="apt">
+
+```bash
+apt update
+apt install \
+  cmake \
+  g++ \
+  gcc \
+  git \
+  libmuparser-dev \
+  libfftw3-dev \
+  libfftw3-mpi-dev \
+  libgtest-dev \
+  libscotchmetis-dev \
+  libspdlog-dev \
+  libtbb-dev \
+  libtiff-dev \
+  mpi-default-bin \
+  mpi-default-dev \
+  pkg-config
+```
+
+  </TabItem>
+  <TabItem value="brew">
+
+```bash
+brew update
+brew install \
+  cmake \
+  fftw \
+  fmt \
+  gcc \
+  git \
+  libtiff \
+  metis \
+  muparser \
+  open-mpi \
+  pkg-config \
+  scotch \
+  spdlog \
+  suite-sparse \
+  symengine \
+  tbb
+```
+
+  </TabItem>
+</Tabs>
+
+
+### Dune Options File
+
+An important part of the installation procedure is to tune the build system
+flags to accommodate the build to your system. This is done via the [dune options
+file](https://dune-project.org/doc/installation/#storing-flags-in-an-options-file).
+In essence, is just a bash script that sets different flags (mainly the flags
+for CMake `CMAKE_FLAGS`). While the dune project usually leaves this open for the user, we
+provide a `dune-copasi.opts` file with sensible default options for the main
+operating systems.
+
+This file can be called to show the current configuration:
+
+```bash
+./dune-copasi.opts
+```
+
+There are two forms to add flags to the `dune-copasi.opts` file:
+
+1. Setting environmental variables starging with `CMAKE_` and `DUNE_`.
+   These variables will be automatically included into the list of cmake flags.
+
+  ```bash
+  export CMAKE_INSTALL_PREFIX="/path/to/install/prefix/"
+  export CMAKE_GENERATOR="'Ninja'"
+  ./dune-copasi.opts
+  ```
+
+2. Appending new flags into the `CMAKE_FLAGS` variable in the `dune-copasi.opts` file
+  (care must be taken to scape quotes):
+
+  ```bash
+  echo 'CMAKE_FLAGS+=" -DCMAKE_INSTALL_PREFIX=/path/to/install/prefix/"' >> dune-copasi.opts
+  echo "CMAKE_FLAGS+=\" -DCMAKE_GENERATOR='Ninja'\"" >> dune-copasi.opts
+  ./dune-copasi.opts
+  ```
+
+For more information about the possible options and the dune options file, check out
+the dune [installation documentation](https://dune-project.org/doc/installation/)
+and the [build system documentation](https://dune-project.org/sphinx/core-2.7/).
+
+<details>
+<summary>CMake Options</summary>
+
+| Software | Version/Branch |
+| ---------| -------------- |
+| `DUNE_COPASI_WITH_EXECUTABLE:BOOL=ON`                   | Build dune-copasi executable |
+| `DUNE_COPASI_CONCURRENT_ASSEMBLY:BOOL=ON`               | Build with concurrent assembly. Turn off to reduce memory consumption |
+| `DUNE_COPASI_PRECOMPILED_MODE:BOOL=ON`                  | Pre-build a fixed set of class instances |
+| `DUNE_COPASI_GRID_DIMENSIONS:STRING="2"`                | Semi-colon separated list of dimensions to build |
+| `DUNE_COPASI_DISABLE_FETCH_PACKAGE_ExprTk:BOOL=OFF`     | Disable automatic fetch of ExprTk package |
+| `DUNE_COPASI_DISABLE_FETCH_PACKAGE_parafields:BOOL=OFF`  | Disable automatic fetch of parafields-core package |
+| `DUNE_PDELAB_ENABLE_TRACING:BOOL=ON`                    | Enable automatic fetch of perfetto |
+| `DUNE_COPASI_DISABLE_FMT_STYLE:BOOL=OFF`                | Disable \{fmt\} styling |
+
+</details>
+
+### Build and Install
+
+The required DUNE modules (including DuneCopasi) can be obtained via
+internet by using [`git`](https://git-scm.com/). For smooth installation, is
+better place all the dune modules within the same directory.
+
+:::danger DUNE Version incompatibility
+Notice that this procedure assumes that you don't have previous installation of DUNE in
+your system. If that's the case, uninstall DUNE before continuing, otherwise, version
+conflicts may be difficult if not impossible to resolve!
+:::
+
+```bash
+# prepare a folder to download and build dune modules
+mkdir ~/dune-modules && cd ~/dune-modules
+
+# fetch dependencies & dune-copasi in ~/dune-modules folder
+git clone https://gitlab.dune-project.org/core/dune-common
+git clone https://gitlab.dune-project.org/core/dune-geometry
+git clone https://gitlab.dune-project.org/core/dune-grid
+git clone https://gitlab.dune-project.org/staging/dune-uggrid
+git clone https://gitlab.dune-project.org/core/dune-istl
+git clone https://gitlab.dune-project.org/core/dune-localfunctions
+git clone https://gitlab.dune-project.org/staging/dune-functions
+git clone https://gitlab.dune-project.org/extensions/dune-multidomaingrid
+git clone https://gitlab.dune-project.org/staging/dune-typetree
+git clone -b feature/dune-assembler/main-multithreaded https://gitlab.dune-project.org/pdelab/dune-pdelab
+git clone https://gitlab.dune-project.org/copasi/dune-copasi
+```
+
+Then, build and install the `DUNE` modules with the `dunecontrol` script:
+
+```bash
+# choose an installation path          (this is read by the 'dune-copasi.opts' file)
+export CMAKE_INSTALL_PREFIX=/opt/dune
+
+# uncomment if you have MPI and FFTW
+# export DUNE_COPASI_DISABLE_FETCH_PACKAGE_parafields=OFF
+
+# configure and build dune modules                                (go grab a coffee)
+./dune-common/bin/dunecontrol --opts=dune-copasi/dune-copasi.opts all
+
+# install binaries and libraries                                  (may require sudo)
+./dune-common/bin/dunecontrol --opts=dune-copasi/dune-copasi.opts bexec make install
+
+# remove source and build files
+cd ~ && rm -r ~/dune-modules
+
+# include dune binaries into your path (if you use bash)
+echo "export PATH=${CMAKE_INSTALL_PREFIX}/bin:$PATH" >> $HOME/.bashrc
+```
+
+:::tip Active development cycle
+An active development cycle does not need you to install the package.
+Instead, you can run the program directly in the build directory. In that case, we recommend
+using `--builddir` option from `dunecontrol` in order to keep all the DUNE build directorties out of the source code.
+:::
+
+For further information on dune module installation process, please check out
+the [dune-project web page](https://www.dune-project.org/doc/installation/).
+
+### Run the program
+
+Once installed, the program `dune-copasi` will be available on the command line and be ready for [CLI usage](use_cli):
+
+<DuneCopasiHelp prefix="docker run "/>
