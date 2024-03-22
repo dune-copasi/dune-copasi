@@ -57,6 +57,7 @@ RUN git clone https://github.com/oneapi-src/oneTBB.git
 RUN git clone --depth 1 --branch v4.6.0 https://gitlab.com/libtiff/libtiff.git
 RUN git clone --depth 1 --branch 9.1.0 https://github.com/fmtlib/fmt.git
 RUN git clone --depth 1 --branch v1.11.0 https://github.com/gabime/spdlog.git
+RUN git clone https://github.com/dokempf/FakeMPI.git
 
 SHELL ["/bin/bash", "-c"]
 # not working: 3.1.[52-54]
@@ -64,6 +65,22 @@ ENV EMSDK_VERSION=3.1.51
 RUN ./emsdk/emsdk install ${EMSDK_VERSION}
 RUN ./emsdk/emsdk activate ${EMSDK_VERSION}
 ENV EMSDK_QUIET=1
+
+RUN mkdir FakeMPI/build \
+    && source /duneci/modules/emsdk/emsdk_env.sh \
+    && cmake FakeMPI -B FakeMPI/build -G Ninja $DEFAULT_CMAKE_FLAGS
+RUN cmake --build FakeMPI/build
+RUN cmake --install FakeMPI/build
+ENV MPI_ROOT=/duneci/install
+
+RUN curl https://www.fftw.org/fftw-3.3.10.tar.gz -o fftw-3.3.10.tar.gz \
+    && tar -xvzf fftw-3.3.10.tar.gz
+
+RUN ./emsdk/emsdk activate ${EMSDK_VERSION} \
+    && source ./emsdk/emsdk_env.sh \
+    && cd fftw-3.3.10 \
+    && emconfigure ./configure --prefix=${CMAKE_INSTALL_PREFIX} --enable-mpi \
+    && emmake make -j$(nproc)
 
 RUN mkdir oneTBB/build \
     && source /duneci/modules/emsdk/emsdk_env.sh \
