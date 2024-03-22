@@ -68,9 +68,24 @@ variables:
     - !reference [.deploy_rules, rules]
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
-        - dune/**/*
         - src/**/*
-        - .ci/**/*
+        - dune/**/*
+        - dune-copasi.opts
+        - cmake
+        - CMakeLists.txt
+        - docker/*.dockerfile
+
+.update_version: &update_version
+  before_script:
+    - |
+     if [ -z "$CI_COMMIT_TAG" ]; then
+        ./util/version_handler.py --replace-prerelease="git${CI_COMMIT_SHORT_SHA:-0}" --replace-build="dune.gitlab.${CI_JOB_ID:-0}" --update-all
+      elif [ "$(./util/version_handler.py --finalize-version)" = "$CI_COMMIT_TAG" ]; then
+        ./util/version_handler.py --finalize-version --update-all
+      else
+        echo git tag is not a finalized version!
+        exit 1
+      fi
 
 .setup_exec: &setup_exec
   image: ${DOCKER_IMAGE}
@@ -110,8 +125,8 @@ variables:
 .build: &build
   image: ${DEPENDENCIES_IMAGE}
   stage: build
+  <<: *update_version
   script:
-    - ./util/version_handler.py --replace-build build.dune.gitlab.${CI_JOB_ID} --update-dune-module
     - ./.ci/install dune-copasi.opts
     - ./.ci/test dune-copasi.opts
     - mkdir -p packages
@@ -241,8 +256,8 @@ build_wasm:debian_emscripten:
     - setup_wasam:debian_emscripten
   image: ${DEPENDENCIES_IMAGE}
   stage: build
+  <<: *update_version
   script:
-    - ./util/version_handler.py --replace-build build.dune.gitlab.wasam.${CI_JOB_ID} --update-dune-module
     - source /duneci/modules/emsdk/emsdk_env.sh && ./.ci/install $DUNE_OPTS_FILE
     - mkdir -p packages
     - mv /duneci/install/bin/dune-copasi.js /duneci/install/bin/dune-copasi.wasm packages
@@ -253,20 +268,29 @@ build_wasm:debian_emscripten:
   rules:
     - !reference [.build_rules, rules]
 
-deploy_wasam:debian_emscripten:
+deploy_wasm:debian_emscripten:
   image: ${DEPENDENCIES_IMAGE}
   variables:
     <<: *debian_emscripten
   stage: deploy
-  script:
-    - |
-      VERSION=$(./util/version_handler.py)
-      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file $CI_PROJECT_DIR/packages/dune-copasi.js "${PACKAGE_REGISTRY}/${VERSION}/dune-copasi.js"
-      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file $CI_PROJECT_DIR/packages/dune-copasi.wasm "${PACKAGE_REGISTRY}/${VERSION}/dune-copasi.wasm"
+  <<: *update_version
   dependencies:
     - build_wasm:debian_emscripten
   rules:
     - !reference [.deploy_rules, rules]
+  script:
+    - |
+      cd npm
+      mv $CI_PROJECT_DIR/packages/dune-copasi.* .
+      echo "@copasi:registry=https://${CI_SERVER_HOST}/api/v4/projects/${CI_PROJECT_ID}/packages/npm/" > .npmrc
+      echo "//${CI_SERVER_HOST}/api/v4/projects/${CI_PROJECT_ID}/packages/npm/:_authToken=${CI_JOB_TOKEN}" >> .npmrc
+      if [ -z "$CI_COMMIT_TAG" ]; then
+        npm publish --tag canary
+      else
+        npm publish --tag latest
+        echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
+        npm publish --tag latest
+      fi
 
 deploy:documentation:
   image: ${DEPENDENCIES_IMAGE}

@@ -29,6 +29,8 @@ RUN export DEBIAN_FRONTEND=noninteractive; \
   python3 \
   python3-pip \
   python3-venv \
+  nodejs \
+  npm \
   && apt-get clean
 
 RUN python3 -m venv /opt/venv

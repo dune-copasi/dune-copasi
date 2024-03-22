@@ -1,0 +1,19 @@
+{
+  "name": "@copasi/dune-copasi-wasm",
+  "version": "2.0.0-git",
+  "description": "Solver for reaction-diffusion systems in multiple compartments (js/wasm binary)",
+  "main": "dune-copasi.js",
+  "directories": {
+    "doc": "doc",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.dune-project.org/copasi/dune-copasi.git"
+  },
+  "author": "santiago.ospina@iwr.uni-heidelberg.de",
+  "license": "BSD-2-Clause"
+}

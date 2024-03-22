@@ -1,6 +1,6 @@
 {
-  "name": "dune-copasi",
-  "version": "0.0.0",
+  "name": "dune-copasi-docusaurus",
+  "version": "2.0.0-git",
   "private": true,
   "scripts": {
     "docusaurus": "docusaurus",

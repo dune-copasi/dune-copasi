@@ -75,6 +75,20 @@ def update_gitlab_ci(old_version, new_version):
   generic_version_update(path, prefix+str(old_version), prefix+str(new_version))
   print(f"GitLab CI config '{path}' was updated from '{old_version}' to '{new_version}'")
 
+def update_npm(old_version, new_version):
+  path = os.path.join(base_path,'../npm/package.json')
+  prefix = '"version": "'
+  generic_version_update(path, prefix+str(old_version), prefix+str(new_version))
+  print(f"NPM package '{path}' was updated from '{old_version}' to '{new_version}'")
+
+def update_docusaurus(old_version, new_version):
+  path = os.path.join(base_path,'../doc/docusaurus/package.json')
+  prefix = 'npm:@copasi/dune-copasi-wasm@'
+  generic_version_update(path, prefix+str(old_version), prefix+str(new_version))
+  prefix = '"version": "'
+  generic_version_update(path, prefix+str(old_version), prefix+str(new_version))
+  print(f"Docusaurus package '{path}' was updated from '{old_version}' to '{new_version}'")
+
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="Version handler for dune-copasi", exit_on_error= False)
   parser.add_argument('-v', '--verbose', action='store_true')
@@ -89,6 +103,8 @@ if __name__ == "__main__":
   parser.add_argument("--update-dune-module", nargs='?', const=True)
   parser.add_argument("--update-changelog", nargs='?', const=True)
   parser.add_argument("--update-gitlab-ci", nargs='?', const=True)
+  parser.add_argument("--update-npm", nargs='?', const=True)
+  parser.add_argument("--update-docusaurus", nargs='?', const=True)
   # parser.add_argument("--update-python-module", nargs='?', const=True)
   parser.add_argument("--update-all", nargs='?', const=True)
   args = parser.parse_args()
@@ -123,13 +139,16 @@ if __name__ == "__main__":
   else:
     print(new_version)
 
-  if args.update_all or args.update_changelog:
-    if new_version != old_version:
+  if args.update_changelog:
       update_changelog(old_version, new_version)
   if args.update_all or args.update_dune_module:
     update_dune_module(old_version, new_version)
   if args.update_all or args.update_gitlab_ci:
     update_gitlab_ci(old_version, new_version)
+  if args.update_all or args.update_npm:
+    update_npm(old_version, new_version)
+  if args.update_all or args.update_docusaurus:
+    update_docusaurus(old_version, new_version)
   # if args.update_all or args.update_python_module:
   #   update_python_module(old_version, new_version)
 
@@ -138,4 +157,3 @@ if __name__ == "__main__":
     print(f"\tgit tag -s v{new_version}\n")
     print("\nAlso remember to forward the branch latest to the most recent tag\n")
     print(f"\tgit checkout latest && git merge --ff-only v{new_version}\n")
-
