@@ -112,7 +112,7 @@ RUN ./dune-copasi/.ci/install $DUNE_OPTS_FILE
 
 # move results to a -lighter- production image
 FROM ${PRODUCTION_BASE_IMAGE} AS production-env
-LABEL maintainer="santiago.ospina@iwr.uni-heidelberg.de"
+LABEL maintainer="santiago@dune-project.org"
 
 # get package from build-env and install it
 COPY --from=build-env /duneci/packages/dune-copasi*Runtime.deb /packages/

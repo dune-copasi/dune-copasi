@@ -2,7 +2,7 @@ ARG PRODUCTION_BASE_IMAGE=${BASE_IMAGE}
 
 # move results to a -lighter- production image
 FROM ${PRODUCTION_BASE_IMAGE} AS production-env
-LABEL maintainer="santiago.ospina@iwr.uni-heidelberg.de"
+LABEL maintainer="santiago@dune-project.org"
 
 # get package from host 'packages' directory and install it
 COPY ./packages /packages/

@@ -1,11 +1,11 @@
-.TH man 1 "@CURRENT_DATE@" "@DUNE_COPASI_VERSION@" "dune-copasi man page"
+.TH man 1 "@CURRENT_DATE@" "@DUNE_COPASI_VERSION@" "DuneCopasi man page"
 .SH NAME
-dune-copasi \- Diffusion-Reaction numerical simulator
+DuneCopasi \- Diffusion-Reaction numerical simulator
 .SH SYNOPSIS
 dune-copasi [OPTIONS]
 .SH DESCRIPTION
-dune-copasi is a numerical simulator for diffusion-reaction systems on single or multiple compartments.
+DuneCopasi is a numerical simulator for diffusion-reaction systems on single or multiple compartments.
 .SH BUGS
 https://gitlab.dune-project.org/copasi/dune-copasi/-/issues
 .SH AUTHOR
-Santiago Ospina De Los Rios (santiago.ospina@iwr.uni-heidelberg.de)
+Santiago Ospina De Los Rios (santiago@dune-project.org)
