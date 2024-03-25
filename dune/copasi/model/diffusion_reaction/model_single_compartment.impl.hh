@@ -240,10 +240,12 @@ ModelSingleCompartment<Traits>::reduce(const State& state, const ParameterTree& 
   using CompartmentBasis = PDELab::Basis<PDELab::EntitySetPartitioner::Identity<CompartmentEntitySet>, CompartmentPreBasis>;
   using CoefficientsBackend = PDELab::ISTLUniformBackend<ScalarQuantity>;
   using Coefficients = typename CompartmentBasis::template Container<CoefficientsBackend>;
+
+  // TODO(sospinar): set/get basis with concurrent entity set partition
   const auto& basis = any_cast<const CompartmentBasis&>(state.basis);
   const auto& coeff = any_cast<const Coefficients&>(state.coefficients);
 
-  return Dune::Copasi::DiffusionReaction::reduce(basis, coeff, state.time, config, _functor_factory);
+  return Dune::Copasi::DiffusionReaction::reduce(PDELab::Execution::seq, basis, coeff, state.time, config, _functor_factory);
 }
 
 template<class Traits>

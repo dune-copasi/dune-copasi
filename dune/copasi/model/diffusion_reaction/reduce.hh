@@ -11,6 +11,7 @@
 #include <dune/pdelab/concepts/basis.hh>
 #include <dune/pdelab/common/local_container.hh>
 #include <dune/pdelab/common/trace.hh>
+#include <dune/pdelab/common/for_each_entity.hh>
 
 #include <dune/grid/common/partitionset.hh>
 
@@ -20,6 +21,10 @@
 #include <spdlog/spdlog.h>
 
 #include <fmt/core.h>
+
+#if HAVE_TBB
+#include <tbb/enumerable_thread_specific.h>
+#endif // HAVE_TBB
 
 #include <string>
 #include <map>
@@ -31,14 +36,17 @@ class ReductionError : public Dune::Exception {};
 // Evaluates a evaluation/reduction/transformation algorigthm over the grid.
 // Starting with val = 0, the this function evaluates `val = reduction(val, evaluation(), weight)` for each quadrature point of the grid. Finally, the result gets transformed by `value = transformation(value)`
 // For each sub-tree in the parameter tree, the evaluation and reduce expressions are extracted to form the evaluation/reduce operation for its key.
-template<PDELab::Concept::Basis Basis>
-  requires Concept::LocalBasisTree<typename Basis::LocalView::Tree>
-inline static std::map<std::string, double>
-reduce(const Basis& basis,
-                const auto& coefficients,
-                auto time,
-                const ParameterTree& config,
-                std::shared_ptr<const FunctorFactory<Basis::EntitySet::GridView::dimension>> functor_factory = nullptr)
+template<class ExecutionPolicy, PDELab::Concept::Basis Basis, class Coefficients>
+requires (Concept::LocalBasisTree<typename Basis::LocalView::Tree> &&
+           PDELab::Execution::is_execution_policy_v<ExecutionPolicy> )
+static std::map<std::string, double>
+reduce(const ExecutionPolicy exec,
+       const Basis& basis,
+       const Coefficients& coefficients,
+       auto time,
+       const ParameterTree& config,
+       std::shared_ptr<const FunctorFactory<Basis::EntitySet::GridView::dimension>>
+         functor_factory = nullptr)
 {
   constexpr std::size_t dim = Basis::EntitySet::GridView::dimension;
   TRACE_EVENT("dune", "Reduce");
@@ -58,9 +66,6 @@ reduce(const Basis& basis,
 
   auto parser_type = string2parser.at(config.get("parser_type", default_parser_str));
 
-  auto lbasis = basis.localView();
-  PDELab::LocalContainerBuffer lcoeff{basis, coefficients};
-
   auto first_compartment_finite_elment = [](const Concept::CompartmentLocalBasisNode auto& lnode) noexcept {
     for (std::size_t i = 0; i != lnode.degree(); ++i)
       if (lnode.child(i).size() != 0)
@@ -76,104 +81,148 @@ reduce(const Basis& basis,
     std::terminate();
   });
 
-  using FEM = std::decay_t<decltype(first_finite_element(lbasis.tree()))>;
+  using FEM = std::decay_t<decltype(first_finite_element(basis.localView().tree()))>;
+  using Geometry = typename Basis::EntitySet::template Codim<0>::Entity::Geometry;
 
-  auto leqs = LocalEquations<dim>::make(lbasis);
-  leqs->time = time;
-  LocalBasisCache<typename FEM::Traits::LocalBasisType::Traits> fe_cache;
+  struct ThreadLocalData
+  {
+    typename Basis::LocalView lbasis;
+    PDELab::LocalContainerBuffer<Basis, const Coefficients> lcoeff;
+    std::unique_ptr<LocalEquations<dim>> leqs;
+    LocalBasisCache<typename FEM::Traits::LocalBasisType::Traits> fe_cache = {};
+    std::optional<typename Geometry::JacobianInverse> geojacinv_opt = std::nullopt;
+    std::vector<double> values = {};
+    std::vector<fu2::unique_function<double() const>> evaluations = {};
+    std::vector<fu2::unique_function<double(double, double) const>> reductions = {};
+  };
 
-  std::map<std::string, double> values;
-  double factor = 0.;
-  std::vector<fu2::unique_function<void() const>> evals;
-  // configure parsers of the evaluation/reduction passes
-  for (auto key : config.getSubKeys()) {
-    if (config.hasKey(key + ".evaluation.expression")) {
-      auto evaluation = functor_factory->make_scalar(key + ".evaluation", config.sub(key).sub("evaluation"), *leqs);
+  auto init_thread_data = [&]() -> ThreadLocalData {
+    auto lbasis = basis.localView();
+    auto leqs_ptr = LocalEquations<dim>::make(lbasis);
+    leqs_ptr->time = time;
+    const auto& leqs = *leqs_ptr;
+    ThreadLocalData data{ std::move(lbasis), { basis, coefficients }, std::move(leqs_ptr) };
+
+    auto sz = config.getSubKeys().size();
+    data.values.reserve(sz);
+    data.evaluations.reserve(sz);
+    data.reductions.reserve(sz);
+    for (const auto& key : config.getSubKeys()) {
+      const auto& sub_config = config.sub(key, true);
+      data.values.emplace_back(sub_config.get("initial.value", 0.));
+      auto& evaluation = data.evaluations.emplace_back();
+      if (sub_config.hasKey("evaluation.expression"))
+        evaluation =
+          functor_factory->make_scalar(key + ".evaluation", sub_config.sub("evaluation"), leqs);
       if (not evaluation)
-        continue;
-      fu2::unique_function<double(double, double, double) const> reduction = [](auto init, auto val, auto weight) { return init + val*weight; };
-      values[key] = config.get(key + ".initial.value", 0.);
-      if (config.hasKey(key + ".reduction.expression")) {
-        auto [args, expr] = parser_context->parse_function_expression(config.sub(key).sub("reduction")["expression"]);
-        if (args.size() != 3)
-          throw format_exception(IOError{}, "Reduction arguments must be exactly 3");
-        auto sub_parser_type = string2parser.at(config.sub(key).get("reduction.parser_type", std::string{parser2string.at(parser_type)}));
-        auto str_args = std::array{std::string{args[0]}, std::string{args[1]}, std::string{args[2]}};
+        evaluation = [] { return 0.; };
+      auto& reduction = data.reductions.emplace_back(std::plus<>{});
+      if (sub_config.hasKey("reduction.expression")) {
+        auto [args, expr] =
+          parser_context->parse_function_expression(sub_config.sub("reduction")["expression"]);
+        if (args.size() == 3)
+          spdlog::warn(
+            "Reduction expression for '{0}' uses 3 arguments whereas 2 are now required.\nThis "
+            "functionality has changed: the third argument became the contextual keyword "
+            "'integration_factor' that may be used to express '{0}.evaluation.expression'.",
+            key);
+        if (args.size() != 2)
+          throw format_exception(IOError{}, "Reduction arguments must be exactly 2");
+        auto sub_parser_type = string2parser.at(
+          sub_config.get("reduction.parser_type", std::string{ parser2string.at(parser_type) }));
+        auto str_args = std::array{ std::string{ args[0] }, std::string{ args[1] } };
         reduction = parser_context->make_function(sub_parser_type, str_args, expr);
       }
-      // store actual reduction operation in a functor
-      evals.emplace_back([_val = std::ref(values[key]), _factor = std::ref(factor), _evaluation = std::move(evaluation), _reduction = std::move(reduction)](){
-        _val.get() = _reduction(_val, _evaluation(), _factor);
-      });
     }
-  }
+    return data;
+  };
 
-  if (values.empty()) {
+#if HAVE_TBB
+  tbb::enumerable_thread_specific<ThreadLocalData> thread_data{ std::move(init_thread_data) };
+#else
+  struct ThreadData : public std::array<ThreadLocalData,1> {
+    ThreadLocalData& local() {
+      return this->front();
+    }
+  };
+  ThreadData thread_data{init_thread_data()};
+#endif
+
+  if (config.getSubKeys().empty()) {
     return {};
   }
 
   spdlog::info("Evaluating reduce operators");
-
-  for (const auto& cell : elements(basis.entitySet(), Partitions::interior)) {
+  PDELab::forEachEntity(exec, basis.entitySetPartition(), [&thread_data](const auto& cell) {
+    auto& data = thread_data.local();
     auto geo = cell.geometry();
 
-    using Geometry = std::decay_t<decltype(geo)>;
-    std::optional<typename Geometry::JacobianInverse> geojacinv_opt;
-
-    lbasis.bind(cell);
-    lcoeff.load(lbasis, std::false_type{});
-    const auto& finite_element = first_finite_element(lbasis.tree());
+    data.lbasis.bind(cell);
+    data.lcoeff.load(data.lbasis, std::false_type{});
 
     std::size_t const order = 4;
-    const auto& quad_rule = QuadratureRules<typename Geometry::ctype, Geometry::coorddimension>::rule(geo.type(), order);
+    const auto& quad_rule =
+      QuadratureRules<typename Geometry::ctype, Geometry::coorddimension>::rule(geo.type(), order);
 
     for (std::size_t q = 0; q != quad_rule.size(); ++q) {
       const auto [position, weight] = quad_rule[q];
-      if (not geo.affine() or not geojacinv_opt)
-        geojacinv_opt.emplace(geo.jacobianInverse(position));
-      const auto& geojacinv = *geojacinv_opt;
-      leqs->position = geo.global(position);
+      if (not geo.affine() or not data.geojacinv_opt)
+        data.geojacinv_opt.emplace(geo.jacobianInverse(position));
+      const auto& geojacinv = *(data.geojacinv_opt);
+      data.leqs->position = geo.global(position);
+      data.leqs->integration_factor = weight * geo.integrationElement(position);
 
       // evaluate values at quadrature point
-      forEachLeafNode(lbasis.tree(), [&](const auto& node) {
+      forEachLeafNode(data.lbasis.tree(), [&](const auto& node) {
         if (node.size() == 0)
           return;
-        auto& value = leqs->get_value(node);
-        auto& gradient = leqs->get_gradient(node);
+        auto& value = data.leqs->get_value(node);
+        auto& gradient = data.leqs->get_gradient(node);
         value = 0.;
         gradient = 0.;
-        fe_cache.bind(node.finiteElement(), quad_rule);
-        const auto& phi = fe_cache.evaluateFunction(q);
-        const auto& jacphi = fe_cache.evaluateJacobian(q);
+        data.fe_cache.bind(node.finiteElement(), quad_rule);
+        const auto& phi = data.fe_cache.evaluateFunction(q);
+        const auto& jacphi = data.fe_cache.evaluateJacobian(q);
         for (std::size_t dof = 0; dof != node.size(); ++dof) {
-          value     += lcoeff(node, dof) * phi[dof];
-          gradient  += lcoeff(node, dof) * (jacphi[dof] * geojacinv)[0];
+          value += data.lcoeff(node, dof) * phi[dof];
+          gradient += data.lcoeff(node, dof) * (jacphi[dof] * geojacinv)[0];
         }
       });
 
-      // evaluate functions at the current quadrature point
-      factor = weight * geo.integrationElement(position);
-      for (const auto& eval : evals)
-        eval();
+      // evaluate all functions at the current quadrature point
+      for (std::size_t i = 0; i != data.values.size(); ++i)
+        data.values[i] = data.reductions[i](data.evaluations[i](), data.values[i]);
     }
 
-    lbasis.unbind();
-    leqs->clear();
-  }
+    data.lbasis.unbind();
+    data.leqs->clear();
+  });
 
   if (basis.entitySet().grid().comm().size() > 1){
     throw format_exception(ParallelError{}, "Transoform and Reduce is not implemented in parallel");
   }
 
+  // gather values from every thread_data
+  std::vector<double> values;
+  for (const auto& key : config.getSubKeys())
+    values.emplace_back(config.sub(key, true).get("initial.value", 0.));
+  for (std::size_t i = 0; i != values.size(); ++i)
+    for (const auto& data : thread_data)
+      values[i] = data.reductions[i](data.values[i], values[i]);
+
   // report results
   std::size_t max_key_chars = 0;
   std::size_t max_val_chars = 5;
-  for (auto [key, value] : values)
+  for (const auto& key : config.getSubKeys())
     max_key_chars = std::max(max_key_chars, key.size());
 
-  spdlog::info("   ┌{0:─^{1}}┐", "", max_key_chars+max_val_chars+13);
+  std::map<std::string, double> key_value;
+
+  spdlog::info("   ┌{0:─^{1}}┐", "", max_key_chars + max_val_chars + 13);
   std::string error_msg;
-  for (auto& [key, value] : values) {
+  auto values_it = values.begin();
+  for (const auto& key : config.getSubKeys()) {
+    auto& value = key_value[key] = *(values_it++);
 
     if (config.sub(key).hasKey("transformation.expression")) {
       auto [args, expr] = parser_context->parse_function_expression(config.sub(key)["transformation.expression"]);
@@ -228,7 +277,7 @@ reduce(const Basis& basis,
     throw format_exception(ReductionError{}, "{}", error_msg);
   }
 
-  return values;
+  return key_value;
 }
 
 } // namespace Dune::Copasi::DiffusionReaction

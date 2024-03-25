@@ -132,6 +132,7 @@ FunctorFactoryParser<dim>::parse_scalar_expression(const ParameterTree& config,
       string2parser.at(config.get("parser_type", std::string{ parser2string.at(_parser_type) }));
     auto parser_ptr = make_parser(parser_type);
     parser_ptr->define_variable("time", &(local_values.time));
+    parser_ptr->define_variable("integration_factor", &(local_values.integration_factor));
     parser_ptr->define_variable("entity_volume", &(local_values.entity_volume));
     parser_ptr->define_variable("in_volume", &(local_values.in_volume));
     parser_ptr->define_variable("in_boundary", &(local_values.in_boundary));

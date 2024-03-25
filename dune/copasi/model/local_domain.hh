@@ -39,6 +39,7 @@ struct LocalDomain
   FieldVector<double, dim> position;
   FieldVector<double, dim> normal;
   double time = 0.;
+  double integration_factor = 0;
   double entity_volume = 0.;
   double in_volume = 0;
   double in_boundary = 0;

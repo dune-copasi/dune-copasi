@@ -268,6 +268,7 @@ public:
     std::shared_ptr<const CellData<CellDataGridView, CellDataType>> grid_cell_data = nullptr,
     BitFlags<FactoryFalgs> opts = BitFlags<FactoryFalgs>::no_flags())
   {
+    TRACE_EVENT("dune", "LocalEquations::make");
     auto local_values = std::unique_ptr<LocalEquations>(new LocalEquations{});
 
     // calculate how many nodes there are
