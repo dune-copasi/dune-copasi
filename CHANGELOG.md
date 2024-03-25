@@ -31,7 +31,7 @@ Types of changes
 _**Note**: This version is a complete re-write of the library based on a custom version of PDELab tailored for this module. Thus, this changelog does not make much sense in comparison to version [1.1.0]. Instead, the following entries are written with respect to the first refactor from [1.1.0]: !83_
 
 ### Added
- - Hierarchical and dynamic registry of ISTL solvers and preconditioners !156
+ - Hierarchical ISTL solvers and preconditioners in a dynamic registry !156
  - Initial web interface for Wasm executable !170
  - Deploy NPM packages to GitLab registry !179
  - Tutorial and test on Cardiac Electrophysiology simulations !157
@@ -85,6 +85,7 @@ _**Note**: This version is a complete re-write of the library based on a custom 
  - Update docusaurus to version [`2.0.0-alpha.75`](https://github.com/facebook/docusaurus/blob/master/CHANGELOG.md#200-alpha75-2021-04-30) !72
  - First re-write of the library !83
 ### Fixed
+ - Missing CMake installation of Hierarchical ISTL solvers (from !156) !183
  - Boundary constraints were handled incorrectly !167
  - Coloring option for multi-threading was swapped with micro-locks !166
  - Remove wrong definition of maximum number of ExpTk functions !130
