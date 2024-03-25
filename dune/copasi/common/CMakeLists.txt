@@ -1,6 +1,5 @@
 install(FILES axis_names.hh
               bit_flags.hh
-              data_context.hh
               exceptions.hh
               fmt_style.hh
               ostream_redirect.hh

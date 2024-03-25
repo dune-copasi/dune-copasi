@@ -111,6 +111,7 @@ _**Note**: This version is a complete re-write of the library based on a custom 
  - CI jobs now passes since the re-write !89
  - Solver on linear problems was wrongly reused !85
 ### Removed
+ - Unused header files from version [1.1.0] !183
  - Dependency on `dune-testtools` !122
  - Inherited `parafield-core` tests !112
  - Fallback for `std::filesystem` !94
