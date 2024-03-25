@@ -15,8 +15,8 @@
 #endif
 
 #include <dune/copasi/grid/make_multi_domain_grid.hh>
-#include <dune/copasi/model/factory.hh>
-#include <dune/copasi/model/local_equations/functor_factory_parser.hh>
+#include <dune/copasi/model/diffusion_reaction/factory.hh>
+#include <dune/copasi/model/functor_factory_parser.hh>
 #include <dune/copasi/model/model.hh>
 #include <dune/copasi/parser/context.hh>
 #include <dune/copasi/parser/factory.hh>
@@ -355,7 +355,7 @@ main(int argc, char** argv)
         auto parser_type = string2parser.at(config.get("model.parser_type", default_parser_str));
         auto functor_factory =
           std::make_shared<FunctorFactoryParser<dim>>(parser_type, std::move(parser_context));
-        std::shared_ptr model = make_model<Model>(model_config, functor_factory, std::move(leaf_cell_data));
+        std::shared_ptr model = DiffusionReaction::make_model<Model>(model_config, functor_factory, std::move(leaf_cell_data));
 
         // create time stepper
         const auto& time_config = model_config.sub("time_step_operator");

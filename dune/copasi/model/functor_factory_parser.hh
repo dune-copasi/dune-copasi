@@ -1,7 +1,7 @@
 #ifndef DUNE_COPASI_MODEL_LOCAL_EQUATIONS_FUNCTOR_FACTORY_PARSER_HH
 #define DUNE_COPASI_MODEL_LOCAL_EQUATIONS_FUNCTOR_FACTORY_PARSER_HH
 
-#include <dune/copasi/model/local_equations/functor_factory.hh>
+#include <dune/copasi/model/functor_factory.hh>
 #include <dune/copasi/parser/context.hh>
 
 #include <memory>
@@ -65,7 +65,7 @@ private:
 } // namespace Dune::Copasi
 
 #ifndef DUNE_COPASI_PRECOMPILED_MODE
-#include <dune/copasi/model/local_equations/functor_factory_parser.impl.hh>
+#include <dune/copasi/model/functor_factory_parser.impl.hh>
 #endif
 
 #endif // DUNE_COPASI_MODEL_LOCAL_EQUATIONS_FUNCTOR_FACTORY_PARSER_HH

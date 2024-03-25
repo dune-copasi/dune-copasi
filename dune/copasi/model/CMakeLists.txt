@@ -1,17 +1,13 @@
 install(FILES constraints.hh
-              diffusion_reaction_mc_traits.hh
-              diffusion_reaction_mc.hh
-              diffusion_reaction_mc.impl.hh
-              diffusion_reaction_sc_traits.hh
-              diffusion_reaction_sc.hh
-              diffusion_reaction_sc.impl.hh
-              factory.hh
-              model.hh
+              functor_factory_parser.hh
+              functor_factory_parser.impl.hh
+              functor_factory.hh
               interpolate.hh
+              local_domain.hh
               make_initial.hh
               make_step_operator.hh
-              reduce.hh
+              model.hh
         COMPONENT Development
         DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/dune/copasi/model")
 
-add_subdirectory(local_equations)
+add_subdirectory(diffusion_reaction)

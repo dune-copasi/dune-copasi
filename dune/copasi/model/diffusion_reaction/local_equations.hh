@@ -1,15 +1,19 @@
 #ifndef DUNE_COPASI_MODEL_LOCAL_EQUATIONS_LOCAL_EQUATIONS_HH
 #define DUNE_COPASI_MODEL_LOCAL_EQUATIONS_LOCAL_EQUATIONS_HH
 
+#include <dune/copasi/model/local_domain.hh>
 #include <dune/copasi/common/bit_flags.hh>
 #include <dune/copasi/common/exceptions.hh>
 #include <dune/copasi/concepts/compartment_tree.hh>
-#include <dune/copasi/model/local_equations/functor_factory.hh>
+#include <dune/copasi/model/functor_factory.hh>
+#include <dune/copasi/model/local_domain.hh>
 #include <dune/copasi/parser/factory.hh>
 #include <dune/copasi/grid/cell_data.hh>
 
 #include <dune/pdelab/concepts/basis.hh>
 #include <dune/pdelab/common/container_entry.hh>
+
+#include <dune/geometry/dimension.hh>
 
 #include <dune/common/fvector.hh>
 #include <dune/common/indices.hh>
@@ -25,34 +29,7 @@
 #include <variant>
 #include <set>
 
-namespace Dune::Copasi {
-
-template<std::size_t dim>
-struct LocalDomain
-{
-  LocalDomain() = default;
-  LocalDomain(const LocalDomain&) = delete;
-  LocalDomain(LocalDomain&&) = delete;
-
-  LocalDomain& operator=(const LocalDomain&) = delete;
-  LocalDomain& operator=(LocalDomain&&) = delete;
-
-  virtual ~LocalDomain() {}
-
-  // local data related to general position metrics
-  FieldVector<double, dim> position;
-  FieldVector<double, dim> normal;
-  double time = 0.;
-  double entity_volume = 0.;
-  double in_volume = 0;
-  double in_boundary = 0;
-  double in_skeleton = 0;
-
-  // local data related to the cell element and intended to be used by the CellData
-  std::vector<double> cell_values;  // data addresses used by the parser
-  std::vector<bool> cell_mask; // masks whether data is valid
-  std::vector<std::string> cell_keys;  // data member names
-};
+namespace Dune::Copasi::DiffusionReaction {
 
 // this class holds a data-structure for each equation that contains functors to be evaluated.
 // Additionally, it contains the values with respect these functors may be evaluated if they are
@@ -380,6 +357,26 @@ public:
     return PDELab::containerEntry(_nodes, make_path(tree)).gradient;
   }
 
+  void forEachValue(Codim<0>,
+                    const std::function<void(std::string_view,
+                                             const FieldVector<double, 1>&,
+                                             const FieldVector<double, dim>&)>& apply) const override
+  {
+    PDELab::forEach(nodes(), [&](auto& compartments) {
+      for (auto& compartment_fncs : compartments)
+        for (auto& component_fncs : compartment_fncs)
+          apply(component_fncs.name, component_fncs.value, component_fncs.gradient);
+    });
+  }
+
+  void forEachValue(Codim<1>,
+                            const std::function<void(std::string_view,
+                                                     const FieldVector<double, 1>&,
+                                                     const FieldVector<double, dim - 1>&)>&) const override
+  {
+    throw format_exception(NotImplemented{}, "...");
+  }
+
   void clear()
   {
     std::fill(begin(_values), end(_values), 0.);
@@ -649,6 +646,6 @@ private:
   }
 };
 
-} // namespace Dune::Copasi
+} // namespace Dune::Copasi::DiffusionReaction
 
 #endif // DUNE_COPASI_MODEL_LOCAL_EQUATIONS_LOCAL_EQUATIONS_HH

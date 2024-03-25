@@ -1,8 +1,8 @@
 #ifndef DUNE_COPASI_MODEL_LOCAL_VALUES_PARSED_FUNCTOR_FACTORY_IMPL_HH
 #define DUNE_COPASI_MODEL_LOCAL_VALUES_PARSED_FUNCTOR_FACTORY_IMPL_HH
 
-#include <dune/copasi/model/local_equations/functor_factory_parser.hh>
-#include <dune/copasi/model/local_equations/local_equations.hh>
+#include <dune/copasi/model/functor_factory_parser.hh>
+#include <dune/copasi/model/local_domain.hh>
 #include <dune/copasi/common/axis_names.hh>
 
 #include <regex>
@@ -156,22 +156,17 @@ FunctorFactoryParser<dim>::parse_scalar_expression(const ParameterTree& config,
       parser_ptr->define_variable(local_values.cell_keys[j], &local_values.cell_values[j]);
     }
 
-    LocalEquations<dim> const* d = dynamic_cast<LocalEquations<dim> const*>(&local_values);
-    if (d != nullptr)
-      PDELab::forEach(d->nodes(), [&](auto& compartments) {
-        for (auto& compartment_fncs : compartments)
-          for (auto& component_fncs : compartment_fncs) {
-            parser_ptr->define_variable(component_fncs.name, &(component_fncs.value[0]));
-            for (std::size_t i = 0; i != axis_names.size(); ++i) {
-              auto grad_arg = fmt::format("grad_{}_{}", component_fncs.name, axis_names[i]);
-              if (i < dim) {
-                parser_ptr->define_variable(grad_arg, &(component_fncs.gradient)[i]);
-              } else {
-                parser_ptr->define_constant(grad_arg, 0.);
-              }
-            }
-          }
-      });
+    local_values.forEachValue(Codim<0>{}, [&](auto name, const auto& value, const auto& gradient){
+      parser_ptr->define_variable(std::string{name}, &(value[0]));
+      for (std::size_t i = 0; i != axis_names.size(); ++i) {
+        auto grad_arg = fmt::format("grad_{}_{}", name, axis_names[i]);
+        if (i < dim) {
+          parser_ptr->define_variable(grad_arg, &(gradient)[i]);
+        } else {
+          parser_ptr->define_constant(grad_arg, 0.);
+        }
+      }
+    });
 
     parser_ptr->set_expression(expression);
     if (_parser_context)

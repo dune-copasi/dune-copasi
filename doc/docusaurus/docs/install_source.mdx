@@ -184,16 +184,17 @@ and the [build system documentation](https://dune-project.org/sphinx/core-2.7/).
 <details>
 <summary>CMake Options</summary>
 
-| Software | Version/Branch |
+| `Cache:Type=Default` | Description |
 | ---------| -------------- |
-| `DUNE_COPASI_WITH_EXECUTABLE:BOOL=ON`                   | Build dune-copasi executable |
-| `DUNE_COPASI_CONCURRENT_ASSEMBLY:BOOL=ON`               | Build with concurrent assembly. Turn off to reduce memory consumption |
-| `DUNE_COPASI_PRECOMPILED_MODE:BOOL=ON`                  | Pre-build a fixed set of class instances |
-| `DUNE_COPASI_GRID_DIMENSIONS:STRING="2"`                | Semi-colon separated list of dimensions to build |
-| `DUNE_COPASI_DISABLE_FETCH_PACKAGE_ExprTk:BOOL=OFF`     | Disable automatic fetch of ExprTk package |
-| `DUNE_COPASI_DISABLE_FETCH_PACKAGE_parafields:BOOL=OFF`  | Disable automatic fetch of parafields-core package |
-| `DUNE_PDELAB_ENABLE_TRACING:BOOL=ON`                    | Enable automatic fetch of perfetto |
-| `DUNE_COPASI_DISABLE_FMT_STYLE:BOOL=OFF`                | Disable \{fmt\} styling |
+| `DUNE_COPASI_WITH_EXECUTABLE:BOOL=ON`                         | Build dune-copasi executable |
+| `DUNE_COPASI_CONCURRENT_ASSEMBLY:BOOL=ON`                     | Build with concurrent assembly. Turn off to reduce memory consumption |
+| `DUNE_COPASI_PRECOMPILED_MODE:BOOL=ON`                        | Pre-build a fixed set of class instances |
+| `DUNE_COPASI_GRID_DIMENSIONS:STRING="2"`                      | Semi-colon separated list of dimensions to build |
+| `DUNE_COPASI_${dim}D_DFFUSION_REACTION_FEM_ORDERS:STRING="1"` | Semi-colon separated list of finite element order to compile for dimension `${dim}`|
+| `DUNE_COPASI_DISABLE_FETCH_PACKAGE_ExprTk:BOOL=OFF`           | Disable automatic fetch of ExprTk package |
+| `DUNE_COPASI_DISABLE_FETCH_PACKAGE_parafields:BOOL=OFF`       | Disable automatic fetch of parafields-core package |
+| `DUNE_COPASI_DISABLE_FMT_STYLE:BOOL=OFF`                      | Disable \{fmt\} styling |
+| `DUNE_PDELAB_ENABLE_TRACING:BOOL=ON`                          | Enable automatic fetch of perfetto |
 
 </details>
 

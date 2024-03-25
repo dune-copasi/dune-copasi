@@ -28,7 +28,7 @@ Types of changes
 
 ## [Unreleased] ([git-diff][Unreleased-diff])
 
-_**Note**: This version is a complete re-write of the library based on a custom version of PDELab tailored for this module. Thus, this changelog does not make much sense in comparison with respect to version [1.1.0]. Instead, the following entries are written with respect to the first refactor from [1.1.0]: !83_
+_**Note**: This version is a complete re-write of the library based on a custom version of PDELab tailored for this module. Thus, this changelog does not make much sense in comparison to version [1.1.0]. Instead, the following entries are written with respect to the first refactor from [1.1.0]: !83_
 
 ### Added
  - Hierarchical and dynamic registry of ISTL solvers and preconditioners !156
@@ -61,6 +61,7 @@ _**Note**: This version is a complete re-write of the library based on a custom 
  - Show error when config file does not exist !86
  - ~~Doxygen documentation is now deployed to Netlify !73~~ (reverted on !176)
 ### Changed
+ - Reorganize files and add `DiffusionReaction` namespace !183
  - Use grid leaf view instead of level 0 grid view for grid cell data !177
  - Author email address !181
  - Improve support for Wasm binaries !170 !182

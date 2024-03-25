@@ -1,12 +1,12 @@
 #ifndef DUNE_COPASI_MODEL_DIFFUSION_REACTION_SINGLE_COMPARTMENT_IMPL_HH
 #define DUNE_COPASI_MODEL_DIFFUSION_REACTION_SINGLE_COMPARTMENT_IMPL_HH
 
-#include <dune/copasi/model/diffusion_reaction_sc.hh>
-#include <dune/copasi/model/reduce.hh>
 #include <dune/copasi/model/interpolate.hh>
 #include <dune/copasi/model/make_initial.hh>
-#include <dune/copasi/model/make_diffusion_reaction_step_operator.hh>
-#include <dune/copasi/model/local_equations/functor_factory_parser.hh>
+#include <dune/copasi/model/diffusion_reaction/reduce.hh>
+#include <dune/copasi/model/diffusion_reaction/model_single_compartment.hh>
+#include <dune/copasi/model/diffusion_reaction/make_step_operator.hh>
+#include <dune/copasi/model/functor_factory_parser.hh>
 
 #include <dune/copasi/common/exceptions.hh>
 #include <dune/copasi/common/ostream_to_spdlog.hh>
@@ -30,11 +30,11 @@
 #warning "Including this file in pre-compiled mode may defeat the purpose of pre-compilation"
 #endif
 
-namespace Dune::Copasi {
+namespace Dune::Copasi::DiffusionReaction {
 
 template<class Traits>
 auto
-ModelDiffusionReaction<Traits>::get_entity_set(const Grid& grid, std::size_t subdomain)
+ModelSingleCompartment<Traits>::get_entity_set(const Grid& grid, std::size_t subdomain)
   -> CompartmentEntitySet
 {
   if constexpr (std::same_as<typename Grid::LeafGridView, CompartmentEntitySet>) {
@@ -48,7 +48,7 @@ ModelDiffusionReaction<Traits>::get_entity_set(const Grid& grid, std::size_t sub
 
 template<class Traits>
 void
-ModelDiffusionReaction<Traits>::interpolate(
+ModelSingleCompartment<Traits>::interpolate(
   State& state,
   const std::unordered_map<std::string, GridFunction>& initial) const
 {
@@ -63,7 +63,7 @@ ModelDiffusionReaction<Traits>::interpolate(
 
 template<class Traits>
 auto
-ModelDiffusionReaction<Traits>::make_scalar_field_pre_basis(std::shared_ptr<BoundaryEntityMapper<CompartmentEntitySet>> boundary_mapper,
+ModelSingleCompartment<Traits>::make_scalar_field_pre_basis(std::shared_ptr<BoundaryEntityMapper<CompartmentEntitySet>> boundary_mapper,
                                                             const CompartmentEntitySet& entity_set,
                                                             std::string_view name,
                                                             const ParameterTree& scalar_field_config,
@@ -80,7 +80,7 @@ ModelDiffusionReaction<Traits>::make_scalar_field_pre_basis(std::shared_ptr<Boun
 
 template<class Traits>
 auto
-ModelDiffusionReaction<Traits>::make_compartment_pre_basis(
+ModelSingleCompartment<Traits>::make_compartment_pre_basis(
   const CompartmentEntitySet& entity_set,
   std::string_view compartment_name,
   const std::vector<std::string>& scalar_field_names,
@@ -111,7 +111,7 @@ ModelDiffusionReaction<Traits>::make_compartment_pre_basis(
 
 template<class Traits>
 void
-ModelDiffusionReaction<Traits>::setup_basis(State& state,
+ModelSingleCompartment<Traits>::setup_basis(State& state,
                                             const Grid& grid,
                                             const ParameterTree& config,
                                             std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory)
@@ -140,7 +140,7 @@ ModelDiffusionReaction<Traits>::setup_basis(State& state,
 
 template<class Traits>
 void
-ModelDiffusionReaction<Traits>::setup_coefficient_vector(State& state)
+ModelSingleCompartment<Traits>::setup_coefficient_vector(State& state)
 {
   spdlog::info("Setup coefficient vector");
   using CompartmentBasis = PDELab::Basis<PDELab::EntitySetPartitioner::Identity<CompartmentEntitySet>, CompartmentPreBasis>;
@@ -152,7 +152,7 @@ ModelDiffusionReaction<Traits>::setup_coefficient_vector(State& state)
 
 template<class Traits>
 auto
-ModelDiffusionReaction<Traits>::make_state(const std::shared_ptr<const Grid>& grid,
+ModelSingleCompartment<Traits>::make_state(const std::shared_ptr<const Grid>& grid,
                                            const ParameterTree& config) const
   -> std::unique_ptr<State>
 {
@@ -165,8 +165,8 @@ ModelDiffusionReaction<Traits>::make_state(const std::shared_ptr<const Grid>& gr
 }
 
 template<class Traits>
-typename ModelDiffusionReaction<Traits>::GridFunction
-ModelDiffusionReaction<Traits>::make_compartment_function(const std::shared_ptr<const State>& state,
+typename ModelSingleCompartment<Traits>::GridFunction
+ModelSingleCompartment<Traits>::make_compartment_function(const std::shared_ptr<const State>& state,
                                                           std::string_view name) const
 {
   using CompartmentBasis = PDELab::Basis<PDELab::EntitySetPartitioner::Identity<CompartmentEntitySet>, CompartmentPreBasis>;
@@ -187,7 +187,7 @@ ModelDiffusionReaction<Traits>::make_compartment_function(const std::shared_ptr<
 
 template<class Traits>
 auto
-ModelDiffusionReaction<Traits>::make_initial(const Grid& grid, const ParameterTree& config) const
+ModelSingleCompartment<Traits>::make_initial(const Grid& grid, const ParameterTree& config) const
   -> std::unordered_map<std::string, GridFunction>
 {
   return Dune::Copasi::make_initial<GridFunction>(grid, config, *_functor_factory);
@@ -195,7 +195,7 @@ ModelDiffusionReaction<Traits>::make_initial(const Grid& grid, const ParameterTr
 
 template<class Traits>
 auto
-ModelDiffusionReaction<Traits>::make_step_operator(const State& state,
+ModelSingleCompartment<Traits>::make_step_operator(const State& state,
                                                    const ParameterTree& config) const
   -> std::unique_ptr<PDELab::OneStep<State>>
 {
@@ -208,7 +208,7 @@ ModelDiffusionReaction<Traits>::make_step_operator(const State& state,
 
   const auto& basis = any_cast<const CompartmentBasis&>(state.basis);
 
-  std::shared_ptr one_step = make_diffusion_reaction_step_operator<LocalBasisTraits, Coefficients, Residual, ResidualQuantity, TimeQuantity>(config, basis, 1, _functor_factory, _cell_data);
+  std::shared_ptr one_step = DiffusionReaction::make_step_operator<LocalBasisTraits, Coefficients, Residual, ResidualQuantity, TimeQuantity>(config, basis, 1, _functor_factory, _cell_data);
 
   // type erase the original runge kutta operator
   auto type_erased_one_step = std::make_unique<PDELab::OperatorAdapter<State, State>>(
@@ -234,7 +234,7 @@ ModelDiffusionReaction<Traits>::make_step_operator(const State& state,
 
 template<class Traits>
 auto
-ModelDiffusionReaction<Traits>::reduce(const State& state, const ParameterTree& config) const
+ModelSingleCompartment<Traits>::reduce(const State& state, const ParameterTree& config) const
   -> std::map<std::string, double>
 {
   using CompartmentBasis = PDELab::Basis<PDELab::EntitySetPartitioner::Identity<CompartmentEntitySet>, CompartmentPreBasis>;
@@ -243,12 +243,12 @@ ModelDiffusionReaction<Traits>::reduce(const State& state, const ParameterTree& 
   const auto& basis = any_cast<const CompartmentBasis&>(state.basis);
   const auto& coeff = any_cast<const Coefficients&>(state.coefficients);
 
-  return Dune::Copasi::reduce(basis, coeff, state.time, config, _functor_factory);
+  return Dune::Copasi::DiffusionReaction::reduce(basis, coeff, state.time, config, _functor_factory);
 }
 
 template<class Traits>
 void
-ModelDiffusionReaction<Traits>::write_vtk(const State& state,
+ModelSingleCompartment<Traits>::write_vtk(const State& state,
                                           const std::filesystem::path& path,
                                           bool append) const
 {
@@ -317,6 +317,6 @@ ModelDiffusionReaction<Traits>::write_vtk(const State& state,
   }
 }
 
-} // namespace Dune::Copasi
+} // namespace Dune::Copasi::DiffusionReaction
 
 #endif // DUNE_COPASI_MODEL_DIFFUSION_REACTION_SINGLE_COMPARTMENT_IMPL_HH

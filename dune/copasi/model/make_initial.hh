@@ -3,7 +3,7 @@
 
 #include <dune/copasi/common/exceptions.hh>
 #include <dune/copasi/concepts/grid.hh>
-#include <dune/copasi/model/local_equations/functor_factory.hh>
+#include <dune/copasi/model/functor_factory.hh>
 
 #include <dune/pdelab/common/trace.hh>
 

@@ -1,8 +1,8 @@
-#ifndef DUNE_COPASI_MODEL_REDUCE_HH
-#define DUNE_COPASI_MODEL_REDUCE_HH
+#ifndef DUNE_COPASI_MODEL_DIFFUSION_REACTION_REDUCE_HH
+#define DUNE_COPASI_MODEL_DIFFUSION_REACTION_REDUCE_HH
 
-#include <dune/copasi/model/local_equations/local_equations.hh>
-#include <dune/copasi/model/local_equations/functor_factory_parser.hh>
+#include <dune/copasi/model/diffusion_reaction/local_equations.hh>
+#include <dune/copasi/model/functor_factory_parser.hh>
 #include <dune/copasi/parser/context.hh>
 #include <dune/copasi/finite_element/local_basis_cache.hh>
 #include <dune/copasi/common/exceptions.hh>
@@ -24,8 +24,7 @@
 #include <string>
 #include <map>
 
-namespace Dune::Copasi {
-
+namespace Dune::Copasi::DiffusionReaction {
 
 class ReductionError : public Dune::Exception {};
 
@@ -230,9 +229,8 @@ reduce(const Basis& basis,
   }
 
   return values;
-
 }
 
-} // namespace Dune::Copasi
+} // namespace Dune::Copasi::DiffusionReaction
 
-#endif // DUNE_COPASI_MODEL_REDUCE_HH
+#endif // DUNE_COPASI_MODEL_DIFFUSION_REACTION_REDUCE_HH

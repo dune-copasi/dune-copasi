@@ -1,7 +1,7 @@
 #ifndef DUNE_COPASI_MODEL_MAKE_DIFFUSION_REACTION_STEP_OPERATOR_HH
 #define DUNE_COPASI_MODEL_MAKE_DIFFUSION_REACTION_STEP_OPERATOR_HH
 
-#include <dune/copasi/local_operator/diffusion_reaction/continuous_galerkin.hh>
+#include <dune/copasi/model/diffusion_reaction/local_operator.hh>
 #include <dune/copasi/model/make_step_operator.hh>
 
 #if HAVE_METIS && DUNE_COPASI_CONCURRENT_ASSEMBLY
@@ -16,7 +16,7 @@
 
 #include <memory>
 
-namespace Dune::Copasi {
+namespace Dune::Copasi::DiffusionReaction {
 
 template<class LocalBasisTraits,
          class Coefficients,
@@ -27,11 +27,11 @@ template<class LocalBasisTraits,
          Dune::Concept::GridView CellDataGridView = typename Basis::EntitySet,
          class CellDataType = double>
 [[nodiscard]] inline static std::unique_ptr<PDELab::Operator<Coefficients, Coefficients>>
-make_diffusion_reaction_step_operator(const ParameterTree& config,
-                                      const Basis& basis,
-                                      std::size_t halo,
-                                      std::shared_ptr<const FunctorFactory<Basis::EntitySet::dimension>> functor_factory,
-                                      std::shared_ptr<const CellData<CellDataGridView, CellDataType>> grid_cell_data = nullptr)
+make_step_operator(const ParameterTree& config,
+                   const Basis& basis,
+                   std::size_t halo,
+                   std::shared_ptr<const FunctorFactory<Basis::EntitySet::dimension>> functor_factory,
+                   std::shared_ptr<const CellData<CellDataGridView, CellDataType>> grid_cell_data = nullptr)
 {
 
   std::unique_ptr<PDELab::Operator<Coefficients, Coefficients>> one_step;
@@ -44,16 +44,16 @@ make_diffusion_reaction_step_operator(const ParameterTree& config,
     const auto& scalar_field_cfg = config.sub("scalar_field");
     bool is_linear = config.get("is_linear", false);
     using LocalOperator =
-      LocalOperatorDiffusionReactionCG<OperatorBasis, LocalBasisTraits, CellDataGridView, CellDataType, ExecutionPolicy>;
+      LocalOperator<OperatorBasis, LocalBasisTraits, CellDataGridView, CellDataType, ExecutionPolicy>;
     LocalOperator const stiff_lop(operator_basis,
-                                  LocalOperatorType::Stiffness,
+                                  LocalOperator::Form::Stiffness,
                                   is_linear,
                                   scalar_field_cfg,
                                   functor_factory,
                                   grid_cell_data,
                                   execution_policy);
     LocalOperator const mass_lop(operator_basis,
-                                 LocalOperatorType::Mass,
+                                 LocalOperator::Form::Mass,
                                  is_linear,
                                  scalar_field_cfg,
                                  functor_factory,
@@ -147,6 +147,6 @@ make_diffusion_reaction_step_operator(const ParameterTree& config,
   return one_step;
 }
 
-} // namespace Dune::Copasi
+} // namespace Dune::Copasi::DiffusionReaction
 
 #endif // DUNE_COPASI_MODEL_MAKE_DIFFUSION_REACTION_STEP_OPERATOR_HH

@@ -5,31 +5,31 @@
 
 #include <dune/copasi/common/exceptions.hh>
 #include <dune/copasi/grid/cell_data.hh>
-#include <dune/copasi/model/diffusion_reaction_mc.hh>
-#include <dune/copasi/model/diffusion_reaction_mc_traits.hh>
-#include <dune/copasi/model/diffusion_reaction_sc.hh>
-#include <dune/copasi/model/diffusion_reaction_sc_traits.hh>
+#include <dune/copasi/model/diffusion_reaction/model_multi_compartment.hh>
+#include <dune/copasi/model/diffusion_reaction/model_multi_compartment_traits.hh>
+#include <dune/copasi/model/diffusion_reaction/model_single_compartment.hh>
+#include <dune/copasi/model/diffusion_reaction/model_single_compartment_traits.hh>
 
-#include <dune/copasi/model/local_equations/functor_factory_parser.hh>
+#include <dune/copasi/model/functor_factory_parser.hh>
 
 // comma separated list of fem orders to compile for each dimension
-#ifndef DUNE_COPASI_1D_FEM_ORDERS
-#define DUNE_COPASI_1D_FEM_ORDERS 1
+#ifndef DUNE_COPASI_1D_DFFUSION_REACTION_FEM_ORDERS
+#define DUNE_COPASI_1D_DFFUSION_REACTION_FEM_ORDERS 1
 #endif
 
-#ifndef DUNE_COPASI_2D_FEM_ORDERS
-#define DUNE_COPASI_2D_FEM_ORDERS 1
+#ifndef DUNE_COPASI_2D_DFFUSION_REACTION_FEM_ORDERS
+#define DUNE_COPASI_2D_DFFUSION_REACTION_FEM_ORDERS 1
 #endif
 
-#ifndef DUNE_COPASI_3D_FEM_ORDERS
-#define DUNE_COPASI_3D_FEM_ORDERS 1
+#ifndef DUNE_COPASI_3D_DFFUSION_REACTION_FEM_ORDERS
+#define DUNE_COPASI_3D_DFFUSION_REACTION_FEM_ORDERS 1
 #endif
 
-namespace Dune::Copasi {
+namespace Dune::Copasi::DiffusionReaction {
 
 namespace Impl {
 template<class Model, std::size_t Order, bool SpeciesBlocked>
-using SingleCompartmentTraits = ModelDiffusionPkReactionTraits<typename Model::Grid,
+using SingleCompartmentTraits = ModelSingleCompartmentPkTraits<typename Model::Grid,
                                                                typename Model::GridView,
                                                                Order,
                                                                typename Model::RangeQuatinty,
@@ -37,7 +37,7 @@ using SingleCompartmentTraits = ModelDiffusionPkReactionTraits<typename Model::G
                                                                SpeciesBlocked>;
 
 template<class Model, std::size_t Order, bool SpeciesBlocked, bool CompartmentBlocked>
-using MultiCompartmentTraits = ModelMultiCompartmentDiffusionReactionPkTraits<
+using MultiCompartmentTraits = ModelMultiCompartmentPkTraits<
   SingleCompartmentTraits<Model, Order, SpeciesBlocked>,
   CompartmentBlocked>;
 }
@@ -59,11 +59,11 @@ make_model(
 
   const auto fem_orders = []() {
     if constexpr (Model::Grid::dimensionworld == 1) {
-      return std::index_sequence<DUNE_COPASI_1D_FEM_ORDERS>{};
+      return std::index_sequence<DUNE_COPASI_1D_DFFUSION_REACTION_FEM_ORDERS>{};
     } else if constexpr (Model::Grid::dimensionworld == 2) {
-      return std::index_sequence<DUNE_COPASI_2D_FEM_ORDERS>{};
+      return std::index_sequence<DUNE_COPASI_2D_DFFUSION_REACTION_FEM_ORDERS>{};
     } else if constexpr (Model::Grid::dimensionworld == 3) {
-      return std::index_sequence<DUNE_COPASI_3D_FEM_ORDERS>{};
+      return std::index_sequence<DUNE_COPASI_3D_DFFUSION_REACTION_FEM_ORDERS>{};
     }
     return std::index_sequence<1>{};
   }();
@@ -94,11 +94,11 @@ make_model(
       [&](auto fem_order) {
         if (field_blocked) {
           model = std::make_unique<
-            ModelDiffusionReaction<Impl::SingleCompartmentTraits<Model, fem_order, true>>>(
+            ModelSingleCompartment<Impl::SingleCompartmentTraits<Model, fem_order, true>>>(
             functor_factory, cell_data);
         } else {
           model = std::make_unique<
-            ModelDiffusionReaction<Impl::SingleCompartmentTraits<Model, fem_order, false>>>(
+            ModelSingleCompartment<Impl::SingleCompartmentTraits<Model, fem_order, false>>>(
             functor_factory, cell_data);
         }
       },
@@ -111,18 +111,18 @@ make_model(
       [&](auto fem_order) {
         if (compartments_blocked) {
           if (field_blocked) {
-            model = std::make_unique<ModelMultiCompartmentDiffusionReaction<
+            model = std::make_unique<ModelMultiCompartment<
               Impl::MultiCompartmentTraits<Model, fem_order, true, true>>>(functor_factory, cell_data);
           } else {
-            model = std::make_unique<ModelMultiCompartmentDiffusionReaction<
+            model = std::make_unique<ModelMultiCompartment<
               Impl::MultiCompartmentTraits<Model, fem_order, false, true>>>(functor_factory, cell_data);
           }
         } else {
           if (field_blocked) {
-            model = std::make_unique<ModelMultiCompartmentDiffusionReaction<
+            model = std::make_unique<ModelMultiCompartment<
               Impl::MultiCompartmentTraits<Model, fem_order, true, false>>>(functor_factory, cell_data);
           } else {
-            model = std::make_unique<ModelMultiCompartmentDiffusionReaction<
+            model = std::make_unique<ModelMultiCompartment<
               Impl::MultiCompartmentTraits<Model, fem_order, false, false>>>(functor_factory, cell_data);
           }
         }

@@ -7,7 +7,7 @@
 #include <dune/grid/concepts/grid.hh>
 #include <dune/grid/concepts/gridview.hh>
 
-namespace Dune::Copasi {
+namespace Dune::Copasi::DiffusionReaction {
 
 template<Dune::Concept::Grid G,
          Dune::Concept::GridView ES,
@@ -15,7 +15,7 @@ template<Dune::Concept::Grid G,
          class RQ = double,
          class TQ = double,
          bool ScalarBlocking = false>
-struct ModelDiffusionPkReactionTraits
+struct ModelSingleCompartmentPkTraits
 {
   using Grid = G;
   using CompartmentEntitySet = ES;
@@ -29,6 +29,6 @@ struct ModelDiffusionPkReactionTraits
   using TimeQuantity = TQ;
 };
 
-} // namespace Dune::Copasi
+} // namespace Dune::Copasi::DiffusionReaction
 
 #endif // DUNE_COPASI_MODEL_DIFFUSION_REACTION_SINGLE_COMAPARTMENT_TRAITS_HH

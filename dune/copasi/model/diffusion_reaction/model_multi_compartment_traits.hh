@@ -16,7 +16,7 @@ namespace Dune::Copasi {
 template<class BaseTraits, bool CompartmentBlocking = false>
   requires Concept::MultiDomainGrid<typename BaseTraits::Grid> &&
            Concept::SubDomainGrid<typename BaseTraits::CompartmentEntitySet::Grid>
-struct ModelMultiCompartmentDiffusionReactionPkTraits : public BaseTraits
+struct ModelMultiCompartmentPkTraits : public BaseTraits
 {
   using MultiCompartmentEntitySet = typename BaseTraits::Grid::LeafGridView;
   using MultiCompartmentMergingStrategy = PDELab::Lexicographic<CompartmentBlocking>;

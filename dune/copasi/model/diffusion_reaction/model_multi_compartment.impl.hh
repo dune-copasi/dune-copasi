@@ -3,12 +3,12 @@
 
 #include <dune/copasi/common/ostream_to_spdlog.hh>
 #include <dune/copasi/concepts/grid.hh>
-#include <dune/copasi/model/diffusion_reaction_mc.hh>
-#include <dune/copasi/model/diffusion_reaction_sc.hh>
-#include <dune/copasi/model/reduce.hh>
+#include <dune/copasi/model/diffusion_reaction/model_multi_compartment.hh>
+#include <dune/copasi/model/diffusion_reaction/model_single_compartment.hh>
+#include <dune/copasi/model/diffusion_reaction/reduce.hh>
 #include <dune/copasi/model/interpolate.hh>
 #include <dune/copasi/model/make_initial.hh>
-#include <dune/copasi/model/make_diffusion_reaction_step_operator.hh>
+#include <dune/copasi/model/diffusion_reaction/make_step_operator.hh>
 
 #include <dune/pdelab/basis/backend/istl.hh>
 #include <dune/pdelab/basis/basis.hh>
@@ -27,11 +27,11 @@
 #warning "Including this file in pre-compiled mode may defeat the purpose of pre-compilation"
 #endif
 
-namespace Dune::Copasi {
+namespace Dune::Copasi::DiffusionReaction {
 
 template<class Traits>
 void
-ModelMultiCompartmentDiffusionReaction<Traits>::interpolate(
+ModelMultiCompartment<Traits>::interpolate(
   State& state,
   const std::unordered_map<std::string, GridFunction>& initial) const
 {
@@ -53,7 +53,7 @@ ModelMultiCompartmentDiffusionReaction<Traits>::interpolate(
 
 template<class Traits>
 auto
-ModelMultiCompartmentDiffusionReaction<Traits>::make_multi_compartment_pre_basis(
+ModelMultiCompartment<Traits>::make_multi_compartment_pre_basis(
   const Grid& grid,
   const ParameterTree& config,
   std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory) -> MultiCompartmentPreBasis
@@ -79,7 +79,7 @@ ModelMultiCompartmentDiffusionReaction<Traits>::make_multi_compartment_pre_basis
     CompartmentEntitySet sub_grid_view = grid.subDomain(domain_id).leafGridView();
 
     CompartmentPreBasis compartment_pre_basis =
-      ModelDiffusionReaction<Traits>::make_compartment_pre_basis(
+      ModelSingleCompartment<Traits>::make_compartment_pre_basis(
         sub_grid_view, compartment, components, scalar_fields_config, functor_factory);
     compartment_pre_basis_vec.emplace_back(compartment_pre_basis);
   }
@@ -95,7 +95,7 @@ ModelMultiCompartmentDiffusionReaction<Traits>::make_multi_compartment_pre_basis
 
 template<class Traits>
 void
-ModelMultiCompartmentDiffusionReaction<Traits>::setup_coefficient_vector(State& state)
+ModelMultiCompartment<Traits>::setup_coefficient_vector(State& state)
 {
   using MultiCompartmentBasis =
     PDELab::Basis<PDELab::EntitySetPartitioner::Identity<MultiCompartmentEntitySet>, MultiCompartmentPreBasis, TypeTree::HybridTreePath<>>;
@@ -109,7 +109,7 @@ ModelMultiCompartmentDiffusionReaction<Traits>::setup_coefficient_vector(State& 
 
 template<class Traits>
 auto
-ModelMultiCompartmentDiffusionReaction<Traits>::make_state(const std::shared_ptr<const Grid>& grid,
+ModelMultiCompartment<Traits>::make_state(const std::shared_ptr<const Grid>& grid,
                                                            const ParameterTree& config) const
   -> std::unique_ptr<State>
 {
@@ -124,7 +124,7 @@ ModelMultiCompartmentDiffusionReaction<Traits>::make_state(const std::shared_ptr
 
 template<class Traits>
 auto
-ModelMultiCompartmentDiffusionReaction<Traits>::make_compartment_function(
+ModelMultiCompartment<Traits>::make_compartment_function(
   const std::shared_ptr<const State>& state,
   std::string_view name) const -> GridFunction
 {
@@ -153,7 +153,7 @@ ModelMultiCompartmentDiffusionReaction<Traits>::make_compartment_function(
 
 template<class Traits>
 auto
-ModelMultiCompartmentDiffusionReaction<Traits>::make_initial(const Grid& grid,
+ModelMultiCompartment<Traits>::make_initial(const Grid& grid,
                                                              const ParameterTree& config) const
   -> std::unordered_map<std::string, GridFunction>
 {
@@ -162,7 +162,7 @@ ModelMultiCompartmentDiffusionReaction<Traits>::make_initial(const Grid& grid,
 
 template<class Traits>
 auto
-ModelMultiCompartmentDiffusionReaction<Traits>::reduce(const State& state, const ParameterTree& config) const
+ModelMultiCompartment<Traits>::reduce(const State& state, const ParameterTree& config) const
   -> std::map<std::string, double>
 {
   using MultiCompartmentBasis =
@@ -173,12 +173,12 @@ ModelMultiCompartmentDiffusionReaction<Traits>::reduce(const State& state, const
   const auto& basis = any_cast<const MultiCompartmentBasis&>(state.basis);
   const auto& coeff = any_cast<const Coefficients&>(state.coefficients);
 
-  return Dune::Copasi::reduce(basis, coeff, state.time, config, _functor_factory);
+  return Dune::Copasi::DiffusionReaction::reduce(basis, coeff, state.time, config, _functor_factory);
 }
 
 template<class Traits>
 auto
-ModelMultiCompartmentDiffusionReaction<Traits>::make_step_operator(
+ModelMultiCompartment<Traits>::make_step_operator(
   const State& state,
   const ParameterTree& config) const -> std::unique_ptr<PDELab::OneStep<State>>
 {
@@ -191,7 +191,7 @@ ModelMultiCompartmentDiffusionReaction<Traits>::make_step_operator(
   using LocalBasisTraits = typename ScalarFiniteElementMap::Traits::FiniteElement::Traits::LocalBasisType::Traits;
 
   const auto& basis = any_cast<const MultiCompartmentBasis&>(state.basis);
-  std::shared_ptr one_step = make_diffusion_reaction_step_operator<LocalBasisTraits, Coefficients, Residual, ResidualQuantity, TimeQuantity>(config, basis, 2, _functor_factory, _cell_data);
+  std::shared_ptr one_step = DiffusionReaction::make_step_operator<LocalBasisTraits, Coefficients, Residual, ResidualQuantity, TimeQuantity>(config, basis, 2, _functor_factory, _cell_data);
 
   // type erase the original runge kutta operator
   auto type_erased_one_step = std::make_unique<PDELab::OperatorAdapter<State, State>>(
@@ -217,7 +217,7 @@ ModelMultiCompartmentDiffusionReaction<Traits>::make_step_operator(
 
 template<class Traits>
 void
-ModelMultiCompartmentDiffusionReaction<Traits>::write_vtk(const State& state,
+ModelMultiCompartment<Traits>::write_vtk(const State& state,
                                                       const std::filesystem::path& path,
                                                       bool append) const
 {
@@ -297,6 +297,6 @@ ModelMultiCompartmentDiffusionReaction<Traits>::write_vtk(const State& state,
       "Fake shared pointer from coefficient vector may have been leaked outsie of this function!");
 }
 
-} // namespace Dune::Copasi
+} // namespace Dune::Copasi::DiffusionReaction
 
 #endif // DUNE_COPASI_MODEL_DIFFUSION_REACTION_MULTI_COMPARTMENT_IMPL_HH

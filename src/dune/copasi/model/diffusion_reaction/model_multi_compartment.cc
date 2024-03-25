@@ -6,9 +6,9 @@
 #define DUNE_COPASI_FEM_ORDER 1
 #endif
 
-#include <dune/copasi/model/diffusion_reaction_mc.hh>
-#include <dune/copasi/model/diffusion_reaction_mc_traits.hh>
-#include <dune/copasi/model/diffusion_reaction_sc_traits.hh>
+#include <dune/copasi/model/diffusion_reaction/model_multi_compartment.hh>
+#include <dune/copasi/model/diffusion_reaction/model_multi_compartment_traits.hh>
+#include <dune/copasi/model/diffusion_reaction/model_single_compartment_traits.hh>
 
 #if DUNE_COPASI_GRID_DIMENSION < 2
 #include <dune/grid/yaspgrid.hh>
@@ -22,7 +22,9 @@
 namespace Dune {
 
 #if DUNE_COPASI_GRID_DIMENSION < 2
-using HostGrid = Dune::YaspGrid<DUNE_COPASI_GRID_DIMENSION, Dune::EquidistantOffsetCoordinates<double,DUNE_COPASI_GRID_DIMENSION>>;
+using HostGrid =
+  Dune::YaspGrid<DUNE_COPASI_GRID_DIMENSION,
+                 Dune::EquidistantOffsetCoordinates<double, DUNE_COPASI_GRID_DIMENSION>>;
 #else
 using HostGrid = Dune::UGGrid<DUNE_COPASI_GRID_DIMENSION>;
 #endif
@@ -31,10 +33,10 @@ using MDGTraits = Dune::mdgrid::FewSubDomainsTraits<DUNE_COPASI_GRID_DIMENSION, 
 using MDGrid = Dune::mdgrid::MultiDomainGrid<HostGrid, MDGTraits>;
 using SDGridView = typename MDGrid::SubDomainGrid::LeafGridView;
 
-namespace Copasi {
+namespace Copasi::DiffusionReaction {
 
 template<bool SpeciesBlocked>
-using SingleCompartmentTraits = ModelDiffusionPkReactionTraits<MDGrid,
+using SingleCompartmentTraits = ModelSingleCompartmentPkTraits<MDGrid,
                                                                SDGridView,
                                                                DUNE_COPASI_FEM_ORDER,
                                                                double,
@@ -43,13 +45,12 @@ using SingleCompartmentTraits = ModelDiffusionPkReactionTraits<MDGrid,
 
 template<bool SpeciesBlocked, bool CompartmentBlocked>
 using MultiCompartmentTraits =
-  ModelMultiCompartmentDiffusionReactionPkTraits<SingleCompartmentTraits<SpeciesBlocked>,
-                                                 CompartmentBlocked>;
+  ModelMultiCompartmentPkTraits<SingleCompartmentTraits<SpeciesBlocked>, CompartmentBlocked>;
 
-template class ModelMultiCompartmentDiffusionReaction<MultiCompartmentTraits<true, true>>;
-template class ModelMultiCompartmentDiffusionReaction<MultiCompartmentTraits<false, true>>;
-template class ModelMultiCompartmentDiffusionReaction<MultiCompartmentTraits<true, false>>;
-template class ModelMultiCompartmentDiffusionReaction<MultiCompartmentTraits<false, false>>;
+template class ModelMultiCompartment<MultiCompartmentTraits<true, true>>;
+template class ModelMultiCompartment<MultiCompartmentTraits<false, true>>;
+template class ModelMultiCompartment<MultiCompartmentTraits<true, false>>;
+template class ModelMultiCompartment<MultiCompartmentTraits<false, false>>;
 
-} // namespace Copasi
+} // namespace Copasi::DiffusionReaction
 } // namespace Dune

@@ -8,9 +8,9 @@
 #define DUNE_COPASI_FEM_ORDER 1
 #endif
 
-#include <dune/copasi/model/diffusion_reaction_sc.hh>
-#include <dune/copasi/model/diffusion_reaction_sc_traits.hh>
-#include <dune/copasi/model/local_equations/functor_factory_parser.hh>
+#include <dune/copasi/model/diffusion_reaction/model_single_compartment.hh>
+#include <dune/copasi/model/diffusion_reaction/model_single_compartment_traits.hh>
+#include <dune/copasi/model/functor_factory_parser.hh>
 
 #if DUNE_COPASI_GRID_DIMENSION < 2
 #include <dune/grid/yaspgrid.hh>
@@ -38,31 +38,34 @@ namespace Copasi {
 
 template class FunctorFactoryParser<DUNE_COPASI_GRID_DIMENSION>;
 
-template class ModelDiffusionReaction<ModelDiffusionPkReactionTraits<HostGrid,
+namespace DiffusionReaction {
+
+template class ModelSingleCompartment<ModelSingleCompartmentPkTraits<HostGrid,
                                                                      HostGridView,
                                                                      DUNE_COPASI_FEM_ORDER,
                                                                      double,
                                                                      double,
                                                                      false>>;
-template class ModelDiffusionReaction<ModelDiffusionPkReactionTraits<HostGrid,
+template class ModelSingleCompartment<ModelSingleCompartmentPkTraits<HostGrid,
                                                                      HostGridView,
                                                                      DUNE_COPASI_FEM_ORDER,
                                                                      double,
                                                                      double,
                                                                      true>>;
 
-template class ModelDiffusionReaction<ModelDiffusionPkReactionTraits<MDGrid,
+template class ModelSingleCompartment<ModelSingleCompartmentPkTraits<MDGrid,
                                                                      SDGridView,
                                                                      DUNE_COPASI_FEM_ORDER,
                                                                      double,
                                                                      double,
                                                                      false>>;
-template class ModelDiffusionReaction<ModelDiffusionPkReactionTraits<MDGrid,
+template class ModelSingleCompartment<ModelSingleCompartmentPkTraits<MDGrid,
                                                                      SDGridView,
                                                                      DUNE_COPASI_FEM_ORDER,
                                                                      double,
                                                                      double,
                                                                      true>>;
 
+} // namespace DiffusionReaction
 } // namespace Copasi
 } // namespace Dune

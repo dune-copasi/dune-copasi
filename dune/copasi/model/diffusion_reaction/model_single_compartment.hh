@@ -4,7 +4,7 @@
 // file: diffusion reaction for single compartment models
 
 #include <dune/copasi/model/constraints.hh>
-#include <dune/copasi/model/local_equations/functor_factory.hh>
+#include <dune/copasi/model/functor_factory.hh>
 #include <dune/copasi/model/model.hh>
 #include <dune/copasi/grid/boundary_entity_mapper.hh>
 #include <dune/copasi/grid/cell_data.hh>
@@ -15,10 +15,10 @@
 #include <dune/grid/concepts/grid.hh>
 #include <dune/grid/concepts/gridview.hh>
 
-namespace Dune::Copasi {
+namespace Dune::Copasi::DiffusionReaction {
 
 template<class Traits>
-class ModelDiffusionReaction
+class ModelSingleCompartment
   : public Model<typename Traits::Grid,
                  typename Traits::CompartmentEntitySet,
                  typename Traits::RangeQuatinty,
@@ -45,7 +45,7 @@ public:
 
   using GridFunction = typename Base::GridFunction;
 
-  explicit ModelDiffusionReaction(
+  explicit ModelSingleCompartment(
     std::shared_ptr<const FunctorFactory<Grid::dimensionworld>> functor_factory,
     std::shared_ptr<const CellData<typename Grid::LeafGridView, ScalarQuantity>> cell_data = nullptr)
     : _functor_factory{ std::move(functor_factory) }
@@ -89,10 +89,10 @@ private:
   std::shared_ptr<const CellData<typename Grid::LeafGridView, ScalarQuantity>> _cell_data;
 };
 
-} // namespace Dune::Copasi
+} // namespace Dune::Copasi::DiffusionReaction
 
 #ifndef DUNE_COPASI_PRECOMPILED_MODE
-#include <dune/copasi/model/diffusion_reaction_sc.impl.hh>
+#include <dune/copasi/model/diffusion_reaction/model_single_compartment.impl.hh>
 #endif
 
 #endif // DUNE_COPASI_MODEL_DIFFUSION_REACTION_SINGLE_COMAPARTMENT_HH

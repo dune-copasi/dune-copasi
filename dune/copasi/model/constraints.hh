@@ -2,8 +2,8 @@
 #define DUNE_COPASI_MODEL_CONSTRAINTS_HH
 
 #include <dune/copasi/grid/boundary_entity_mapper.hh>
-#include <dune/copasi/model/local_equations/functor_factory.hh>
-#include <dune/copasi/model/local_equations/local_equations.hh>
+#include <dune/copasi/model/functor_factory.hh>
+#include <dune/copasi/model/local_domain.hh>
 
 #include <dune/pdelab/basis/constraints/container_affine.hh>
 #include <dune/pdelab/common/concurrency/shared_stash.hh>
@@ -18,10 +18,10 @@
 namespace Dune::Copasi {
 
 /**
- * @brief Constraints parser and operator for a leaf basis 
+ * @brief Constraints parser and operator for a leaf basis
  * @warning Expressions with time dependency are not supported: the 'time'
  *          token will be evaluated to NaN
- * 
+ *
  * @tparam GridView The grid view of the basis to constrain
  */
 template<Dune::Concept::GridView GridView>

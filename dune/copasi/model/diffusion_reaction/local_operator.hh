@@ -4,8 +4,8 @@
 #include <dune/copasi/concepts/grid.hh>
 #include <dune/copasi/grid/cell_data.hh>
 #include <dune/copasi/finite_element/local_basis_cache.hh>
-#include <dune/copasi/model/local_equations/functor_factory.hh>
-#include <dune/copasi/model/local_equations/local_equations.hh>
+#include <dune/copasi/model/functor_factory.hh>
+#include <dune/copasi/model/diffusion_reaction/local_equations.hh>
 
 #include <dune/pdelab/common/concurrency/shared_stash.hh>
 #include <dune/pdelab/common/execution.hh>
@@ -20,13 +20,7 @@
 #include <dune/common/fvector.hh>
 #include <dune/common/overloadset.hh>
 
-namespace Dune::Copasi {
-
-enum class LocalOperatorType
-{
-  Stiffness,
-  Mass
-};
+namespace Dune::Copasi::DiffusionReaction {
 
 /**
  * @brief      This class describes a PDELab local operator for diffusion
@@ -44,7 +38,7 @@ template<PDELab::Concept::Basis TestBasis,
          Dune::Concept::GridView CellDataGridView = typename TestBasis::EntitySet,
          class CellDataType = double,
          class ExecutionPolicy = PDELab::Execution::SequencedPolicy>
-class LocalOperatorDiffusionReactionCG
+class LocalOperator
 {
 
   // utility types
@@ -128,6 +122,13 @@ class LocalOperatorDiffusionReactionCG
   }
 
 public:
+
+  enum class Form
+  {
+    Stiffness,
+    Mass
+  };
+
   constexpr static std::true_type localAssembleDoVolume() noexcept { return {}; }
 
   constexpr static auto localAssembleDoSkeleton() noexcept
@@ -164,8 +165,8 @@ public:
    * @param[in]  config          The configuration tree
    * @param[in]  finite_element  The local finite element
    */
-  LocalOperatorDiffusionReactionCG(const PDELab::Concept::Basis auto& test_basis,
-                                   LocalOperatorType lop_type,
+  LocalOperator(const PDELab::Concept::Basis auto& test_basis,
+                                   Form lop_type,
                                    bool is_linear,
                                    const ParameterTree& config,
                                    std::shared_ptr<const FunctorFactory<dim>> functor_factory,
@@ -181,9 +182,9 @@ public:
                      _functor_factory = functor_factory,
                      _grid_cell_data = grid_cell_data]() {
       std::unique_ptr<LocalEquations<dim>> ptr;
-      if (_lop_type == LocalOperatorType::Mass)
+      if (_lop_type == Form::Mass)
         ptr = LocalEquations<dim>::make_mass(_basis.localView(), _config, _functor_factory, _grid_cell_data);
-      else if (_lop_type == LocalOperatorType::Stiffness)
+      else if (_lop_type == Form::Stiffness)
         ptr = LocalEquations<dim>::make_stiffness(_basis.localView(), _config, _functor_factory, _grid_cell_data);
       if (not ptr)
         std::terminate();
@@ -195,9 +196,9 @@ public:
                          _functor_factory = std::move(functor_factory),
                          _grid_cell_data = std::move(grid_cell_data)]() {
       std::unique_ptr<LocalEquations<dim>> ptr;
-      if (_lop_type == LocalOperatorType::Mass)
+      if (_lop_type == Form::Mass)
         ptr = LocalEquations<dim>::make_mass(_basis.localView(), _config, _functor_factory, _grid_cell_data);
-      else if (_lop_type == LocalOperatorType::Stiffness)
+      else if (_lop_type == Form::Stiffness)
         ptr = LocalEquations<dim>::make_stiffness(_basis.localView(), _config, _functor_factory, _grid_cell_data);
       if (not ptr)
         std::terminate();
@@ -1040,7 +1041,7 @@ public:
         if (not geojacinv_opt_o or not geo_o.affine())
           geojacinv_opt_o.emplace(geo_o.jacobianInverse(position_o));
         const auto& geojacinv_o = *geojacinv_opt_o;
- 
+
         // evaluate concentrations at quadrature point (outside part)
         forEachLeafNode(ltrial_out.tree(), [&](const auto& node_out, auto path) {
           const auto& node_in = PDELab::containerEntry(ltrial_in.tree(), path);
