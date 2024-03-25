@@ -27,10 +27,93 @@ Types of changes
  -->
 
 ## [Unreleased] ([git-diff][Unreleased-diff])
+
+_**Note**: This version is a complete re-write of the library based on a custom version of PDELab tailored for this module. Thus, this changelog does not make much sense in comparison with respect to version [1.1.0]. Instead, the following entries are written with respect to the first refactor from [1.1.0]: !83_
+
 ### Added
- - Doxygen documentation is now deployed to Netlify !73
+ - Hierarchical and dynamic registry of ISTL solvers and preconditioners !156
+ - Initial web interface for Wasm executable !170
+ - Deploy NPM packages to GitLab registry !179
+ - Tutorial and test on Cardiac Electrophysiology simulations !157
+ - Grid cell data !175
+ - Push CI artifacts to the GitLab registry !169 !173
+ - Test more complicated cases !158
+ - Job to build Wasm binaries in the CI !150
+ - Math expressions with only numbers as scientific notation don't need a parser !154
+ - Allow underscores in parser function arguments !152
+ - Make multi-threading optional !149
+ - Compile 2D and 3D in GitHub Actions !141
+ - Customization point on grid axis names !139
+ - Diagnostic information on SymEngine compilation failure !134
+ - Test on pattern generation !132
+ - Multi-threaded assembly !98
+ - Allow arbitrary number of functions in ExprTk !148
+ - Codequality check on the CI !123
+ - LLVM visitor for SymEngine !121
+ - Throw meaningful error message when config file is empty !119
+ - Diagnostic information on ExprTk compilation failure !115
+ - Command line help information !107 !120 !138
+ - Interpolation for 1D functions !102
+ - Initial value to reuction operations !100
+ - Code spelling to the CI !88
+ - Helper constraints for function spaces !87
+ - Support libc++ and reduce minimum required standard from C++23 to C++20 !84
+ - Show error when config file does not exist !86
+ - ~~Doxygen documentation is now deployed to Netlify !73~~ (reverted on !176)
 ### Changed
- - Docusaurus is updated to version [`2.0.0-alpha.75`](https://github.com/facebook/docusaurus/blob/master/CHANGELOG.md#200-alpha75-2021-04-30) !72
+ - Use grid leaf view instead of level 0 grid view for grid cell data !177
+ - Author email address !181
+ - Improve support for Wasm binaries !170 !182
+ - Update docusaurus documentation to latest changes !176 !178
+ - Move configuration options to a JSON file and use schema validator on it !174
+ - Use Debian Bookworm in the CI !171
+ - Conditinally test possion config if ExprTk is available !168
+ - Use (faster) integer based multi-domain grid !165
+ - Simplify CMake usage !161 !162 !163
+ - Improve version handler !159
+ - Improve local basis cache to also handle intersections !145
+ - Improve log error on failure !136
+ - How to use constraints !135
+ - Update docusaurus to version [`3.0.0`] !124
+ - Cleanup of the build system files !118
+ - Cleanup the CI installation scripts !110
+ - Make options consistent with respect to file inputs `--*.path=/path/to/file` !109
+ - Use `PDELab::Execution` to express (possible) concurrency !108
+ - Use newer commit on `parafields-core` !105
+ - Improve implementation of muParser and ExprTk parsers !96
+ - Update docusaurus to version [`2.0.0-alpha.75`](https://github.com/facebook/docusaurus/blob/master/CHANGELOG.md#200-alpha75-2021-04-30) !72
+ - First re-write of the library !83
+### Fixed
+ - Boundary constraints were handled incorrectly !167
+ - Coloring option for multi-threading was swapped with micro-locks !166
+ - Remove wrong definition of maximum number of ExpTk functions !130
+ - Wrong definition for SuiteSparse library !144
+ - Missing user in Dockerfile !153 !155
+ - ~~Freeze `dune-grid` dependency !147~~ (reverted by !164)
+ - Use the keyword `no_value` to identify special values in the parsers !140
+ - Inheritance of `parser_context.parser_type` !133
+ - Entries per row estimate for pattern creation !127
+ - Use `NDEBUG` compiler definition on release build !131
+ - Compatibility issue with {fmt} 10.2 !125
+ - Duplicated output on reduction algorithms !117
+ - Testing in the CI !114
+ - Correct construction on parser contexts !116
+ - Compatibility with XCode and Msys !111
+ - Consistent use of `struct` across different headers !104
+ - Unused function keywords on SymEngine where throwing unnecessary errors !101
+ - Deprecation warning on SVG writer !97
+ - Compile final executable with different parsers !95
+ - CMake problems on target installation !94
+ - Support for {fmt} >= 9.0.0 !90 !91 !93 !129
+ - Docker image now uses `dune-copas` executable instead of `dune-copasi-[sd|md]` !91
+ - CI jobs now passes since the re-write !89
+ - Solver on linear problems was wrongly reused !85
+### Removed
+ - Dependency on `dune-testtools` !122
+ - Inherited `parafield-core` tests !112
+ - Fallback for `std::filesystem` !94
+###  Security
+ - Update `follow-redirects` in web documentation !126
 
 ## [1.1.0] ([git-diff][1.1.0-diff]) - 2021-04-29
 ### Added
