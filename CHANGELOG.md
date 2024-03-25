@@ -31,6 +31,7 @@ Types of changes
 _**Note**: This version is a complete re-write of the library based on a custom version of PDELab tailored for this module. Thus, this changelog does not make much sense in comparison to version [1.1.0]. Instead, the following entries are written with respect to the first refactor from [1.1.0]: !83_
 
 ### Added
+ - Docusaurus now upgrades latest `canary` wasm binary automatically !186
  - Hierarchical ISTL solvers and preconditioners in a dynamic registry !156
  - Initial web interface for Wasm executable !170
  - Deploy NPM packages to GitLab registry !179

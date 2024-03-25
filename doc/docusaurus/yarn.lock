@@ -3775,9 +3775,9 @@ dot-prop@^6.0.1:
     is-obj "^2.0.0"
 
 "dune-copasi-wasm-git@npm:@copasi/dune-copasi-wasm@canary":
-  version "2.0.0-git440d0f73"
-  resolved "https://gitlab.dune-project.org/api/v4/projects/819/packages/npm/@copasi/dune-copasi-wasm/-/@copasi/dune-copasi-wasm-2.0.0-git440d0f73.tgz#4b878e08d8d6d576de36516d4d3f99e97592473f"
-  integrity sha1-S4eOCNjW1XbeNlFtTT+Z6XWSRz8=
+  version "2.0.0-git0969adf1"
+  resolved "https://gitlab.dune-project.org/api/v4/projects/819/packages/npm/@copasi/dune-copasi-wasm/-/@copasi/dune-copasi-wasm-2.0.0-git0969adf1.tgz#a5ba7dc78f936d6e05ff96bc61820be43a57df97"
+  integrity sha1-pbp9x4+TbW4F/5a8YYIL5DpX35c=
 
 "dune-copasi-wasm-local@file:../../npm":
   version "2.0.0-git"

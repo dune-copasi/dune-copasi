@@ -12,7 +12,11 @@ CMAKE=${PWD}/cmake-3.20.2-linux-x86_64/bin/cmake
 git lfs install
 git lfs pull
 
+# install dependencies from yarn lock
 yarn install
+
+# upgrade dune-copasi-wasm to latest uploaded version
+yarn upgrade dune-copasi-wasm-git
 
 BRANCH=$(cat ../../.git/HEAD | awk -F '/' '{print $NF}')
 echo "Branch: ${BRANCH}"
