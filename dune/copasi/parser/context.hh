@@ -36,10 +36,10 @@ private:
 
   ParserType _default_context_parser;
   std::unordered_map<std::string, double> _constants;
-  std::unordered_map<std::string, typename Parser::Function1D> _functions_1;
-  std::unordered_map<std::string, typename Parser::Function2D> _functions_2;
-  std::unordered_map<std::string, typename Parser::Function3D> _functions_3;
-  std::unordered_map<std::string, typename Parser::Function4D> _functions_4;
+  std::unordered_map<std::string, std::function<typename Parser::Function1D()>> _func_maker_1;
+  std::unordered_map<std::string, std::function<typename Parser::Function2D()>> _func_maker_2;
+  std::unordered_map<std::string, std::function<typename Parser::Function3D()>> _func_maker_3;
+  std::unordered_map<std::string, std::function<typename Parser::Function4D()>> _func_maker_4;
   std::unordered_map<std::string, ParameterTree> _functions_expr;
   std::unordered_map<std::string, std::function<double(std::size_t)>> _cell_data;
 };

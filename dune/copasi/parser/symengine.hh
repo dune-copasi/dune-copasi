@@ -51,11 +51,11 @@ public:
 
   std::vector<std::shared_ptr<std::size_t>> setup_function_symbol(const std::string& symbol);
 
-  void define_function(const std::string& symbol, const Function0D& function) override final;
-  void define_function(const std::string& symbol, const Function1D& function) override final;
-  void define_function(const std::string& symbol, const Function2D& function) override final;
-  void define_function(const std::string& symbol, const Function3D& function) override final;
-  void define_function(const std::string& symbol, const Function4D& function) override final;
+  void define_function(const std::string& symbol, Function0D&& function) override final;
+  void define_function(const std::string& symbol, Function1D&& function) override final;
+  void define_function(const std::string& symbol, Function2D&& function) override final;
+  void define_function(const std::string& symbol, Function3D&& function) override final;
+  void define_function(const std::string& symbol, Function4D&& function) override final;
 
   void compile() override final;
 
@@ -79,7 +79,7 @@ private:
   std::list<SymEngine::LambdaRealDoubleVisitor> _visitors;
 #endif
 
-  std::vector<std::function<void()>> _setup, _callbacks;
+  mutable std::vector<fu2::unique_function<void()>> _setup, _callbacks;
   RangeField _result;
 };
 

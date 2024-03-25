@@ -97,7 +97,7 @@ SymEngineParser::setup_function_symbol(const std::string& symbol)
 }
 
 void
-SymEngineParser::define_function(const std::string& symbol, const Function0D& function)
+SymEngineParser::define_function(const std::string& symbol, Function0D&& function)
 {
   auto args_i = setup_function_symbol(symbol);
   if (args_i.empty())
@@ -105,14 +105,14 @@ SymEngineParser::define_function(const std::string& symbol, const Function0D& fu
   if (size(args_i) != 1)
     throw format_exception(IOError{}, "Function arguments do not match with defined function");
 
-  _callbacks.emplace_back([args_i, this, function = function]() {
+  _callbacks.emplace_back([args_i, this, f = std::move(function)]() {
     // update function return value
-    _input[*args_i[0]] = function();
+    _input[*args_i[0]] = f();
   });
 }
 
 void
-SymEngineParser::define_function(const std::string& symbol, const Function1D& function)
+SymEngineParser::define_function(const std::string& symbol, Function1D&& function)
 {
   auto args_i = setup_function_symbol(symbol);
   if (args_i.empty())
@@ -120,14 +120,14 @@ SymEngineParser::define_function(const std::string& symbol, const Function1D& fu
   if (size(args_i) != 2)
     throw format_exception(IOError{}, "Function arguments do not match with defined function");
 
-  _callbacks.emplace_back([args_i, this, function = function]() {
+  _callbacks.emplace_back([args_i, this, f = std::move(function)]() {
     // update function return value
-    _input[*args_i[0]] = function(_input[*args_i[1]]);
+    _input[*args_i[0]] = f(_input[*args_i[1]]);
   });
 }
 
 void
-SymEngineParser::define_function(const std::string& symbol, const Function2D& function)
+SymEngineParser::define_function(const std::string& symbol, Function2D&& function)
 {
   auto args_i = setup_function_symbol(symbol);
   if (args_i.empty())
@@ -135,14 +135,14 @@ SymEngineParser::define_function(const std::string& symbol, const Function2D& fu
   if (size(args_i) != 3)
     throw format_exception(IOError{}, "Function arguments do not match with defined function");
 
-  _callbacks.emplace_back([args_i, this, function = function]() {
+  _callbacks.emplace_back([args_i, this, f = std::move(function)]() {
     // update function return value
-    _input[*args_i[0]] = function(_input[*args_i[1]], _input[*args_i[2]]);
+    _input[*args_i[0]] = f(_input[*args_i[1]], _input[*args_i[2]]);
   });
 }
 
 void
-SymEngineParser::define_function(const std::string& symbol, const Function3D& function)
+SymEngineParser::define_function(const std::string& symbol, Function3D&& function)
 {
   auto args_i = setup_function_symbol(symbol);
   if (args_i.empty())
@@ -150,14 +150,14 @@ SymEngineParser::define_function(const std::string& symbol, const Function3D& fu
   if (size(args_i) != 4)
     throw format_exception(IOError{}, "Function arguments do not match with defined function");
 
-  _callbacks.emplace_back([args_i, this, function = function]() {
+  _callbacks.emplace_back([args_i, this, f = std::move(function)]() {
     // update function return value
-    _input[*args_i[0]] = function(_input[*args_i[1]], _input[*args_i[2]], _input[*args_i[3]]);
+    _input[*args_i[0]] = f(_input[*args_i[1]], _input[*args_i[2]], _input[*args_i[3]]);
   });
 }
 
 void
-SymEngineParser::define_function(const std::string& symbol, const Function4D& function)
+SymEngineParser::define_function(const std::string& symbol, Function4D&& function)
 {
   auto args_i = setup_function_symbol(symbol);
   if (args_i.empty())
@@ -165,9 +165,9 @@ SymEngineParser::define_function(const std::string& symbol, const Function4D& fu
   if (size(args_i) != 5)
     throw format_exception(IOError{}, "Function arguments do not match with defined function");
 
-  _callbacks.emplace_back([args_i, this, function = function]() {
+  _callbacks.emplace_back([args_i, this, f = std::move(function)]() {
     // update function return value
-    _input[*args_i[0]] = function(_input[*args_i[1]], _input[*args_i[2]], _input[*args_i[3]], _input[*args_i[4]]);
+    _input[*args_i[0]] = f(_input[*args_i[1]], _input[*args_i[2]], _input[*args_i[3]], _input[*args_i[4]]);
   });
 }
 
@@ -183,7 +183,7 @@ SymEngineParser::compile()
     transform(begin(_symbols), end(_symbols), begin(_arguments), SymEngine::symbol);
     _input.resize(size(_symbols));
 
-    for (const auto& setup : _setup)
+    for (auto& setup : _setup)
       setup();
 
     // set-up final visitor
@@ -208,7 +208,7 @@ SymEngineParser::operator()() const noexcept
     _input[i + offset] = *_variables[i];
 
   // evaluate intermedate expressions
-  for (const auto& callback : _callbacks)
+  for (auto& callback : _callbacks)
     callback();
 
   return _result;

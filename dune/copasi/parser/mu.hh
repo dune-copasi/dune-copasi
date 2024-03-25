@@ -29,11 +29,11 @@ public:
   using Function3D = typename Parser::Function3D;
 
   void define_constant(const std::string& symbol, const RangeField& value) final;
-  void define_function(const std::string& symbol, const Function0D& function) final;
-  void define_function(const std::string& symbol, const Function1D& function) final;
-  void define_function(const std::string& symbol, const Function2D& function) final;
-  void define_function(const std::string& symbol, const Function3D& function) final;
-  void define_function(const std::string& symbol, const Function4D& function) final;
+  void define_function(const std::string& symbol, Function0D&& function) final;
+  void define_function(const std::string& symbol, Function1D&& function) final;
+  void define_function(const std::string& symbol, Function2D&& function) final;
+  void define_function(const std::string& symbol, Function3D&& function) final;
+  void define_function(const std::string& symbol, Function4D&& function) final;
 
   void compile() final;
 

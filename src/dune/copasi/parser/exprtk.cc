@@ -56,21 +56,21 @@ namespace Impl {
 template<class F>
 struct ExprTkFunction;
 
-template<template<typename, typename...> class F, class R, class... Args>
-struct ExprTkFunction<F<R(Args...)>>
+template<class R, class... Args>
+struct ExprTkFunction<fu2::unique_function<R(Args...) const>>
   : public exprtk::ifunction<typename ExprTkParser::RangeField>
-  , private F<R(Args...)>
+  , private fu2::unique_function<R(Args...) const>
 {
 
-  ExprTkFunction(std::size_t arg_size, const F<R(Args...)>& f)
+  ExprTkFunction(std::size_t arg_size, fu2::unique_function<R(Args...) const>&& f)
     : exprtk::ifunction<typename ExprTkParser::RangeField>(arg_size)
-    , F<R(Args...)>(f)
+    , fu2::unique_function<R(Args...) const>(std::move(f))
   {
     exprtk::disable_has_side_effects(*this);
   }
 
   inline R operator()(const Args&... args) override {
-    return F<R(Args...)>::operator()(args...);
+    return fu2::unique_function<R(Args...) const>::operator()(args...);
   }
 };
 
@@ -79,7 +79,7 @@ void
 define_function(std::size_t arg_size,
                 auto& raw_data,
                 const std::string& symbol,
-                const FunctionID& function)
+                FunctionID&& function)
 {
   ParserData& data = *static_cast<ParserData*>(raw_data.get());
   // try to allocate functions together for less jumps in memory
@@ -88,7 +88,7 @@ define_function(std::size_t arg_size,
 #else
   auto alloc = std::allocator<ExprTkFunction<FunctionID>>();
 #endif
-  auto ptr = std::allocate_shared<ExprTkFunction<FunctionID>>(alloc, arg_size, function);
+  auto ptr = std::allocate_shared<ExprTkFunction<FunctionID>>(alloc, arg_size, std::forward<FunctionID>(function));
   data.symbol_table.add_function(symbol, *ptr);
   data.functions.emplace_back(std::move(ptr));
 }
@@ -96,33 +96,33 @@ define_function(std::size_t arg_size,
 } // namespace Impl
 
 void
-ExprTkParser::define_function(const std::string& symbol, const Function0D& function)
+ExprTkParser::define_function(const std::string& symbol, Function0D&& function)
 {
-  Impl::define_function(0, _data, symbol, function);
+  Impl::define_function(0, _data, symbol, std::move(function));
 }
 
 void
-ExprTkParser::define_function(const std::string& symbol, const Function1D& function)
+ExprTkParser::define_function(const std::string& symbol, Function1D&& function)
 {
-  Impl::define_function(1, _data, symbol, function);
+  Impl::define_function(1, _data, symbol, std::move(function));
 }
 
 void
-ExprTkParser::define_function(const std::string& symbol, const Function2D& function)
+ExprTkParser::define_function(const std::string& symbol, Function2D&& function)
 {
-  Impl::define_function(2, _data, symbol, function);
+  Impl::define_function(2, _data, symbol, std::move(function));
 }
 
 void
-ExprTkParser::define_function(const std::string& symbol, const Function3D& function)
+ExprTkParser::define_function(const std::string& symbol, Function3D&& function)
 {
-  Impl::define_function(3, _data, symbol, function);
+  Impl::define_function(3, _data, symbol, std::move(function));
 }
 
 void
-ExprTkParser::define_function(const std::string& symbol, const Function4D& function)
+ExprTkParser::define_function(const std::string& symbol, Function4D&& function)
 {
-  Impl::define_function(4, _data, symbol, function);
+  Impl::define_function(4, _data, symbol, std::move(function));
 }
 
 void

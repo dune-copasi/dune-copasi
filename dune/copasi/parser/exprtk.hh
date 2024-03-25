@@ -34,15 +34,15 @@ public:
 
   void define_constant(const std::string& symbol, const RangeField& value) override final;
 
-  void define_function(const std::string& symbol, const Function0D& function) override final;
+  void define_function(const std::string& symbol, Function0D&& function) override final;
 
-  void define_function(const std::string& symbol, const Function1D& function) override final;
+  void define_function(const std::string& symbol, Function1D&& function) override final;
 
-  void define_function(const std::string& symbol, const Function2D& function) override final;
+  void define_function(const std::string& symbol, Function2D&& function) override final;
 
-  void define_function(const std::string& symbol, const Function3D& function) override final;
+  void define_function(const std::string& symbol, Function3D&& function) override final;
 
-  void define_function(const std::string& symbol, const Function4D& function) override final;
+  void define_function(const std::string& symbol, Function4D&& function) override final;
 
   void compile() override final;
 

@@ -62,6 +62,7 @@ _**Note**: This version is a complete re-write of the library based on a custom 
  - Show error when config file does not exist !86
  - ~~Doxygen documentation is now deployed to Netlify !73~~ (reverted on !176)
 ### Changed
+ - Math parsers now can only take move only functions !187
  - Reduce operations now receive one less argument !184
  - Reorganize files and add `DiffusionReaction` namespace !183
  - Use grid leaf view instead of level 0 grid view for grid cell data !177

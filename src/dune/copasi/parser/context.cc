@@ -65,8 +65,9 @@ ParserContext::ParserContext(const ParameterTree& config)
       _functions_expr[sub] = sub_config;
     } else if (type == "tiff") {
       auto tiff = std::make_shared<TIFFGrayscale>(sub_config["path"]);
-      _functions_2[sub] = [tiff](const auto& pos_x, const auto& pos_y) {
-        return std::invoke(*tiff, pos_x, pos_y);
+      _func_maker_2[sub] = [tiff] {
+        return
+          [tiff](const auto& pos_x, const auto& pos_y) { return std::invoke(*tiff, pos_x, pos_y); };
       };
     } else if (type == "interpolation") {
       auto domain = sub_config.template get<std::vector<double>>("domain");
@@ -79,19 +80,20 @@ ParserContext::ParserContext(const ParameterTree& config)
           IOError{},
           "Interpolation range and domain must have at least two points and be the same size");
       }
-      _functions_1[sub] = [_domain = std::move(domain),
-                           _range = std::move(range)](const auto& pos) {
-        auto domain_it = lower_bound(_domain.begin(), _domain.end(), pos);
-        if (domain_it == _domain.begin()) {
-          return _range.front();
-        }
-        if (domain_it == _domain.end()) {
-          return _range.back();
-        }
-        auto dist = std::distance(_domain.begin(), domain_it);
-        return std::lerp(_range[dist - 1],
-                         _range[dist],
-                         (pos - _domain[dist - 1]) / (_domain[dist] - _domain[dist - 1]));
+      _func_maker_1[sub] = [_domain = std::move(domain), _range = std::move(range)] {
+        return [=](const auto& pos) {
+          auto domain_it = lower_bound(_domain.begin(), _domain.end(), pos);
+          if (domain_it == _domain.begin()) {
+            return _range.front();
+          }
+          if (domain_it == _domain.end()) {
+            return _range.back();
+          }
+          auto dist = std::distance(_domain.begin(), domain_it);
+          return std::lerp(_range[dist - 1],
+                           _range[dist],
+                           (pos - _domain[dist - 1]) / (_domain[dist] - _domain[dist - 1]));
+        };
       };
     } else if (type == "random_field") {
 #if __has_include(<parafields/randomfield.hh>)
@@ -126,30 +128,36 @@ ParserContext::ParserContext(const ParameterTree& config)
         }
 
         if constexpr (dim == 1) {
-          _functions_1[sub] = [upper_right, _field = std::move(field)](auto pos_x) {
-            pos_x = std::clamp(0., pos_x, upper_right[0]);
-            FieldVector<double, 1> res;
-            _field->evaluate(FieldVector<double, 1>{ pos_x }, res);
-            return res[0];
+          _func_maker_1[sub] = [upper_right, _field = std::move(field)] {
+            return [=](auto pos_x) {
+              pos_x = std::clamp(0., pos_x, upper_right[0]);
+              FieldVector<double, 1> res;
+              _field->evaluate(FieldVector<double, 1>{ pos_x }, res);
+              return res[0];
+            };
           };
         }
         if constexpr (dim == 2) {
-          _functions_2[sub] = [upper_right, _field = std::move(field)](auto pos_x, auto pos_y) {
-            pos_x = std::clamp(0., pos_x, upper_right[0]);
-            pos_y = std::clamp(0., pos_y, upper_right[1]);
-            FieldVector<double, 1> res;
-            _field->evaluate(FieldVector<double, 2>{ pos_x, pos_y }, res);
-            return res[0];
+          _func_maker_2[sub] = [upper_right, _field = std::move(field)] {
+            return [=](auto pos_x, auto pos_y) {
+              pos_x = std::clamp(0., pos_x, upper_right[0]);
+              pos_y = std::clamp(0., pos_y, upper_right[1]);
+              FieldVector<double, 1> res;
+              _field->evaluate(FieldVector<double, 2>{ pos_x, pos_y }, res);
+              return res[0];
+            };
           };
         }
         if constexpr (dim == 3) {
-          _functions_3[sub] = [upper_right, _field = std::move(field)](auto pos_x, auto pos_y, auto pos_z) {
-            pos_x = std::clamp(0., pos_x, upper_right[0]);
-            pos_y = std::clamp(0., pos_y, upper_right[1]);
-            pos_z = std::clamp(0., pos_z, upper_right[2]);
-            FieldVector<double, 1> res;
-            _field->evaluate(FieldVector<double, 3>{ pos_x, pos_y, pos_z }, res);
-            return res[0];
+          _func_maker_3[sub] = [upper_right, _field = std::move(field)] {
+            return [=](auto pos_x, auto pos_y, auto pos_z) {
+              pos_x = std::clamp(0., pos_x, upper_right[0]);
+              pos_y = std::clamp(0., pos_y, upper_right[1]);
+              pos_z = std::clamp(0., pos_z, upper_right[2]);
+              FieldVector<double, 1> res;
+              _field->evaluate(FieldVector<double, 3>{ pos_x, pos_y, pos_z }, res);
+              return res[0];
+            };
           };
         }
       });
@@ -357,16 +365,16 @@ ParserContext::add_independent_context(Parser& parser) const
     parser.define_constant(name, value);
   }
 
-  for (const auto& [name, func] : _functions_1) {
-    parser.define_function(name, func);
+  for (const auto& [name, maker] : _func_maker_1) {
+    parser.define_function(name, maker());
   }
 
-  for (const auto& [name, func] : _functions_2) {
-    parser.define_function(name, func);
+  for (const auto& [name, maker] : _func_maker_2) {
+    parser.define_function(name, maker());
   }
 
-  for (const auto& [name, func] : _functions_3) {
-    parser.define_function(name, func);
+  for (const auto& [name, maker] : _func_maker_3) {
+    parser.define_function(name, maker());
   }
 }
 
