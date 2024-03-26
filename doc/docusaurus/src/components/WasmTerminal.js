@@ -29,17 +29,26 @@ export default function WasmTerminal({setEditorText, getEditorText}) {
   const home = "/dunecopasi"
   const [cwd, setCwd] = useState(home)
 
-  // setup file system
-  const preRun = (instance) => {
-    instance.FS.mkdir(home)
-    instance.FS.chdir(home)
+  // instanciate a worker
+  var wasmWorker = {}
+  if (typeof Worker !== 'undefined') {
+    wasmWorker = new Worker(new URL("@site/src/components/wasmworker.js", import.meta.url))
   }
 
-  // create wasm instance
-  const [instance, setInstance] = useState(null)
-  useEffect(() => {
-    wasm({preRun}).then(inst => setInstance(inst))
-  }, [])
+  wasmWorker.onmessage = (e) => {
+    console.log(e.data)
+    if ("printText" in e.data) {
+      let elem = document.getElementById(e.data.id)
+      if (elem.innerHTML == "")
+        elem.innerHTML = e.data.printText
+      else
+        elem.innerHTML = elem.innerHTML + "<br />" + e.data.printText
+    }
+    if ("error" in e.data) {
+      alert("There was an unexpected error! See console log.")
+      console.error(e.data.error)
+    }
+  }
 
   // Define commands here
   const commands = {
@@ -64,12 +73,9 @@ export default function WasmTerminal({setEditorText, getEditorText}) {
       if (newpath.endsWith("/") && newpath !== "/")
         newpath = newpath.slice(0, -1)
 
-      // guard against nonexistent paths
-      if (!instance.FS.analyzePath(newpath).exists)
-        return `Error: ${newpath} is not a valid path`
-
+      const id = `dune-copasi-${Date.now()}` 
+      wasmWorker.postMessage({id, cmd: "cd", path})
       setCwd(newpath)
-      instance.FS.chdir(newpath)
     },
     ls: (path) => {
       // guard against multiple paths
@@ -80,11 +86,9 @@ export default function WasmTerminal({setEditorText, getEditorText}) {
       if (path.length === 0)
         path = cwd
 
-      // guard against nonexistent paths
-      if (!instance.FS.analyzePath(path).exists)
-        return `Error: ${path} is not a valid path`
-
-      return instance.FS.readdir(path).filter((dir) => dir !== "." && dir !== "..").join(" ")
+      const id = `dune-copasi-${Date.now()}` 
+      wasmWorker.postMessage({id, cmd: "ls", path})
+      return <span id={id} />
     },
     mkdir: (path) => {
       // guard against multiple paths
@@ -95,16 +99,19 @@ export default function WasmTerminal({setEditorText, getEditorText}) {
       if (!instance.FS.analyzePath(path).parentExists)
         return `Error: parent of ${path} is not a valid path`
 
+      // TODO: use wasmworker
       instance.FS.mkdir(path)
     },
     rmdir: (path) => {
       if (path.split(" ").length > 1 || path.length === 0) 
         return "Error: usage: rmdir DIR"
 
+      // TODO: use wasmworker
       // guard against nonexistent paths
       if (!instance.FS.analyzePath(path).exists)
         return `Error: ${path} is not a valid path`
       
+      // TODO: use wasmworker
       try {
         instance.FS.rmdir(path)
       } catch (error) {
@@ -115,21 +122,25 @@ export default function WasmTerminal({setEditorText, getEditorText}) {
       if (path.split(" ").length > 1 || path.length === 0) 
         return "Error: usage: rm FILE"
 
+      // TODO: use wasmworker
       // guard against nonexistent paths
       if (!instance.FS.analyzePath(path).exists)
         return `Error: ${path} is not a valid path`
       
+      // TODO: use wasmworker
       instance.FS.unlink(path)
     },
     edit: (path) => {
       if (path.split(" ").length > 1 || path.length === 0) 
         return "Error: usage: edit FILE"
 
+      // TODO: use wasmworker
       // guard against nonexistent paths
       if (!instance.FS.analyzePath(path).exists)
         return `Error: ${path} is not a valid path`
 
       try {
+      // TODO: use wasmworker
         setEditorText(instance.FS.readFile(path, {encoding: 'utf8'}))
       } catch (error) {
         return `Error: ${error}, ${error.msg}`
@@ -139,12 +150,20 @@ export default function WasmTerminal({setEditorText, getEditorText}) {
       if (path.split(" ").length > 1 || path.length === 0)
         return "Error: usage: save FILE"
 
+      // TODO: use wasmworker
       // guard against nonexistent paths
       if (!instance.FS.analyzePath(path).parentExists)
         return `Error: parent of ${path} is not a valid path`
 
+      // TODO: use wasmworker
       instance.FS.writeFile(path, getEditorText())
-    }
+    },
+    "dune-copasi": (args) => {
+      // generate a unique id for this dune-copasi call
+      const id = `dune-copasi-${Date.now()}` 
+      // wasmWorker.postMessage({id, args})
+      return <span id={id}></span>
+    },
   }
 
   return (

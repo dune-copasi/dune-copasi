@@ -24,8 +24,43 @@ const print = (text) => {
     postMessage({printText: text})
 }
 
+const home = "/dunecopasi"
+
+// setup file system
+const preRun = (instance) => {
+    instance.FS.mkdir(home)
+    instance.FS.chdir(home)
+}
+
+const instance = await wasm({print,preRun})
+console.log("created wasm")
+
 onmessage = (e) => {
-    const {configText, dataFiles, dataFilesPath} = e.data
+    let path
+    switch (e.data.cmd) {
+        case "cd":
+            path = e.data.path
+            // guard against nonexistent paths
+            if (!instance.FS.analyzePath(path).exists)
+                postMessage({error: `Error: ${path} is not a valid path`})
+            instance.FS.chdir(path)
+            break;
+        case "ls": 
+            path = e.data.path
+            // guard against nonexistent paths
+            if (!instance.FS.analyzePath(path).exists)
+                return `Error: ${path} is not a valid path`
+
+            const text = instance.FS.readdir(path).filter((dir) => dir !== "." && dir !== "..").join(" ")
+            postMessage({printText: text, id: e.data.id})
+            break;
+        default:
+            console.error(`wasmworker: unimplemented cmd: ${e.data.cmd}`)
+    }
+}
+
+/*
+onmessage = (e) => {
     wasm({print}).then(async instance => {
         // create and switch to working directory
         instance.FS.mkdir("/dune-copasi")
@@ -80,3 +115,4 @@ onmessage = (e) => {
         postMessage({error: reason})
     })
 }
+*/
