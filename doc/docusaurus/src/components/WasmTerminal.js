@@ -2,7 +2,20 @@ import { useState, useEffect } from "react";
 import { ReactTerminal, TerminalContextProvider } from "react-terminal";
 import wasm from "dune-copasi-wasm-git"
 
-export default function WasmTerminal() {
+// NOTE: update when command list changes
+const helpMessage = `
+help - print this message
+whoami - print username
+cd [PATH] - change current working directory to home or given path
+ls [PATH] - list current working directory or given path
+mkdir PATH - create directory
+rmdir DIR - remove empty directory
+rm FILE - remove file
+edit FILE - load file into editor
+save FILE - save editor contents to file
+`
+
+export default function WasmTerminal({setEditorText, getEditorText}) {
   const theme = "custom";
   const themes = {
     custom: {
@@ -34,6 +47,7 @@ export default function WasmTerminal() {
     where: () => {
       return instance.FS.cwd()
     },
+    help: () => helpMessage,
     cd: (path) => {
       // guard against multiple paths
       if (path.split(" ").length > 1) 
@@ -66,8 +80,64 @@ export default function WasmTerminal() {
       if (path.length === 0)
         path = cwd
 
+      // guard against nonexistent paths
+      if (!instance.FS.analyzePath(path).exists)
+        return `Error: ${path} is not a valid path`
+
       return instance.FS.readdir(path).filter((dir) => dir !== "." && dir !== "..").join(" ")
     },
+    mkdir: (path) => {
+      // guard against multiple paths
+      if (path.split(" ").length > 1 || path.length === 0) 
+        return "Error: usage: ls <path>"
+
+      // guard against invalid paths
+      if (!instance.FS.analyzePath(path).parentExists)
+        return `Error: parent of ${path} is not a valid path`
+
+      instance.FS.mkdir(path)
+    },
+    rmdir: (path) => {
+      if (path.split(" ").length > 1 || path.length === 0) 
+        return "Error: usage: ls <path>"
+
+      // guard against nonexistent paths
+      if (!instance.FS.analyzePath(path).exists)
+        return `Error: ${path} is not a valid path`
+      
+      try {
+        instance.FS.rmdir(path)
+      } catch (error) {
+        return `Error: ${error}`
+      }
+    },
+    rm: (path) => {
+      if (path.split(" ").length > 1 || path.length === 0) 
+        return "Error: usage: ls <path>"
+
+      // guard against nonexistent paths
+      if (!instance.FS.analyzePath(path).exists)
+        return `Error: ${path} is not a valid path`
+      
+      instance.FS.unlink(path)
+    },
+    edit: (path) => {
+      if (path.split(" ").length > 1 || path.length === 0) 
+        return "Error: usage: ls <path>"
+
+      // guard against nonexistent paths
+      if (!instance.FS.analyzePath(path).exists)
+        return `Error: ${path} is not a valid path`
+
+      try {
+        setEditorText(instance.FS.readFile(path, {encoding: 'utf8'}))
+      } catch (error) {
+        return `Error: ${error}, ${error.msg}`
+      }
+    },
+    save: (path) => {
+      return getEditorText()
+    }
   }
 
   return (

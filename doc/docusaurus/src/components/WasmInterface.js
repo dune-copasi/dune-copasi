@@ -192,6 +192,9 @@ export default function WasmInterface({ examples }) {
             height="30vh"
             language="ini"
         />
-        <WasmTerminal />
+        <WasmTerminal 
+            setEditorText={text => console.log(text)} 
+            getEditorText={() => editorRef.current.getValue()}
+        />
     </>)
 }
