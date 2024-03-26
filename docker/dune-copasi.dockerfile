@@ -51,15 +51,15 @@ RUN export DEBIAN_FRONTEND=noninteractive; \
   && apt-get clean
 
 RUN  wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - \
-  && echo "deb http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-17 main" > /etc/apt/sources.list.d/llvm.list \
+  && echo "deb http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-18 main" > /etc/apt/sources.list.d/llvm.list \
   && export DEBIAN_FRONTEND=noninteractive; \
   apt-get update \
   && apt-get install --no-install-recommends --yes \
-  clang-17 \
-  clang-tidy-17 \
-  && update-alternatives --install /usr/bin/clang clang /usr/bin/clang-17 100 \
-  && update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-17 100 \
-  && update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-17 100 \
+  clang-18 \
+  clang-tidy-18 \
+  && update-alternatives --install /usr/bin/clang clang /usr/bin/clang-18 100 \
+  && update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-18 100 \
+  && update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-18 100 \
   && apt-get clean
 
 RUN python3 -m venv /opt/venv
