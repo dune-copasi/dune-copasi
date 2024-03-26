@@ -1,5 +1,6 @@
 import {useRef} from "react"
 import Editor from '@monaco-editor/react';
+import WasmTerminal from "./WasmTerminal"
 
 function basename(path) {
     return path.split('/').reverse()[0];
@@ -100,7 +101,7 @@ function Config({ setConfigText, setDataFiles, setDataFilesPath, examples }) {
     </>)
 }
 
-export default function WasmInterface({examples}) {
+export function OldWasmInterface({examples}) {
     const terminal = useRef(null)
     var configText = ""
     var dataFiles  = []
@@ -176,4 +177,21 @@ export default function WasmInterface({examples}) {
             </button>
         </form>
     )
+}
+
+export default function WasmInterface({ examples }) {
+    const editorRef = useRef(null)
+
+    const handleEditorDidMount = (editor, monaco) => {
+        editorRef.current = editor
+    }
+
+    return (<>
+        <Editor
+            onMount={handleEditorDidMount}
+            height="30vh"
+            language="ini"
+        />
+        <WasmTerminal />
+    </>)
 }
