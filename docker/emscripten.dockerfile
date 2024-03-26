@@ -59,8 +59,7 @@ RUN git clone --depth 1 --branch 9.1.0 https://github.com/fmtlib/fmt.git
 RUN git clone --depth 1 --branch v1.11.0 https://github.com/gabime/spdlog.git
 
 SHELL ["/bin/bash", "-c"]
-# not working: 3.1.[52-54]
-ENV EMSDK_VERSION=3.1.51
+ENV EMSDK_VERSION=3.1.56
 RUN ./emsdk/emsdk install ${EMSDK_VERSION}
 RUN ./emsdk/emsdk activate ${EMSDK_VERSION}
 ENV EMSDK_QUIET=1
