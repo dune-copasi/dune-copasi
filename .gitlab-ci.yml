@@ -67,14 +67,14 @@ variables:
 .build_rules: &build_rules
   rules:
     - !reference [.deploy_rules, rules]
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes:
-        - src/**/*
-        - dune/**/*
-        - dune-copasi.opts
-        - cmake
-        - CMakeLists.txt
-        - docker/*.dockerfile
+    - changes:
+      - src/**/*
+      - dune/**/*
+      - test/**/*
+      - dune-copasi.opts
+      - cmake
+      - CMakeLists.txt
+      - docker/*.dockerfile
 
 .update_version: &update_version
   before_script:
@@ -306,6 +306,5 @@ deploy:documentation:
   allow_failure: true
   rules:
     - !reference [.deploy_rules, rules]
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes:
-        - doc/**/*
+    - changes:
+      - doc/**/*
