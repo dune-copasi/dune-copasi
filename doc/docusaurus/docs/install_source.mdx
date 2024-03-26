@@ -67,8 +67,8 @@ or because the package does not offer other tagged release.
 | [dune-localfunctions](https://gitlab.dune-project.org/core/dune-localfunctions)             | `master` |
 | [dune-functions](https://gitlab.dune-project.org/staging/dune-functions)                    | `master` |
 | [dune-multidomaingrid](https://gitlab.dune-project.org/extensions/dune-multidomaingrid)     | `master` |
-| [dune-typetree](https://gitlab.dune-project.org/staging/dune-typetree)                       | `master` |
-| [dune-pdelab](https://gitlab.dune-project.org/copasi/dune-pdelab)                           | `feature/dune-assembler/main-multithreaded` |
+| [dune-typetree](https://gitlab.dune-project.org/staging/dune-typetree)                      | `master` |
+| [dune-pdelab](https://gitlab.dune-project.org/pdelab/dune-pdelab)                           | `feature/dune-assembler/main-multithreaded` |
 
 * **automatic**: The requirement is automatically fetched from the internet by CMake.
 See the [CMake configuration options](#cmake-configuration-options) on how to enable/disable this feature.
@@ -252,7 +252,7 @@ export CMAKE_INSTALL_PREFIX=/opt/dune
 cd ~ && rm -r ~/dune-modules
 
 # include dune binaries into your path (if you use bash)
-echo "export PATH=${CMAKE_INSTALL_PREFIX}/bin:$PATH" >> $HOME/.bashrc
+echo "export PATH=${CMAKE_INSTALL_PREFIX}/bin:\$PATH" >> $HOME/.bashrc
 ```
 
 :::tip Active development cycle
