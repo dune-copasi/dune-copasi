@@ -7,5 +7,64 @@ tags:
   - GUI
 ---
 
-:::caution TODO
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+In this form, the DuneCopasi program is embedded within the [Spatial Model Editor](/spatial_model_editor) and
+most of the options will be configured automatically when editing the models. Refer to [its documentation](https://spatial-model-editor.readthedocs.io) to
+learn how to create, edit, and run the models.
+
+### Set Simulation type
+
+To run the Spatial Mode Editor with DuneCopasi, make sure that the simulator is set to **DUNE (FEM)**:
+
+:::info[SME Menu]
+**Tools** > **Set simulation type** > **DUNE (FEM)**
+<hr />
+<div style={{overflow: "hidden"}}>
+<img src="/img/sme_opts/tools.png" alt="sme_tools"/>
+<div style={{float: "right", width:"72%", marginTop:"-4.2%"}}>
+<img src="/img/sme_opts/tools_sim_type.png" alt="sme_tools_sim_type"/>
+</div>
+</div>
+
+
+:::
+
+### Configuration options
+
+In order to customize the options, you need to access the simulation options panel:
+
+:::info[SME Menu]
+**Advanced** > **Simulation options...** > **DUNE**
+<hr />
+<div style={{overflow: "hidden"}}>
+<img src="/img/sme_opts/advanced.png" alt="sme_advanced"/>
+<div style={{float: "right", width:"45%", marginRight: "-5%", marginTop:"-5%"}}>
+<img src="/img/sme_opts/advanced_sim.png" alt="sme_advanced_sim_opts"/>
+</div>
+<div style={{float: "right", marginTop:"-10%"}}>
+<img src="/img/sme_opts/sim_opts_panel.png" alt="sme_sim_opts_panel"/>
+<div>
+</div>
+</div>
+</div>
+:::
+
+
+### Configuration and grid files
+
+There might be cases where the Spatial Model Editor doesn't represent all of the [configuration options](#configuration-options)
+equivalent the to [CLI usage](use_cli) required to run a forward simulation.
+In those cases, you can export the configuration file and its associated grid for [CLI usage](use_cli) for the current open model:
+
+:::info[SME Menu]
+**File** > **Export Dune ini file**  or (<kbd>⌘</kbd>/<kbd>Ctrl</kbd>)+<kbd>D</kbd>
+<hr />
+<div style={{overflow: "hidden"}}>
+<img src="/img/sme_opts/file.png" alt="sme_file"/>
+<div style={{float: "right", width:"55%", marginRight: "19%", marginTop:"-4.8%"}}>
+<img src="/img/sme_opts/file_export.png" alt="sme_file_export"/>
+</div>
+</div>
 :::

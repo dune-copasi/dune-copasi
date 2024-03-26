@@ -15,20 +15,28 @@ export default function ExampleTerminal({ children, prompt, title }) {
   };
 
   const makePrompt = (prompt) => {
-     return (<span style={{ color: themes[theme].themePromptColor,           WebkitUserSelect: "none",
-     KhtmlUserSelect: "none",
-     MozUserSelect: "none",
-     msUserSelect: "none",
-     OUserSelect: "none",
-     userSelect: "none", }}>{prompt}</span>)
-  }
+    return (
+      <span
+        style={{
+          color: themes[theme].themePromptColor,
+          WebkitUserSelect: "none",
+          KhtmlUserSelect: "none",
+          MozUserSelect: "none",
+          msUserSelect: "none",
+          OUserSelect: "none",
+          userSelect: "none",
+        }}
+      >
+        {prompt}
+      </span>
+    );
+  };
 
   const welcomeMessage = (
     <span style={{ whiteSpace: "pre-wrap" }}>
       {children.map((item, index) => (
         <span key={index}>
-          {makePrompt(item.prompt ? item.prompt : prompt)}
-          {" "}
+          {makePrompt(item.prompt ? item.prompt : prompt)}{" "}
           {/* handle input sequences */}
           <span>
             {Array.isArray(item.input) ? (
@@ -125,7 +133,16 @@ export default function ExampleTerminal({ children, prompt, title }) {
                   border: "1px solid rgba(203, 203, 196)",
                 }}
               />
-              <div style={{ height: "10px", textAlign: "center" }}>
+              <div
+                style={{
+                  height: "10px",
+                  textAlign: "center",
+                  fontSize: 14,
+                  opacity: 0.75,
+                  WebkitFontSmoothing: "antialiased",
+                  textRendering: "optimizelegibility",
+                }}
+              >
                 {title && <>{title}</>}
               </div>
             </div>

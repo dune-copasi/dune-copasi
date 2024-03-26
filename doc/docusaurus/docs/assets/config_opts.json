@@ -73,7 +73,7 @@
       "axis_names": {
         ".type": "string-list",
         ".brief": "Names given to the axis of the grid",
-        ".default": "\"x, y, z\"",
+        ".default": "\"x y z\"",
         ".details": [
           "These names are used to identify the cartesian components of several parameters in the",
           "program (e.g. `position_x`, `model.scalar_field.{var}.velocity.z.initial.expression`, etc).",

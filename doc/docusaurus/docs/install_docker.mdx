@@ -16,13 +16,13 @@ One of the easiest form to use our executables for [CLI usage](use_cli), is by d
 [Docker Container](https://www.docker.com/). This way, the software is boundled in a container
 such that no installation other than docker is required.
 
-### Install Docker
+### Install docker
 First, get and install Docker following the
 [docker installation instructions](https://docs.docker.com/get-docker/).
 
-### Get the Container
+### Get the container
 
-To get the container from the [container registry](https://gitlab.dune-project.org/copasi/dune-copasi/container_registry), type:
+To get the container from the [container registry](https://gitlab.dune-project.org/copasi/dune-copasi/container_registry), run the following commands in your terminal:
 
 ```bash
 docker pull registry.dune-project.org/copasi/dune-copasi/dune-copasi:master
@@ -32,12 +32,12 @@ docker tag registry.dune-project.org/copasi/dune-copasi/dune-copasi:master dune-
 The first line downloads the container from the internet while second one creates a tagged alias named `dune-copasi` so that it is easier to recall.
 
 :::tip alias collition
-If you want to work with different docker container versions of DuneCopasi, make sure that your local aliases do not collied!
+If you want to work with different containers from DuneCopasi, make sure that your local aliases do not collide!
 :::
 
 Once this is done, your terminal should look something similar to this:
 
-<ExampleTerminal title="pulling dune-copasi docker image">
+<ExampleTerminal title="Pulling DuneCopasi docker image">
   {[
     {
       input: "docker pull registry.dune-project.org/copasi/dune-copasi/dune-copasi:master",
@@ -67,7 +67,7 @@ Once this is done, your terminal should look something similar to this:
   ]}
 </ExampleTerminal>
 
-You can check that the container is working correctly by running the `--help` command.
+You can check that the container is working correctly by running the `--help` command:
 
 ```bash
 docker run dune-copasi --help
@@ -83,7 +83,7 @@ To be able to easily share data between your operating system and the docker
 container, prepare a working directory with read/write rights to _other users_
 (e.g., a folder named `workdir`):
 
-<ExampleTerminal prompt="~/workdir$" title="creating working directory">
+<ExampleTerminal prompt="~/workdir$" title="Creating a working directory">
   {[
     {
       input: "mkdir -m o+rw workdir",
@@ -95,11 +95,11 @@ container, prepare a working directory with read/write rights to _other users_
   ]}
 </ExampleTerminal>
 
-This working directory will be accessible to your text editor, paraview as
-well as to the `dune-copasi` executable inside the docker container. Now, you can
-move or create your configuration files into it at will:
+This working directory will be accessible to your local text editor, paraview as
+well as to the `dune-copasi` executable within the docker container. Now, you can
+move or create your configuration files into it at will, for example:
 
-<ExampleTerminal prompt="~/workdir$" title="creating a configuration file">
+<ExampleTerminal prompt="~/workdir$" title="Creating a configuration file">
   {[{
       input: [
         "echo \"",
@@ -116,20 +116,21 @@ move or create your configuration files into it at will:
 
 ### Run the program
 
-Now you are ready to use the program through the [Command Line Interface](use_cli) via docker. To do so, call the docker container with a configuration
+At this point, you are ready to use the program through the [Command Line Interface](use_cli) via docker. To do so, call the docker container with a configuration
 file `config.ini`:
 
 ```bash
 docker run -v $PWD dune-copasi --config=config.ini
 ```
 
-This the docker container in the current directory (that's what `-v $PWD` means),
-passes the rest of the arguments to the `dune-copasi` executable that exists the docker container, and
-the results of the computations will be written on current directory.
-In this case, the argument passed to the underlying executable are `--config=config.ini`.
-Finally, when the simulation finishes, the last line of terminal should say whether the simulation was successful, for example:
+This mounts the docker container in the current directory (that's what `-v $PWD` means),
+passes the rest of the arguments to the `dune-copasi` executable that exists within the docker container in the same way as with the [CLI usage](use_cli).
+In this manner, the argument passed to the underlying executable is `--config=config.ini` while the results
+of the computations will be written on current directory `$PWD`.
 
-<ExampleTerminal prompt="~/workdir$" title="how to run dune-copasi">
+When the simulation is finished finished, the last line of terminal should say whether the simulation was successful, for example:
+
+<ExampleTerminal prompt="~/workdir$" title="Running DuneCopasi">
   {[
     {
       input: "docker run -v $PWD dune-copasi --config=config.ini",
@@ -150,12 +151,12 @@ For more information about how to run docker containers, execute `docker run --h
 visit [its online documentation](https://docs.docker.com/engine/reference/run/).
 :::
 
-## Docker Build
+## Docker build
 
 Advanced users, who may want to make modifications the DuneCopasi
-code but do not to install all the dependencies may opt for a [Docker Build](https://docs.docker.com/build/).
-In this case, you must download the DuneCopasi source code, modify it as needed, and build
-a new local docker image:
+code but do not to install all the dependencies may opt for a local [Docker Build](https://docs.docker.com/build/).
+For this, you must download the DuneCopasi source code, modify it as needed, and build
+a new local docker image as follows:
 
 ```bash
 # fetch source code from git
@@ -174,5 +175,5 @@ git checkout latest
 docker build -t dune-copasi .
 ```
 
-This will build all dune dependencies as well as the new modified version of the
-`dune-copasi` executable within the docker container. Running the program works exactly as we discussed [above](##run-the-program).
+This will build all dune dependencies as well as the new modified version of the `dune-copasi` executable within the docker container.
+Running the program works exactly as we discussed [above](#run-the-program).

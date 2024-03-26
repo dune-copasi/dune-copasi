@@ -166,7 +166,6 @@ export default function SMEInstallInfo() {
             <Link
               className={clsx(
                 "button button--outline button--secondary button--lg",
-                styles.getStarted
               )}
               to="https://github.com/spatial-model-editor/spatial-model-editor/releases/latest/download/spatial-model-editor.exe"
             >

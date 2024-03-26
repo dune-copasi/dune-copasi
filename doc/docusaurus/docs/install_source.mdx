@@ -17,12 +17,11 @@ These are the instruction for the development branch of DuneCopasi!
 :::
 
 :::tip docker build
-This mode of installation is recommended only for [API usage](use_api), inmersive developemt,
+This mode of installation is recommended only for [API usage](use_api), immersive developemt,
 or cases where upstream dependencies need to be modified. In other cases, you can easily modify
-the source code, build it, and use it through a [docker installation](install_docker).
+the source code, build it, and use it through a [docker installation](install_docker) without needing
+to install the dependencies.
 :::
-
-{/* ## Manual Installation */}
 
 :::note Operating Systems and Compilers
 The installation from source is known to compile and run under Debian/Ubuntu, macOS, and Windows.
@@ -71,7 +70,8 @@ or because the package does not offer other tagged release.
 | [dune-typetree](https://gitlab.dune-project.org/staging/dune-typetree)                       | `master` |
 | [dune-pdelab](https://gitlab.dune-project.org/copasi/dune-pdelab)                           | `feature/dune-assembler/main-multithreaded` |
 
-* **automatic**: The requirement is automatically fetched from the internet by CMake. See the cmake configuration options on how to disable this feature.
+* **automatic**: The requirement is automatically fetched from the internet by CMake.
+See the [CMake configuration options](#cmake-configuration-options) on how to enable/disable this feature.
 * **optional**: The software package is not mandatory (but recommended) to build DuneCopasi.
 
 :::note MPI and FFTW requirements
@@ -144,14 +144,14 @@ brew install \
 ### Dune Options File
 
 An important part of the installation procedure is to tune the build system
-flags to accommodate the build to your system. This is done via the [dune options
+flags to accommodate the build options to your system: this is done via the [dune options
 file](https://dune-project.org/doc/installation/#storing-flags-in-an-options-file).
 In essence, is just a bash script that sets different flags (mainly the flags
 for CMake `CMAKE_FLAGS`). While the dune project usually leaves this open for the user, we
 provide a `dune-copasi.opts` file with sensible default options for the main
 operating systems.
 
-This file can be called to show the current configuration:
+This file can be executed to show the current configuration:
 
 ```bash
 ./dune-copasi.opts
@@ -179,12 +179,13 @@ There are two forms to add flags to the `dune-copasi.opts` file:
 
 For more information about the possible options and the dune options file, check out
 the dune [installation documentation](https://dune-project.org/doc/installation/)
-and the [build system documentation](https://dune-project.org/sphinx/core-2.7/).
+and its [build system documentation](https://dune-project.org/sphinx/core-2.7/).
 
-<details>
-<summary>CMake Options</summary>
+### CMake configuration options
 
-| `Cache:Type=Default` | Description |
+The following is the list of options to customize the build of DuneCopasi
+
+| `CACHE:TYPE=DEFAULT` | Description |
 | ---------| -------------- |
 | `DUNE_COPASI_WITH_EXECUTABLE:BOOL=ON`                         | Build dune-copasi executable |
 | `DUNE_COPASI_CONCURRENT_ASSEMBLY:BOOL=ON`                     | Build with concurrent assembly. Turn off to reduce memory consumption |
@@ -196,19 +197,23 @@ and the [build system documentation](https://dune-project.org/sphinx/core-2.7/).
 | `DUNE_COPASI_DISABLE_FMT_STYLE:BOOL=OFF`                      | Disable \{fmt\} styling |
 | `DUNE_PDELAB_ENABLE_TRACING:BOOL=ON`                          | Enable automatic fetch of perfetto |
 
-</details>
+:::tip Memory usage
+The building stage is known to take substantial memory during compilation (varies depending on the compiler).
+If your system fails to build due to insufficient memory, try serializing the build process with the `-j {cores}` flag
+and disabling some of the features.
+:::
 
 ### Build and Install
-
-The required DUNE modules (including DuneCopasi) can be obtained via
-internet by using [`git`](https://git-scm.com/). For smooth installation, is
-better place all the dune modules within the same directory.
 
 :::danger DUNE Version incompatibility
 Notice that this procedure assumes that you don't have previous installation of DUNE in
 your system. If that's the case, uninstall DUNE before continuing, otherwise, version
 conflicts may be difficult if not impossible to resolve!
 :::
+
+The required DUNE modules (including DuneCopasi) can be obtained via
+internet by using [`git`](https://git-scm.com/). For smooth installation, is
+better place all the dune modules within the same directory:
 
 ```bash
 # prepare a folder to download and build dune modules
@@ -228,7 +233,7 @@ git clone -b feature/dune-assembler/main-multithreaded https://gitlab.dune-proje
 git clone https://gitlab.dune-project.org/copasi/dune-copasi
 ```
 
-Then, build and install the `DUNE` modules with the `dunecontrol` script:
+Then, build and install the DUNE modules with the `dunecontrol` script from `dune-common`:
 
 ```bash
 # choose an installation path          (this is read by the 'dune-copasi.opts' file)
@@ -237,10 +242,10 @@ export CMAKE_INSTALL_PREFIX=/opt/dune
 # uncomment if you have MPI and FFTW
 # export DUNE_COPASI_DISABLE_FETCH_PACKAGE_parafields=OFF
 
-# configure and build dune modules                                (go grab a coffee)
+# configure and build dune modules                              (go grab a coffee ☕)
 ./dune-common/bin/dunecontrol --opts=dune-copasi/dune-copasi.opts all
 
-# install binaries and libraries                                  (may require sudo)
+# install binaries and libraries                                (may require sudo 🔒)
 ./dune-common/bin/dunecontrol --opts=dune-copasi/dune-copasi.opts bexec make install
 
 # remove source and build files
@@ -251,16 +256,16 @@ echo "export PATH=${CMAKE_INSTALL_PREFIX}/bin:$PATH" >> $HOME/.bashrc
 ```
 
 :::tip Active development cycle
-An active development cycle does not need you to install the package.
-Instead, you can run the program directly in the build directory. In that case, we recommend
+An active development cycle does not need you to install the packages.
+Instead, you can run the program directly in the build directory (i.e., `bin/dune-copasi`). In that case, we recommend
 using `--builddir` option from `dunecontrol` in order to keep all the DUNE build directorties out of the source code.
 :::
 
-For further information on dune module installation process, please check out
+For further information on dune module installation process, check out
 the [dune-project web page](https://www.dune-project.org/doc/installation/).
 
 ### Run the program
 
 Once installed, the program `dune-copasi` will be available on the command line and be ready for [CLI usage](use_cli):
 
-<DuneCopasiHelp prefix="docker run "/>
+<DuneCopasiHelp/>

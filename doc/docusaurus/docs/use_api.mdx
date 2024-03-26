@@ -7,11 +7,7 @@ tags:
   - API
 ---
 
-
-:::caution TODO
-:::
-
-The DuneCopasi C++ objects may be consumed by other programs in order
+DuneCopasi is a C++ program, its main objects may be consumed by another program in order
 to generate custom simulation rules, to couple intermediate steps with other
 tools, or to implement a GUI, etc. In such a case, DuneCopasi must be
 available in development mode and the downstream library is expected to
@@ -32,11 +28,13 @@ target_link_libraries(my_app PRIVATE Dune::Copasi)
 # ...
 ```
 
+:::tip Custom installed directory
 If DuneCopasi was installed on a custom directory
-(e.g. using `CMAKE_INSTALL_PREFIX=/opt/dune`), it may be possible that you need to
-pass such directory to the `CMAKE_PREFIX_PATH` when building the project. This way,
-CMake can find our targets and configuration:
+(e.g. using `CMAKE_INSTALL_PREFIX=/opt/dune`) when [installed from source](install_source), it is likely that you need to
+pass such directory to the `CMAKE_PREFIX_PATH` when building the CMake project. This way,
+CMake can find the CMake configuration file and its targets:
 
 ```bash
 cmake -DCMAKE_PREFIX_PATH:PATH=/opt/dune /path/to/app/source/
 ```
+:::

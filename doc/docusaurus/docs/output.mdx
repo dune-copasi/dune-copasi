@@ -7,6 +7,7 @@ sidebar_label: Output Data
 
 import ConfigOptsJSON from './assets/config_opts.json';
 import Markdown from 'react-markdown';
+import ExamplePatterm from '/img/example_pattern.svg';
 
 export const JoinDetailsArray = (a) => {return Array.isArray(a) ? a.join('\n') : a}
 
@@ -42,6 +43,7 @@ Several output data files in the `dune-copasi` program are possible:
 {JoinDetailsArray(ConfigOptsJSON["model.time_step_operator.linear_solver.layout.writer.svg.path"][".details"])}
 </Markdown>
 
+
 ::::caution output size
 The SVG format is helpful to understand the sparsity pattern and hierarchy of the matrix, however, this format is not particularly efficient to represent matrices. Hence, use this option only with small and medium problem sizes.
 
@@ -53,6 +55,11 @@ inkscape -z -w 20000 -h 20000 matrix.svg -e matrix.png
 ```
 :::
 ::::
+
+:::tip example output
+![example_pattern](/img/example_pattern.svg)
+:::
+
 
 ### Random Field (VTK Format)
 

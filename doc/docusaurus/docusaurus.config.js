@@ -59,7 +59,7 @@ module.exports = {
           to: '/math_model',
         },
         {
-          to: 'tutorials',
+          to: '/tutorials',
           label: 'Tutorials',
           position: 'left',
         },
@@ -131,6 +131,10 @@ module.exports = {
             {
               label: 'Docs',
               to: '/docs/category/docs',
+            },
+            {
+              label: 'Tutorials',
+              to: '/tutorials',
             },
           ],
         },

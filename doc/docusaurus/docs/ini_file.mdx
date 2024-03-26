@@ -8,7 +8,7 @@ sidebar_label: Config File
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-The [INI format](https://en.wikipedia.org/wiki/INI_file) define a set of [configuration options](param_tree) to initialize and run the models.
+The [INI format](https://en.wikipedia.org/wiki/INI_file) defines a set of [configuration options](param_tree) to initialize and run the models.
 
 ## Format
 
@@ -31,7 +31,7 @@ An entry is given by a *key-value pair* and must be entirely contained in one li
 ```ini title="config.ini"
 id = value
 # %highlight-error
-id = val 
+id = val
 # error: repeated key 'id'
 ```
 
@@ -42,7 +42,7 @@ group of parameters by preceding the line with the *group name* between
 brackets and/or by preceding the *key* by the *group name* separated by a dot. Notice that
 the two forms may be combined.
 
-As an example, the three following `ini` files, are equivalent
+As an example, the three following INI files, are equivalent
 <Tabs
   defaultValue="form1"
   values={[
