@@ -136,7 +136,14 @@ export default function WasmTerminal({setEditorText, getEditorText}) {
       }
     },
     save: (path) => {
-      return getEditorText()
+      if (path.split(" ").length > 1 || path.length === 0)
+        return "Error: usage: save FILE"
+
+      // guard against nonexistent paths
+      if (!instance.FS.analyzePath(path).parentExists)
+        return `Error: parent of ${path} is not a valid path`
+
+      instance.FS.writeFile(path, getEditorText())
     }
   }
 

@@ -193,7 +193,7 @@ export default function WasmInterface({ examples }) {
             language="ini"
         />
         <WasmTerminal 
-            setEditorText={text => console.log(text)} 
+            setEditorText={text => editorRef.current.setValue(text)}
             getEditorText={() => editorRef.current.getValue()}
         />
     </>)
