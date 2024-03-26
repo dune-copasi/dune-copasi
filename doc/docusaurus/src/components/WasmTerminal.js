@@ -74,7 +74,7 @@ export default function WasmTerminal({setEditorText, getEditorText}) {
     ls: (path) => {
       // guard against multiple paths
       if (path.split(" ").length > 1) 
-        return "Error: usage: ls <path>"
+        return "Error: usage: ls PATH"
 
       // no argument means cwd
       if (path.length === 0)
@@ -89,7 +89,7 @@ export default function WasmTerminal({setEditorText, getEditorText}) {
     mkdir: (path) => {
       // guard against multiple paths
       if (path.split(" ").length > 1 || path.length === 0) 
-        return "Error: usage: ls <path>"
+        return "Error: usage: mkdir DIR"
 
       // guard against invalid paths
       if (!instance.FS.analyzePath(path).parentExists)
@@ -99,7 +99,7 @@ export default function WasmTerminal({setEditorText, getEditorText}) {
     },
     rmdir: (path) => {
       if (path.split(" ").length > 1 || path.length === 0) 
-        return "Error: usage: ls <path>"
+        return "Error: usage: rmdir DIR"
 
       // guard against nonexistent paths
       if (!instance.FS.analyzePath(path).exists)
@@ -113,7 +113,7 @@ export default function WasmTerminal({setEditorText, getEditorText}) {
     },
     rm: (path) => {
       if (path.split(" ").length > 1 || path.length === 0) 
-        return "Error: usage: ls <path>"
+        return "Error: usage: rm FILE"
 
       // guard against nonexistent paths
       if (!instance.FS.analyzePath(path).exists)
@@ -123,7 +123,7 @@ export default function WasmTerminal({setEditorText, getEditorText}) {
     },
     edit: (path) => {
       if (path.split(" ").length > 1 || path.length === 0) 
-        return "Error: usage: ls <path>"
+        return "Error: usage: edit FILE"
 
       // guard against nonexistent paths
       if (!instance.FS.analyzePath(path).exists)
