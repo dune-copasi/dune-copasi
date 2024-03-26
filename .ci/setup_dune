@@ -68,7 +68,16 @@ SETUP_dune_pdelab_REPO="https://gitlab.dune-project.org/pdelab/dune-pdelab.git"
 SETUP_dune_multidomaingrid_BRANCH="master"
 SETUP_dune_multidomaingrid_REPO="https://gitlab.dune-project.org/extensions/dune-multidomaingrid.git"
 
-echo "Downloading patches"
+SETUP_dune_common_BRANCH="1b79c9e4fe055ffa79e30b5b76989c4ebe30c606"
+SETUP_dune_geometry_BRANCH="d45c81e18d940b4a0f755e64b9f3b67638508ada"
+SETUP_dune_grid_BRANCH="70cd26d527b30ca2961e53b00f113f295f021f22"
+SETUP_dune_uggrid_BRANCH="dec73a978754c6959dc9b8c34278979e9f6ba5bc"
+SETUP_dune_istl_BRANCH="64f5f5184143f7a401b5e68a2ba76d9d3dd22570"
+SETUP_dune_localfunctions_BRANCH="920cc8544401adde20b2fd6603a2050b810a4e31"
+SETUP_dune_functions_BRANCH="664f68c63444ffd31537a57c5b12a6c40ed03da9"
+SETUP_dune_multidomaingrid_BRANCH="7d04696469d62b36239d3d1101d9ac71ff247137"
+SETUP_dune_typetree_BRANCH="962308509de2e67732afe5fe7e9c816ee16eec30"
+SETUP_dune_pdelab_BRANCH="73f4c866b55f02c7b4bd0319bf304c5b01956bf3"
 
 # hardcoded **ordered** dependencies
 MODULES="common geometry uggrid grid typetree localfunctions istl functions multidomaingrid pdelab"
