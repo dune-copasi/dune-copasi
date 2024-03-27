@@ -5,8 +5,6 @@ export default function WasmXterm() {
   return (<BrowserOnly fallback={<div>Loading terminal...</div>}>
     {() => {
       const XTerm = require("xterm-for-react").XTerm
-      const FitAddon = require("xterm-addon-fit").FitAddon
-      const fitAddon = new FitAddon()
 
       const xtermRef = useRef()
       const [input, setInput] = useState("")
@@ -33,14 +31,10 @@ export default function WasmXterm() {
         }
       }
 
-      return <div style={{width: "100%"}}>
-        <XTerm 
-          ref={xtermRef}
-          onData={onData}
-          options={{fontFamily: "Courier New"}}
-          addons={[fitAddon]}
-        />
-      </div>
+      return <XTerm
+        ref={xtermRef}
+        onData={onData}
+      />
     }}
   </BrowserOnly>)
 }
