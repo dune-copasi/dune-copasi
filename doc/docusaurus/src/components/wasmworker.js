@@ -46,6 +46,7 @@ const invalidParent = (path) => {
         return false
     return !isDir(analysis.parentPath)
 }
+const listdir = (path) => instance.FS.readdir(path).filter(path => path !== "." && path !== "..")
 
 const helpMessage = `DuneCopasi shell: limited bash like UNIX shell
 help     - print this message
@@ -126,6 +127,11 @@ const commands = {
 
         if (invalidPath(path) || !isDir(path)) {
             postError(`${path} is not a valid directory`)
+            return
+        }
+
+        if (listdir(path).length !== 0) {
+            postError(`${path} is not empty`)
             return
         }
 
