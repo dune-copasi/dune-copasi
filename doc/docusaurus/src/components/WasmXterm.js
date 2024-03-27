@@ -61,6 +61,8 @@ class WasmXtermImpl extends React.Component {
         this.setState({
           cwd: data.cwd
         })
+      } else if (cmd === "getEditorText") {
+          this.wasmWorker.postMessage({cmd: "response", id: data.id, resolve: this.props.getEditorText()})
       } else {
         console.log(`WasmXterm: ${cmd} not implemented`)
       }

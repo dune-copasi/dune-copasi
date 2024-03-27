@@ -54,6 +54,14 @@ cd [DIR] - change to home or given directory
 ls [DIR] - list current or given directory
 `
 
+var calls = {}
+
+const getEditorText = () => {
+    const id = Date.now()
+    postMessage({cmd: "getEditorText", id})
+    return new Promise((resolve, reject) => {calls[id] = {resolve, reject}})
+}
+
 const commands = {
     help: (args) => print(helpMessage.replace(/\n/g, "\r\n")),
     echo: (args) => print(args.join(" ")),
@@ -62,7 +70,7 @@ const commands = {
     },
     cd: (args) => {
         if (args.length > 1) {
-            postError("usage: cd [PATH]")
+            postError("usage: cd [DIR]")
             return
         }
 
@@ -80,7 +88,7 @@ const commands = {
     }, 
     ls: (args) => {
         if (args.length > 1) {
-            postError("usage: ls [PATH]")
+            postError("usage: ls [DIR]")
             return
         }
 
@@ -137,19 +145,90 @@ const commands = {
 
         instance.FS.rmdir(path)
     },
+    rm: (args) => {
+        if (args.length !== 1) {
+            postError("usage: rmdir [FILE]")
+            return
+        }
+
+        const path = args[0]
+
+        if (invalidPath(path) || !isFile(path)) {
+            postError(`${path} is not a valid file`)
+            return
+        }
+
+        instance.FS.unlink(path)
+    },
+    edit: (args) => {
+        if (args.length !== 1) {
+            postError("usage: edit [FILE]")
+            return
+        }
+
+        const path = args[0]
+
+        if (invalidPath(path) || !isFile(path)) {
+            postError(`${path} is not a valid file`)
+            return
+        }
+
+        const text = instance.FS.readFile(path, {encoding: "utf8"})
+        postMessage({cmd: "edit", text})
+    },
+    save: async (args) => {
+        if (args.length !== 1) {
+            postError("usage: save [FILE]")
+            return
+        }
+
+        const path = args[0]
+
+        if (invalidParent(path)) {
+            postError(`${path} is not a valid file`)
+            return
+        }
+
+        const text = await getEditorText()
+        instance.FS.writeFile(path, text)
+    },
+    cat: (args) => {
+        if (args.length !== 1) {
+            postError("usage: cat [FILE]")
+            return
+        }
+
+        const path = args[0]
+
+        if (invalidPath(path)) {
+            postError(`${path} is not a valid file`)
+            return
+        }
+
+        print(instance.FS.readFile(path, {encoding: "utf8"}))
+    }
 }
 
-onmessage = (e) => {
+onmessage = async (e) => {
     console.log("wasmworker received:", e.data)
+
+    if (e.data.cmd === "response") {
+        if ("resolve" in e.data)
+            calls[e.data.id].resolve(e.data.resolve)
+        if ("reject" in e.data)
+            calls[e.data.id].resolve(e.data.reject)
+        return
+    }
+
     const {cmd, args} = e.data
-    if (cmd in commands)
+    if (cmd in commands) {
         try {
-            commands[cmd](args)
+            await commands[cmd](args)
         } catch (error) {
             postError(`unexpected js error: ${error}`)
             postMessage({cmd: "exit"})
         }
-    else {
+    } else {
         console.error(`wasmworker: ${cmd} not implemented`)
         postError(`unknown command '${cmd}'`)
         print("")
