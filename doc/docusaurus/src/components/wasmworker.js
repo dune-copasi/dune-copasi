@@ -39,12 +39,21 @@ const postError = (error) => {
 }
 
 const invalidPath = (path) => !instance.FS.analyzePath(path).exists
-
 const invalidParent = (path) => !instance.FS.analyzePath(path).parentExists
+const isDir = (path) => instance.FS.analyzePath(path).isDir
+
+const helpMessage = `DuneCopasi shell - limited bash like UNIX shell
+help     - print this message
+cd [DIR] - change to home or given directory
+ls [DIR] - list current or given directory
+
+`
 
 const commands = {
-    echo: (args) => {
-        print(args.join(" "))
+    help: (args) => print(helpMessage),
+    echo: (args) => print(args.join(" ")),
+    pwd: (args) => {
+        print(instance.FS.cwd())
     },
     cd: (args) => {
         if (args.length > 1) {
@@ -54,8 +63,8 @@ const commands = {
 
         const path = args.length === 0 ? home : args[0]
 
-        if (invalidPath(path)) {
-            postError(`${path} is not a valid path`)
+        if (invalidPath(path) || !isDir(path)) {
+            postError(`${path} is not a valid directory`)
             return
         }
 
@@ -71,8 +80,8 @@ const commands = {
 
         const path = args.length === 0 ? "." : args[0]
 
-        if (invalidPath(path)) {
-            postError(`${path} is not a valid path`)
+        if (invalidPath(path) || !isDir(path)) {
+            postError(`${path} is not a valid directory`)
             return
         }
 
