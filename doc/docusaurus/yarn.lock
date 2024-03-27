@@ -1542,7 +1542,7 @@
     "@docusaurus/theme-search-algolia" "3.0.0"
     "@docusaurus/types" "3.0.0"
 
-"@docusaurus/react-loadable@5.5.2":
+"@docusaurus/react-loadable@5.5.2", "react-loadable@npm:@docusaurus/react-loadable@5.5.2":
   version "5.5.2"
   resolved "https://registry.yarnpkg.com/@docusaurus/react-loadable/-/react-loadable-5.5.2.tgz#81aae0db81ecafbdaee3651f12804580868fa6ce"
   integrity sha512-A3dYjdBGuy0IGT+wyLIGIKLRE+sAk1iNk0f1HjNDysO7u8lhL4N3VEm+FAubmJbAztn94F7MxBTPmnixbiyFdQ==
@@ -2506,6 +2506,11 @@
   dependencies:
     "@webassemblyjs/ast" "1.12.1"
     "@xtuc/long" "4.2.2"
+
+"@xterm/xterm@^5.4.0":
+  version "5.4.0"
+  resolved "https://registry.yarnpkg.com/@xterm/xterm/-/xterm-5.4.0.tgz#a35b585750ca492cbf2a4c99472c480d8c122840"
+  integrity sha512-GlyzcZZ7LJjhFevthHtikhiDIl8lnTSgol6eTM4aoSNLcuXu3OEhnbqdCVIjtIil3jjabf3gDtb1S8FGahsuEw==
 
 "@xtuc/ieee754@^1.2.0":
   version "1.2.0"
@@ -7271,14 +7276,6 @@ react-loadable-ssr-addon-v5-slorber@^1.0.1:
   dependencies:
     "@babel/runtime" "^7.10.3"
 
-"react-loadable@npm:@docusaurus/react-loadable@5.5.2":
-  version "5.5.2"
-  resolved "https://registry.yarnpkg.com/@docusaurus/react-loadable/-/react-loadable-5.5.2.tgz#81aae0db81ecafbdaee3651f12804580868fa6ce"
-  integrity sha512-A3dYjdBGuy0IGT+wyLIGIKLRE+sAk1iNk0f1HjNDysO7u8lhL4N3VEm+FAubmJbAztn94F7MxBTPmnixbiyFdQ==
-  dependencies:
-    "@types/react" "*"
-    prop-types "^15.6.2"
-
 react-markdown@^9.0.1:
   version "9.0.1"
   resolved "https://registry.yarnpkg.com/react-markdown/-/react-markdown-9.0.1.tgz#c05ddbff67fd3b3f839f8c648e6fb35d022397d1"
@@ -8830,6 +8827,24 @@ xml-js@^1.6.11:
   integrity sha512-7rVi2KMfwfWFl+GpPg6m80IVMWXLRjO+PxTq7V2CDhoGak0wzYzFgUY2m4XJ47OGdXd8eLE8EmwfAmdjw7lC1g==
   dependencies:
     sax "^1.2.4"
+
+xterm-addon-fit@^0.8.0:
+  version "0.8.0"
+  resolved "https://registry.yarnpkg.com/xterm-addon-fit/-/xterm-addon-fit-0.8.0.tgz#48ca99015385141918f955ca7819e85f3691d35f"
+  integrity sha512-yj3Np7XlvxxhYF/EJ7p3KHaMt6OdwQ+HDu573Vx1lRXsVxOcnVJs51RgjZOouIZOczTsskaS+CpXspK81/DLqw==
+
+xterm-for-react@^1.0.4:
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/xterm-for-react/-/xterm-for-react-1.0.4.tgz#6b35b9b037a0f9d979e7b57bb1d7c6ab7565b380"
+  integrity sha512-DCkLR9ZXeW907YyyaCTk/3Ol34VRHfCnf3MAPOkj3dUNA85sDqHvTXN8efw4g7bx7gWdJQRsEpGt2tJOXKG3EQ==
+  dependencies:
+    prop-types "^15.7.2"
+    xterm "^4.5.0"
+
+xterm@^4.5.0:
+  version "4.19.0"
+  resolved "https://registry.yarnpkg.com/xterm/-/xterm-4.19.0.tgz#c0f9d09cd61de1d658f43ca75f992197add9ef6d"
+  integrity sha512-c3Cp4eOVsYY5Q839dR5IejghRPpxciGmLWWaP9g+ppfMeBChMeLa1DCA+pmX/jyDZ+zxFOmlJL/82qVdayVoGQ==
 
 yallist@^3.0.2:
   version "3.1.1"

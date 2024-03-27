@@ -17,6 +17,7 @@
     "@docusaurus/preset-classic": "3.0.0",
     "@mdx-js/react": "^3.0.0",
     "@monaco-editor/react": "^4.6.0",
+    "@xterm/xterm": "^5.4.0",
     "@zip.js/zip.js": "^2.7.40",
     "clsx": "^1.1.1",
     "dune-copasi-wasm-git": "npm:@copasi/dune-copasi-wasm@canary",
@@ -28,7 +29,9 @@
     "react-markdown": "^9.0.1",
     "react-terminal": "^1.4.4",
     "rehype-katex": "7",
-    "remark-math": "6"
+    "remark-math": "6",
+    "xterm-addon-fit": "^0.8.0",
+    "xterm-for-react": "^1.0.4"
   },
   "engines": {
     "node": ">=18.0"

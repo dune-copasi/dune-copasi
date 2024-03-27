@@ -1,6 +1,6 @@
 import {useRef} from "react"
 import Editor from '@monaco-editor/react';
-import WasmTerminal from "./WasmTerminal"
+import WasmXterm from "./WasmXterm"
 
 function basename(path) {
     return path.split('/').reverse()[0];
@@ -186,15 +186,15 @@ export default function WasmInterface({ examples }) {
         editorRef.current = editor
     }
 
-    return (<>
+    return (<div style={{display: "flex", flexDirection: "column", gap: "1em"}}>
         <Editor
             onMount={handleEditorDidMount}
             height="30vh"
             language="ini"
         />
-        <WasmTerminal 
+        <WasmXterm 
             setEditorText={text => editorRef.current.setValue(text)}
             getEditorText={() => editorRef.current.getValue()}
         />
-    </>)
+    </div>)
 }
