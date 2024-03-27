@@ -193,6 +193,7 @@ export default function WasmInterface({ examples }) {
             language="ini"
         />
         <WasmXterm 
+            version={"v2.0.0-git"}
             setEditorText={text => editorRef.current.setValue(text)}
             getEditorText={() => editorRef.current.getValue()}
         />
