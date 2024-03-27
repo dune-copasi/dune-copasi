@@ -40,7 +40,7 @@ const postError = (error) => {
 
 const invalidPath = (path) => !instance.FS.analyzePath(path).exists
 const invalidParent = (path) => !instance.FS.analyzePath(path).parentExists
-const isDir = (path) => instance.FS.analyzePath(path).isDir
+const isDir = (path) => instance.FS.isDir(instance.FS.stat(path).mode)
 
 const helpMessage = `DuneCopasi shell: limited bash like UNIX shell
 help     - print this message
@@ -62,6 +62,7 @@ const commands = {
 
         const path = args.length === 0 ? home : args[0]
 
+        console.log()
         if (invalidPath(path) || !isDir(path)) {
             postError(`${path} is not a valid directory`)
             return
