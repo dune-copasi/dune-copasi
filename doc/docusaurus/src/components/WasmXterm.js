@@ -78,7 +78,7 @@ class WasmXtermImpl extends React.Component {
       if (key === "Enter") {
         this.newline()
         // NOTE: we do not handle space
-        const [cmd, ...args] = this.state.input.split(" ")
+        const [cmd, ...args] = this.state.input.split(" ").filter(arg => arg !== "")
         this.setState({
           input: "",
           cursorPos: 0,

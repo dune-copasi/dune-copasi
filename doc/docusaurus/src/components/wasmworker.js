@@ -35,12 +35,17 @@ function* recursiveDirWalk(dir, ignore) {
 
 const postError = (error) => {
     postMessage({cmd: "print", msg: `Error: ${error}`})
-    postMessage({cmd: "exit"})
 }
 
 const invalidPath = (path) => !instance.FS.analyzePath(path).exists
-const invalidParent = (path) => !instance.FS.analyzePath(path).parentExists
 const isDir = (path) => instance.FS.isDir(instance.FS.stat(path).mode)
+const isFile = (path) => instance.FS.isFile(instance.FS.stat(path).mode)
+const invalidParent = (path) => {
+    const analysis = instance.FS.analyzePath(path)
+    if (!analysis.parentExists)
+        return false
+    return !isDir(analysis.parentPath)
+}
 
 const helpMessage = `DuneCopasi shell: limited bash like UNIX shell
 help     - print this message
@@ -56,7 +61,7 @@ const commands = {
     },
     cd: (args) => {
         if (args.length > 1) {
-            postError({cmd: "print", msg: "usage: cd [PATH]"})
+            postError("usage: cd [PATH]")
             return
         }
 
@@ -74,7 +79,7 @@ const commands = {
     }, 
     ls: (args) => {
         if (args.length > 1) {
-            postError({cmd: "print", msg: "usage: ls [PATH]"})
+            postError("usage: ls [PATH]")
             return
         }
 
@@ -90,15 +95,60 @@ const commands = {
             msg: instance.FS.readdir(path).filter((dir) => dir !== "." && dir !== "..").join(" ")
         })
     },
+    mkdir: (args) => {
+        if (args.length !== 1) {
+            postError("usage: mkdir [PATH]")
+            return
+        }
+        console.log(args)
+
+        const path = args[0]
+
+        if (invalidParent(path)) {
+            postError(`parent of ${path} is not a valid directory`)
+            return
+        }
+
+        if (instance.FS.analyzePath(path).exists) {
+            postError(`${path} exists already`)
+            return
+        }
+
+        instance.FS.mkdir(path)
+    },
+    rmdir: (args) => {
+        if (args.length !== 1) {
+            postError("usage: rmdir [DIR]")
+            return
+        }
+
+        const path = args[0]
+
+        if (invalidPath(path) || !isDir(path)) {
+            postError(`${path} is not a valid directory`)
+            return
+        }
+
+        instance.FS.rmdir(path)
+    },
 }
 
 onmessage = (e) => {
     console.log("wasmworker received:", e.data)
     const {cmd, args} = e.data
     if (cmd in commands)
-        commands[cmd](args)
-    else
-        postError(`wasmworker: ${cmd} not implemented`)
+        try {
+            commands[cmd](args)
+        } catch (error) {
+            postError(`unexpected js error: ${error}`)
+            postMessage({cmd: "exit"})
+        }
+    else {
+        console.error(`wasmworker: ${cmd} not implemented`)
+        postError(`unknown command '${cmd}'`)
+        print("")
+        commands.help()
+    }
     postMessage({cmd: "exit"})
 }
 
