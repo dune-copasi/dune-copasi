@@ -2,11 +2,25 @@ import {BlobWriter, ZipWriter, BlobReader} from "@zip.js/zip.js"
 import wasm from "dune-copasi-wasm-git"
 // import wasm from "dune-copasi-wasm-local"
 
+const home = "/dunecopasi"
+
+// setup file system
+const preRun = (instance) => {
+    instance.FS.mkdir(home)
+    instance.FS.chdir(home)
+}
+
+const print = (msg) => {
+    postMessage({cmd: "print", msg: msg})
+}
+
+const instance = await wasm({print,preRun})
+
 function basename(path) {
     return path.split('/').reverse()[0];
 }
 
-function* recursiveDirWalk(instance, dir, ignore) {
+function* recursiveDirWalk(dir, ignore) {
     for (const path of instance.FS.readdir(dir)) {
         const mode = instance.FS.stat(dir + "/" + path)["mode"]
         if (path == "." || path == ".." || ignore.includes(basename(path)))
@@ -19,44 +33,64 @@ function* recursiveDirWalk(instance, dir, ignore) {
     }
 }
 
-// pass stdout back to main thread which updates terminal accordingly
-const print = (text) => {
-    postMessage({printText: text})
+const postError = (error) => {
+    postMessage({cmd: "print", msg: `Error: ${error}`})
+    postMessage({cmd: "exit"})
 }
 
-const home = "/dunecopasi"
+const invalidPath = (path) => !instance.FS.analyzePath(path).exists
 
-// setup file system
-const preRun = (instance) => {
-    instance.FS.mkdir(home)
-    instance.FS.chdir(home)
+const invalidParent = (path) => !instance.FS.analyzePath(path).parentExists
+
+const commands = {
+    echo: (args) => {
+        print(args.join(" "))
+    },
+    cd: (args) => {
+        if (args.length > 1) {
+            postError({cmd: "print", msg: "usage: cd [PATH]"})
+            return
+        }
+
+        const path = args.length === 0 ? home : args[0]
+
+        if (invalidPath(path)) {
+            postError(`${path} is not a valid path`)
+            return
+        }
+
+        instance.FS.chdir(path)
+
+        postMessage({cmd: "cwd", cwd: path})
+    }, 
+    ls: (args) => {
+        if (args.length > 1) {
+            postError({cmd: "print", msg: "usage: ls [PATH]"})
+            return
+        }
+
+        const path = args.length === 0 ? "." : args[0]
+
+        if (invalidPath(path)) {
+            postError(`${path} is not a valid path`)
+            return
+        }
+
+        postMessage({
+            cmd: "print",
+            msg: instance.FS.readdir(path).filter((dir) => dir !== "." && dir !== "..").join(" ")
+        })
+    },
 }
-
-const instance = await wasm({print,preRun})
-console.log("created wasm")
 
 onmessage = (e) => {
-    let path
-    switch (e.data.cmd) {
-        case "cd":
-            path = e.data.path
-            // guard against nonexistent paths
-            if (!instance.FS.analyzePath(path).exists)
-                postMessage({error: `Error: ${path} is not a valid path`})
-            instance.FS.chdir(path)
-            break;
-        case "ls": 
-            path = e.data.path
-            // guard against nonexistent paths
-            if (!instance.FS.analyzePath(path).exists)
-                return `Error: ${path} is not a valid path`
-
-            const text = instance.FS.readdir(path).filter((dir) => dir !== "." && dir !== "..").join(" ")
-            postMessage({printText: text, id: e.data.id})
-            break;
-        default:
-            console.error(`wasmworker: unimplemented cmd: ${e.data.cmd}`)
-    }
+    console.log("wasmworker received:", e.data)
+    const {cmd, args} = e.data
+    if (cmd in commands)
+        commands[cmd](args)
+    else
+        postError(`wasmworker: ${cmd} not implemented`)
+    postMessage({cmd: "exit"})
 }
 
 /*
