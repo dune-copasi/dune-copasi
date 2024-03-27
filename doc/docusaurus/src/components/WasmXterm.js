@@ -3,6 +3,7 @@ import React from "react"
 
 const ASCII = {
   ENTER: 13,
+  DELETE: 127,
 }
 
 // NOTE: need this extra class to call functions on mount
@@ -11,8 +12,10 @@ class WasmXtermImpl extends React.Component {
   constructor(props) {
     super(props)
     this.xtermRef = React.createRef()
+    this.home = "/dunecopasi"
     this.state = {
       input: "",
+      cwd: this.home
     }
   }
 
@@ -30,17 +33,34 @@ class WasmXtermImpl extends React.Component {
 
     const onData = (data) => {
       const code = data.charCodeAt(0);
+
+      // handle enter
       if (code === ASCII.ENTER && this.state.input.length > 0) {
         this.xtermRef.current.terminal.write(
           "\r\nYou typed: '" + this.state.input + "'\r\n"
-        );
-        this.xtermRef.current.terminal.write("echo> ");
+        )
+        this.xtermRef.current.terminal.write("echo> ")
         this.setState({ input: "" })
-      } else if (code < 32 || code === 127) { // Disable control Keys such as arrow keys
-        return;
-      } else { // Add general key press characters to the terminal
-        this.xtermRef.current.terminal.write(data);
-        this.setState({ input: this.state.input + data })
+        return
+      } 
+      // ignore other control characters
+      else if (code < 32) { 
+        console.error("WasmXterm: unhandled code", code)
+        return
+      } 
+      // handle delete
+      else if (code === ASCII.DELETE) {
+        if (this.state.input.length > 0) {
+          this.xtermRef.current.terminal.write("\b \b")
+          this.setState({input: this.state.input.slice(0,-1)})
+        }
+      }
+      // handle regular printable char
+      else if (code < 128) {
+        this.xtermRef.current.terminal.write(data)
+        this.setState({
+          input: this.state.input + data,
+        })
       }
     }
 
