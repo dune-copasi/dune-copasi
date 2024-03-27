@@ -30,34 +30,32 @@ class WasmXtermImpl extends React.Component {
   render() {
     // NOTE: cannot import xterm globally as it accesses `document` which fails during SSG
     const XTerm = require("xterm-for-react").XTerm
+    const encoder = new TextEncoder()
 
     const onData = (data) => {
-      const code = data.charCodeAt(0);
+      const bytes = encoder.encode(data)
+      const write = (t) => this.xtermRef.current.terminal.write(t)
 
-      // handle enter
-      if (code === ASCII.ENTER && this.state.input.length > 0) {
-        this.xtermRef.current.terminal.write(
-          "\r\nYou typed: '" + this.state.input + "'\r\n"
-        )
-        this.xtermRef.current.terminal.write("echo> ")
+      if (bytes[0] === ASCII.ENTER && this.state.input.length > 0) {
+        write("\r\nYou typed: '" + this.state.input + "'\r\n")
+        write("echo> ")
         this.setState({ input: "" })
         return
-      } 
+      }
       // ignore other control characters
-      else if (code < 32) { 
+      else if (bytes[0] < 32) {
         console.error("WasmXterm: unhandled code", code)
         return
       } 
-      // handle delete
-      else if (code === ASCII.DELETE) {
+      else if (bytes[0] === ASCII.DELETE) {
         if (this.state.input.length > 0) {
-          this.xtermRef.current.terminal.write("\b \b")
+          write("\b \b")
           this.setState({input: this.state.input.slice(0,-1)})
         }
       }
       // handle regular printable char
-      else if (code < 128) {
-        this.xtermRef.current.terminal.write(data)
+      else if (bytes[0] < 128) {
+        write(data)
         this.setState({
           input: this.state.input + data,
         })
