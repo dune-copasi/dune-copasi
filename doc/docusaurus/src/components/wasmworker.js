@@ -42,15 +42,14 @@ const invalidPath = (path) => !instance.FS.analyzePath(path).exists
 const invalidParent = (path) => !instance.FS.analyzePath(path).parentExists
 const isDir = (path) => instance.FS.analyzePath(path).isDir
 
-const helpMessage = `DuneCopasi shell - limited bash like UNIX shell
+const helpMessage = `DuneCopasi shell: limited bash like UNIX shell
 help     - print this message
 cd [DIR] - change to home or given directory
 ls [DIR] - list current or given directory
-
 `
 
 const commands = {
-    help: (args) => print(helpMessage),
+    help: (args) => print(helpMessage.replace(/\n/g, "\r\n")),
     echo: (args) => print(args.join(" ")),
     pwd: (args) => {
         print(instance.FS.cwd())
