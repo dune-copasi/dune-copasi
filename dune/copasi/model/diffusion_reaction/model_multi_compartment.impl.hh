@@ -3,7 +3,6 @@
 
 #include <dune/copasi/common/ostream_to_spdlog.hh>
 #include <dune/copasi/concepts/grid.hh>
-#include <dune/copasi/model/diffusion_reaction/model_multi_compartment.hh>
 #include <dune/copasi/model/diffusion_reaction/model_single_compartment.hh>
 #include <dune/copasi/model/diffusion_reaction/reduce.hh>
 #include <dune/copasi/model/interpolate.hh>
