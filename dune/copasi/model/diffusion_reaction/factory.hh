@@ -13,16 +13,16 @@
 #include <dune/copasi/model/functor_factory_parser.hh>
 
 // comma separated list of fem orders to compile for each dimension
-#ifndef DUNE_COPASI_1D_DFFUSION_REACTION_FEM_ORDERS
-#define DUNE_COPASI_1D_DFFUSION_REACTION_FEM_ORDERS 1
+#ifndef DUNE_COPASI_1D_DIFFUSION_REACTION_FEM_ORDERS
+#define DUNE_COPASI_1D_DIFFUSION_REACTION_FEM_ORDERS 1
 #endif
 
-#ifndef DUNE_COPASI_2D_DFFUSION_REACTION_FEM_ORDERS
-#define DUNE_COPASI_2D_DFFUSION_REACTION_FEM_ORDERS 1
+#ifndef DUNE_COPASI_2D_DIFFUSION_REACTION_FEM_ORDERS
+#define DUNE_COPASI_2D_DIFFUSION_REACTION_FEM_ORDERS 1
 #endif
 
-#ifndef DUNE_COPASI_3D_DFFUSION_REACTION_FEM_ORDERS
-#define DUNE_COPASI_3D_DFFUSION_REACTION_FEM_ORDERS 1
+#ifndef DUNE_COPASI_3D_DIFFUSION_REACTION_FEM_ORDERS
+#define DUNE_COPASI_3D_DIFFUSION_REACTION_FEM_ORDERS 1
 #endif
 
 namespace Dune::Copasi::DiffusionReaction {
@@ -59,11 +59,11 @@ make_model(
 
   const auto fem_orders = []() {
     if constexpr (Model::Grid::dimensionworld == 1) {
-      return std::index_sequence<DUNE_COPASI_1D_DFFUSION_REACTION_FEM_ORDERS>{};
+      return std::index_sequence<DUNE_COPASI_1D_DIFFUSION_REACTION_FEM_ORDERS>{};
     } else if constexpr (Model::Grid::dimensionworld == 2) {
-      return std::index_sequence<DUNE_COPASI_2D_DFFUSION_REACTION_FEM_ORDERS>{};
+      return std::index_sequence<DUNE_COPASI_2D_DIFFUSION_REACTION_FEM_ORDERS>{};
     } else if constexpr (Model::Grid::dimensionworld == 3) {
-      return std::index_sequence<DUNE_COPASI_3D_DFFUSION_REACTION_FEM_ORDERS>{};
+      return std::index_sequence<DUNE_COPASI_3D_DIFFUSION_REACTION_FEM_ORDERS>{};
     }
     return std::index_sequence<1>{};
   }();
