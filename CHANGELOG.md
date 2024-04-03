@@ -29,7 +29,9 @@ Types of changes
 ## [Unreleased] ([git-diff][Unreleased-diff])
 
 ### Fixed
-* Muparser had invalid assertions !196
+
+* Fix memory errors on Blocked Jacobi !197
+* Remove Muparser invalid assertions !196
 
 ## [2.0.0] ([git-diff][2.0.0-diff]) - 2024-03-26
 
