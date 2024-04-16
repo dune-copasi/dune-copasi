@@ -28,6 +28,9 @@ Types of changes
 
 ## [Unreleased] ([git-diff][Unreleased-diff])
 
+### Fixed
+* Muparser had invalid assertions !196
+
 ## [2.0.0] ([git-diff][2.0.0-diff]) - 2024-03-26
 
 _**Note**: This version is a complete re-write of the library based on a custom version of PDELab tailored for this module. Thus, this changelog does not make much sense in comparison to version [1.1.0]. Instead, the following entries are written with respect to the first refactor from [1.1.0] made on !83._

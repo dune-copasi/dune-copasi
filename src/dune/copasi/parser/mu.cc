@@ -61,7 +61,6 @@ template<std::size_t i>
 typename MuParser::RangeField
 function_wrapper_0d()
 {
-  assert(_function0d[i]);
   return _function0d[i].function();
 }
 
@@ -69,7 +68,6 @@ template<std::size_t i>
 typename MuParser::RangeField
 function_wrapper_1d(typename MuParser::RangeField arg0)
 {
-  assert(_function1d[i]);
   return _function1d[i].function(arg0);
 }
 
@@ -77,7 +75,6 @@ template<std::size_t i>
 typename MuParser::RangeField
 function_wrapper_2d(typename MuParser::RangeField arg0, typename MuParser::RangeField arg1)
 {
-  assert(_function2d[i]);
   return _function2d[i].function(arg0, arg1);
 }
 
@@ -87,7 +84,6 @@ function_wrapper_3d(typename MuParser::RangeField arg0,
                     typename MuParser::RangeField arg1,
                     typename MuParser::RangeField arg2)
 {
-  assert(_function3d[i]);
   return _function3d[i].function(arg0, arg1, arg2);
 }
 
@@ -98,7 +94,6 @@ function_wrapper_4d(typename MuParser::RangeField arg0,
                     typename MuParser::RangeField arg2,
                     typename MuParser::RangeField arg3)
 {
-  assert(_function4d[i]);
   return _function4d[i].function(arg0, arg1, arg2, arg3);
 }
 
