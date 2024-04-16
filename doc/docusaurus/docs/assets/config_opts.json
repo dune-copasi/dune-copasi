@@ -456,12 +456,12 @@
       "time_step_increase_factor": {
         ".type": "float",
         ".brief": "In case of time-step success, the subsequent time-step will be increased by this factor",
-        ".default": "0.5"
+        ".default": "1.1"
       },
       "time_step_decrease_factor": {
         ".type": "float",
         ".brief": "In case of time-step failure, the subsequent time-step will be decreased by this factor",
-        ".default": "1.1"
+        ".default": "0.5"
       },
       "time_step_max": {
         ".type": "float",
