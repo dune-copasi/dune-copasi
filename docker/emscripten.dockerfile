@@ -59,8 +59,7 @@ RUN git clone --depth 1 --branch 9.1.0 https://github.com/fmtlib/fmt.git
 RUN git clone --depth 1 --branch v1.11.0 https://github.com/gabime/spdlog.git
 
 SHELL ["/bin/bash", "-c"]
-# not working: 3.1.[52-54]
-ENV EMSDK_VERSION=3.1.51
+ENV EMSDK_VERSION=3.1.56
 RUN ./emsdk/emsdk install ${EMSDK_VERSION}
 RUN ./emsdk/emsdk activate ${EMSDK_VERSION}
 ENV EMSDK_QUIET=1
@@ -130,7 +129,7 @@ RUN echo CMAKE_FLAGS+=\"\
  -DTIFF_ROOT=/duneci/install \
  -DDUNE_COPASI_DISABLE_FETCH_PACKAGE_parafields=ON \
  -DDUNE_COPASI_DISABLE_FMT_STYLE=ON \
- -DCMAKE_EXE_LINKER_FLAGS=\'-sEXPORTED_RUNTIME_METHODS=ccall,cwrap,FS,callMain -sINVOKE_RUN=0 -sALLOW_MEMORY_GROWTH=1 -sEXPORT_ES6=1 -sMODULARIZE -sEXPORT_NAME=wasm -sENVIRONMENT=web -fexceptions\' \
+ -DCMAKE_EXE_LINKER_FLAGS=\'-sEXPORTED_RUNTIME_METHODS=ccall,cwrap,FS,callMain -sINVOKE_RUN=0 -sALLOW_MEMORY_GROWTH=1 -sEXPORT_ES6=1 -sMODULARIZE -sEXPORT_NAME=wasm -sENVIRONMENT=web -fexceptions --embed-file /duneci/modules/dune-copasi/test@/dunecopasi/test \' \
  $DEFAULT_CMAKE_FLAGS \
  \" >> $DUNE_OPTS_FILE
 

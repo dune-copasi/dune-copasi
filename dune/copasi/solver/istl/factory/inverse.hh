@@ -45,17 +45,17 @@ makeInverseOperator(const std::shared_ptr<Op>& op,
   }
 
   // not found: diagnose error
-  // auto iterative_keys = getIterativeSolverRegistry<Op, Alloc>().keys();
-  // std::vector<std::string> direct_keys;
-  // if constexpr (Concept::AssembledLinearOperator<Op>)
-  //   direct_keys = getDirectSolverRegistry<Op, Alloc>().keys();
+  auto iterative_keys = getIterativeSolverRegistry<Op, Alloc>().keys();
+  std::set<std::string> direct_keys;
+  if constexpr (Concept::AssembledLinearOperator<Op>)
+    direct_keys = getDirectSolverRegistry<Op, Alloc>().keys();
 
   throw format_exception(IOError{},
                          "The key '{}' is not a known inverse operator type.\nPossible iterative "
                          "solvers: {}\nPossible direct solvers: {}",
                          type_name,
-                         /*iterative_keys*/ "<unknown>",
-                         /*direct_keys*/ "<unknown>");
+                         iterative_keys,
+                         direct_keys);
 }
 
 } // namespace Impl

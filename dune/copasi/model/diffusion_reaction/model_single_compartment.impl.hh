@@ -4,7 +4,6 @@
 #include <dune/copasi/model/interpolate.hh>
 #include <dune/copasi/model/make_initial.hh>
 #include <dune/copasi/model/diffusion_reaction/reduce.hh>
-#include <dune/copasi/model/diffusion_reaction/model_single_compartment.hh>
 #include <dune/copasi/model/diffusion_reaction/make_step_operator.hh>
 #include <dune/copasi/model/functor_factory_parser.hh>
 

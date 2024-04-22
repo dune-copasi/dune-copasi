@@ -28,6 +28,13 @@ Types of changes
 
 ## [Unreleased] ([git-diff][Unreleased-diff])
 
+## [2.0.1] ([git-diff][2.0.1-diff]) - 2024-04-22
+
+### Fixed
+
+* Fix memory errors on Blocked Jacobi !197
+* Remove Muparser invalid assertions !196
+
 ## [2.0.0] ([git-diff][2.0.0-diff]) - 2024-03-26
 
 _**Note**: This version is a complete re-write of the library based on a custom version of PDELab tailored for this module. Thus, this changelog does not make much sense in comparison to version [1.1.0]. Instead, the following entries are written with respect to the first refactor from [1.1.0] made on !83._
@@ -249,7 +256,8 @@ _**Note**: This version is a complete re-write of the library based on a custom 
 - [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Solver for reaction-diffusion systems in multiple compartments.
 
-[Unreleased-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v2.0.0...master
+[Unreleased-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v2.0.1...master
+[2.0.1-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v2.0.1...v2.0.1
 [2.0.0-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v1.1.0...v2.0.0
 [1.1.0-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v1.0.0...v1.1.0
 [1.0.0-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v0.3.0...v1.0.0

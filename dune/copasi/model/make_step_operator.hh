@@ -326,8 +326,9 @@ make_step_operator(const ParameterTree& config,
             case 1:
               return comp_size[j[0]] * 6; // aprox number of neighboring entities time the number of
                                           // components (assume 2D & P1)
+            default:
+              std::terminate();
           }
-          std::terminate();
         };
       } else { // component is blokced
         block_size = [=](SizePrefix, SizePrefix j) -> std::size_t {
@@ -337,8 +338,9 @@ make_step_operator(const ParameterTree& config,
                                    // entities (assume 2D)
             case 1:
               return comp_max; // number of components (assume P1)
+            default:
+              std::terminate();
           }
-          std::terminate();
         };
       }
 
@@ -351,6 +353,8 @@ make_step_operator(const ParameterTree& config,
             return 6; // aprox number of neighboring entities (assume 2D)
           case 2:
             return comp_size[j[1]]; // number of components (assume P1)
+          default:
+            std::terminate();
         }
         std::terminate();
       };

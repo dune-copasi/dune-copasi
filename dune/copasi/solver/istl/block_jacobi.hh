@@ -91,35 +91,36 @@ public:
     Y b = rhs;
     // we need a copy to avoid overriding old iterates, but is not needed if there is only one block
     std::optional<X> x_tmp;
-    X& x = (v.size() > 1) ? x_tmp.emplace(v) : v;
     const M& mat = _op->getmat();
 
     using Xi = typename X::value_type;
     [[maybe_unused]] std::optional<Xi> vi;
+    X& x = (v.size() > 1) ? x_tmp.emplace(v) : v;
+    x = v;
     for (std::size_t it = 0; it != _iterations; ++it) {
       PDELab::forEach(policy, mat, [=, &b, &x, &diag_inv = _diag_inv](const auto& row, auto i) mutable {
         if constexpr (IsNumber<typename M::block_type>{}) {
           // compute (b-Ax)
           for (auto col = row.begin(); col != row.end(); ++col)
-            b[i] -= (*col) * x[col.index()];
+            b[i] -= (*col) * v[col.index()];
           // solve v for Dv=(b-Ax); then x=x+v
-          x[i] += diag_inv[i] * b[i];
+          x[i] += _weight * diag_inv[i] * b[i];
         } else {
           // compute (b-Ax)
           InverseOperatorResult res;
           for (auto col = row.begin(); col != row.end(); ++col)
-            col->mmv(x[col.index()], b[i]);
+            col->mmv(v[col.index()], b[i]);
           // solve v for Dv=(b-Ax); then x=x+v
+          auto& vir = vi ? *vi : vi.emplace();
           // copy 'x' in 'vi' is just to get the sizes right
-          vi.value_or(Xi{}) = x[i];
-          diag_inv[i]->apply(*vi, b[i], res);
-          x[i] += *vi;
+          vir = x[i];
+          diag_inv[i]->apply(vir, b[i], res);
+          PDELab::axpy(x[i], _weight, vir);
         }
       });
-      PDELab::axpy(x, _weight, b);
+      if (v.size() > 1)
+        v = x;
     }
-    if (v.size() > 1)
-      v = x;
   }
 
   void post(X&) override {}

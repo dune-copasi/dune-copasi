@@ -1,7 +1,6 @@
 #ifndef DUNE_COPASI_MODEL_LOCAL_VALUES_PARSED_FUNCTOR_FACTORY_IMPL_HH
 #define DUNE_COPASI_MODEL_LOCAL_VALUES_PARSED_FUNCTOR_FACTORY_IMPL_HH
 
-#include <dune/copasi/model/functor_factory_parser.hh>
 #include <dune/copasi/model/local_domain.hh>
 #include <dune/copasi/common/axis_names.hh>
 

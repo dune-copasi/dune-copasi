@@ -1,0 +1,148 @@
+---
+id: param_tree
+title: List of Options
+description: List of key-value pairs to configure the program
+sidebar_label: Options
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import CodeBlock from '@theme/CodeBlock';
+import ConfigOpts from './ConfigOpts.js'
+
+The simulator may be configured by passing a collection of `key=value` pair that change the behavior of the solver.
+These options may be passed via a configuration file with the [DUNE `ini` file convention](ini_file) or by the command line `--{key}={value}`. Note that command line arguments take precedence over the config file parameters.
+
+:::caution Superfluous keys
+Unknown `key`s will be ignored: This means that typos will silently be passed through the configuration
+options without any error!
+:::
+
+### Value Types
+
+The `value` on the `key=value` pair may be of different kinds. The following is
+list of possible accepted types
+
+| Type | Description |
+| ---- | ----------- |
+| `string`        | Sequence of characters terminated an [end of line](https://en.wikipedia.org/wiki/Newline)
+| `float`         | Decimal number in floating point representation
+| `integer`       | Integer number
+| `bool`          | `true` or `false`
+| `enum`          | Enumeration with a named set of identifiers
+| `path`          | String that represent filesystem paths absolute or relative to the program
+| `math-expr`     | [Math Expression](math_expr)
+| `function-expr` | [Function Math Expression](math_expr)
+
+#### Examples
+
+<Tabs
+  defaultValue="string"
+  values={[
+      {label: 'String', value: 'string', },
+      {label: 'Float', value: 'float', },
+      {label: 'Integer', value: 'integer', },
+      {label: 'Bool', value: 'bool', },
+      {label: 'Enum', value: 'enum', },
+      {label: 'Path', value: 'path', },
+      {label: 'Math Expr', value: 'mathe', },
+      {label: 'Func Expr', value: 'funce', },
+    ]
+  }>
+
+  <TabItem value="string">
+
+```ini title="config.ini"
+key = I am a good looking string
+# this next line is not part of the string
+```
+
+  </TabItem>
+  <TabItem value="float">
+
+```ini title="config.ini"
+key_a = 1e-2
+key_b = 0.1
+```
+
+  </TabItem>
+  <TabItem value="integer">
+
+```ini title="config.ini"
+key = 1
+```
+
+  </TabItem>
+  <TabItem value="bool">
+
+```ini title="config.ini"
+key_a = true
+key_b = false
+```
+
+  </TabItem>
+  <TabItem value="enum">
+
+```ini title="config.ini"
+# e.g. named set of identifiers: ['l_1', 'l_2', 'l_inf']
+key_a = l_1
+key_b = l_2
+key_c = l_inf
+# %highlight-error
+key_d = l_3
+# error: not known 'l_3' in enum
+```
+
+  </TabItem>
+  <TabItem value="path">
+
+```ini title="config.ini"
+# absolute path
+key_a = /path/to/directory/
+# relative path
+key_a = path/to/directory/
+```
+
+  </TabItem>
+  <TabItem value="mathe">
+
+```ini title="config.ini"
+# math expression using contextual 'pi', 'position_x', and 'position_y' tokens
+key = pi*sin(position_x)*sin(position_y)
+```
+
+  </TabItem>
+  <TabItem value="funce">
+
+```ini title="config.ini"
+# function math expression using 'a' and 'b' arguments of a function named 'key'
+key = a, b: sin(a)*sin(b)
+```
+
+  </TabItem>
+</Tabs>
+
+
+
+## Key Options
+
+::::info Placeholders
+Whenever a key in this documentation contains curly braces `{...}` it means that it is a placeholder for a user defined key.
+
+:::tip Example
+The option `compartments.domain.expression` means that the `{cmp}` placeholder in `compartments.{cmp}.expression` is being replaced with the `domain` keyword and is a valid option.
+:::
+::::
+
+
+::::info Multiple keys
+* Whenever a key in this documentation contains square brackets `[...]` it means that any of the options expanded by the contents separated by `|` is a valid option.
+
+:::tip Example
+The option `model.time_[begin|end]` means that both `model.time_begin` and `model.time_end` are valid options.
+:::
+::::
+
+Below you can find an expandable list of the keys that may be used in the solver:
+
+<ConfigOpts/>

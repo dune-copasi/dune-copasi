@@ -1,6 +1,6 @@
 {
   "name": "@copasi/dune-copasi-wasm",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Solver for reaction-diffusion systems in multiple compartments (js/wasm binary)",
   "main": "dune-copasi.js",
   "directories": {
