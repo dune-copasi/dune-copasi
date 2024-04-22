@@ -1,0 +1,73 @@
+---
+id: output
+title: Output Data
+description: List of possible to input data
+sidebar_label: Output Data
+---
+
+import ConfigOptsJSON from './assets/config_opts.json';
+import Markdown from 'react-markdown';
+import ExamplePatterm from '/img/example_pattern.svg';
+
+export const JoinDetailsArray = (a) => {return Array.isArray(a) ? a.join('\n') : a}
+
+Several output data files in the `dune-copasi` program are possible:
+
+### Simulation Results (VTK Format)
+
+:::note Config Options:
+* **`model.writer.vtk.path={prefix}`**
+:::
+
+<Markdown>
+{JoinDetailsArray(ConfigOptsJSON["model.writer.vtk.path"][".details"])}
+</Markdown>
+
+### Simulation Trace (Perfetto Format)
+
+:::note Config Options:
+* **`trace.path={prefix}`**
+:::
+
+<Markdown>
+{JoinDetailsArray(ConfigOptsJSON["trace.path"][".details"])}
+</Markdown>
+
+### Matrix Layout (SVG Format)
+
+:::note Config Options:
+* **`model.time_step_operator.linear_solver.layout.writer.svg.path={prefix}`**
+:::
+
+<Markdown>
+{JoinDetailsArray(ConfigOptsJSON["model.time_step_operator.linear_solver.layout.writer.svg.path"][".details"])}
+</Markdown>
+
+
+::::caution output size
+The SVG format is helpful to understand the sparsity pattern and hierarchy of the matrix, however, this format is not particularly efficient to represent matrices. Hence, use this option only with small and medium problem sizes.
+
+:::tip
+If the resulting SVG file turns out to be too big, try converting the file into another format like `png` or `jpeg` with [Inkscape](https://inkscape.org) or similar:
+
+```bash
+inkscape -z -w 20000 -h 20000 matrix.svg -e matrix.png
+```
+:::
+::::
+
+:::tip example output
+![example_pattern](/img/example_pattern.svg)
+:::
+
+
+### Random Field (VTK Format)
+
+:::note Config Options:
+* **`parser_context.{tkn}.type=random_field`**
+* **`parser_context.{tkn}.writer.vtk.path={prefix}`**
+:::
+
+<Markdown>
+{JoinDetailsArray(ConfigOptsJSON["parser_context.{tkn}.writer.vtk.path"][".details"])}
+</Markdown>

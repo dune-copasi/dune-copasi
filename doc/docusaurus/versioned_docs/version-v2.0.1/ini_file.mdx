@@ -1,0 +1,84 @@
+---
+id: ini_file
+title: Config File
+description: Syntax of INI file
+sidebar_label: Config File
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+The [INI format](https://en.wikipedia.org/wiki/INI_file) defines a set of [configuration options](param_tree) to initialize and run the models.
+
+## Format
+
+The forrmat we use follows the DUNE `ini` file convention. In short, the data is composed of a *key–value pairs* on the form `key = value`.
+
+### Comments
+
+Characters followed by hash `#` will be ignored.
+
+```ini title="config.ini"
+# %highlight
+# line comment
+key = value
+```
+
+### Entries
+
+An entry is given by a *key-value pair* and must be entirely contained in one line. Additionally, *keys* must be unique.
+
+```ini title="config.ini"
+id = value
+# %highlight-error
+id = val
+# error: repeated key 'id'
+```
+
+### Group
+
+A *key* is a string which may be contained on a common
+group of parameters by preceding the line with the *group name* between
+brackets and/or by preceding the *key* by the *group name* separated by a dot. Notice that
+the two forms may be combined.
+
+As an example, the three following INI files, are equivalent
+<Tabs
+  defaultValue="form1"
+  values={[
+      {label: 'No grouping', value: 'form1', },
+      {label: 'Grouping', value: 'form2', },
+      {label: 'Nested grouping', value: 'form3', },
+    ]
+  }>
+
+  <TabItem value="form1">
+
+```ini title="config.ini"
+# No preceding section
+section.subsection.first = 1.0
+section.subsection.second = 2.0
+```
+
+  </TabItem>
+  <TabItem value="form2">
+
+```ini title="config.ini"
+[section]
+subsection.first = 1.0
+subsection.second = 2.0
+```
+
+  </TabItem>
+
+
+  <TabItem value="form3">
+
+```ini title="config.ini"
+[section.subsection]
+first = 1.0
+second = 2.0
+```
+
+  </TabItem>
+</Tabs>

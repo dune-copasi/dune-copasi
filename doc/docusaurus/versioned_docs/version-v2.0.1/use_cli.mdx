@@ -1,0 +1,64 @@
+---
+id: use_cli
+title: Command Line Interface Usage
+description: How to use the CLI
+sidebar_label: Use as CLI
+tags:
+  - CLI
+---
+
+import ExampleTerminal from '@site/src/components/ExampleTerminal'
+import DuneCopasiHelp from './DuneCopasiHelp'
+
+In this form, we provide one executable named `dune-copasi` for running forward simulations from the command line.
+This executable is completely configurable from the command line arguments passed to it.
+
+### Configuration options
+
+By running the program with the command line arguments `--help` or `--help-full`, it will result in the
+possible configuration options to run the program:
+
+<DuneCopasiHelp/>
+
+Alternatively, this online documentation also has the list of possible [configuration options](param_tree).
+
+### Version
+
+By running the program with the command line argument `--version`, you can find out the installed version of DuneCopasi:
+
+<ExampleTerminal title="Getting DuneCopasi version">
+  {[
+    {
+      input: "dune-copasi --version",
+      output: [
+      "2.0.0",
+      ]
+    }
+  ]}
+</ExampleTerminal>
+
+### Running the program
+
+:::tip working directory
+Be aware that the [output files](output) produced by DuneCopasi are relative to the directory where
+`dune-copasi` is started, hence, it is recommended to run the program within a working directory, for example `~/dune-copasi`.
+:::
+
+When passing configuration options to the command line arguments like `--config={path}`, or
+`--{key}={value}`, the simulation will start and the program will stream its log output into the terminal:
+
+<ExampleTerminal prompt="~/dune-copasi$" title="Running DuneCopasi">
+  {[
+    {
+      input: "dune-copasi --config=config.ini",
+      output: [
+      "[2024-03-21 12:38:32.479] [info] Reading configuration file '~/dune-copasi/config.ini'",
+      "[2024-03-21 12:38:32.479] [info] Starting dune-copasi (version: 2.0.0)",
+      "[2024-03-21 12:38:32.580] [info] Axis names are set to: [\"x\", \"y\", \"z\"]",
+      "...",
+      "...",
+      "[2024-03-21 12:38:32.723] [info] dune-copasi successfully finished :)",
+      ]
+    }
+  ]}
+</ExampleTerminal>
