@@ -25,10 +25,10 @@ variables:
   PACKAGE_REGISTRY: ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/dune-copasi
   MASTER_IMAGE: debian:bookworm
   BASE_IMAGE_VERSION:
-    value: "v2.0.1-git"
+    value: "v2.0.2-git"
     options:
-      - "v2.0.1-git"        # Main dependecy base image
-      - "v2.0.1-git-tmp"    # Temporary (one time testing)
+      - "v2.0.2-git"        # Main dependecy base image
+      - "v2.0.2-git-tmp"    # Temporary (one time testing)
     description: "Key to tag images in the registry. Use '*-tmp' key to try out changes that need to rebild the dependencies image"
   FORCE_REBUILD_BASE_IMAGE:
     value: "false"

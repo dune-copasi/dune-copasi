@@ -1,6 +1,6 @@
 {
   "name": "dune-copasi-docusaurus",
-  "version": "2.0.1-git",
+  "version": "2.0.2-git",
   "private": true,
   "scripts": {
     "docusaurus": "docusaurus",
@@ -20,7 +20,7 @@
     "@zip.js/zip.js": "^2.7.40",
     "clsx": "^1.1.1",
     "dune-copasi-wasm-git": "npm:@copasi/dune-copasi-wasm@canary",
-    "dune-copasi-wasm-v2": "npm:@copasi/dune-copasi-wasm@2.0.0",
+    "dune-copasi-wasm-v2": "npm:@copasi/dune-copasi-wasm@2.0.2",
     "prism-react-renderer": "^2.1.0",
     "raw-loader": "^4.0.2",
     "react": "^18.2.0",
