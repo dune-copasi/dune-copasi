@@ -22,23 +22,20 @@ In this blog I will show you can configure the Dune Copasi simulation environmen
 
 <!-- truncate -->
 
-We will simulate the Mitchell-Schaefer model where we stimulate the bottom left corner using a Gaussian point source. This will result in the activation and repolarization of our 2D square grid. Lets get started.  
+We will simulate the Mitchell-Schaefer model where we stimulate the bottom left corner using a Gaussian point source. This will result in the activation and repolarization of our 2D square grid. Lets get started.
 
 ## Running Dune Copasi in Docker
 
-:::caution dune-copasi version
-This tutorial relies in the latest unreleased version of dune-copasi!
-:::
-
 The first step is to obtain the docker image of Dune Copasi. This can simply be done by pulling it from the repository.
 ``` sh
-docker pull registry.dune-project.org/copasi/dune-copasi/dune-copasi:master
+docker pull registry.dune-project.org/copasi/dune-copasi/dune-copasi:v2.0.1
+docker tag registry.dune-project.org/copasi/dune-copasi/dune-copasi:v2.0.1 dune-copasi
 ```
 We also create a working directory where we will save the simulation files.
 ``` sh
 mkdir -m o+rw workdir && cd workdir
 ```
-Having fetched the docker container we are now set to test the Dune Copasi solver. To do this we will create a simple initialization file. We write the code of the minimal example to the file `test.ini`:  
+Having fetched the docker container we are now set to test the Dune Copasi solver. To do this we will create a simple initialization file. We write the code of the minimal example to the file `test.ini`:
 
 <CodeBlock language="ini" title="test.ini" showLineNumbers>
 {TestINI}
@@ -67,7 +64,7 @@ $$
 where $\tau_{in}$ and $\tau_{out}$ are time-scale variables, $J_{in}$ and $J_{out}$ describe the respective inward and outward current, $V_m$ is the normalized transmembrane potential and $h$ is a gating variable. The dynamics of the gating variable are given by
 
 $$
-\frac{\partial z}{\partial t} =  
+\frac{\partial z}{\partial t} =
 \begin{cases}
   \frac{z-1}{\tau_{open}},& \text{if } u\leq u_0,\\
   \frac{z}{\tau_{close}},& \text{if }  u > u_0.
@@ -81,7 +78,7 @@ In the section above we described a model capturing the basic electrophysiology 
 
 $$
   J = \sigma E.
-$$  
+$$
 
 In our specific case we have two compartments. We will use an intracellular and extracellular current density and potential. We obtain
 
@@ -94,7 +91,7 @@ $$
 
 Furthermore, we assume that any current leaving the intracellular space flows into the extracellular (and vice-versa) and that there is no charge accumulation. Therefore, the change in current density in the extracellular space has to be equal to the current flowing into the intracellular space. Using Gauss' law (i.e. the divergence theorem) this can be written as
 
-$$  
+$$
   \nabla \cdot J_{i} + \nabla \cdot J_{e} = 0 = \nabla \cdot \sigma_i \nabla \varphi_i + \nabla \cdot \sigma_e \nabla \varphi_e.
 $$
 

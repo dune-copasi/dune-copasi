@@ -33,9 +33,8 @@ based compilers. It is known to be **not** compatible with Microsoft Visual Stud
 
 Locally building and installing DuneCopasi requires a variety of dependencies:
 
-:::caution development branches
-Many of these dependencies are in a development branch (e.g., `master`) because DuneCopasi is also under developemt
-or because the package does not offer other tagged release.
+:::caution fixed commits
+Many of these dependencies need to be installed from an specific git commit. Do not try to install DuneCopasi with unsupported commits!
 :::
 
 | Software | Version/Branch |
@@ -50,7 +49,7 @@ or because the package does not offer other tagged release.
 | [SymEngine](https://symengine.org) (optional)                                               | >= 0.8.0 |
 | [ExprTk](https://www.partow.net/programming/exprtk) (optional, automatic)                   | >= 0.0.2 |
 | [METIS](https://github.com/KarypisLab/METIS) (optional)                                     | >= 5.1.0 |
-| [parafields-core](https://github.com/parafields/parafields-core) (optional, automatic)      | `master` |
+| [parafields-core](https://github.com/parafields/parafields-core) (optional, automatic)      | `61b2893f4940e3bb5881bf32faee14524efb4184` |
 | [MPI](https://www.mpi-forum.org) (optional)                                                 | >= 3.1   |
 | [FFTW](https://www.fftw.org) (optional)                                                     | >= 3.0.0 |
 | [TBB](https://oneapi-src.github.io) (optional)                                              | >= 2018.12 |
@@ -59,16 +58,16 @@ or because the package does not offer other tagged release.
 | [nlohmann::json](https://github.com/nlohmann/json) (automatic)                              | >= 3.11.3 |
 | [SuiteSparse](https://people.engr.tamu.edu/davis/suitesparse.html)                          | >= 2.3.3 |
 | [Perfetto](https://perfetto.dev)                                                            | >= 32.1 |
-| [dune-common](https://gitlab.dune-project.org/core/dune-common)                             | `master` |
-| [dune-geometry](https://gitlab.dune-project.org/core/dune-geometry)                         | `master` |
-| [dune-grid](https://gitlab.dune-project.org/core/dune-grid)                                 | `master` |
-| [dune-uggrid](https://gitlab.dune-project.org/staging/dune-uggrid)                          | `master` |
-| [dune-istl](https://gitlab.dune-project.org/core/dune-istl)                                 | `master` |
-| [dune-localfunctions](https://gitlab.dune-project.org/core/dune-localfunctions)             | `master` |
-| [dune-functions](https://gitlab.dune-project.org/staging/dune-functions)                    | `master` |
-| [dune-multidomaingrid](https://gitlab.dune-project.org/extensions/dune-multidomaingrid)     | `master` |
-| [dune-typetree](https://gitlab.dune-project.org/staging/dune-typetree)                      | `master` |
-| [dune-pdelab](https://gitlab.dune-project.org/pdelab/dune-pdelab)                           | `feature/dune-assembler/main-multithreaded` |
+| [dune-common](https://gitlab.dune-project.org/core/dune-common)                             | `1b79c9e4fe055ffa79e30b5b76989c4ebe30c606` |
+| [dune-geometry](https://gitlab.dune-project.org/core/dune-geometry)                         | `d45c81e18d940b4a0f755e64b9f3b67638508ada` |
+| [dune-grid](https://gitlab.dune-project.org/core/dune-grid)                                 | `70cd26d527b30ca2961e53b00f113f295f021f22` |
+| [dune-uggrid](https://gitlab.dune-project.org/staging/dune-uggrid)                          | `dec73a978754c6959dc9b8c34278979e9f6ba5bc` |
+| [dune-istl](https://gitlab.dune-project.org/core/dune-istl)                                 | `64f5f5184143f7a401b5e68a2ba76d9d3dd22570` |
+| [dune-localfunctions](https://gitlab.dune-project.org/core/dune-localfunctions)             | `920cc8544401adde20b2fd6603a2050b810a4e31` |
+| [dune-functions](https://gitlab.dune-project.org/staging/dune-functions)                    | `664f68c63444ffd31537a57c5b12a6c40ed03da9` |
+| [dune-multidomaingrid](https://gitlab.dune-project.org/extensions/dune-multidomaingrid)     | `7d04696469d62b36239d3d1101d9ac71ff247137` |
+| [dune-typetree](https://gitlab.dune-project.org/staging/dune-typetree)                      | `962308509de2e67732afe5fe7e9c816ee16eec30` |
+| [dune-pdelab](https://gitlab.dune-project.org/pdelab/dune-pdelab)                           | `73f4c866b55f02c7b4bd0319bf304c5b01956bf3` |
 
 * **automatic**: The requirement is automatically fetched from the internet by CMake.
 See the [CMake configuration options](#cmake-configuration-options) on how to enable/disable this feature.
@@ -229,8 +228,20 @@ git clone https://gitlab.dune-project.org/core/dune-localfunctions
 git clone https://gitlab.dune-project.org/staging/dune-functions
 git clone https://gitlab.dune-project.org/extensions/dune-multidomaingrid
 git clone https://gitlab.dune-project.org/staging/dune-typetree
-git clone -b feature/dune-assembler/main-multithreaded https://gitlab.dune-project.org/pdelab/dune-pdelab
+git clone https://gitlab.dune-project.org/pdelab/dune-pdelab
 git clone https://gitlab.dune-project.org/copasi/dune-copasi
+
+# checkout commits necessary for DuneCopasi v2.0.0
+git -C dune-common            checkout 1b79c9e4fe055ffa79e30b5b76989c4ebe30c606
+git -C dune-geometry          checkout d45c81e18d940b4a0f755e64b9f3b67638508ada
+git -C dune-grid              checkout 70cd26d527b30ca2961e53b00f113f295f021f22
+git -C dune-uggrid            checkout dec73a978754c6959dc9b8c34278979e9f6ba5bc
+git -C dune-istl              checkout 64f5f5184143f7a401b5e68a2ba76d9d3dd22570
+git -C dune-localfunctions    checkout 920cc8544401adde20b2fd6603a2050b810a4e31
+git -C dune-functions         checkout 664f68c63444ffd31537a57c5b12a6c40ed03da9
+git -C dune-multidomaingrid   checkout 7d04696469d62b36239d3d1101d9ac71ff247137
+git -C dune-typetree          checkout 962308509de2e67732afe5fe7e9c816ee16eec30
+git -C dune-pdelab            checkout 73f4c866b55f02c7b4bd0319bf304c5b01956bf3
 ```
 
 Then, build and install the DUNE modules with the `dunecontrol` script from `dune-common`:
