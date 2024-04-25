@@ -37,3 +37,7 @@ test/build/
 # editor files
 *.swo
 *.swp
+
+doc/joss/paper.jats
+
+doc/joss/media/

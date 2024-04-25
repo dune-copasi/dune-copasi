@@ -187,7 +187,7 @@ codespell:
   image: ${DEPENDENCIES_IMAGE}
   script:
   - codespell
-    --skip="./doc/docusaurus/yarn.lock,./.git/**/*"
+    --skip="./doc/docusaurus/yarn.lock,./.git/**/*,./doc/joss/paper.bib"
     --ignore-words-list="warn"
 
 config_format:
