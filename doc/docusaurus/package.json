@@ -1,6 +1,6 @@
 {
   "name": "dune-copasi-docusaurus",
-  "version": "2.0.1-rc.0",
+  "version": "2.0.1",
   "private": true,
   "scripts": {
     "docusaurus": "docusaurus",
