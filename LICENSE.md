@@ -1,4 +1,4 @@
-BSD 2-Clause License
+BSD-2-Clause
 
 Copyright (c) 2021, Ruprecht-Karls-Universität Heidelberg
 All rights reserved.
@@ -28,24 +28,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ## Exceptions
 
-Patch `dune-common`:
-  * File: [dune-common.patch](/.ci/dune-common.patch)
-  * License: [`GPL-2.0-only WITH DUNE-exception`](https://spdx.org/licenses/GPL-2.0-only.html)
-
-Patch `dune-logging`:
-  * File: [dune-logging.patch](/.ci/dune-common.patch)
-  * License: [`BSD-2-Clause`](https://spdx.org/licenses/BSD-2-Clause.html)
-  * Copyright (c):
-      - 2019 Steffen Müthing
-      - 2021 Santiago Ospina De Los Ríos
-
 Icon Images:
   * Files: [logo.svg](/doc/docusaurus/static/img/logo.svg) and [favicon.ico](/doc/docusaurus/static/img/favicon.ico)
   * Source: https://www.svgrepo.com/svg/2758/cell
   * License: [`CC0-1.0`](https://spdx.org/licenses/CC0-1.0.html)
 
 GUI Image:
-  * Files: [spatial-model-editor.png](/doc/docusaurus/docs/img/spatial-model-editor.png)
+  * Files: [spatial-model-editor.png](/doc/docusaurus/versioned_docs/version-v1.0.0/img/spatial-model-editor.png)
   * Source: https://github.com/spatial-model-editor/spatial-model-editor/blob/master/docs/img/mesh.png
   * License: [`MIT`](https://spdx.org/licenses/MIT.html)
 
