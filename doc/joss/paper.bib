@@ -1,16 +1,3 @@
-
-@book{schroeder_visualization_2006,
-  edition   = {4},
-  title     = {The {Visualization} {Toolkit}},
-  isbn      = {978-1-930934-19-1},
-  url       = {https://www.kitware.com/products/books/VTKTextbook.pdf},
-  urldate   = {2017-10-30},
-  publisher = {Kitware, Inc.},
-  author    = {Schroeder, Will and Martin, Ken and Lorensen, Bill},
-  editor    = {Squillacote, Amy},
-  year      = {2006}
-}
-
 @article{bastian_grid_2008,
   title     = {A generic grid interface for parallel and adaptive scientific computing. Part I: abstract framework},
   author    = {Bastian, Peter and Blatt, Markus and Dedner, Andreas and Engwer, Christian and Kl{\"o}fkorn, Robert and Ohlberger, Mario and Sander, Oliver},
@@ -65,14 +52,6 @@
   pages      = {1309--1331}
 }
 
-@misc{ole_klein_dune_2020,
-  type   = {{GitLab} {Repository}},
-  title  = {{DUNE} {Randomfield}},
-  url    = {https://gitlab.dune-project.org/oklein/dune-randomfield},
-  author = {Ole Klein},
-  year   = {2016}
-}
-
 @article{elias_2014,
   title    = {Reaction–diffusion systems for spatio-temporal intracellular protein networks: A beginner's guide with two examples},
   journal  = {Computational and Structural Biotechnology Journal},
@@ -81,7 +60,7 @@
   pages    = {12-22},
   year     = {2014},
   issn     = {2001-0370},
-  doi      = {https://doi.org/10.1016/j.csbj.2014.05.007},
+  doi      = {10.1016/j.csbj.2014.05.007},
   url      = {https://www.sciencedirect.com/science/article/pii/S2001037014000087},
   author   = {Ján Eliaš and Jean Clairambault},
   keywords = {Michaelis–Menten kinetics, Hill kinetics, Intracellular protein signalling, Spatial representation, Reaction–diffusion PDE models, Oscillations, p53, Leloup–Goldbeter FRQ model},
@@ -189,7 +168,8 @@
   issn     = {1570-2820},
   mrclass  = {65Y15},
   mrnumber = {3043640},
-  url      = {https://freefem.org/}
+  url      = {https://freefem.org/},
+  doi      = {10.1515/jnum-2012-0013}
 }
 
 @article{nektar_2015,
@@ -208,7 +188,7 @@
               Program title: Nektar++ Catalogue identifier: AEVV_v1_0 Program summary URL:http://cpc.cs.qub.ac.uk/summaries/AEVV_v1_0.html Program obtainable from: CPC Program Library, Queen’s University, Belfast, N. Ireland Licensing provisions: MIT No. of lines in distributed program, including test data, etc.: 1052456 No. of bytes in distributed program, including test data, etc.: 42851367 Distribution format: tar.gz Programming language: C++. Computer: Any PC workstation or cluster. Operating system: Linux/UNIX, OS X, Microsoft Windows. RAM: 512 MB Classification: 12. External routines: Boost, FFTW, MPI, BLAS, LAPACK and METIS (www.cs.umn.edu) Nature of problem: The Nektar++ framework is designed to enable the discretisation and solution of time-independent or time-dependent partial differential equations. Solution method: Spectral/hp element method Running time: The tests provided take a few minutes to run. Runtime in general depends on mesh size and total integration time.}
 }
 
-@software{liam_keegan_2023,
+@software{keegan_2023,
   author    = {Liam Keegan and
                Petr Andriushchenko and
                Henry Schreiner and
@@ -244,13 +224,15 @@
   title     = {parafields: A generator for distributed, stationary Gaussian processes},
   journal   = {Journal of Open Source Software}
 }
+
 @phdthesis{muthing_2015,
   title        = {A flexible framework for multi physics and multi domain PDE simulations},
   author       = {M{\"u}thing, Steffen},
   year         = 2015,
   month        = {February},
   school       = {Universität Stuttgart},
-  type         = {PhD thesis}
+  type         = {PhD thesis},
+  doi          = {10.18419/opus-3620}
 }
 
 @article{arevalo_2016,
@@ -263,4 +245,20 @@
   year={2016},
   publisher={Nature Publishing Group UK London},
   doi={10.1038/ncomms11437}
+}
+
+@article{copasi_2006,
+    author = {Hoops, Stefan and Sahle, Sven and Gauges, Ralph and Lee, Christine and Pahle, Jürgen and Simus, Natalia and Singhal, Mudita and Xu, Liang and Mendes, Pedro and Kummer, Ursula},
+    title = "{COPASI—a COmplex PAthway SImulator}",
+    journal = {Bioinformatics},
+    volume = {22},
+    number = {24},
+    pages = {3067-3074},
+    year = {2006},
+    month = {10},
+    abstract = "{Motivation: Simulation and modeling is becoming a standard approach to understand complex biochemical processes. Therefore, there is a big need for software tools that allow access to diverse simulation and modeling methods as well as support for the usage of these methods.Results: Here, we present COPASI, a platform-independent and user-friendly biochemical simulator that offers several unique features. We discuss numerical issues with these features; in particular, the criteria to switch between stochastic and deterministic simulation methods, hybrid deterministic–stochastic methods, and the importance of random number generator numerical resolution in stochastic simulation.Availability: The complete software is available in binary (executable) for MS Windows, OS X, Linux (Intel) and Sun Solaris (SPARC), as well as the full source code under an open source license from .Contact:  mendes@vbi.vt.edu}",
+    issn = {1367-4803},
+    doi = {10.1093/bioinformatics/btl485},
+    url = {https://doi.org/10.1093/bioinformatics/btl485},
+    eprint = {https://academic.oup.com/bioinformatics/article-pdf/22/24/3067/48838880/bioinformatics\_22\_24\_3067.pdf},
 }

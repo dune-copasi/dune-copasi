@@ -188,7 +188,7 @@ codespell:
   script:
   - codespell
     --skip="./doc/docusaurus/yarn.lock,./.git/**/*,./doc/joss/paper.bib"
-    --ignore-words-list="warn"
+    --ignore-words-list="warn,patial"
 
 config_format:
   variables:
