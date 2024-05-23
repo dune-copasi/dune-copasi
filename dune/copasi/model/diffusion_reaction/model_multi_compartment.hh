@@ -72,6 +72,8 @@ public:
   std::unordered_map<std::string, GridFunction> make_initial(const Grid&,
                                                              const ParameterTree&) const override;
 
+  void move_grid(Grid&, const State&, const ParameterTree& config) const override;
+
   GridFunction make_compartment_function(const std::shared_ptr<const State>&,
                                          std::string_view) const override;
 

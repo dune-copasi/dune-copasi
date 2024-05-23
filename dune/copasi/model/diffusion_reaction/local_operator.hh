@@ -3,6 +3,7 @@
 
 #include <dune/copasi/concepts/grid.hh>
 #include <dune/copasi/grid/cell_data.hh>
+#include <dune/copasi/grid/move.hh>
 #include <dune/copasi/finite_element/local_basis_cache.hh>
 #include <dune/copasi/model/functor_factory.hh>
 #include <dune/copasi/model/diffusion_reaction/local_equations.hh>
@@ -203,7 +204,7 @@ public:
     , _fe_cache([]() { return std::make_unique<LocalBasisCache<LBT>>(); })
     , _local_values_in([_lop_type = lop_type,
                         _basis = _test_basis,
-                        _config = config.sub("scalar_field"),
+                        _config = config,
                         _functor_factory = functor_factory,
                         _grid_cell_data = grid_cell_data]() {
       std::unique_ptr<LocalEquations<dim>> ptr;
@@ -217,7 +218,7 @@ public:
     })
     , _local_values_out([_lop_type = lop_type,
                          _basis = _test_basis,
-                         _config = config.sub("scalar_field"),
+                         _config = config,
                          _functor_factory = std::move(functor_factory),
                          _grid_cell_data = std::move(grid_cell_data)]() {
       std::unique_ptr<LocalEquations<dim>> ptr;
@@ -232,6 +233,8 @@ public:
     , _num_jac_cache([] { return std::make_unique<NumericalJacobianCache>(); })
     , _execution_policy{ execution_policy }
   {
+    if (not _local_values_in->eval_position.compartment_jacobian.empty() and not _do_numerical_jacobian)
+      throw format_exception(NotImplemented{}, "Non-linear moving domains must use numerical jacobian");
     auto lbasis = _test_basis.localView();
     if (_test_basis.entitySet().size(0) == 0)
       return;
@@ -318,6 +321,13 @@ public:
             lpattern.addLink(ltest_node, dof_i, wrt_lbasis, dof_j);
 
         for (const auto& jacobian_entry : diffusion.compartment_jacobian) {
+          const auto& jac_wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
+          for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i)
+            for (std::size_t dof_j = 0; dof_j != jac_wrt_lbasis.size(); ++dof_j)
+              lpattern.addLink(ltest_node, dof_i, jac_wrt_lbasis, dof_j);
+        }
+
+        for (const auto& jacobian_entry : _local_values_in->eval_position.compartment_jacobian) {
           const auto& jac_wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
           for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i)
             for (std::size_t dof_j = 0; dof_j != jac_wrt_lbasis.size(); ++dof_j)
@@ -414,7 +424,7 @@ public:
       return;
 
     const auto& entity = ltrial.element();
-    const auto& geo = entity.geometry();
+    const auto& geo = move_geometry(time, ltrial, lcoefficients, _local_values_in, _fe_cache, entity.geometry(), std::identity{});
     using Geometry = std::decay_t<decltype(geo)>;
     std::optional<typename Geometry::JacobianInverse> geojacinv_opt;
 
@@ -539,7 +549,7 @@ public:
       return;
 
     const auto& entity = ltrial.element();
-    const auto& geo = entity.geometry();
+    const auto& geo = move_geometry(time, ltrial, llin_point, _local_values_in, _fe_cache, entity.geometry(), std::identity{});
     using Geometry = std::decay_t<decltype(geo)>;
     std::optional<typename Geometry::JacobianInverse> geojacinv_opt;
 
@@ -693,7 +703,7 @@ public:
     }
 
     _local_values_in->clear();
-    _local_values_in->in_volume = 1;
+    _local_values_in->in_volume = 0;
   }
 
   template<PDELab::Concept::LocalBasis LocalTrial,
@@ -779,12 +789,12 @@ public:
       return;
 
     const auto& entity_i = intersection.inside();
-    const auto& geo_i = entity_i.geometry();
+    const auto& geo_i = move_geometry(time, ltrial_in, lcoefficients_in, _local_values_in, _fe_cache, entity_i.geometry(), std::identity{});
     const auto& geo_in_i = intersection.geometryInInside();
     // in case of a boundary, outside objects are an alias of the inside ones
     const auto& entity_o = intersection.neighbor() ? intersection.outside() : entity_i;
+    const auto& geo_o = move_geometry(time, ltrial_out, lcoefficients_out, _local_values_out, _fe_cache, entity_o.geometry(), std::identity{});
     const auto& geo_in_o = intersection.neighbor() ? intersection.geometryInOutside() : geo_in_i;
-    const auto& geo_o = entity_o.geometry();
 
     auto domain_set_i = subDomains(entity_i);
     auto domain_set_o = subDomains(entity_o);
@@ -792,9 +802,12 @@ public:
     if (intersection.neighbor() and domain_set_i == domain_set_o)
       return; // not an intersection case
 
-    auto geo_f = intersection.geometry();
+    auto quad_proj_i = [&](auto quad_pos){ return geo_in_i.global(quad_pos); };
+    auto quad_proj_o = [&](auto quad_pos){ return geo_in_o.global(quad_pos); };
 
-    using Geometry = std::decay_t<decltype(entity_i.geometry())>;
+    const auto& geo_f = move_geometry(time, ltrial_in, lcoefficients_in, _local_values_in, _fe_cache, intersection.geometry(), quad_proj_i);
+
+    using Geometry = std::decay_t<decltype(geo_i)>;
     std::optional<typename Geometry::JacobianInverse> geojacinv_opt_i, geojacinv_opt_o;
 
     _local_values_in->time = _local_values_out->time = time;
@@ -977,12 +990,13 @@ public:
       return;
 
     const auto& entity_i = intersection.inside();
-    const auto& geo_i = entity_i.geometry();
+
+    const auto& geo_i = move_geometry(time, ltrial_in, llin_point_in, _local_values_in, _fe_cache, entity_i.geometry(), std::identity{});
     const auto& geo_in_i = intersection.geometryInInside();
     // in case of a boundary, outside objects are an alias of the inside ones
     const auto& entity_o = intersection.neighbor() ? intersection.outside() : entity_i;
     const auto& geo_in_o = intersection.neighbor() ? intersection.geometryInOutside() : geo_in_i;
-    const auto& geo_o = entity_o.geometry();
+    const auto& geo_o = move_geometry(time, ltrial_out, llin_point_out, _local_values_out, _fe_cache, entity_o.geometry(), std::identity{});
 
     auto domain_set_i = subDomains(entity_i);
     auto domain_set_o = subDomains(entity_o);
@@ -990,9 +1004,12 @@ public:
     if (intersection.neighbor() and domain_set_i == domain_set_o)
       return; // not an intersection case
 
-    auto geo_f = intersection.geometry();
+    auto quad_proj_i = [&](auto quad_pos){ return geo_in_i.global(quad_pos); };
+    auto quad_proj_o = [&](auto quad_pos){ return geo_in_o.global(quad_pos); };
 
-    using Geometry = std::decay_t<decltype(entity_i.geometry())>;
+    const auto& geo_f = move_geometry(time, ltrial_in, llin_point_in, _local_values_in, _fe_cache, intersection.geometry(), quad_proj_i);
+
+    using Geometry = std::decay_t<decltype(geo_i)>;
     std::optional<typename Geometry::JacobianInverse> geojacinv_opt_i, geojacinv_opt_o;
 
     _local_values_in->time = _local_values_out->time = time;

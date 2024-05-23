@@ -85,6 +85,11 @@ struct Model
     throw format_exception(NotImplemented{}, "Model has no membrane functions");
   }
 
+  virtual void move_grid(Grid&, const State&, const ParameterTree& config) const
+  {
+    throw format_exception(NotImplemented{}, "Model write has not been implemented");
+  }
+
   virtual void write_vtk(const State&, const std::filesystem::path&, bool) const
   {
     throw format_exception(NotImplemented{}, "Model write has not been implemented");

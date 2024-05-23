@@ -319,7 +319,7 @@ main(int argc, char** argv)
       [&](auto dim) {
         // get a pointer to the grid
         const auto max_subdomains = 64;
-        auto [md_grid_ptr, coarse_cell_data] = [&] {
+        auto [md_grid_unique_ptr, coarse_cell_data] = [&] {
           using MDGTraits = Dune::mdgrid::FewSubDomainsTraits<dim, max_subdomains>;
           if constexpr (dim < 2) {
             using MDGrid = Dune::mdgrid::MultiDomainGrid<Dune::YaspGrid<dim, Dune::EquidistantOffsetCoordinates<double,dim>>, MDGTraits>;
@@ -342,7 +342,7 @@ main(int argc, char** argv)
                         "have more compartments recompile with appropriate grid triats!",
                         max_subdomains,
                         comp_size);
-
+        std::shared_ptr md_grid_ptr = std::move(md_grid_unique_ptr);
         using MDGrid = std::decay_t<decltype(*md_grid_ptr)>;
         using SDGridView = typename MDGrid::SubDomainGrid::Traits::LeafGridView;
         using SpeciesQuantity = double;
@@ -386,7 +386,8 @@ main(int argc, char** argv)
         auto time_step = model_config.get("writer.time_step", TimeQuantity{ 0. });
         auto time_write = begin_time;
 
-        on_each_step = [model_config, vtk_path, &time_write, time_step, model](const auto& state) {
+        on_each_step = [model_config, vtk_path, &time_write, time_step, model, md_grid_ptr](const auto& state) {
+          model->move_grid(*md_grid_ptr, state, model_config);
           // write to vtk if requested
           if (not vtk_path.empty() ) {
             if( state.time >= time_write - 1e-9 * time_step){ // small epsilon correction
@@ -400,10 +401,11 @@ main(int argc, char** argv)
           }
         };
 
-        auto in = model->make_state(std::move(md_grid_ptr), model_config);
+        auto in = model->make_state(md_grid_ptr, model_config);
         in->time = begin_time;
 
         // interpolate initial conditions into the model state
+        // TODO: move grid before of after interpolation?
         model->interpolate(*in, model->make_initial(*(in->grid), model_config));
         if (on_each_step) {
           on_each_step(*in); // write initial condition

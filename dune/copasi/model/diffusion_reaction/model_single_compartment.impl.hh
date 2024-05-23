@@ -12,6 +12,7 @@
 #include <dune/copasi/concepts/grid.hh>
 #include <dune/copasi/grid/has_single_geometry_type.hh>
 #include <dune/copasi/grid/boundary_entity_mapper.hh>
+#include <dune/copasi/grid/move.hh>
 #include <dune/copasi/parser/factory.hh>
 
 #include <dune/pdelab/basis/backend/istl.hh>
@@ -190,6 +191,21 @@ ModelSingleCompartment<Traits>::make_initial(const Grid& grid, const ParameterTr
   -> std::unordered_map<std::string, GridFunction>
 {
   return Dune::Copasi::make_initial<GridFunction>(grid, config, *_functor_factory);
+}
+
+template<class Traits>
+void
+ModelSingleCompartment<Traits>::move_grid(Grid& grid, const State& state, const ParameterTree& config) const
+{
+  using CompartmentBasis = PDELab::Basis<PDELab::EntitySetPartitioner::Identity<CompartmentEntitySet>, CompartmentPreBasis>;
+  using CoefficientsBackend = PDELab::ISTLUniformBackend<ScalarQuantity>;
+  using Coefficients = typename CompartmentBasis::template Container<CoefficientsBackend>;
+  using LocalBasisTraits = typename ScalarFiniteElementMap::Traits::FiniteElement::Traits::LocalBasisType::Traits;
+  const auto& basis = any_cast<const CompartmentBasis&>(state.basis);
+  const auto& coeff = any_cast<const Coefficients&>(state.coefficients);
+  if (std::addressof(grid) != std::addressof(*state.grid))
+    throw format_exception(InvalidStateException{}, "mutable grid and constant (state) grid most point to the same address!");
+  move_grid<LocalBasisTraits>(grid, config, state.time, basis, coeff, _functor_factory, _cell_data);
 }
 
 template<class Traits>
