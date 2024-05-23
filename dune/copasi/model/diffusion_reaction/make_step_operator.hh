@@ -41,21 +41,17 @@ make_step_operator(const ParameterTree& config,
                             ExecutionPolicy execution_policy, const OperatorBasis& operator_basis) {
     spdlog::info("Creating mass/stiffness local operator");
     const auto& time_step_cfg = config.sub("time_step_operator");
-    const auto& scalar_field_cfg = config.sub("scalar_field");
-    bool is_linear = config.get("is_linear", false);
     using LocalOperator =
       LocalOperator<OperatorBasis, LocalBasisTraits, CellDataGridView, CellDataType, ExecutionPolicy>;
     LocalOperator const stiff_lop(operator_basis,
                                   LocalOperator::Form::Stiffness,
-                                  is_linear,
-                                  scalar_field_cfg,
+                                  config,
                                   functor_factory,
                                   grid_cell_data,
                                   execution_policy);
     LocalOperator const mass_lop(operator_basis,
                                  LocalOperator::Form::Mass,
-                                 is_linear,
-                                 scalar_field_cfg,
+                                 config,
                                  functor_factory,
                                  grid_cell_data,
                                  execution_policy);

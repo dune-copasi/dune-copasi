@@ -31,7 +31,7 @@ interpolate(const Basis& basis,
 
   auto lspace = basis.localView();
 
-  PDELab::LocalContainerBuffer lcontainer{ basis, coefficients };
+  PDELab::LocalContainerBuffer lcontainer{ basis, &coefficients };
   std::vector<double> buff;
 
   // create a tree container with optional local functions

@@ -145,6 +145,45 @@
       }
     }
   },
+  "model.jacobian.[type|epsilon]": {
+    ".brief": "General options for the jacobian of the model",
+    ".options": {
+      "type": {
+        ".type": "enum",
+        ".brief": "Evaluation type of the jacobian",
+        ".default": "analytical",
+        ".details": [
+          "This option specifies how to generate the assembled operator that is applied on linear systems.",
+          "If the type is 'analytical', each entry is constructed from the 'model.scalar_field.{var}.jacobian.{dvar}'",
+          "configuration options."
+        ],
+        ".options": {
+          "'analytical'": {
+            ".brief": "Jacobians are computed from analyicial expressions provided within the configuration options",
+            ".details": [
+              "In this case, the sparsity pattern is inferred from the 'model.scalar_field.{var}.jacobian.{dvar}'",
+              "configuration options and its value corresponds to the evaluation of these expressions."
+            ]
+          },
+          "'numeric'": {
+            ".brief": "Jacobians are computed numerically from the primary expressions provided within the configuration options",
+            ".details": [
+              "In this case, the sparsity pattern is inferred from the 'model.scalar_field.{var}.jacobian.{dvar}'",
+              "configuration options and its value corresponds a forward euler evaluation of the",
+              "'model.scalar_field.{var}' expressions. Notice that the 'jacobian' configuration options may not be evaluated at all",
+              "(e.g. 'no_value' is a valid expression) but they still need to be present, otherwise, the pattern will not be created",
+              "correctly and the numerical evaluation will yield an invalid access error."
+            ]
+          }
+        }
+      },
+      "epsilon": {
+        ".type": "float",
+        ".brief": "The discretization step to evaluate jacobians with a numerical type",
+        ".default": "1e-7"
+      }
+    }
+  },
   "model.assembly.[type|partition.type|partition.patches|partition.coloring]": {
     ".brief": "Options for the execution policy on the assembly of residuals and jacobians",
     ".options": {

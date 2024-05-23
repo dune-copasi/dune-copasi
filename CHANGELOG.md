@@ -28,16 +28,20 @@ Types of changes
 
 ## [Unreleased] ([git-diff][Unreleased-diff])
 
+### Added
+
+ - Numerical jacobians !203
+
 ### Fixed
 
-* Find muParser was failing if compuler default standard was not specified !202
+ - Find muParser was failing if compuler default standard was not specified !202
 
 ## [2.0.1] ([git-diff][2.0.1-diff]) - 2024-04-22
 
 ### Fixed
 
-* Fix memory errors on Blocked Jacobi !197
-* Remove Muparser invalid assertions !196
+ - Fix memory errors on Blocked Jacobi !197
+ - Remove Muparser invalid assertions !196
 
 ## [2.0.0] ([git-diff][2.0.0-diff]) - 2024-03-26
 
@@ -45,22 +49,22 @@ _**Note**: This version is a complete re-write of the library based on a custom 
 
 ### Refactor
 
-* Allows different parser backends: [muparser](https://beltoforion.de/en/muparser/), [exprtk](https://github.com/ArashPartow/exprtk), and [SymEngine](https://github.com/symengine/symengine) !83
-* Adds constants, (lambda) function, and [random fields](https://github.com/parafields/parafields-core) definitions within the parsers !83
-* Re-implementation of local operator: huge performance improvements !83
-* Adds tensor cross-diffusion, storage, velocity, and external boundary terms !83
-* Allows for volume coupling between compartments !83
-* Splits the subdomain and the compartment concepts. Now compartments with no entities or no components are perfectly possible !83
-* Uses new basis functions from dune-pdelab that allows native usage of multi-domains (branch: features/dune-assembler/main) !83
-* Extends compatibility of tiff images to different bit sizes !83
-* Adds monitoring (info, warning and error) of variables with new generic reduce operators !83
-* Switches logging from dune-logging to [spdlog](https://github.com/gabime/spdlog) !83
-* Designed to be thread-safe, although is not entirely yet implemented !83
-* Adds tracing capabilities with [perfetto](https://perfetto.dev/) !83
-* Allows Selection of between direct and sparse solvers, and matrix free operators !83
-* Allows to print matrix layout in a SVG file !83
-* Unifies the executable for different dimensions and different degrees of freedom layouts !83
-* Improves command line interface !83
+ - Allows different parser backends: [muparser](https://beltoforion.de/en/muparser/), [exprtk](https://github.com/ArashPartow/exprtk), and [SymEngine](https://github.com/symengine/symengine) !83
+ - Adds constants, (lambda) function, and [random fields](https://github.com/parafields/parafields-core) definitions within the parsers !83
+ - Re-implementation of local operator: huge performance improvements !83
+ - Adds tensor cross-diffusion, storage, velocity, and external boundary terms !83
+ - Allows for volume coupling between compartments !83
+ - Splits the subdomain and the compartment concepts. Now compartments with no entities or no components are perfectly possible !83
+ - Uses new basis functions from dune-pdelab that allows native usage of multi-domains (branch: features/dune-assembler/main) !83
+ - Extends compatibility of tiff images to different bit sizes !83
+ - Adds monitoring (info, warning and error) of variables with new generic reduce operators !83
+ - Switches logging from dune-logging to [spdlog](https://github.com/gabime/spdlog) !83
+ - Designed to be thread-safe, although is not entirely yet implemented !83
+ - Adds tracing capabilities with [perfetto](https://perfetto.dev/) !83
+ - Allows Selection of between direct and sparse solvers, and matrix free operators !83
+ - Allows to print matrix layout in a SVG file !83
+ - Unifies the executable for different dimensions and different degrees of freedom layouts !83
+ - Improves command line interface !83
 
 ### Added
  - Docusaurus now upgrades latest `canary` wasm binary automatically !186

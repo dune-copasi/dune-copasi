@@ -101,7 +101,7 @@ reduce(const ExecutionPolicy exec,
     auto leqs_ptr = LocalEquations<dim>::make(lbasis);
     leqs_ptr->time = time;
     const auto& leqs = *leqs_ptr;
-    ThreadLocalData data{ std::move(lbasis), { basis, coefficients }, std::move(leqs_ptr) };
+    ThreadLocalData data{ std::move(lbasis), { basis, &coefficients }, std::move(leqs_ptr) };
 
     auto sz = config.getSubKeys().size();
     data.values.reserve(sz);

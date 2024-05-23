@@ -63,13 +63,28 @@ class LocalOperator
 
   bool _is_linear = true;
   bool _has_outflow = true;
+  bool _do_numerical_jacobian = false;
+  double _fin_diff_epsilon = 1e-7;
 
   std::shared_ptr<const CellData<CellDataGridView, CellDataType>> _grid_cell_data;
   PDELab::SharedStash<LocalBasisCache<LBT>> _fe_cache;
   PDELab::SharedStash<LocalEquations<dim>> _local_values_in;
   PDELab::SharedStash<LocalEquations<dim>> _local_values_out;
 
+  struct NumericalJacobianCache {
+    std::any coeff_in, coeff_out, up_in, up_out, down_in, down_out;
+  };
+  PDELab::SharedStash<NumericalJacobianCache> _num_jac_cache;
+
   ExecutionPolicy _execution_policy;
+
+  template<class Value, class... Args>
+  static Value& value_or_emplace(std::any& val, Args&&... args) {
+    if (val.has_value())
+      return std::any_cast<Value&>(val);
+    else
+      return val.template emplace<Value>(std::forward<Args>(args)...);
+  }
 
   template<class R, class X>
   struct PseudoJacobian
@@ -82,6 +97,7 @@ class LocalOperator
     {
       _r.accumulate(ltest, test_dof, _z(ltrial, trial_dof) * value);
     }
+    auto weight() const {return _r.weight(); }
 
     R& _r;
     const X& _z;
@@ -166,21 +182,30 @@ public:
    * @param[in]  finite_element  The local finite element
    */
   LocalOperator(const PDELab::Concept::Basis auto& test_basis,
-                                   Form lop_type,
-                                   bool is_linear,
-                                   const ParameterTree& config,
-                                   std::shared_ptr<const FunctorFactory<dim>> functor_factory,
-                                   std::shared_ptr<const CellData<CellDataGridView, double>> grid_cell_data,
-                                   ExecutionPolicy execution_policy = {})
+                Form lop_type,
+                const ParameterTree& config,
+                std::shared_ptr<const FunctorFactory<dim>> functor_factory,
+                std::shared_ptr<const CellData<CellDataGridView, double>> grid_cell_data,
+                ExecutionPolicy execution_policy = {})
     : _test_basis{ test_basis }
-    , _is_linear{ is_linear }
-    , _grid_cell_data{grid_cell_data}
+    , _is_linear{ config.get("is_linear", false) }
+    , _do_numerical_jacobian{ [&]() -> bool {
+      auto type = config.get("jacobian.type", "analytical");
+      if (const auto& type = config.get("jacobian.type", "analytical");
+          (type == "analytical") or (type == "numerical"))
+        return type == "numerical";
+      else
+        throw format_exception(
+          IOError{}, "The option 'model.jacobian.type' must be either 'analytical' or 'numerical'");
+    }() }
+    , _fin_diff_epsilon{ config.get("jacobian.epsilon", 1e-7) }
+    , _grid_cell_data{ grid_cell_data }
     , _fe_cache([]() { return std::make_unique<LocalBasisCache<LBT>>(); })
     , _local_values_in([_lop_type = lop_type,
-                     _basis = _test_basis,
-                     _config = config,
-                     _functor_factory = functor_factory,
-                     _grid_cell_data = grid_cell_data]() {
+                        _basis = _test_basis,
+                        _config = config.sub("scalar_field"),
+                        _functor_factory = functor_factory,
+                        _grid_cell_data = grid_cell_data]() {
       std::unique_ptr<LocalEquations<dim>> ptr;
       if (_lop_type == Form::Mass)
         ptr = LocalEquations<dim>::make_mass(_basis.localView(), _config, _functor_factory, _grid_cell_data);
@@ -192,7 +217,7 @@ public:
     })
     , _local_values_out([_lop_type = lop_type,
                          _basis = _test_basis,
-                         _config = config,
+                         _config = config.sub("scalar_field"),
                          _functor_factory = std::move(functor_factory),
                          _grid_cell_data = std::move(grid_cell_data)]() {
       std::unique_ptr<LocalEquations<dim>> ptr;
@@ -204,6 +229,7 @@ public:
         std::terminate();
       return ptr;
     })
+    , _num_jac_cache([] { return std::make_unique<NumericalJacobianCache>(); })
     , _execution_policy{ execution_policy }
   {
     auto lbasis = _test_basis.localView();
@@ -502,11 +528,12 @@ public:
    * @tparam     LFSV  The test local function basis
    * @tparam     M     The local matrix
    */
-  void localAssembleJacobianVolume(auto time,
-                                   const PDELab::Concept::LocalBasis auto& ltrial,
-                                   const PDELab::Concept::LocalConstContainer auto& llin_point,
-                                   const PDELab::Concept::LocalBasis auto& ltest,
-                                   auto& ljacobian) noexcept
+  void localAssembleAnalyticalJacobianVolume(
+    auto time,
+    const PDELab::Concept::LocalBasis auto& ltrial,
+    const PDELab::Concept::LocalConstContainer auto& llin_point,
+    const PDELab::Concept::LocalBasis auto& ltest,
+    auto& ljacobian) noexcept
   {
     if (ltrial.size() == 0)
       return;
@@ -667,6 +694,73 @@ public:
 
     _local_values_in->clear();
     _local_values_in->in_volume = 1;
+  }
+
+  template<PDELab::Concept::LocalBasis LocalTrial,
+           PDELab::Concept::LocalConstContainer LocalCoeff,
+           PDELab::Concept::LocalBasis LocalTest,
+           class LocalJac>
+  void localAssembleNumericalJacobianVolume(auto time,
+                                            const LocalTrial& ltrial,
+                                            const LocalCoeff& llin_point,
+                                            const LocalTest& ltest,
+                                            LocalJac& ljacobian) noexcept
+  {
+    if (ltrial.size() == 0)
+      return;
+
+    // numerical jacobian
+    // get local storage that we can modify...
+    using LCTrial = PDELab::LocalContainerBuffer<typename LocalTrial::GlobalBasis, typename LocalCoeff::Container>;
+    LCTrial& coeff = value_or_emplace<LCTrial>(_num_jac_cache->coeff_in, ltrial);
+
+    // Note LocalCoeff::Container works here because LocalTrial == LocalTest!
+    using LCTest = PDELab::LocalContainerBuffer<typename LocalTest::GlobalBasis, typename LocalCoeff::Container>;
+    LCTest& up = value_or_emplace<LCTrial>(_num_jac_cache->up_in, ltest);
+    LCTest& down = value_or_emplace<LCTrial>(_num_jac_cache->down_in, ltest);
+    // pre-compute scaling factor, the weight cancels out in the end if ljacobian is weighted
+
+    // calculate down = f(u)
+    down.clear(ltest);
+    localAssembleVolume(time, ltrial, llin_point, ltest, down);
+
+    // fill coeff with current linearization point
+    coeff.clear(ltrial);
+    forEachLeafNode(ltrial.tree(), [&](const auto& node) {
+      for (std::size_t dof = 0; dof != node.size(); ++dof)
+        coeff(node, dof) = llin_point(node, dof);
+    });
+
+    forEachLeafNode(ltrial.tree(), [&](const auto& ltrial_node) {
+      for (std::size_t trail_dof = 0; trail_dof != ltrial_node.size(); ++trail_dof) {
+        up.clear(ltest);
+        auto delta = _fin_diff_epsilon * (1.0 + std::abs(coeff(ltrial_node, trail_dof)));
+        coeff(ltrial_node, trail_dof) += delta;
+        // calculate up = f(u+delta)
+        localAssembleVolume(time, ltrial, coeff, ltest, up);
+        // accumulate finite difference
+        forEachLeafNode(ltest.tree(), [&](const auto& ltest_node) {
+          for (std::size_t test_dof = 0; test_dof != ltest_node.size(); ++test_dof) {
+            ljacobian.accumulate(ltest_node,
+                                 test_dof,
+                                 ltrial_node,
+                                 trail_dof,
+                                 (up(ltest_node, test_dof) - down(ltest_node, test_dof)) / delta);
+          }
+        });
+        // reset coefficient vector
+        coeff(ltrial_node, trail_dof) = llin_point(ltrial_node, trail_dof);
+      }
+    });
+  }
+
+  template<class... Args>
+  void localAssembleJacobianVolume(Args&&... args) noexcept
+  {
+    if (_do_numerical_jacobian)
+      localAssembleNumericalJacobianVolume(std::forward<Args>(args)...);
+    else
+      localAssembleAnalyticalJacobianVolume(std::forward<Args>(args)...);
   }
 
   template<PDELab::Concept::LocalBasis LocalBasisTrial, PDELab::Concept::LocalBasis LocalBasisTest>
@@ -865,7 +959,7 @@ public:
     _local_values_out->in_boundary = _local_values_out->in_skeleton = 0;
   }
 
-  void localAssembleJacobianSkeleton(
+  void localAssembleAnalyticalJacobianSkeleton(
     const Dune::Concept::Intersection auto& intersection,
     auto time,
     const PDELab::Concept::LocalBasis auto& ltrial_in,
@@ -1089,6 +1183,159 @@ public:
     _local_values_out->clear();
     _local_values_in->in_boundary = _local_values_in->in_skeleton = 0;
     _local_values_out->in_boundary = _local_values_out->in_skeleton = 0;
+  }
+
+  template<PDELab::Concept::LocalBasis LocalTrial,
+           PDELab::Concept::LocalConstContainer LocalCoeff,
+           PDELab::Concept::LocalBasis LocalTest,
+           class LocalJac>
+  void localAssembleNumericalJacobianSkeleton(const Dune::Concept::Intersection auto& intersection,
+                                              auto time,
+                                              const LocalTrial& ltrial_in,
+                                              const LocalCoeff& llin_point_in,
+                                              const LocalTest& ltest_in,
+                                              const LocalTrial& ltrial_out,
+                                              const LocalCoeff& llin_point_out,
+                                              const LocalTest& ltest_out,
+                                              LocalJac& ljacobian_in_in,
+                                              LocalJac& ljacobian_in_out,
+                                              LocalJac& ljacobian_out_in,
+                                              LocalJac& ljacobian_out_out) noexcept
+  {
+    if (ltrial_in.size() == 0 and ltrial_out.size() == 0)
+      return;
+
+    // numerical jacobian
+    using LCTrial = PDELab::LocalContainerBuffer<typename LocalTrial::GlobalBasis, typename LocalCoeff::Container>;
+    LCTrial& coeff_in = value_or_emplace<LCTrial>(_num_jac_cache->coeff_in, ltrial_in);
+    LCTrial& coeff_out = value_or_emplace<LCTrial>(_num_jac_cache->coeff_out, ltrial_out);
+
+    // Note LocalCoeff::Container works here because LocalTrial == LocalTest!
+    using LCTest = PDELab::LocalContainerBuffer<typename LocalTest::GlobalBasis, typename LocalCoeff::Container>;
+    LCTest& up_in = value_or_emplace<LCTrial>(_num_jac_cache->up_in, ltest_in);
+    LCTest& up_out = value_or_emplace<LCTrial>(_num_jac_cache->up_out, ltest_out);
+    LCTest& down_in = value_or_emplace<LCTrial>(_num_jac_cache->down_in, ltest_in);
+    LCTest& down_out = value_or_emplace<LCTrial>(_num_jac_cache->down_out, ltest_out);
+
+    // fill coeff with current linearization point
+    coeff_in.clear(ltrial_in);
+    forEachLeafNode(ltrial_in.tree(), [&](const auto& node) {
+      for (std::size_t dof = 0; dof != node.size(); ++dof)
+        coeff_in(node, dof) = llin_point_in(node, dof);
+    });
+    coeff_out.clear(ltrial_out);
+    forEachLeafNode(ltrial_out.tree(), [&](const auto& node) {
+      for (std::size_t dof = 0; dof != node.size(); ++dof)
+        coeff_out(node, dof) = llin_point_out(node, dof);
+    });
+
+    down_in.clear(ltest_in);
+    down_out.clear(ltest_out);
+    localAssembleSkeleton(intersection,
+                          time,
+                          ltrial_in,
+                          coeff_in,
+                          ltest_in,
+                          ltrial_out,
+                          coeff_out,
+                          ltest_out,
+                          down_in,
+                          down_out);
+
+    forEachLeafNode(ltrial_in.tree(), [&](const auto& ltrial_node) {
+      for (std::size_t trail_dof = 0; trail_dof != ltrial_node.size(); ++trail_dof) {
+        up_in.clear(ltest_in);
+        up_out.clear(ltest_out);
+        auto delta = _fin_diff_epsilon * (1.0 + std::abs(coeff_in(ltrial_node, trail_dof)));
+        coeff_in(ltrial_node, trail_dof) += delta;
+        // calculate up = f(u+delta)
+        localAssembleSkeleton(intersection,
+                              time,
+                              ltrial_in,
+                              coeff_in,
+                              ltest_in,
+                              ltrial_out,
+                              coeff_out,
+                              ltest_out,
+                              up_in,
+                              up_out);
+        // accumulate finite difference
+        forEachLeafNode(ltest_in.tree(), [&](const auto& ltest_node) {
+          for (std::size_t test_dof = 0; test_dof != ltest_node.size(); ++test_dof) {
+            ljacobian_in_in.accumulate(
+              ltest_node,
+              test_dof,
+              ltrial_node,
+              trail_dof,
+              (up_in(ltest_node, test_dof) - down_in(ltest_node, test_dof)) / delta);
+          }
+        });
+        forEachLeafNode(ltest_out.tree(), [&](const auto& ltest_node) {
+          for (std::size_t test_dof = 0; test_dof != ltest_node.size(); ++test_dof) {
+            ljacobian_out_in.accumulate(
+              ltest_node,
+              test_dof,
+              ltrial_node,
+              trail_dof,
+              (up_out(ltest_node, test_dof) - down_out(ltest_node, test_dof)) / delta);
+          }
+        });
+        // reset coefficient vector
+        coeff_in(ltrial_node, trail_dof) = llin_point_in(ltrial_node, trail_dof);
+      }
+    });
+
+    forEachLeafNode(ltrial_out.tree(), [&](const auto& ltrial_node) {
+      for (std::size_t trail_dof = 0; trail_dof != ltrial_node.size(); ++trail_dof) {
+        up_in.clear(ltest_in);
+        up_out.clear(ltest_out);
+        auto delta = _fin_diff_epsilon * (1.0 + std::abs(coeff_in(ltrial_node, trail_dof)));
+        coeff_out(ltrial_node, trail_dof) += delta;
+        // calculate up = f(u+delta)
+        localAssembleSkeleton(intersection,
+                              time,
+                              ltrial_in,
+                              coeff_in,
+                              ltest_in,
+                              ltrial_out,
+                              coeff_out,
+                              ltest_out,
+                              up_in,
+                              up_out);
+        // accumulate finite difference
+        forEachLeafNode(ltest_in.tree(), [&](const auto& ltest_node) {
+          for (std::size_t test_dof = 0; test_dof != ltest_node.size(); ++test_dof) {
+            ljacobian_in_out.accumulate(
+              ltest_node,
+              test_dof,
+              ltrial_node,
+              trail_dof,
+              (up_in(ltest_node, test_dof) - down_in(ltest_node, test_dof)) / delta);
+          }
+        });
+        forEachLeafNode(ltest_out.tree(), [&](const auto& ltest_node) {
+          for (std::size_t test_dof = 0; test_dof != ltest_node.size(); ++test_dof) {
+            ljacobian_out_out.accumulate(
+              ltest_node,
+              test_dof,
+              ltrial_node,
+              trail_dof,
+              (up_out(ltest_node, test_dof) - down_out(ltest_node, test_dof)) / delta);
+          }
+        });
+        // reset coefficient vector
+        coeff_out(ltrial_node, trail_dof) = llin_point_out(ltrial_node, trail_dof);
+      }
+    });
+  }
+
+  template<class... Args>
+  void localAssembleJacobianSkeleton(Args&&...args) noexcept
+  {
+    if (_do_numerical_jacobian)
+      localAssembleNumericalJacobianSkeleton(std::forward<Args>(args)...);
+    else
+      localAssembleAnalyticalJacobianSkeleton(std::forward<Args>(args)...);
   }
 
   void localAssembleJacobianSkeletonApply(
