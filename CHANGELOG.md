@@ -28,6 +28,10 @@ Types of changes
 
 ## [Unreleased] ([git-diff][Unreleased-diff])
 
+### Fixed
+
+* Find muParser was failing if compuler default standard was not specified !202
+
 ## [2.0.1] ([git-diff][2.0.1-diff]) - 2024-04-22
 
 ### Fixed

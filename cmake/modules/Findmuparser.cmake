@@ -60,6 +60,7 @@ if(muparser_FOUND
   file(WRITE "${muparser_test_path}" "${muparser_test_source}")
   try_compile(COMPILE_RESULT_DYNAMIC "${CMAKE_CURRENT_BINARY_DIR}"
                SOURCES "${muparser_test_path}"
+               CXX_STANDARD 17
                LINK_LIBRARIES muparser::muparser)
 
   if(NOT COMPILE_RESULT_DYNAMIC)
@@ -67,6 +68,7 @@ if(muparser_FOUND
     try_compile(COMPILE_RESULT_STATIC "${CMAKE_CURRENT_BINARY_DIR}"
                 SOURCES "${muparser_test_path}"
                 COMPILE_DEFINITIONS -DMUPARSER_STATIC
+                CXX_STANDARD 17
                 LINK_LIBRARIES muparser::muparser)
 
     if(NOT COMPILE_RESULT_STATIC)
