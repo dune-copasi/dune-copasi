@@ -62,6 +62,8 @@ for module in functions uggrid typetree; do
   eval SETUP_dune_${module}_REPO=\"https://gitlab.dune-project.org/staging/dune-${module}.git\"
 done
 
+SETUP_dune_common_BRANCH="367-cmake-module-path-not-properly-setup-at-config-time"
+
 SETUP_dune_pdelab_BRANCH="feature/dune-assembler/main-multithreaded"
 SETUP_dune_pdelab_REPO="https://gitlab.dune-project.org/pdelab/dune-pdelab.git"
 
