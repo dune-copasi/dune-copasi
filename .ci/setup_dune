@@ -79,6 +79,7 @@ MODULES="common geometry uggrid grid typetree localfunctions istl functions mult
 unset CMAKE_FLAGS
 if test "x$DUNE_OPTIONS_FILE" != "x"; then
   CMAKE_FLAGS="$(. $DUNE_OPTIONS_FILE; eval echo \$CMAKE_FLAGS)"
+  CMAKE_PREFIX_PATH="$(. $DUNE_OPTIONS_FILE; eval echo \$CMAKE_PREFIX_PATH)"
 fi
 
 # get install prefix
@@ -101,7 +102,6 @@ if command -v $CMAKE_INSTALL_PREFIX/bin/dunecontrol &> /dev/null; then
 fi
 
 # install prefix **must** be included on the cmake prefix
-CMAKE_PREFIX_PATH=
 for flag in $CMAKE_FLAGS; do
   [[ ${flag#-D} == CMAKE_PREFIX_PATH* ]] && CMAKE_PREFIX_PATH+=" $flag"
 done

@@ -3,7 +3,7 @@
 # This file sets sensible defaults options for building and installing dune-copasi and its dependencies
 # - Find the operating system target
 # - Set default DUNE_ and CMAKE_ values, if they are not in environment
-# - Any env variable starting with CMAKE_ or DUNE_ will added to the cmake flags
+# - Any env variable starting with DUNE_ will added to the cmake flags
 # - The resulting CMAKE_FLAGS and MAKE_FLAGS values will be prepended to the CMAKE_OPTIONS and MAKE_OPTIONS env variable (if any)
 # - In *nix systems, it will try to find out if installation requires sudo
 #
@@ -21,7 +21,7 @@ CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX#:PATH=}
 CMAKE_INSTALL_PREFIX=$(echo $CMAKE_INSTALL_PREFIX | tr -d "'")
 
 # if not found, set a default install path
-export CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX:-/opt/dune}
+CMAKE_OPTIONS="-DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX:-/opt/dune} ${CMAKE_OPTIONS}"
 
 # create directory if non existent (skip in script mode)
 if [[ ! $(basename $0) == dune-copasi.opts ]] ; then
@@ -44,7 +44,7 @@ if [[ -z $OS_TARGET ]]; then
     MACHINE="$(eval gcc -dumpmachine 2>&1)"
     [[ "$MACHINE" = *'x86_64'* ]] && OS_TARGET="win64-mingw"
     [[ "$MACHINE" = *'i686'* ]] && OS_TARGET="win32-mingw"
-    export CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS:-"'-static -Wa,-mbig-obj -fvisibility=hidden -fpic'"}
+    CMAKE_OPTIONS="-DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS:-"'-static -Wa,-mbig-obj -fvisibility=hidden -fpic'"} ${CMAKE_OPTIONS}"
   else
     OS_TARGET="$OSTYPE"
     echo "Warning: Unknown OS_TARGET='$OS_TARGET'!"
@@ -52,29 +52,26 @@ if [[ -z $OS_TARGET ]]; then
 fi
 
 # default cmake flags
-export CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH:-"'${CMAKE_INSTALL_PREFIX}'"}
-export CMAKE_GENERATOR=${CMAKE_GENERATOR:-"'Unix Makefiles'"}
-export CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-Release}
-export CMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD:-17}
-export CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS:-"'-fvisibility=hidden -fpic'"}
-export CMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE:-"'-O3 -DNDEBUG'"}
-export CMAKE_CXX_FLAGS_RELWITHDEBINFO=${CMAKE_CXX_FLAGS_RELWITHDEBINFO:-"'-O2 -g3 -DNDEBUG -fno-omit-frame-pointer'"}
-export CMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG:-"'-O0 -g'"}
-export CMAKE_DISABLE_FIND_PACKAGE_MPI=${CMAKE_DISABLE_FIND_PACKAGE_MPI:-OFF}
+CMAKE_OPTIONS="-DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH:-"'${CMAKE_INSTALL_PREFIX}'"} ${CMAKE_OPTIONS}"
+CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-"Release"} ${CMAKE_OPTIONS}"
+CMAKE_OPTIONS="-DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS:-"'-fvisibility=hidden -fpic'"} ${CMAKE_OPTIONS}"
+CMAKE_OPTIONS="-DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE:-"'-O3 -DNDEBUG'"} ${CMAKE_OPTIONS}"
+CMAKE_OPTIONS="-DCMAKE_CXX_FLAGS_RELWITHDEBINFO=${CMAKE_CXX_FLAGS_RELWITHDEBINFO:-"'-O2 -g3 -DNDEBUG -fno-omit-frame-pointer'"} ${CMAKE_OPTIONS}"
+CMAKE_OPTIONS="-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG:-"'-O0 -g'"} ${CMAKE_OPTIONS}"
+CMAKE_OPTIONS="-DCMAKE_DISABLE_FIND_PACKAGE_MPI=${CMAKE_DISABLE_FIND_PACKAGE_MPI:-OFF} ${CMAKE_OPTIONS}"
 
 if [[ "$DUNE_COPASI_USE_STATIC_DEPS" =~ ^(ON|on|ON|TRUE|true|1)$ ]];then
-  CMAKE_OPTIONS+=" -DGMPXX_INCLUDE_DIR:PATH='"${CMAKE_INSTALL_PREFIX}"/include'"
-  CMAKE_OPTIONS+=" -DGMPXX_LIB:FILEPATH='"${CMAKE_INSTALL_PREFIX}"/lib/libgmpxx.a'"
-  CMAKE_OPTIONS+=" -DGMP_LIB:FILEPATH='"${CMAKE_INSTALL_PREFIX}"/lib/libgmp.a'"
-  CMAKE_OPTIONS+=" -Dfmt_ROOT='"${CMAKE_INSTALL_PREFIX}"'"
-  CMAKE_OPTIONS+=" -DCMAKE_DISABLE_FIND_PACKAGE_QuadMath=TRUE"
-  CMAKE_OPTIONS+=" -DF77=true"
-  CMAKE_OPTIONS+=" -DBUILD_SHARED_LIBS=OFF"
-  export DUNE_USE_ONLY_STATIC_LIBS='ON'
+  CMAKE_OPTIONS="-DGMPXX_INCLUDE_DIR:PATH='"${CMAKE_INSTALL_PREFIX}"/include' ${CMAKE_OPTIONS}"
+  CMAKE_OPTIONS="-DGMPXX_LIB:FILEPATH='"${CMAKE_INSTALL_PREFIX}"/lib/libgmpxx.a' ${CMAKE_OPTIONS}"
+  CMAKE_OPTIONS="-DGMP_LIB:FILEPATH='"${CMAKE_INSTALL_PREFIX}"/lib/libgmp.a' ${CMAKE_OPTIONS}"
+  CMAKE_OPTIONS="-Dfmt_ROOT='"${CMAKE_INSTALL_PREFIX}"' ${CMAKE_OPTIONS}"
+  CMAKE_OPTIONS="-DCMAKE_DISABLE_FIND_PACKAGE_QuadMath=TRUE ${CMAKE_OPTIONS}"
+  CMAKE_OPTIONS="-DF77=true ${CMAKE_OPTIONS}"
+  CMAKE_OPTIONS="-DBUILD_SHARED_LIBS=OFF ${CMAKE_OPTIONS}"
 fi
 
 # default dune flags
-export DUNE_PDELAB_ENABLE_TRACING=${DUNE_PDELAB_ENABLE_TRACING:-ON}
+CMAKE_OPTIONS="-DDUNE_PDELAB_ENABLE_TRACING=${DUNE_PDELAB_ENABLE_TRACING:-ON} ${CMAKE_OPTIONS}"
 
 # default make flags
 if [[ "$CMAKE_BUILD_TYPE" == "Debug" ]]; then
@@ -87,13 +84,10 @@ ENV_VARS=${ENV_VARS//CMAKE_FLAGS/}
 ENV_VARS=${ENV_VARS//CMAKE_OPTIONS/}
 ENV_VARS=${ENV_VARS//DUNE_CONTROL_PATH/}
 
-_CMAKE_FLAGS=""
 _DUNE_FLAGS=""
-# loop env variables and add values starting with CMAKE_ and DUNE_ into the cmake flags
+# loop env variables and add values starting with DUNE_ into the cmake flags
 for var in $ENV_VARS; do
-  if [[ "${var}" == "CMAKE_"* ]]; then
-    _CMAKE_FLAGS+="-D${var}=${!var} "
-  elif [[ "${var}" == "DUNE_"* ]]; then
+  if [[ "${var}" == "DUNE_"* ]]; then
     _DUNE_FLAGS+="-D${var}=${!var} "
   fi
 done
