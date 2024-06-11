@@ -47,6 +47,11 @@
 // includes a string with json contents generated a configuration time
 #include "config_opts.hh"
 
+#if HAVE_TBB && defined(EMSCRIPTEN)
+#include <oneapi/tbb.h>
+#include <atomic>
+#endif
+
 #include <algorithm>
 #include <array>
 #include <cstddef>
@@ -186,6 +191,24 @@ program_help(std::string_view prog_name, bool long_help)
 int
 main(int argc, char** argv)
 {
+
+#if HAVE_TBB && defined(EMSCRIPTEN)
+  { // explicit warm-up tbb threads to send browser thread to event loop
+    int num_threads = tbb::this_task_arena::max_concurrency();
+    std::atomic<int> barrier{ num_threads };
+    tbb::parallel_for(
+      0,
+      num_threads,
+      [&barrier](int) {
+        barrier--;
+        while (barrier > 0) {
+          std::this_thread::yield();
+        }
+      },
+      tbb::static_partitioner{});
+  }
+#endif
+
   const std::filesystem::path prog_path = argv[0];
 
   int end_code = 0;
