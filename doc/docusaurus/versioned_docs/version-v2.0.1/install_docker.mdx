@@ -120,10 +120,10 @@ At this point, you are ready to use the program through the [Command Line Interf
 file `config.ini`:
 
 ```bash
-docker run -v $PWD dune-copasi --config=config.ini
+docker run -v $PWD:/dunecopasi dune-copasi --config=config.ini
 ```
 
-This mounts the docker container in the current directory (that's what `-v $PWD` means),
+This mounts the docker container working directory `/dunecopasi` in the current directory `$PWD` and
 passes the rest of the arguments to the `dune-copasi` executable that exists within the docker container in the same way as with the [CLI usage](use_cli).
 In this manner, the argument passed to the underlying executable is `--config=config.ini` while the results
 of the computations will be written on current directory `$PWD`.
@@ -133,7 +133,7 @@ When the simulation is finished finished, the last line of terminal should say w
 <ExampleTerminal prompt="~/workdir$" title="Running DuneCopasi">
   {[
     {
-      input: "docker run -v $PWD dune-copasi --config=config.ini",
+      input: "docker run -v $PWD:/dunecopasi dune-copasi --config=config.ini",
       output: [
       "[2024-03-21 12:38:32.479] [info] Reading configuration file '~/workdir/config.ini'",
       "[2024-03-21 12:38:32.479] [info] Starting dune-copasi (version: 2.0.0)",
