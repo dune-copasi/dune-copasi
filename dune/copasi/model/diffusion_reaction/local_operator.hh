@@ -57,6 +57,12 @@ class LocalOperator
   std::vector<Outflow> _outflow_i;
   std::vector<Outflow> _outflow_o;
 
+  std::vector<Outflow> _m_reaction_i;
+  std::vector<Outflow> _m_reaction_o;
+
+  std::vector<Outflow> _m_storage_i;
+  std::vector<Outflow> _m_storage_o;
+
   std::vector<std::size_t> _compartment2domain;
 
   TestBasis _test_basis;
@@ -354,6 +360,32 @@ public:
           }
         }
       }
+
+      for (const auto& m_reaction_i : eq.m_reaction) {
+        for (const auto& jacobian_entry : m_reaction_i.compartment_jacobian) {
+          const auto& wrt_lbasis_in = jacobian_entry.wrt.to_local_basis_node(ltrial_in);
+          const auto& wrt_lbasis_out = jacobian_entry.wrt.to_local_basis_node(ltrial_out);
+          for (std::size_t dof_i = 0; dof_i != ltest_node_in.size(); ++dof_i) {
+            for (std::size_t dof_j = 0; dof_j != wrt_lbasis_in.size(); ++dof_j)
+              lpattern_in_in.addLink(ltest_node_in, dof_i, wrt_lbasis_in, dof_j);
+            for (std::size_t dof_j = 0; dof_j != wrt_lbasis_out.size(); ++dof_j)
+              lpattern_in_out.addLink(ltest_node_in, dof_i, wrt_lbasis_out, dof_j);
+          }
+        }
+      }
+
+      for (const auto& m_storage_i : eq.m_storage) {
+        for (const auto& jacobian_entry : m_storage_i.compartment_jacobian) {
+          const auto& wrt_lbasis_in = jacobian_entry.wrt.to_local_basis_node(ltrial_in);
+          const auto& wrt_lbasis_out = jacobian_entry.wrt.to_local_basis_node(ltrial_out);
+          for (std::size_t dof_i = 0; dof_i != ltest_node_in.size(); ++dof_i) {
+            for (std::size_t dof_j = 0; dof_j != wrt_lbasis_in.size(); ++dof_j)
+              lpattern_in_in.addLink(ltest_node_in, dof_i, wrt_lbasis_in, dof_j);
+            for (std::size_t dof_j = 0; dof_j != wrt_lbasis_out.size(); ++dof_j)
+              lpattern_in_out.addLink(ltest_node_in, dof_i, wrt_lbasis_out, dof_j);
+          }
+        }
+      }
     });
 
     if (not intersection.neighbor())
@@ -366,6 +398,32 @@ public:
       const auto& eq = _local_values_in->get_equation(ltrial_node);
       for (const auto& outflow_o : eq.outflow) {
         for (const auto& jacobian_entry : outflow_o.compartment_jacobian) {
+          const auto& wrt_lbasis_in = jacobian_entry.wrt.to_local_basis_node(ltrial_in);
+          const auto& wrt_lbasis_out = jacobian_entry.wrt.to_local_basis_node(ltrial_out);
+          for (std::size_t dof_i = 0; dof_i != ltest_node_out.size(); ++dof_i) {
+            for (std::size_t dof_j = 0; dof_j != wrt_lbasis_in.size(); ++dof_j)
+              lpattern_out_in.addLink(ltest_node_out, dof_i, wrt_lbasis_in, dof_j);
+            for (std::size_t dof_j = 0; dof_j != wrt_lbasis_out.size(); ++dof_j)
+              lpattern_out_out.addLink(ltest_node_out, dof_i, wrt_lbasis_out, dof_j);
+          }
+        }
+      }
+
+      for (const auto& m_reaction_o : eq.m_reaction) {
+        for (const auto& jacobian_entry : m_reaction_o.compartment_jacobian) {
+          const auto& wrt_lbasis_in = jacobian_entry.wrt.to_local_basis_node(ltrial_in);
+          const auto& wrt_lbasis_out = jacobian_entry.wrt.to_local_basis_node(ltrial_out);
+          for (std::size_t dof_i = 0; dof_i != ltest_node_out.size(); ++dof_i) {
+            for (std::size_t dof_j = 0; dof_j != wrt_lbasis_in.size(); ++dof_j)
+              lpattern_out_in.addLink(ltest_node_out, dof_i, wrt_lbasis_in, dof_j);
+            for (std::size_t dof_j = 0; dof_j != wrt_lbasis_out.size(); ++dof_j)
+              lpattern_out_out.addLink(ltest_node_out, dof_i, wrt_lbasis_out, dof_j);
+          }
+        }
+      }
+
+      for (const auto& m_storage_o : eq.m_storage) {
+        for (const auto& jacobian_entry : m_storage_o.compartment_jacobian) {
           const auto& wrt_lbasis_in = jacobian_entry.wrt.to_local_basis_node(ltrial_in);
           const auto& wrt_lbasis_out = jacobian_entry.wrt.to_local_basis_node(ltrial_out);
           for (std::size_t dof_i = 0; dof_i != ltest_node_out.size(); ++dof_i) {
@@ -811,6 +869,12 @@ public:
     _outflow_i.clear();
     _outflow_o.clear();
 
+       _m_reaction_i.clear();
+    _m_reaction_o.clear();
+
+    _m_storage_i.clear();
+    _m_storage_o.clear();
+
     // collect ouflow part for the inside compartment
     if (ltrial_in.size() != 0)
       forEachLeafNode(ltest_in.tree(), [&](const auto& ltest_node_in, auto path) {
@@ -819,23 +883,31 @@ public:
         const auto& eq =
           _local_values_in->get_equation(PDELab::containerEntry(ltrial_in.tree(), path));
         auto compartment_i = eq.path[Indices::_1];
-        if (ltest_node_in.size() == 0 or eq.outflow.empty())
+        if (ltest_node_in.size() == 0 or (eq.outflow.empty() and eq.m_reaction.empty() and eq.m_storage.empty()) )
           return;
 
         // accumulate outflow part into residual
         if (intersection.neighbor()) { // interior skeleton case
           if (domain_set_o.contains(_compartment2domain[compartment_i]))
             return;
-          for (std::size_t compartment_o = 0; compartment_o != _compartment2domain.size();
-               ++compartment_o) {
+          for (std::size_t compartment_o = 0; compartment_o != _compartment2domain.size(); ++compartment_o) {
             auto domain_o = _compartment2domain[compartment_o];
-            if (compartment_i != compartment_o and
-                (domain_set_o.contains(domain_o) or domain_set_i.contains(domain_o)) and
-                eq.outflow[compartment_o])
-              _outflow_i.emplace_back(eq.outflow[compartment_o], eq);
+            if ((compartment_i != compartment_o) and (domain_set_o.contains(domain_o) or domain_set_i.contains(domain_o)) ) {
+              if( (not eq.outflow.empty()) and eq.outflow[compartment_o])
+                _outflow_i.emplace_back(eq.outflow[compartment_o], eq);
+              if( (not eq.m_reaction.empty()) and eq.m_reaction[compartment_o])
+                _m_reaction_i.emplace_back(eq.m_reaction[compartment_o], eq);
+              if( (not eq.m_storage.empty()) and eq.m_storage[compartment_o])
+                _m_storage_i.emplace_back(eq.m_storage[compartment_o], eq);
+            }
           }
-        } else if (eq.outflow[compartment_i]) { // boundary case
-          _outflow_i.emplace_back(eq.outflow[compartment_i], eq);
+        } else { // boundary case
+          if ( (not eq.outflow.empty()) and  eq.outflow[compartment_i])  
+            _outflow_i.emplace_back(eq.outflow[compartment_i], eq);
+          if ( (not eq.m_reaction.empty()) and eq.m_reaction[compartment_i])  
+            _m_reaction_i.emplace_back(eq.m_reaction[compartment_i], eq);
+          if ( (not eq.m_storage.empty()) and eq.m_storage[compartment_i])  
+            _m_storage_i.emplace_back(eq.m_reaction[compartment_i], eq);
         }
       });
 
@@ -848,21 +920,27 @@ public:
           _local_values_out->get_equation(PDELab::containerEntry(ltrial_out.tree(), path));
         auto compartment_o = eq.path[Indices::_1];
         if (ltest_node_out.size() == 0 or
-            domain_set_i.contains(_compartment2domain[compartment_o]) or eq.outflow.empty())
+            domain_set_i.contains(_compartment2domain[compartment_o]) or 
+            (eq.outflow.empty() and eq.m_reaction.empty() and eq.m_storage.empty()) )
           return;
 
         // accumulate outflow part into residual (interior skeleton case)
-        for (std::size_t compartment_i = 0; compartment_i != _compartment2domain.size();
-             ++compartment_i) {
+        for (std::size_t compartment_i = 0; compartment_i != _compartment2domain.size();  ++compartment_i) {
           auto domain_i = _compartment2domain[compartment_i];
-          if (compartment_i != compartment_o and
-              (domain_set_o.contains(domain_i) or domain_set_i.contains(domain_i)) and
-              eq.outflow[compartment_i])
-            _outflow_o.emplace_back(eq.outflow[compartment_i], eq);
+          if ( (compartment_i != compartment_o) and (domain_set_o.contains(domain_i) or domain_set_i.contains(domain_i)) ){ 
+            if( (not eq.outflow.empty()) and eq.outflow[compartment_i])
+              _outflow_o.emplace_back(eq.outflow[compartment_i], eq);
+            if( (not eq.m_reaction.empty()) and eq.m_reaction[compartment_i])
+              _m_reaction_o.emplace_back(eq.m_reaction[compartment_i], eq);
+            if( (not eq.m_storage.empty()) and eq.m_storage[compartment_i])
+              _m_storage_o.emplace_back(eq.m_storage[compartment_i], eq);
+          }
         }
       });
 
-    if (_outflow_i.empty() and _outflow_o.empty())
+    if (    _outflow_i.empty()    and _outflow_o.empty() 
+        and _m_reaction_i.empty() and _m_reaction_o.empty()
+        and _m_storage_i.empty()  and _m_storage_o.empty())
       return;
 
     auto intorder = integrationOrder(ltrial_in, ltrial_out);
@@ -876,7 +954,7 @@ public:
       _local_values_in->position = _local_values_out->position = geo_f.global(position_f);
       _local_values_out->normal = -(_local_values_in->normal = normal);
 
-      if (not _outflow_i.empty()) {
+      if ( (not _outflow_i.empty()) or (not _m_reaction_i.empty()) or (not _m_storage_i.empty())) {
         auto quad_proj = [&](auto quad_pos){ return geo_in_i.global(quad_pos); };
         const auto position_i = quad_proj(position_f);
         if (not geojacinv_opt_i or not geo_i.affine())
@@ -904,18 +982,44 @@ public:
           }
         });
 
-        // contribution for each component
-        for (const auto& [outflow_i, source_i] : _outflow_i) {
-          auto outflow = std::invoke(outflow_i);
-          const auto& ltest_node_in = source_i.to_local_basis_node(ltest_in);
-          _fe_cache->bind(ltest_node_in.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
-          const auto& psi_i = _fe_cache->evaluateFunction(q);
-          for (std::size_t dof = 0; dof != ltest_node_in.size(); ++dof)
-            lresidual_in.accumulate(ltest_node_in, dof, outflow * psi_i[dof] * factor);
+        if (not _outflow_i.empty()) {
+          // contribution for each component
+          for (const auto& [outflow_i, source_i] : _outflow_i) {
+            auto outflow = std::invoke(outflow_i);
+            const auto& ltest_node_in = source_i.to_local_basis_node(ltest_in);
+            _fe_cache->bind(ltest_node_in.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
+            const auto& psi_i = _fe_cache->evaluateFunction(q);
+            for (std::size_t dof = 0; dof != ltest_node_in.size(); ++dof)
+              lresidual_in.accumulate(ltest_node_in, dof, outflow * psi_i[dof] * factor);
+          }
+        }
+
+        if (not _m_reaction_i.empty()) {
+          // contribution for each component
+          for (const auto& [reaction_i, source_i] : _m_reaction_i) {
+            auto reaction = std::invoke(reaction_i);
+            const auto& ltest_node_in = source_i.to_local_basis_node(ltest_in);
+            _fe_cache->bind(ltest_node_in.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
+            const auto& psi_i = _fe_cache->evaluateFunction(q);
+            for (std::size_t dof = 0; dof != ltest_node_in.size(); ++dof)
+              lresidual_in.accumulate(ltest_node_in, dof, -reaction * psi_i[dof] * factor);
+          }
+        }
+
+        if (not _m_storage_i.empty()) {
+          // contribution for each component
+          for (const auto& [storage_i, source_i] : _m_storage_i) {
+            auto storage = std::invoke(storage_i);
+            const auto& ltest_node_in = source_i.to_local_basis_node(ltest_in);
+            _fe_cache->bind(ltest_node_in.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
+            const auto& psi_i = _fe_cache->evaluateFunction(q);
+            for (std::size_t dof = 0; dof != ltest_node_in.size(); ++dof)
+              lresidual_in.accumulate(ltest_node_in, dof, storage * psi_i[dof] * factor);
+          }
         }
       }
 
-      if (not _outflow_o.empty()) {
+      if( (not _outflow_o.empty()) or (not _m_reaction_o.empty()) or (not _m_storage_o.empty()) ) {
         auto quad_proj = [&](auto quad_pos){ return geo_in_o.global(quad_pos); };
         const auto position_o = quad_proj(position_f);
         if (not geojacinv_opt_o or not geo_o.affine())
@@ -941,14 +1045,40 @@ public:
           }
         });
 
-        // contribution for each component
-        for (const auto& [outflow_o, source_o] : _outflow_o) {
-          auto outflow = std::invoke(outflow_o);
-          const auto& ltest_node_out = source_o.to_local_basis_node(ltest_out);
-          _fe_cache->bind(ltest_node_out.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
-          const auto& psi_o = _fe_cache->evaluateFunction(q);
-          for (std::size_t dof = 0; dof != ltest_node_out.size(); ++dof)
-            lresidual_out.accumulate(ltest_node_out, dof, outflow * psi_o[dof] * factor);
+        if (not _outflow_o.empty()) {
+          // contribution for each component
+          for (const auto& [outflow_o, source_o] : _outflow_o) {
+            auto outflow = std::invoke(outflow_o);
+            const auto& ltest_node_out = source_o.to_local_basis_node(ltest_out);
+            _fe_cache->bind(ltest_node_out.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
+            const auto& psi_o = _fe_cache->evaluateFunction(q);
+            for (std::size_t dof = 0; dof != ltest_node_out.size(); ++dof)
+              lresidual_out.accumulate(ltest_node_out, dof, outflow * psi_o[dof] * factor);
+          }
+        }
+
+        if (not _m_reaction_o.empty()) {
+          // contribution for each component
+          for (const auto& [reaction_o, source_o] : _m_reaction_o) {
+            auto reaction = std::invoke(reaction_o);
+            const auto& ltest_node_out = source_o.to_local_basis_node(ltest_out);
+            _fe_cache->bind(ltest_node_out.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
+            const auto& psi_o = _fe_cache->evaluateFunction(q);
+            for (std::size_t dof = 0; dof != ltest_node_out.size(); ++dof)
+              lresidual_out.accumulate(ltest_node_out, dof, -reaction * psi_o[dof] * factor);
+          }
+        }
+
+        if (not _m_storage_o.empty()) {
+          // contribution for each component
+          for (const auto& [storage_o, source_o] : _m_storage_o) {
+            auto storage = std::invoke(storage_o);
+            const auto& ltest_node_out = source_o.to_local_basis_node(ltest_out);
+            _fe_cache->bind(ltest_node_out.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
+            const auto& psi_o = _fe_cache->evaluateFunction(q);
+            for (std::size_t dof = 0; dof != ltest_node_out.size(); ++dof)
+              lresidual_out.accumulate(ltest_node_out, dof, storage * psi_o[dof] * factor);
+          }
         }
       }
     }
@@ -1024,18 +1154,24 @@ public:
         if (intersection.neighbor()) { // interior skeleton case
           if (domain_set_o.contains(_compartment2domain[compartment_i]))
             return;
-          for (std::size_t compartment_o = 0; compartment_o != _compartment2domain.size();
-               ++compartment_o) {
+          for (std::size_t compartment_o = 0; compartment_o != _compartment2domain.size(); ++compartment_o) {
             auto domain_o = _compartment2domain[compartment_o];
-            if (compartment_i != compartment_o and
-                (domain_set_o.contains(domain_o) or domain_set_i.contains(domain_o)) and
-                eq.outflow[compartment_o])
-              if (not eq.outflow[compartment_o].compartment_jacobian.empty())
+            if ((compartment_i != compartment_o) and (domain_set_o.contains(domain_o) or domain_set_i.contains(domain_o)) ) {
+              if( (not eq.outflow.empty()) and eq.outflow[compartment_o])
                 _outflow_i.emplace_back(eq.outflow[compartment_o], eq);
+              if( (not eq.m_reaction.empty()) and eq.m_reaction[compartment_o])
+                _m_reaction_i.emplace_back(eq.m_reaction[compartment_o], eq);
+              if( (not eq.m_storage.empty()) and eq.m_storage[compartment_o])
+                _m_storage_i.emplace_back(eq.m_storage[compartment_o], eq);
+            }
           }
-        } else if (eq.outflow[compartment_i]) { // boundary case
-          if (not eq.outflow[compartment_i].compartment_jacobian.empty())
+        } else { // boundary case
+          if ( (not eq.outflow.empty()) and  eq.outflow[compartment_i])  
             _outflow_i.emplace_back(eq.outflow[compartment_i], eq);
+          if ( (not eq.m_reaction.empty()) and eq.m_reaction[compartment_i])  
+            _m_reaction_i.emplace_back(eq.m_reaction[compartment_i], eq);
+          if ( (not eq.m_storage.empty()) and eq.m_storage[compartment_i])  
+            _m_storage_i.emplace_back(eq.m_reaction[compartment_i], eq);
         }
       });
 
@@ -1052,18 +1188,22 @@ public:
           return;
 
         // accumulate outflow part into residual (interior skeleton case)
-        for (std::size_t compartment_i = 0; compartment_i != _compartment2domain.size();
-             ++compartment_i) {
+        for (std::size_t compartment_i = 0; compartment_i != _compartment2domain.size();  ++compartment_i) {
           auto domain_i = _compartment2domain[compartment_i];
-          if (compartment_i != compartment_o and
-              (domain_set_o.contains(domain_i) or domain_set_i.contains(domain_i)) and
-              eq.outflow[compartment_i])
-            if (not eq.outflow[compartment_i].compartment_jacobian.empty())
+          if ( (compartment_i != compartment_o) and (domain_set_o.contains(domain_i) or domain_set_i.contains(domain_i)) ){ 
+            if( (not eq.outflow.empty()) and eq.outflow[compartment_i])
               _outflow_o.emplace_back(eq.outflow[compartment_i], eq);
+            if( (not eq.m_reaction.empty()) and eq.m_reaction[compartment_i])
+              _m_reaction_o.emplace_back(eq.m_reaction[compartment_i], eq);
+            if( (not eq.m_storage.empty()) and eq.m_storage[compartment_i])
+              _m_storage_o.emplace_back(eq.m_storage[compartment_i], eq);
+          }
         }
       });
 
-    if (_outflow_i.empty() and _outflow_o.empty())
+    if (    _outflow_i.empty()    and _outflow_o.empty() 
+        and _m_reaction_i.empty() and _m_reaction_o.empty()
+        and _m_storage_i.empty()  and _m_storage_o.empty())
       return;
 
     auto intorder = integrationOrder(ltrial_in, ltrial_out);
@@ -1077,7 +1217,7 @@ public:
       _local_values_in->position = _local_values_out->position = geo_f.global(position_f);
       _local_values_out->normal = -(_local_values_in->normal = normal);
 
-      if (not _outflow_i.empty()) {
+      if ( (not _outflow_i.empty()) or (not _m_reaction_i.empty()) or (not _m_storage_i.empty())) {
         auto quad_proj = [&](auto quad_pos){ return geo_in_i.global(quad_pos); };
         const auto position_i = quad_proj(position_f);
         if (not geojacinv_opt_i or not geo_i.affine())
@@ -1127,9 +1267,59 @@ public:
                                      jac * phi[dof_i] * psi[dof_j] * factor);
           }
         }
+
+        if (not _m_reaction_i.empty()) {
+          // contribution for each component
+          for (const auto& [m_reaction_i, source_i] : _m_reaction_i) {
+            const auto& ltest_node_in = source_i.to_local_basis_node(ltest_in);
+            _fe_cache->bind(ltest_node_in.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
+            const auto& psi = _fe_cache->evaluateFunction(q);
+            for (const auto& jacobian_entry : m_reaction_i.compartment_jacobian) {
+              auto jac = jacobian_entry();
+              bool do_self_basis = jacobian_entry.wrt.to_local_basis_node(ltrial_out).size() == 0;
+              const auto& ltrial = do_self_basis ? ltrial_in : ltrial_out;
+              auto& ljacobian = do_self_basis ? ljacobian_in_in : ljacobian_in_out;
+              const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
+              _fe_cache->bind(wrt_lbasis.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
+              const auto& phi = _fe_cache->evaluateFunction(q);
+              for (std::size_t dof_i = 0; dof_i != ltest_node_in.size(); ++dof_i)
+                for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
+                  ljacobian.accumulate(ltest_node_in,
+                                      dof_i,
+                                      wrt_lbasis,
+                                      dof_j,
+                                      -jac * phi[dof_i] * psi[dof_j] * factor);
+            }
+          }
+        }
+
+        if (not _m_storage_i.empty()) {
+          // contribution for each component
+          for (const auto& [m_storage_i, source_i] : _m_storage_i) {
+            const auto& ltest_node_in = source_i.to_local_basis_node(ltest_in);
+            _fe_cache->bind(ltest_node_in.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
+            const auto& psi = _fe_cache->evaluateFunction(q);
+            for (const auto& jacobian_entry : m_storage_i.compartment_jacobian) {
+              auto jac = jacobian_entry();
+              bool do_self_basis = jacobian_entry.wrt.to_local_basis_node(ltrial_out).size() == 0;
+              const auto& ltrial = do_self_basis ? ltrial_in : ltrial_out;
+              auto& ljacobian = do_self_basis ? ljacobian_in_in : ljacobian_in_out;
+              const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
+              _fe_cache->bind(wrt_lbasis.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
+              const auto& phi = _fe_cache->evaluateFunction(q);
+              for (std::size_t dof_i = 0; dof_i != ltest_node_in.size(); ++dof_i)
+                for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
+                  ljacobian.accumulate(ltest_node_in,
+                                      dof_i,
+                                      wrt_lbasis,
+                                      dof_j,
+                                      jac * phi[dof_i] * psi[dof_j] * factor);
+            }
+          }
+        }
       }
 
-      if (not _outflow_o.empty()) {
+      if ( (not _outflow_o.empty()) or (not _m_reaction_o.empty()) or (not _m_storage_o.empty())) {
         auto quad_proj = [&](auto quad_pos){ return geo_in_o.global(quad_pos); };
         const auto position_o = quad_proj(position_f);
         if (not geojacinv_opt_o or not geo_o.affine())
@@ -1155,25 +1345,75 @@ public:
           }
         });
 
-        for (const auto& [outflow_o, source_o] : _outflow_o) {
-          const auto& ltest_node_out = source_o.to_local_basis_node(ltest_out);
-          _fe_cache->bind(ltest_node_out.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
-          const auto& psi = _fe_cache->evaluateFunction(q);
-          for (const auto& jacobian_entry : outflow_o.compartment_jacobian) {
-            auto jac = jacobian_entry();
-            bool do_self_basis = jacobian_entry.wrt.to_local_basis_node(ltrial_in).size() == 0;
-            const auto& ltrial = do_self_basis ? ltrial_out : ltrial_in;
-            auto& ljacobian = do_self_basis ? ljacobian_out_out : ljacobian_out_in;
-            const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
-            _fe_cache->bind(wrt_lbasis.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
-            const auto& phi = _fe_cache->evaluateFunction(q);
-            for (std::size_t dof_i = 0; dof_i != ltest_node_out.size(); ++dof_i)
-              for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
-                ljacobian.accumulate(ltest_node_out,
-                                     dof_i,
-                                     wrt_lbasis,
-                                     dof_j,
-                                     jac * phi[dof_i] * psi[dof_j] * factor);
+        if (not _outflow_o.empty()) {
+          for (const auto& [outflow_o, source_o] : _outflow_o) {
+            const auto& ltest_node_out = source_o.to_local_basis_node(ltest_out);
+            _fe_cache->bind(ltest_node_out.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
+            const auto& psi = _fe_cache->evaluateFunction(q);
+            for (const auto& jacobian_entry : outflow_o.compartment_jacobian) {
+              auto jac = jacobian_entry();
+              bool do_self_basis = jacobian_entry.wrt.to_local_basis_node(ltrial_in).size() == 0;
+              const auto& ltrial = do_self_basis ? ltrial_out : ltrial_in;
+              auto& ljacobian = do_self_basis ? ljacobian_out_out : ljacobian_out_in;
+              const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
+              _fe_cache->bind(wrt_lbasis.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
+              const auto& phi = _fe_cache->evaluateFunction(q);
+              for (std::size_t dof_i = 0; dof_i != ltest_node_out.size(); ++dof_i)
+                for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
+                  ljacobian.accumulate(ltest_node_out,
+                                      dof_i,
+                                      wrt_lbasis,
+                                      dof_j,
+                                      jac * phi[dof_i] * psi[dof_j] * factor);
+            }
+          }
+        }
+
+        if (not _m_reaction_o.empty()) {
+          for (const auto& [m_reaction_o, source_o] : _m_reaction_o) {
+            const auto& ltest_node_out = source_o.to_local_basis_node(ltest_out);
+            _fe_cache->bind(ltest_node_out.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
+            const auto& psi = _fe_cache->evaluateFunction(q);
+            for (const auto& jacobian_entry : m_reaction_o.compartment_jacobian) {
+              auto jac = jacobian_entry();
+              bool do_self_basis = jacobian_entry.wrt.to_local_basis_node(ltrial_in).size() == 0;
+              const auto& ltrial = do_self_basis ? ltrial_out : ltrial_in;
+              auto& ljacobian = do_self_basis ? ljacobian_out_out : ljacobian_out_in;
+              const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
+              _fe_cache->bind(wrt_lbasis.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
+              const auto& phi = _fe_cache->evaluateFunction(q);
+              for (std::size_t dof_i = 0; dof_i != ltest_node_out.size(); ++dof_i)
+                for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
+                  ljacobian.accumulate(ltest_node_out,
+                                      dof_i,
+                                      wrt_lbasis,
+                                      dof_j,
+                                      -jac * phi[dof_i] * psi[dof_j] * factor);
+            }
+          }
+        }
+
+        if (not _m_storage_o.empty()) {
+          for (const auto& [m_storage_o, source_o] : _m_storage_o) {
+            const auto& ltest_node_out = source_o.to_local_basis_node(ltest_out);
+            _fe_cache->bind(ltest_node_out.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
+            const auto& psi = _fe_cache->evaluateFunction(q);
+            for (const auto& jacobian_entry : m_storage_o.compartment_jacobian) {
+              auto jac = jacobian_entry();
+              bool do_self_basis = jacobian_entry.wrt.to_local_basis_node(ltrial_in).size() == 0;
+              const auto& ltrial = do_self_basis ? ltrial_out : ltrial_in;
+              auto& ljacobian = do_self_basis ? ljacobian_out_out : ljacobian_out_in;
+              const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
+              _fe_cache->bind(wrt_lbasis.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
+              const auto& phi = _fe_cache->evaluateFunction(q);
+              for (std::size_t dof_i = 0; dof_i != ltest_node_out.size(); ++dof_i)
+                for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
+                  ljacobian.accumulate(ltest_node_out,
+                                      dof_i,
+                                      wrt_lbasis,
+                                      dof_j,
+                                      jac * phi[dof_i] * psi[dof_j] * factor);
+            }
           }
         }
       }
