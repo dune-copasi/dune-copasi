@@ -13,7 +13,7 @@ Solver for reaction-diffusion systems in multiple compartments
  * Using the finite element method
  * Output in the VTK format
 
-Get started [here](https://dune-copasi.netlify.app/docs//install_use).
+Get started [here](https://dune-copasi.netlify.app/docs/category/docs).
 
 ---
 
