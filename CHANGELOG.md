@@ -30,11 +30,11 @@ Types of changes
 
 ### Added
 
- - Numerical jacobians !203
+ - Numerical jacobians !204
 
 ### Fixed
 
- - Find muParser was failing if compuler default standard was not specified !202
+ - Find muParser was failing if compuler default standard was not specified !203
 
 ## [2.0.1] ([git-diff][2.0.1-diff]) - 2024-04-22
 
