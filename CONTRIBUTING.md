@@ -15,7 +15,7 @@ contributing single features can be summarized by following these steps:
    proposal in several tasks. Use a suitable issue template for your proposal.
 2. In the created issue, discuss with others the whole idea of your proposal.
    This is important because you may get input from someone that know the
-   software on how to do it effectively, and poimting out considerations you may
+   software on how to do it effectively, and pointing out considerations you may
    have missed. It also synchronizes ideas so that changes are more easily
    accepted.
 3. **CODE**: Implement what you proposed :-) in a new branch.
