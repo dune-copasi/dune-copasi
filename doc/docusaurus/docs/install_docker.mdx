@@ -173,6 +173,9 @@ git checkout latest
 
 # build a new docker image from modified code (tag: dune-copasi)
 docker build -t dune-copasi .
+
+# (optional) run unit, system and tutorial tests on the new docker image
+docker build --target test-env -t dune-copasi-test .
 ```
 
 This will build all dune dependencies as well as the new modified version of the `dune-copasi` executable within the docker container.

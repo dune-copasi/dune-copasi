@@ -107,9 +107,6 @@ ENV DUNE_ENABLE_PYTHONBINDINGS=OFF
 ENV DUNE_COPASI_DISABLE_FETCH_PACKAGE_parafields=OFF
 RUN ./dune-copasi/.ci/install $DUNE_OPTS_FILE
 
-# tests installer
-# RUN ./dune-copasi/.ci/test $DUNE_OPTS_FILE
-
 # move results to a -lighter- production image
 FROM ${PRODUCTION_BASE_IMAGE} AS production-env
 LABEL maintainer="santiago@dune-project.org"
@@ -135,5 +132,16 @@ RUN dune-copasi --version
 
 # set default mout point to be /dunecopasi (same as workdir!)
 VOLUME ["/dunecopasi"]
+# run dune-copasi by default when running the image
+ENTRYPOINT ["dune-copasi"]
+
+# test dune-copasi from the build-env
+FROM build-env AS test-env
+# tests installer
+RUN ./dune-copasi/.ci/test $DUNE_OPTS_FILE
+
+# run version command and expect no error signal
+RUN dune-copasi --version
+
 # run dune-copasi by default when running the image
 ENTRYPOINT ["dune-copasi"]

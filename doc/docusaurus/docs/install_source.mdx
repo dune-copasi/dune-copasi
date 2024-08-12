@@ -245,7 +245,13 @@ export CMAKE_INSTALL_PREFIX=/opt/dune
 # configure and build dune modules                              (go grab a coffee ☕)
 ./dune-common/bin/dunecontrol --opts=dune-copasi/dune-copasi.opts all
 
-# install binaries and libraries                                (may require sudo 🔒)
+# (optional) build tests
+./dune-common/bin/dunecontrol --opts=dune-copasi/dune-copasi.opts --module=dune-copasi cmake -t build_tests
+
+# (optional) run unit, system and tutorial tests on built binaries
+./dune-common/bin/dunecontrol --opts=dune-copasi/dune-copasi.opts --module=dune-copasi bexec ctest
+
+# install libraries and binaries                                (may require sudo 🔒)
 ./dune-common/bin/dunecontrol --opts=dune-copasi/dune-copasi.opts bexec make install
 
 # remove source and build files
