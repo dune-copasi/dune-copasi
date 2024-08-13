@@ -10,6 +10,10 @@ import TabItem from '@theme/TabItem';
 import CodeBlock from '@theme/CodeBlock';
 import ConfigOpts from './ConfigOpts.js'
 
+:::tip Tutorials
+If you're new to DuneCopasi, we recommend starting with our [Tutorials](/tutorials).
+:::
+
 The simulator may be configured by passing a collection of `key=value` pair that change the behavior of the solver.
 These options may be passed via a configuration file with the [DUNE `ini` file convention](ini_file) or by the command line `--{key}={value}`. Note that command line arguments take precedence over the config file parameters.
 
@@ -126,6 +130,11 @@ key = a, b: sin(a)*sin(b)
 
 ## Key Options
 
+:::warning Search bar
+Here you will find a comprehensive list of **_all the available options_** for running DuneCopasi simulations.
+This guide serves as a reference and isn't intended to be read sequentially. To find specific features or keywords within these options, use the search bar located at the top right of the website.
+:::
+
 ::::info Placeholders
 Whenever a key in this documentation contains curly braces `{...}` it means that it is a placeholder for a user defined key.
 
@@ -133,7 +142,6 @@ Whenever a key in this documentation contains curly braces `{...}` it means that
 The option `compartments.domain.expression` means that the `{cmp}` placeholder in `compartments.{cmp}.expression` is being replaced with the `domain` keyword and is a valid option.
 :::
 ::::
-
 
 ::::info Multiple keys
 * Whenever a key in this documentation contains square brackets `[...]` it means that any of the options expanded by the contents separated by `|` is a valid option.

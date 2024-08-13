@@ -62,3 +62,36 @@ When passing configuration options to the command line arguments like `--config=
     }
   ]}
 </ExampleTerminal>
+
+
+:::warning[Simulation Failed?]
+A failed simulation may look instead like this:
+
+<ExampleTerminal prompt="~/dune-copasi$" title="Running DuneCopasi (failure)">
+  {[
+    {
+      input: "dune-copasi --config=config.ini",
+      output: [
+      "[2024-03-21 12:38:32.479] [info] Reading configuration file '~/dune-copasi/config.ini'",
+      "[2024-03-21 12:38:32.479] [info] Starting dune-copasi (version: 2.0.0)",
+      "[2024-03-21 12:38:32.580] [info] Axis names are set to: [\"x\", \"y\", \"z\"]",
+      "...",
+      "...",
+      "[2024-03-21 12:38:32.723] [error] Dune reported error:",
+      "[2024-03-21 12:38:32.723] [error]   Message:        Basis has dimension 0, make sure to have at least one 'scalar_field' with a non-empty 'compartment'",
+      "[2024-03-21 12:38:32.723] [error]   Exception type: Dune::InvalidStateException",
+      "[2024-03-21 12:38:32.723] [error] dune-copasi finished with some errors :(",
+      ]
+    }
+  ]}
+</ExampleTerminal>
+
+If your simulation failed, it's worth to ask yourself the following questions:
+
+* What are the contents of your configuration options and what's the expected behavior?
+* What are the **warning** and **error** logs provided by program? Do they give you hints on how to solve the problem?
+* What is stage of the simulation where the problem failed?
+
+In particular, remember that providing no configuration options gives an invalid simulation
+(what would be the simulation for this?), therefore the program rightfully fails.
+:::
