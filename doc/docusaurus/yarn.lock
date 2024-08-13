@@ -3795,10 +3795,10 @@ dot-prop@^6.0.1:
   resolved "https://gitlab.dune-project.org/api/v4/projects/819/packages/npm/@copasi/dune-copasi-wasm/-/@copasi/dune-copasi-wasm-2.0.1-giteaaab17f.tgz#0c3386208c9ce2a094465c35298caedb538c3bba"
   integrity sha1-DDOGIIyc4qCURlw1KYyu21OMO7o=
 
-"dune-copasi-wasm-v2@npm:@copasi/dune-copasi-wasm@2.0.0":
-  version "2.0.0"
-  resolved "https://gitlab.dune-project.org/api/v4/projects/819/packages/npm/@copasi/dune-copasi-wasm/-/@copasi/dune-copasi-wasm-2.0.0.tgz#d64606bac3889344deee6c4ad32b0d1526a7f526"
-  integrity sha1-1kYGusOIk0Te7mxK0ysNFSan9SY=
+"dune-copasi-wasm-v2@npm:@copasi/dune-copasi-wasm@2.0":
+  version "2.0.1"
+  resolved "https://gitlab.dune-project.org/api/v4/projects/819/packages/npm/@copasi/dune-copasi-wasm/-/@copasi/dune-copasi-wasm-2.0.1.tgz#4a0fa0f4d81a0661e71c0193a1e8d657a5f452e6"
+  integrity sha1-Sg+g9NgaBmHnHAGToejWV6X0UuY=
 
 duplexer@^0.1.2:
   version "0.1.2"

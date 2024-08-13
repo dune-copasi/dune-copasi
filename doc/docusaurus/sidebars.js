@@ -18,10 +18,10 @@ module.exports = {
           items: [
             {
               type: "category",
-              label: "Installation",
+              label: "Installation Options",
               link: {
-                type: "generated-index",
-                slug: "/category/docs/install",
+                type: "doc",
+                id: "install",
               },
               items: [
                 "install_binary",
@@ -32,7 +32,7 @@ module.exports = {
             },
             {
               type: "category",
-              label: "Usage",
+              label: "Usage Options",
               link: {
                 type: "generated-index",
                 slug: "/category/docs/use",

@@ -1,0 +1,202 @@
+---
+id: install
+title: Installation Options
+description: What are the installation options?
+sidebar_label: Install
+tags:
+  - Docker
+  - Debian
+  - GUI
+  - API
+  - CLI
+---
+
+import DocCardList from '@theme/DocCardList';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import {useCurrentSidebarCategory} from '@docusaurus/theme-common';
+import React, { useState } from 'react';
+
+:::tip CLI on the Web Browser
+If you're interested in exploring and using the [Command Line Interface (CLI)](use_cli) without installation, you're in luck! The [Web Browser executable](try) allows you to interact with the CLI directly from any device. No setup required—just open your browser and start experimenting!
+:::
+
+
+## Tailored Recommendations
+
+Getting started with DuneCopasi might seem daunting due to its wide range of options.
+However, by making selections below, you'll receive tailored recommendations that fit your needs and use case.
+
+export const Checklist = ({ title, options, selectedOptions, setSelectedOptions }) => {
+  const handleCardClick = (value) => {
+    setSelectedOptions((prev) =>
+      prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]
+    );
+  };
+
+  return (
+    <div className="container">
+      <div className="card-description-container">
+        <h4 className="card-title">{title}</h4>
+      </div>
+      <div className="card-list">
+        {options.map(({ value, label }) => (
+          <div
+            key={value}
+            className={`card-container ${selectedOptions.includes(value) ? 'selected' : ''}`}
+            onClick={() => handleCardClick(value)}
+          >
+            <input
+              type="checkbox"
+              value={value}
+              checked={selectedOptions.includes(value)}
+              onChange={() => handleCardClick(value)}
+              style={{ display: 'none' }}
+            />
+            <div className="card-style">
+              <div className="card-body">
+                <h4 className="card-title">{label}</h4>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export const FilterDocCardList = ({ ids }) => (
+  <DocCardList
+    items={useCurrentSidebarCategory().items.filter(
+      item => !ids || ids.length === 0 || ids.includes(item.docId)
+    )}
+  />
+);
+
+export const getRecommendations = (os, usage, user) => {
+  const recommendations = [];
+
+  if (usage.includes('GUI')) {
+    recommendations.push('install_binary');
+  }
+
+  if (usage.includes('CLI')) {
+    recommendations.push('install_docker');
+    if ((os.includes('Linux') || os.includes('macOS')) && user.includes('user')) {
+      recommendations.push('install_package');
+    }
+  }
+  if (usage.includes('API')) {
+    recommendations.push('install_docker');
+    if (os.includes('Linux') || os.includes('macOS')) {
+      recommendations.push('install_source');
+    }
+  }
+
+  if (user.includes('dev')) {
+    recommendations.push('install_docker');
+    if (os.includes('Linux') || os.includes('macOS')) {
+      recommendations.push('install_source');
+    }
+  }
+
+  if (recommendations.length === 0) {
+    recommendations.push('install_binary');
+  }
+
+  return recommendations;
+};
+
+export function TailoredRecommendation() {
+  const [osSelection, setOsSelection] = useState([]);
+  const [usageSelection, setUsageSelection] = useState([]);
+  const [userSelection, setUserSelection] = useState([]);
+
+  const osOptions = [
+    { value: 'Windows', label: 'Windows' },
+    { value: 'macOS', label: 'macOS' },
+    { value: 'Linux', label: 'Linux' },
+  ];
+
+  const usageOptions = [
+    { value: 'GUI', label: 'Graphical User Interface' },
+    { value: 'CLI', label: 'Command Line Interface' },
+    { value: 'API', label: 'Application Public Interface' },
+  ];
+
+  const userOptions = [
+    { value: 'user', label: 'Simulate Models' },
+    { value: 'dev', label: 'Develop New Features' },
+  ];
+
+  const recommendations = getRecommendations(osSelection, usageSelection, userSelection);
+
+  return (
+    <div>
+      <Checklist
+        title="I want to use the"
+        options={usageOptions}
+        selectedOptions={usageSelection}
+        setSelectedOptions={setUsageSelection}
+      />
+      <Checklist
+        title="My Operating System is"
+        options={osOptions}
+        selectedOptions={osSelection}
+        setSelectedOptions={setOsSelection}
+      />
+      <Checklist
+        title="I want to"
+        options={userOptions}
+        selectedOptions={userSelection}
+        setSelectedOptions={setUserSelection}
+      />
+
+      <div className="recommendation-container">
+        <h3 className="recommendation-title">Recommendations:</h3>
+        {recommendations.length > 0 && (
+          <FilterDocCardList ids={recommendations} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+<TailoredRecommendation />
+
+
+
+## Installation Guides by Category
+
+Explore the installation options organized by different categories:
+
+### By usage interface
+
+<Tabs className="unique-tabs">
+  <TabItem value="GUI" label="Graphical User Interface">
+    <FilterDocCardList ids = {['install_binary']}/>
+  </TabItem>
+  <TabItem value="CLI" label="Command Line Interface" default>
+    <FilterDocCardList ids = {['install_docker', 'install_package']}/>
+  </TabItem>
+  <TabItem value="API" label="Application User Interface">
+    <FilterDocCardList ids = {['install_docker', 'install_source']}/>
+  </TabItem>
+</Tabs>
+
+### By operating system
+
+<Tabs className="unique-tabs">
+  <TabItem value="Windows" label="Windows">
+    <FilterDocCardList ids = {['install_binary', 'install_docker']}/>
+  </TabItem>
+  <TabItem value="macOS" label="macOS" default>
+    <FilterDocCardList ids = {['install_docker', 'install_source']}/>
+  </TabItem>
+  <TabItem value="Debian" label="Linux (Debian 11)">
+    <FilterDocCardList ids = {['install_package', 'install_docker', 'install_source']}/>
+  </TabItem>
+  <TabItem value="Linux" label="Linux (Other)">
+    <FilterDocCardList ids = {['install_docker', 'install_source']}/>
+  </TabItem>
+</Tabs>

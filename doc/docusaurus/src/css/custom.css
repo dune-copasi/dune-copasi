@@ -38,6 +38,124 @@
   padding: 0 var(--ifm-pre-padding);
 }
 
+.unique-tabs .tabs__item {
+  line-height: 16px;
+  margin-right: 8px;
+}
+
+.unique-tabs .tabs__item--active {
+  border: 0;
+  color: #fff;
+  border-radius: var(--ifm-global-radius);
+  background-color: var(--ifm-tabs-color-active);
+}
+
+/* General styles for installation cards */
+.card-container {
+  flex: 1 1 calc(33.333% - 1rem);
+  max-width: calc(33.333% - 1rem);
+  background-color: var(--ifm-card-background-color);
+  border: 1px solid var(--ifm-card-border-color);
+  border-radius: var(--ifm-card-border-radius);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+  padding: 10px;
+  box-shadow: 0 1.5px 3px 0 rgb(0 0 0 / 15%);
+  transform: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-width: 150px;
+}
+
+.card-container.selected {
+  border-color: var(--ifm-color-primary);
+  box-shadow: 0 0 0 3px var(--ifm-color-primary-light);
+  transform: translateY(-5px);
+}
+
+/* Description styles */
+.card-description-container {
+  flex: 1 1 100%;
+  background-color: var(--ifm-color-primary);
+  color: white;
+  border-radius: var(--ifm-card-border-radius);
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  margin-bottom: 1rem;
+  min-width: 150px;
+  box-sizing: border-box;
+}
+
+/* Card list styles */
+.card-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+/* Card styles */
+.card-style {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 1.5rem;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+/* Card body styles */
+.card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+/* Card title styles */
+.card-title {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--ifm-heading-color);
+}
+
+/* Container styles */
+.container {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 2rem;
+}
+
+/* Recommendation container styles */
+.recommendation-container {
+  margin-top: 2rem;
+  padding: 1rem;
+  border: 1px solid var(--ifm-color-primary);
+  border-radius: var(--ifm-card-border-radius);
+  background-color: var(--ifm-card-background-color);
+}
+
+/* Recommendation title styles */
+.recommendation-title {
+  font-size: 1.5rem;
+  margin: 0 0 1rem 0;
+  color: var(--ifm-heading-color);
+}
+
+/* Recommendation item styles */
+.recommendation-item {
+  margin: 0.5rem 0;
+}
+
 /* GitHub icon */
 .header-github-link:hover {
   opacity: 0.6;
