@@ -11,6 +11,7 @@ tags:
 
 import ExampleTerminal from '@site/src/components/ExampleTerminal'
 import DuneCopasiHelp from './DuneCopasiHelp'
+import CodeBlock from '@theme/CodeBlock';
 
 One of the easiest form to use our executables for [CLI usage](use_cli), is by downloading and running a
 [Docker Container](https://www.docker.com/). This way, the software is boundled in a container
@@ -99,20 +100,12 @@ This working directory will be accessible to your local text editor, paraview as
 well as to the `dune-copasi` executable within the docker container. Now, you can
 move or create your configuration files into it at will, for example:
 
-<ExampleTerminal prompt="~/workdir$" title="Creating a configuration file">
-  {[{
-      input: [
-        "echo \"",
-        "[grid]",
-        "dimension = 2",
-        "...",
-        "[model.time_step_operator]",
-        "time_begin = 1",
-        "time_end = 4",
-        "\" > config.ini"],
-    }
-  ]}
-</ExampleTerminal>
+import TestINI from '!!raw-loader!/tutorials/assets/ini/test.ini';
+
+<CodeBlock language="ini" title="~/workdir/config.ini" showLineNumbers>
+{TestINI}
+</CodeBlock>
+
 
 ### Run the program
 
