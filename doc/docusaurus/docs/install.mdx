@@ -82,7 +82,7 @@ export const getRecommendations = (os, usage, user) => {
 
   if (usage.includes('CLI')) {
     recommendations.push('install_docker');
-    if ((os.includes('Linux') || os.includes('macOS')) && user.includes('user')) {
+    if (os.includes('Linux') && user.includes('user')) {
       recommendations.push('install_package');
     }
   }
