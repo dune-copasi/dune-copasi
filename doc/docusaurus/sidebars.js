@@ -49,8 +49,8 @@ module.exports = {
           type: "category",
           label: "Configuration Options",
           link: {
-            type: "generated-index",
-            slug: "/category/docs/config",
+            type: "doc",
+            id: "config",
           },
           items: ["ini_file", "param_tree", "input_data", "math_expr"],
         },

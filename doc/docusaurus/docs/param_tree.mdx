@@ -3,6 +3,9 @@ id: param_tree
 title: List of Options
 description: List of key-value pairs to configure the program
 sidebar_label: Options
+tags:
+  - API
+  - CLI
 ---
 
 import Tabs from '@theme/Tabs';
@@ -10,9 +13,9 @@ import TabItem from '@theme/TabItem';
 import CodeBlock from '@theme/CodeBlock';
 import ConfigOpts from './ConfigOpts.js'
 
-:::tip Tutorials
-If you're new to DuneCopasi, we recommend starting with our [Tutorials](/tutorials).
-:::
+::::note CLI Usage
+This documentation page is intended for the [Command Line Interface (CLI)](use_cli). If you're new to DuneCopasi, we recommend starting with our [Tutorials](/tutorials).
+::::
 
 The simulator may be configured by passing a collection of `key=value` pair that change the behavior of the solver.
 These options may be passed via a configuration file with the [DUNE `ini` file convention](ini_file) or by the command line `--{key}={value}`. Note that command line arguments take precedence over the config file parameters.

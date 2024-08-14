@@ -3,6 +3,9 @@ id: math_expr
 title: Mathematical Expressions
 description: Allowed syntax for mathematical expressions
 sidebar_label: Math Expressions
+tags:
+  - API
+  - CLI
 ---
 
 import Markdown from 'react-markdown';
@@ -13,8 +16,14 @@ import CodeBlockLine from '@theme/CodeBlock/Line';
 
 export const JoinDetailsArray = (a) => {return Array.isArray(a) ? a.join('\n') : a}
 
+
 <!-- somehow the markdown title is not rendered :-| so this is a workaround -->
 # Math Expressions
+
+
+::::note CLI Usage
+This documentation page is intended for the [Command Line Interface (CLI)](use_cli). If you're new to DuneCopasi, we recommend starting with our [Tutorials](/tutorials).
+::::
 
 Mathematical expressions `{math-expr}` are permitted on different arguments of the
 [configuration options](param_tree). They consist of a string

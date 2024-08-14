@@ -3,12 +3,19 @@ id: input_data
 title: Input Data
 description: List of possible to input data
 sidebar_label: Input Data
+tags:
+  - API
+  - CLI
 ---
 
 import ConfigOptsJSON from './assets/config_opts.json';
 import Markdown from 'react-markdown';
 
 export const JoinDetailsArray = (a) => {return Array.isArray(a) ? a.join('\n') : a}
+
+::::note CLI Usage
+This documentation page is intended for the [Command Line Interface (CLI)](use_cli). If you're new to DuneCopasi, we recommend starting with our [Tutorials](/tutorials).
+::::
 
 Several input data files in the `dune-copasi` program are possible:
 

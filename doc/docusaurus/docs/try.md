@@ -2,6 +2,8 @@
 id: try
 title: Try it online!
 sidebar_label: Try it online!
+tags:
+  - CLI
 ---
 
 import WasmInterface from '@site/src/components/WasmInterface.js'
