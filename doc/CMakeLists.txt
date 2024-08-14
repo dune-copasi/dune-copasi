@@ -39,7 +39,8 @@ if (TARGET Dune::Copasi::Executable)
       TARGET              Dune::Copasi::Executable
       WORKING_DIRECTORY   "${CMAKE_CURRENT_BINARY_DIR}/tutorials/ini/"
       CMD_ARGS            --config=EP_simulation1.ini
-                          --model.time_step_operator.time_end=10)
+                          --model.time_step_operator.time_end=10
+                          --grid.refinement_level=6)
   endif()
 
 endif()
