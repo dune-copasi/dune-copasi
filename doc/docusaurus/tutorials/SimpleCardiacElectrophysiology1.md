@@ -249,7 +249,7 @@ Since these equations has no diffusion components, we simply don't define them r
 {EPSimulation1INI.split(/\n/).slice(70,76).join('\n')}
 </CodeBlock>
 
-For this problem we will use an implicit-Euler time-stepping scheme and then we define the initial and maximal time-step. The simulation will step from time-point ```time_start``` to ```time_end```. In our case this will be from $0$ (default value) to $800$. To solve the linear problem we will use the SuperLU direct solver. The last step is to write the solution to a file. This is done by initializing the writer.
+For this problem we will use an implicit-Euler time-stepping scheme and then we define the initial and maximal time-step. The simulation will step from time-point ```time_start``` to ```time_end```. In our case this will be from $0$ (default value) to $800$. To solve the linear problem we will use the BiCGSTAB iterative solver. The last step is to write the solution to a file. This is done by initializing the writer.
 
 <CodeBlock title="EP_simulation1.ini - writer" language="ini">
 {EPSimulation1INI.split(/\n/).slice(77,81).join('\n')}

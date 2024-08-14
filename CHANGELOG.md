@@ -107,7 +107,7 @@ _**Note**: This version is a complete re-write of the library based on a custom 
  - Improve support for Wasm binaries !170 !182
  - Move configuration options to a JSON file and use schema validator on it !174
  - Use Debian Bookworm in the CI !171
- - Conditinally test possion config if ExprTk is available !168
+ - Conditionally test possion config if ExprTk is available !168
  - Use (faster) integer based multi-domain grid !165
  - Simplify CMake usage !161 !162 !163
  - Improve version handler !159
@@ -145,7 +145,7 @@ _**Note**: This version is a complete re-write of the library based on a custom 
  - Compile final executable with different parsers !95
  - CMake problems on target installation !94
  - Support for {fmt} >= 9.0.0 !90 !91 !93 !129
- - Docker image now uses `dune-copas` executable instead of `dune-copasi-[sd|md]` !91
+ - Docker image now uses `dune-copasi` executable instead of `dune-copasi-[sd|md]` !91
  - CI jobs now passes since the re-write !89
  - Solver on linear problems was wrongly reused !85
 ### Removed
