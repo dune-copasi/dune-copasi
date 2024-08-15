@@ -102,8 +102,6 @@ public:
     for (std::size_t dof = 0; dof != lbasis.size(); ++dof) {
       // the codim to which this dof is attached to
       unsigned int codim = lkeys.localKey(dof).codim();
-      if (codim != 0)
-        continue;
       _data_volume->local_domain->position = entity.geometry().center();
       double constraint = _data_volume->constrain_fnc();
       if (constraint != std::numeric_limits<double>::max())
