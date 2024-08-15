@@ -20,7 +20,6 @@ module.exports = {
       crossorigin: 'anonymous',
     },
   ],
-
   themeConfig: {
     colorMode: {
       defaultMode: 'light',
@@ -214,6 +213,11 @@ module.exports = {
       },
       copyright: `Research funded by the German federal Ministry of Education and Research (BMBF) FKZ 031L0158</br>Copyright © ${new Date().getFullYear()} Ruprecht-Karls-Universität Heidelberg`,
     },
+    algolia: {
+      appId: 'IRW6Y0QZ4T',
+      apiKey: '337e98a36a0a23ef6736768305d2ace0',
+      indexName: 'dune-copasi',
+    },
   },
   presets: [
     [
@@ -256,8 +260,4 @@ module.exports = {
       },
     ],
   ],
-  plugins: [
-    require.resolve("@cmfcmf/docusaurus-search-local"),
-    process.env.NODE_ENV === 'production' && '@docusaurus/plugin-debug',
-  ].filter(Boolean),
 };

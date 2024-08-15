@@ -12,9 +12,9 @@
     "clear": "docusaurus clear"
   },
   "dependencies": {
-    "@cmfcmf/docusaurus-search-local": "^1.1.0",
     "@docusaurus/core": "3.0.0",
     "@docusaurus/preset-classic": "3.0.0",
+    "@docusaurus/theme-search-algolia": "^3.5.2",
     "@mdx-js/react": "^3.0.0",
     "@monaco-editor/react": "^4.6.0",
     "@zip.js/zip.js": "^2.7.40",
