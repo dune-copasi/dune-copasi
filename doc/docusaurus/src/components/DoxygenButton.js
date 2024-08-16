@@ -8,7 +8,7 @@ import { useActiveVersion } from '@docusaurus/plugin-content-docs/client'
 
 export default function DoxygenButton() {
   const activeVersion = useActiveVersion();
-  const doxygenPath = activeVersion.isLast ? "/doxygen?page="+activeVersion.label : activeVersion.path.replace("/docs/", "/doxygen?page=")
+  const doxygenPath = activeVersion.isLast ? "/api/"+activeVersion.label : activeVersion.path.replace("/docs/", "/api/")
 
   return (
     <div className="container">
@@ -19,9 +19,7 @@ export default function DoxygenButton() {
           "button button--outline button--secondary button--lg",
           "getStarted"
         )}
-        to={doxygenPath}
-        target="_blank"
-        rel="noopener noreferrer"
+        to={`${doxygenPath}`}
       >
         Go to ({activeVersion.label}) Online Doxygen Documentation
       </Link>

@@ -260,4 +260,7 @@ module.exports = {
       },
     ],
   ],
+  plugins: [
+    require.resolve('./plugins/docusaurus-plugin-doxygen')
+  ],
 };
