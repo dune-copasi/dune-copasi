@@ -294,7 +294,7 @@ deploy_wasm:debian_emscripten:
 deploy:documentation:
   image: ${DEPENDENCIES_IMAGE}
   variables:
-    <<: *debian_emscripten
+    <<: *debian_base
     GIT_STRATEGY: none
   stage: deploy
   script:
@@ -308,3 +308,36 @@ deploy:documentation:
     - !reference [.deploy_rules, rules]
     - changes:
       - doc/**/*
+
+build:doxygen:
+  <<: *update_version
+  image: ${DEPENDENCIES_IMAGE}
+  variables:
+    <<: *debian_clang
+  stage: build
+  script:
+    - |
+      cd doc/doxygen
+      cmake -S . -B build
+      cmake --build build
+      cd build/html/
+      zip -r doxygen.zip ./*
+  rules:
+    - !reference [.build_rules, rules]
+  artifacts:
+    paths:
+      - doc/doxygen/build/html/doxygen.zip
+
+deploy:doxygen:
+  image: ${DEPENDENCIES_IMAGE}
+  variables:
+    <<: *debian_clang
+  stage: deploy
+  script:
+    - |
+      VERSION=$(./util/version_handler.py --replace-prerelease="git")
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file doc/doxygen/build/html/doxygen.zip "${PACKAGE_REGISTRY}/${VERSION}/dune-copasi-doxygen.zip"
+  dependencies:
+    - build:doxygen
+  rules:
+    - !reference [.deploy_rules, rules]

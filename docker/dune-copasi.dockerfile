@@ -16,6 +16,7 @@ RUN export DEBIAN_FRONTEND=noninteractive; \
   && apt-get install --no-install-recommends --yes \
   binutils \
   build-essential \
+  doxygen \
   ca-certificates \
   cmake \
   codespell \
@@ -48,6 +49,7 @@ RUN export DEBIAN_FRONTEND=noninteractive; \
   python3-setuptools \
   software-properties-common \
   wget \
+  zip \
   && apt-get clean
 
 RUN  wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - \
