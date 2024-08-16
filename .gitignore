@@ -23,6 +23,7 @@ doc/docusaurus/build
 # Generated files
 doc/docusaurus/.docusaurus
 doc/docusaurus/.cache-loader
+doc/docusaurus/static/doxygen/
 
 doc/docusaurus/npm-debug.log*
 doc/docusaurus/yarn-debug.log*

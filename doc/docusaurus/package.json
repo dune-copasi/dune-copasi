@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "docusaurus": "docusaurus",
+    "fetch-doxygen": "node fetchDoxygen.js",
     "start": "docusaurus start",
-    "build": "docusaurus build",
+    "build": "npm run fetch-doxygen && docusaurus build",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",
     "serve": "docusaurus serve",
@@ -28,6 +29,7 @@
     "react-terminal": "^1.4.4",
     "rehype-katex": "7",
     "remark-math": "6",
+    "unzipper": "^0.12.3",
     "xterm-for-react": "^1.0.4"
   },
   "engines": {
