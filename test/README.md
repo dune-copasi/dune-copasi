@@ -20,11 +20,11 @@ cmake --build . --target build_system_tests
 ctest -L "system" --output-on-failure
 ```
 
-### Tutorial tests
+### Documentation tests
 
-The tutorial tests are configuration files from the tutorials that are run against the `dune-copasi` executable.
+The documentation tests are configuration files from the tutorials and docs that are run against the `dune-copasi` executable.
 
 ```bash
-cmake --build . --target build_tutorial_tests
-ctest -L "tutorial" --output-on-failure
+cmake --build . --target build_docs_tests
+ctest -L "docs" --output-on-failure
 ```

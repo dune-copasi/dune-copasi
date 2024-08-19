@@ -190,11 +190,11 @@ export default function SMEInstallInfo() {
         </TabItem>
       </Tabs>
       <div>
-        Or take a look at its{" "}
+        Or take a look at the Spatial Model Editor (SME){" "}
         <a href="https://spatial-model-editor.github.io/">
-          Spatial Model Editor (SME)
+          website
         </a>{" "}
-        or its{" "}
+         or its {" "}
         <a href="https://spatial-model-editor.readthedocs.io/en/stable/quickstart/get-started.html">
           documentation
         </a>

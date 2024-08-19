@@ -7,8 +7,12 @@ tags:
   - CLI
 ---
 
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import CodeBlock from '@theme/CodeBlock';
 import ExampleTerminal from '@site/src/components/ExampleTerminal'
 import DuneCopasiHelp from './DuneCopasiHelp'
+import TestINI from '!!raw-loader!./assets/ini/test.ini';
 
 :::tip Installation Guide
 Check out our [Installation Documentation](install) to find the optimal way to install `dune-copasi` and access the Command Line Interface!
@@ -49,40 +53,80 @@ By running the program with the command line argument `--version`, you can find 
 
 ### Running the program
 
-:::tip working directory
-Be aware that the [output files](output) produced by DuneCopasi are relative to the directory where
-`dune-copasi` is started, hence, it is recommended to run the program within a working directory, for example `~/dune-copasi`.
+By parsing a initialization file `config.ini` to the DuneCopasi solver it will exactly know how to construct the problem and the simulation will be started.
+Once it finished you should get the message `dune-copasi successfully finished :)` by the end simulation logs.
+
+:::tip configuration file example
+Having installed we are now set to test the DuneCopasi solver.
+To do this we will create a simple initialization file. We write the code of the minimal example to the file `config.ini`:
+
+<CodeBlock language="ini" title="~/workdir/config.ini" showLineNumbers>
+{TestINI}
+</CodeBlock>
+
+In case of the example above, you have just set up the heat equation with an initial Gaussian distribution (it doesn't save it though).
 :::
 
-When passing configuration options to the command line arguments like `--config={path}`, or
-`--{key}={value}`, the simulation will start and the program will stream its log output into the terminal:
+<Tabs
+  groupId="cli-type"
+  defaultValue="native"
+  values={[
+      {label: 'Native', value: 'native', },
+      {label: 'Docker', value: 'docker', },
+    ]
+  }>
 
-<ExampleTerminal prompt="~/dune-copasi$" title="Running DuneCopasi">
-  {[
-    {
-      input: "dune-copasi --config=config.ini",
-      output: [
-      "[2024-03-21 12:38:32.479] [info] Reading configuration file '~/dune-copasi/config.ini'",
-      "[2024-03-21 12:38:32.479] [info] Starting dune-copasi (version: 2.0.0)",
-      "[2024-03-21 12:38:32.580] [info] Axis names are set to: [\"x\", \"y\", \"z\"]",
-      "...",
-      "...",
-      "[2024-03-21 12:38:32.723] [info] dune-copasi successfully finished :)",
-      ]
-    }
-  ]}
-</ExampleTerminal>
+  <TabItem value="native">
+    <ExampleTerminal prompt="~/workdir$" title="Running DuneCopasi">
+      {[
+        {
+          input: "dune-copasi --config=config.ini",
+          output: [
+          "[2024-03-21 12:38:32.479] [info] Reading configuration file '~/workdir/config.ini'",
+          "[2024-03-21 12:38:32.479] [info] Starting dune-copasi (version: 2.0.0)",
+          "[2024-03-21 12:38:32.580] [info] Axis names are set to: [\"x\", \"y\", \"z\"]",
+          "...",
+          "...",
+          "[2024-03-21 12:38:32.723] [info] dune-copasi successfully finished :)",
+          ]
+        }
+      ]}
+    </ExampleTerminal>
+  </TabItem>
+  <TabItem value="docker">
+    <ExampleTerminal prompt="~/workdir$" title="Running DuneCopasi (with docker)">
+      {[
+        {
+          input: "chmod o+rw $PWD"
+        },
+        {
+          input: "docker run -v $PWD:/dunecopasi dune-copasi --config=config.ini",
+          output: [
+          "[2024-03-21 12:38:32.479] [info] Reading configuration file '~/workdir/config.ini'",
+          "[2024-03-21 12:38:32.479] [info] Starting dune-copasi (version: 2.0.0)",
+          "[2024-03-21 12:38:32.580] [info] Axis names are set to: [\"x\", \"y\", \"z\"]",
+          "...",
+          "...",
+          "[2024-03-21 12:38:32.723] [info] dune-copasi successfully finished :)",
+          ]
+        }
+      ]}
+    </ExampleTerminal>
+  </TabItem>
+</Tabs>
 
+Note that the [output files](output) produced by DuneCopasi are relative to the directory where
+`dune-copasi` is started, hence, it is recommended to run the program within a working directory, for example `~/workdir`.
 
 :::warning[Simulation Failed?]
 A failed simulation may look instead like this:
 
-<ExampleTerminal prompt="~/dune-copasi$" title="Running DuneCopasi (failure)">
+<ExampleTerminal prompt="~/workdir$" title="Running DuneCopasi (failure)">
   {[
     {
       input: "dune-copasi --config=config.ini",
       output: [
-      "[2024-03-21 12:38:32.479] [info] Reading configuration file '~/dune-copasi/config.ini'",
+      "[2024-03-21 12:38:32.479] [info] Reading configuration file '~/workdir/config.ini'",
       "[2024-03-21 12:38:32.479] [info] Starting dune-copasi (version: 2.0.0)",
       "[2024-03-21 12:38:32.580] [info] Axis names are set to: [\"x\", \"y\", \"z\"]",
       "...",

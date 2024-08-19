@@ -1,0 +1,18 @@
+santiago:
+  name: Santiago Ospina De Los Ríos
+  title: Doctoral Researcher, IWR, Universität Heidelberg
+  url: https://conan.iwr.uni-heidelberg.de/people/santiago/
+  image_url: https://avatars.githubusercontent.com/u/6602798?v=4
+  page: true
+  socials:
+    github: soilros
+    newsletter: https://conan.iwr.uni-heidelberg.de/people/santiago/
+
+dylan:
+  name: Dylan Vermoortele
+  title: Postdoctoral Researcher, Cardiovascular Imaging and Dynamics, KU Leuven, Belgium
+  url: https://gbiomed.kuleuven.be/english/research/50000635/50508167/Team/00134802
+  image_url: https://gbiomed.kuleuven.be/english/research/50000635/50508167/Team/00134802/@@images/person_photo/thumb
+  page: true
+  socials:
+    newsletter: https://gbiomed.kuleuven.be/english/research/50000635/50508167/Team/00134802
