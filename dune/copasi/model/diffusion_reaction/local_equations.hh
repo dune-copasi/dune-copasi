@@ -635,7 +635,7 @@ private:
                   component_fncs.outflow.resize(_compartment_names[l].size());
                   set_differentiable_function(
                     component_fncs.outflow[i],
-                    fmt::format("{}.storage.{}", component_fncs.name, _compartment_names[l][i]),
+                    fmt::format("{}.outflow.{}", component_fncs.name, _compartment_names[l][i]),
                     boundaries_config.sub(_compartment_names[l][i]),
                     ScalarTag{});
                 }
