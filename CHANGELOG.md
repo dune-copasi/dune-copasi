@@ -32,9 +32,14 @@ Types of changes
 
  - Numerical jacobians !204
 
+### Changed
+
+ - Improve documentation !210 !211 !212 !213 !214 !215 !216 !217 !218 !219 !220 !221 !222 !223 !224 !225 !226 !227 !228
+
 ### Fixed
 
- - Find muParser was failing if compuler default standard was not specified !203
+ - Outflow derivatives were parsed incorrectly !229
+ - Find muParser was failing if compiler default standard was not specified !203
 
 ## [2.0.1] ([git-diff][2.0.1-diff]) - 2024-04-22
 
