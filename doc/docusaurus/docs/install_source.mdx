@@ -39,9 +39,10 @@ Many of these dependencies are in a development branch (e.g., `master`) because 
 or because the package does not offer other tagged release.
 :::
 
-| Software | Version/Branch |
+| Software | Version / `branch` |
 | ---------| -------------- |
-| [CMake](https://cmake.org/)                                                                 | >= 3.16 |
+| [Ninja](https://ninja-build.org) / [Make](https://www.gnu.org/software/make/)               |         |
+| [CMake](https://cmake.org/)                                                                 | >= 3.24 |
 | C++ compiler  | >= [C++20](https://en.wikipedia.org/wiki/List_of_compilers#C++_compilers)   |
 | [pkg-config](https://www.freedesktop.org/wiki/Software/pkg-config)                          | >= 1.8.1|
 | [\{fmt\}](https://fmt.dev/)                                                                 | >= 9.1.0 |
@@ -113,6 +114,7 @@ apt install \
   libtiff-dev \
   mpi-default-bin \
   mpi-default-dev \
+  ninja-build \
   pkg-config
 ```
 
@@ -130,6 +132,7 @@ brew install \
   libtiff \
   metis \
   muparser \
+  ninja \
   open-mpi \
   pkg-config \
   scotch \
@@ -143,7 +146,7 @@ brew install \
 </Tabs>
 
 
-## Download DuneCopasi and DUNE dependencies
+## Download DUNE modules
 
 :::danger DUNE Version incompatibility
 Notice that this procedure assumes that you don't have previous installation of DUNE in
@@ -153,15 +156,17 @@ conflicts may be difficult if not impossible to resolve!
 
 The required DUNE modules (including DuneCopasi) can be obtained via
 internet by using [`git`](https://git-scm.com/). For smooth installation, is
-better place all the dune modules within the same directory:
+better place all the dune modules within the same directory.
+
+For this, prepare a folder to download and build dune modules (e.g. `~/dune-modules`):
 
 ```bash
-# prepare a folder to download and build dune modules (e.g. ~/dune-modules)
 mkdir ~/dune-modules && cd ~/dune-modules
 ```
 
+Then, fetch the required dune modules in the working directory:
+
 ```bash title="~/dune-modules"
-# fetch dependencies & dune-copasi in ~/dune-modules folder
 git clone https://gitlab.dune-project.org/core/dune-common
 git clone https://gitlab.dune-project.org/core/dune-geometry
 git clone https://gitlab.dune-project.org/core/dune-grid
@@ -175,23 +180,140 @@ git clone -b feature/dune-assembler/main-multithreaded https://gitlab.dune-proje
 git clone https://gitlab.dune-project.org/copasi/dune-copasi
 ```
 
-## Dune Options File
 
-An important part of the installation procedure is to tune the build system
-flags to accommodate the build options to your system: this is done via the [dune options
+## Build and install `dune-copasi`
+
+Once all dune dependencies are in downloaded in the same folder, you can build and install the _all_ of the DUNE modules using cmake:
+
+```bash title="~/dune-modules"
+# generate a CMakeLists.txt to set up a super build project
+cmake -P dune-common/cmake/scripts/GenerateDuneSuperBuild.cmake
+
+# generate a Ninja configuration in a directory named 'build'
+cmake . -G "Ninja Multi-Config" -B build/
+
+# start the actual build (go grab a coffee ☕)
+cmake --build build/ --config Release
+
+# Optional => Test that dune-copasi works as intended: see instructions below
+
+# install built files (customize install path with '--prefix' option, otherwise you may need sudo)
+cmake --install build/ --config Release
+
+# remove source and build files from working directory
+cd ~ && rm -r ~/dune-modules
+```
+
+:::warning Memory usage
+The building stage is known to take substantial memory during compilation (varies depending on the compiler).
+If your system fails to build due to insufficient memory, try serializing the build process with the `-j {cores}` flag
+and disabling some of the features.
+:::
+
+For further information on dune module installation process, check out
+the [CMake documentation](https://cmake.org/cmake/help/latest/manual/cmake.1.html#generate-a-project-buildsystem)
+and the [dune-project web page](https://www.dune-project.org/doc/installation/).
+
+:::info Custom install path
+If you use a custom installation path, you may want to add the installed prefix (e.g. `/opt/dune`) binary directory
+into your `PATH` environment variable. This will allow to reach the `dune-copasi` executable from anywhere in your terminal.
+For example:
+
+<Tabs
+  groupId="shell"
+  defaultValue="bash"
+  values={[
+      {label: 'Bash', value: 'bash', },
+      {label: 'Zsh', value: 'zsh', },
+    ]
+  }>
+
+  <TabItem value="bash">
+
+```shell
+# include dune binaries into your path
+echo "export PATH=/opt/dune/bin:\$PATH" >> $HOME/.bashrc
+```
+
+  </TabItem>
+  <TabItem value="zsh">
+
+```shell
+# include dune binaries into your path
+echo "export PATH=/opt/dune/bin:\$PATH" >> $HOME/.zshrc
+```
+
+  </TabItem>
+</Tabs>
+
+In all usage examples of this documentation we assume that the path containing `dune-copasi` is contained in your `PATH` environment variable.
+:::
+
+## Run the program
+
+Once installed, the program `dune-copasi` will be available on the command line and be ready for [CLI usage](use_cli):
+
+<DuneCopasiHelp/>
+
+:::tip[Configuration Options]
+For more information on the possible options to successfully run a simulation, make sure to visit the [Command Line Interface](use_cli), the [Configuration Options](param_tree), and the [Tutorials](/tutorials) documentations!
+:::
+
+
+## Advanced
+
+### Build and run tests
+
+To test DuneCopasi, you can build and run the `test` sub-project in the root directory of the repository.
+This can be done to test the built project (with prefix set to the build directory, e.g. `~/dune-modules/build/`) or the installed project
+(with prefix set to installed path, e.g. `/opt/dune/`). For instance:
+
+```bash title="~/dune-modules"
+# generate configuration for the 'dune-copasi/test' sub-project in a directory named 'build-test'
+cmake dune-copasi/test -G "Ninja Multi-Config" -B build-test/ -DCMAKE_PREFIX_PATH:PATH=~/dune-modules/build/
+
+# build tests executables
+cmake --build build-test/ --config Release
+
+# run automated tests
+ctest --test-dir build-test
+```
+
+For more information on the options to run the automated tests, visit the [CTest documentation](https://cmake.org/cmake/help/latest/manual/ctest.1.html).
+
+### CMake configuration options
+
+The following is the list of options to customize the build of DuneCopasi using the [CMake cache](https://cmake.org/cmake/help/latest/manual/cmake.1.html#cmdoption-cmake-D).
+
+| `CACHE:TYPE=DEFAULT` | Description |
+| ---------| -------------- |
+| `DUNE_COPASI_WITH_EXECUTABLE:BOOL=ON`                           | Build dune-copasi executable |
+| `DUNE_COPASI_CONCURRENT_ASSEMBLY:BOOL=ON`                       | Build with concurrent assembly. Turn off to reduce memory consumption |
+| `DUNE_COPASI_PRECOMPILED_MODE:BOOL=ON`                          | Pre-build a fixed set of class instances |
+| `DUNE_COPASI_GRID_DIMENSIONS:STRING="2"`                        | Semi-colon separated list of dimensions to build |
+| `DUNE_COPASI_${dim}D_DIFFUSION_REACTION_FEM_ORDERS:STRING="1"`  | Semi-colon separated list of finite element order to compile for dimension `${dim}`|
+| `DUNE_COPASI_DISABLE_FETCH_PACKAGE_ExprTk:BOOL=OFF`             | Disable automatic fetch of ExprTk package |
+| `DUNE_COPASI_DISABLE_FETCH_PACKAGE_parafields:BOOL=OFF`         | Disable automatic fetch of parafields-core package |
+| `DUNE_COPASI_DISABLE_FMT_STYLE:BOOL=OFF`                        | Disable \{fmt\} styling |
+| `DUNE_PDELAB_ENABLE_TRACING:BOOL=ON`                            | Enable automatic fetch of perfetto |
+
+To explore more advanced options, we recommend using [`ccmake`](https://cmake.org/cmake/help/latest/manual/ccmake.1.html) on the command line or
+the [cmake GUI](https://cmake.org/cmake/help/latest/manual/cmake-gui.1.html#manual:cmake-gui(1)) to explore the possible settings in the build directory.
+
+### Dune Options File
+
+Traditionally, build settings in dune projects are set up using the [dune options
 file](https://dune-project.org/doc/installation/#storing-flags-in-an-options-file).
 In essence, is just a bash script that sets different flags (mainly the flags
-for CMake `CMAKE_FLAGS`). While the dune project usually leaves this open for the user, we
-provide a `dune-copasi.opts` file with sensible default options for the main
-operating systems. You can find this file in the root directory of the `dune-copasi` repository.
+for CMake `CMAKE_FLAGS`). We provide a `dune-copasi.opts` file with sensible default
+options for the main operating systems. You can find this file in the root directory
+of the `dune-copasi` repository.
 
-This file can be executed to show the current configuration:
+This file can be executed to show the recommended configuration:
 
 ```bash
-# choose root dune-copasi directory
-cd ~/dune-modules/dune-copasi
 # show current build configuration options
-./dune-copasi.opts
+./dune-copasi/dune-copasi.opts
 ```
 
 Executing the configuration options will display something similar to this:
@@ -213,104 +335,6 @@ Executing the configuration options will display something similar to this:
   ]}
 </ExampleTerminal>
 
-There are two forms to add flags to the `dune-copasi.opts` file:
-
-1. Setting environmental variables starging with `CMAKE_` and `DUNE_`.
-   These variables will be automatically included into the list of cmake flags.
-
-  ```bash title="~/dune-modules/dune-copasi/"
-  export CMAKE_INSTALL_PREFIX="/path/to/install/prefix/"
-  export CMAKE_GENERATOR="'Ninja'"
-  ./dune-copasi.opts
-  ```
-
-2. Appending new flags into the `CMAKE_FLAGS` variable in the `dune-copasi.opts` file
-  (care must be taken to scape quotes):
-
-  ```bash title="~/dune-modules/dune-copasi/"
-  echo 'CMAKE_FLAGS+=" -DCMAKE_INSTALL_PREFIX=/path/to/install/prefix/"' >> dune-copasi.opts
-  echo "CMAKE_FLAGS+=\" -DCMAKE_GENERATOR='Ninja'\"" >> dune-copasi.opts
-  ./dune-copasi.opts
-  ```
-
 For more information about the possible options and the dune options file, check out
 the dune [installation documentation](https://dune-project.org/doc/installation/)
 and its [build system documentation](https://dune-project.org/sphinx/core-2.7/).
-
-## CMake configuration options
-
-The following is the list of options to customize the build of DuneCopasi.
-
-| `CACHE:TYPE=DEFAULT` | Description |
-| ---------| -------------- |
-| `DUNE_COPASI_WITH_EXECUTABLE:BOOL=ON`                           | Build dune-copasi executable |
-| `DUNE_COPASI_CONCURRENT_ASSEMBLY:BOOL=ON`                       | Build with concurrent assembly. Turn off to reduce memory consumption |
-| `DUNE_COPASI_PRECOMPILED_MODE:BOOL=ON`                          | Pre-build a fixed set of class instances |
-| `DUNE_COPASI_GRID_DIMENSIONS:STRING="2"`                        | Semi-colon separated list of dimensions to build |
-| `DUNE_COPASI_${dim}D_DIFFUSION_REACTION_FEM_ORDERS:STRING="1"`  | Semi-colon separated list of finite element order to compile for dimension `${dim}`|
-| `DUNE_COPASI_DISABLE_FETCH_PACKAGE_ExprTk:BOOL=OFF`             | Disable automatic fetch of ExprTk package |
-| `DUNE_COPASI_DISABLE_FETCH_PACKAGE_parafields:BOOL=OFF`         | Disable automatic fetch of parafields-core package |
-| `DUNE_COPASI_DISABLE_FMT_STYLE:BOOL=OFF`                        | Disable \{fmt\} styling |
-| `DUNE_PDELAB_ENABLE_TRACING:BOOL=ON`                            | Enable automatic fetch of perfetto |
-
-## Build and Install
-
-Before starting the build process, make sure to have your terminal in the directory with all DUNE modules:
-
-```bash
-# choose root dune modules directory
-cd ~/dune-modules
-```
-
-The, build and install the _all_ of the DUNE modules with the `dunecontrol` script from `dune-common`:
-
-:::warning Memory usage
-The building stage is known to take substantial memory during compilation (varies depending on the compiler).
-If your system fails to build due to insufficient memory, try serializing the build process with the `-j {cores}` flag
-and disabling some of the features.
-:::
-
-```bash title="~/dune-modules"
-# choose an installation path          (this is read by the 'dune-copasi.opts' file)
-export CMAKE_INSTALL_PREFIX=/opt/dune
-
-# uncomment if you have MPI and FFTW
-# export DUNE_COPASI_DISABLE_FETCH_PACKAGE_parafields=OFF
-
-# configure and build dune modules                              (go grab a coffee ☕)
-./dune-common/bin/dunecontrol --opts=dune-copasi/dune-copasi.opts all
-
-# (optional) build tests
-./dune-common/bin/dunecontrol --opts=dune-copasi/dune-copasi.opts --module=dune-copasi cmake -t build_tests
-
-# (optional) run unit, system and tutorial tests on built binaries
-./dune-common/bin/dunecontrol --opts=dune-copasi/dune-copasi.opts --module=dune-copasi bexec ctest
-
-# install libraries and binaries                                (may require sudo 🔒)
-./dune-common/bin/dunecontrol --opts=dune-copasi/dune-copasi.opts bexec make install
-
-# remove source and build files from working directory
-cd ~ && rm -r ~/dune-modules
-
-# include dune binaries into your path (if you use bash)
-echo "export PATH=${CMAKE_INSTALL_PREFIX}/bin:\$PATH" >> $HOME/.bashrc
-```
-
-:::tip Active development cycle
-An active development cycle does not need you to install the packages.
-Instead, you can run the program directly in the build directory (i.e., `bin/dune-copasi`). In that case, we recommend
-using `--builddir` option from `dunecontrol` in order to keep all the DUNE build directorties out of the source code.
-:::
-
-For further information on dune module installation process, check out
-the [dune-project web page](https://www.dune-project.org/doc/installation/).
-
-## Run the program
-
-Once installed, the program `dune-copasi` will be available on the command line and be ready for [CLI usage](use_cli):
-
-<DuneCopasiHelp/>
-
-:::tip[Configuration Options]
-For more information on the possible options to successfully run a simulation, make sure to visit the [Command Line Interface](use_cli), the [Configuration Options](param_tree), and the [Tutorials](/tutorials) documentations!
-:::

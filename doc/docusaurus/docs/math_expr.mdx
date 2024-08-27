@@ -86,7 +86,7 @@ Some parsers may not be available depending on how `dune-copasi` is compiled. To
 :::
 
 :::tip Parser composition
-Every expression in `{math-expr}` is compiled independently. This means that different parser types may be used in the same model definition. This is helful when the syntax of one parser is more convenient to write one expression. For example, the
+Every expression in `{math-expr}` is compiled independently. This means that different parser types may be used in the same model definition. This is helpful when the syntax of one parser is more convenient to write one expression. For example, the
 `ExprTk` parser allows the usage of [ternary conditional operator](https://en.wikipedia.org/wiki/Ternary_conditional_operator) `cond ? expr1 : expr2` whereas `SymEngine` does not:
 ```ini title="config.ini"
 [parser_context.pulse]
@@ -100,6 +100,8 @@ reaction.expression = 1e10 + pulse(time, 10, 1)
 # %highlight
 reaction.parser_type = SymEngine
 ```
+In this example the reaction expression for `u` is interpreted with the `SymEngine` parser, however, the function `pulse` defined in the
+parser context section is interpreted with the `ExprTk` parser. This mechanisim allows to compose parser capabilities as needed.
 :::
 ::::
 
