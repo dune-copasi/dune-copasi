@@ -30,6 +30,7 @@ Types of changes
 
 ### Added
 
+ - Enable super builds for simpler installation instructions !230
  - Numerical jacobians !204
 
 ### Changed
@@ -38,7 +39,7 @@ Types of changes
 
 ### Fixed
 
- - Outflow derivatives were parsed incorrectly !229
+ - Outflow derivatives set its prefix incorrectly !229
  - Find muParser was failing if compiler default standard was not specified !203
 
 ## [2.0.1] ([git-diff][2.0.1-diff]) - 2024-04-22

@@ -42,7 +42,7 @@ target_sources(dune-copasi-common
 target_include_directories(dune-copasi-common
   PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-    $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
+    $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
@@ -57,8 +57,15 @@ target_link_libraries(dune-copasi-common
     ${DUNE_LIBS}
 )
 
-foreach(module ${ALL_DEPENDENCIES})
-  target_include_directories(dune-copasi-common PUBLIC ${${module}_INCLUDE_DIRS})
+# set up include directories for found dune modules
+foreach(module ${DUNE_FOUND_DEPENDENCIES})
+  if(${${module}_INSTALLED})
+    # the path ${${module}_INCLUDE_DIRS} is valid for both installed and built interfaces
+    target_include_directories(dune-copasi-common PUBLIC ${${module}_INCLUDE_DIRS})
+  else()
+    # we only know the path for the build interface, so we assume its install path will be the same as our install prefix
+    target_include_directories(dune-copasi-common PUBLIC "$<BUILD_INTERFACE:${${module}_INCLUDE_DIRS}>")
+  endif()
 endforeach()
 
 if(DUNE_COPASI_DISABLE_FMT_STYLE)

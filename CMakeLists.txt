@@ -40,7 +40,7 @@ list(PREPEND CMAKE_MODULE_PATH \"\${dune-copasi_MODULE_PATH}\")
 include(CMakeFindDependencyMacro)
 ")
 
-foreach(module ${ALL_DEPENDENCIES})
+foreach(module ${DUNE_FOUND_DEPENDENCIES})
   if(${${module}_FOUND})
     set(DUNE_CUSTOM_PKG_CONFIG_SECTION "${DUNE_CUSTOM_PKG_CONFIG_SECTION}
 find_dependency(${module} REQUIRED)
