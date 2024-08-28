@@ -8,12 +8,19 @@
 #include <dune/pdelab/common/trace.hh>
 #include <dune/pdelab/common/execution.hh>
 #include <dune/pdelab/concepts/basis.hh>
-#include <dune/pdelab/operator/adapter.hh>
-#include <dune/pdelab/operator/forward/instationary/assembler.hh>
-#include <dune/pdelab/operator/forward/instationary/coefficients.hh>
-#include <dune/pdelab/operator/forward/runge_kutta.hh>
-#include <dune/pdelab/operator/inverse/newton.hh>
-#include <dune/pdelab/operator/operator.hh>
+// We added a dedicated pdelab/operator folder to the project for development
+#include <dune/copasi/operator/adapter.hh>
+//#include <dune/pdelab/operator/adapter.hh>
+#include <dune/copasi//operator/forward/instationary/assembler.hh>
+//#include <dune/pdelab/operator/forward/instationary/assembler.hh>
+#include <dune/copasi/operator/forward/instationary/coefficients.hh>
+//#include <dune/pdelab/operator/forward/instationary/coefficients.hh>
+#include <dune/copasi/operator/forward/runge_kutta.hh>
+//#include <dune/pdelab/operator/forward/runge_kutta.hh>
+#include <dune/copasi/operator/inverse/newton.hh>
+//#include <dune/pdelab/operator/inverse/newton.hh>
+#include <dune/copasi/operator/operator.hh>
+//#include <dune/pdelab/operator/operator.hh>
 #include <dune/pdelab/pattern/basis_to_pattern.hh>
 #include <dune/pdelab/pattern/pattern_to_matrix.hh>
 #include <dune/pdelab/pattern/sparsity_pattern.hh>
@@ -53,7 +60,7 @@ inline auto jacobian_selector =
 }
 
 template<class Domain, std::copy_constructible Range>
-class LinearSolver : public PDELab::Operator<Range, Domain>
+class LinearSolver : public Operator<Range, Domain>
 {
 
   using Jacobian = decltype(Impl::jacobian_selector(Range{}));
@@ -62,7 +69,7 @@ class LinearSolver : public PDELab::Operator<Range, Domain>
   class MatrixFreeAdapter : public Dune::LinearOperator<Domain, Range>
   {
   public:
-    MatrixFreeAdapter(PDELab::Operator<Domain, Range>& forward_op)
+    MatrixFreeAdapter(Operator<Domain, Range>& forward_op)
       : _forward{ forward_op }
     {
     }
@@ -90,7 +97,7 @@ class LinearSolver : public PDELab::Operator<Range, Domain>
     }
 
   private:
-    PDELab::Operator<Domain, Range>& _forward;
+    Operator<Domain, Range>& _forward;
     mutable Range tmp;
   };
 
@@ -104,7 +111,7 @@ public:
     [[maybe_unused]] uint64_t solver_timestamp = perfetto::TrackEvent::GetTraceTimeNs();
     TRACE_EVENT("dune", "LinearSolver", solver_timestamp);
     static_assert(std::is_same_v<Range, Domain>);
-    auto& forward = this->template get<PDELab::Operator<Domain, Range>>("forward");
+    auto& forward = this->template get<Operator<Domain, Range>>("forward");
 
     Jacobian const * jac = nullptr;
     if (forward.hasKey("container"))
@@ -161,7 +168,7 @@ template<class Coefficients,
          class ResidualQuantity,
          class TimeQuantity,
          PDELab::Concept::Basis Basis>
-[[nodiscard]] inline static std::unique_ptr<PDELab::OneStep<Coefficients>>
+[[nodiscard]] inline static std::unique_ptr<OneStep<Coefficients>>
 make_step_operator(const ParameterTree& config,
                    const Basis& basis,
                    const auto& mass_local_operator,
@@ -178,7 +185,7 @@ make_step_operator(const ParameterTree& config,
                            "with a non-empty 'compartment'");
   }
 
-  std::shared_ptr<PDELab::Operator<RKResidual, RKCoefficients>> runge_kutta_inverse;
+  std::shared_ptr<Operator<RKResidual, RKCoefficients>> runge_kutta_inverse;
 
   bool const is_linear = mass_local_operator.localAssembleIsLinear() and
                          stiffness_local_operator.localAssembleIsLinear();
@@ -194,7 +201,7 @@ make_step_operator(const ParameterTree& config,
 
   // configure linear solver
   const auto& lsover_config = config.sub("linear_solver");
-  std::shared_ptr<PDELab::Operator<RKResidual, RKCoefficients>> const linear_solver =
+  std::shared_ptr<Operator<RKResidual, RKCoefficients>> const linear_solver =
     std::make_shared<LinearSolver<RKResidual, RKCoefficients>>(lsover_config);
 
   auto svg_path = lsover_config.get("layout.writer.svg.path", "");
@@ -209,16 +216,16 @@ make_step_operator(const ParameterTree& config,
 
   if (is_linear) {
     std::optional<RKCoefficients> coeff_zero;
-    std::shared_ptr<PDELab::Operator<RKCoefficients, RKResidual>> derivative;
+    std::shared_ptr<Operator<RKCoefficients, RKResidual>> derivative;
     auto linear_runge_kutta_inverse =
-      std::make_unique<PDELab::OperatorAdapter<RKResidual, RKCoefficients>>(
-        [coeff_zero, linear_solver, derivative](PDELab::Operator<RKResidual, RKCoefficients>& self,
+      std::make_unique<OperatorAdapter<RKResidual, RKCoefficients>>(
+        [coeff_zero, linear_solver, derivative](Operator<RKResidual, RKCoefficients>& self,
                                     RKResidual& b,
                                     RKCoefficients& x) mutable {
           TRACE_EVENT("dune", "LinearSolver::DefectCorrection");
           static_assert(std::is_same_v<Coefficients, Residual>);
           auto& forward =
-            self.template get<PDELab::Operator<RKCoefficients, RKResidual>>("forward");
+            self.template get<Operator<RKCoefficients, RKResidual>>("forward");
 
           forward.apply(x, b).or_throw(); // residual is additive b += F(x)
 
@@ -246,7 +253,7 @@ make_step_operator(const ParameterTree& config,
   } else {
     spdlog::info("Creating non-linear solver with 'Newton' type");
     auto newton_op =
-      std::make_unique<PDELab::NewtonOperator<RKCoefficients, RKResidual, ResidualQuantity>>();
+      std::make_unique<NewtonOperator<RKCoefficients, RKResidual, ResidualQuantity>>();
 
     // configure non-linear solver
     const auto& nlsover_config = config.sub("nonlinear_solver");
@@ -285,9 +292,9 @@ make_step_operator(const ParameterTree& config,
     runge_kutta_inverse = std::move(newton_op);
   }
 
-  std::shared_ptr<PDELab::Operator<RKCoefficients, RKResidual>> instationary_op;
+  std::shared_ptr<Operator<RKCoefficients, RKResidual>> instationary_op;
   if (matrix_free) { // matrix free
-    instationary_op = PDELab::makeInstationaryMatrixFreeAssembler<RKCoefficients, RKResidual>(
+    instationary_op = makeInstationaryMatrixFreeAssembler<RKCoefficients, RKResidual>(
       basis, basis, mass_local_operator, stiffness_local_operator);
   } else { // matrix based
     auto pattern_factory = [basis, stiffness_local_operator, mass_local_operator, svg_path](
@@ -399,20 +406,20 @@ make_step_operator(const ParameterTree& config,
     };
 
     instationary_op =
-      PDELab::makeInstationaryMatrixBasedAssembler<RKCoefficients, RKResidual, RKJacobian>(
+      makeInstationaryMatrixBasedAssembler<RKCoefficients, RKResidual, RKJacobian>(
         basis, basis, mass_local_operator, stiffness_local_operator, pattern_factory);
   }
 
-  using RungeKutta = PDELab::RungeKutta<RKCoefficients, RKResidual, TimeQuantity, TimeQuantity>;
+  using RungeKutta = RungeKutta<RKCoefficients, RKResidual, TimeQuantity, TimeQuantity>;
   auto runge_kutta = std::make_unique<RungeKutta>();
 
   runge_kutta->get("inverse") = runge_kutta_inverse;
   runge_kutta->get("inverse.forward") = instationary_op;
   const auto& type = config.get("type", "Alexander2");
-  std::shared_ptr<PDELab::InstationaryCoefficients> inst_coeff;
+  std::shared_ptr<InstationaryCoefficients> inst_coeff;
 
   auto pdelab2coeff = [](auto pdlab_param) {
-    return std::make_unique<PDELab::InstationaryCoefficients>(pdlab_param);
+    return std::make_unique<InstationaryCoefficients>(pdlab_param);
   };
 
   spdlog::info("Creating time-stepping solver with '{}' type", type);

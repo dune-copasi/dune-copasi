@@ -180,7 +180,7 @@ template<class Traits>
 auto
 ModelMultiCompartment<Traits>::make_step_operator(
   const State& state,
-  const ParameterTree& config) const -> std::unique_ptr<PDELab::OneStep<State>>
+  const ParameterTree& config) const -> std::unique_ptr<OneStep<State>>
 {
   using MultiCompartmentBasis =
     PDELab::Basis<PDELab::EntitySetPartitioner::Identity<MultiCompartmentEntitySet>, MultiCompartmentPreBasis, TypeTree::HybridTreePath<>>;
@@ -194,8 +194,8 @@ ModelMultiCompartment<Traits>::make_step_operator(
   std::shared_ptr one_step = DiffusionReaction::make_step_operator<LocalBasisTraits, Coefficients, Residual, ResidualQuantity, TimeQuantity>(config, basis, 2, _functor_factory, _cell_data);
 
   // type erase the original runge kutta operator
-  auto type_erased_one_step = std::make_unique<PDELab::OperatorAdapter<State, State>>(
-    [one_step](PDELab::Operator<State, State>& self, State& domain, State& range) mutable {
+  auto type_erased_one_step = std::make_unique<OperatorAdapter<State, State>>(
+    [one_step](Operator<State, State>& self, State& domain, State& range) mutable {
       auto log_guard = ostream2spdlog();
       // copy contents of this operator into runge-kutta operator
       static_cast<PDELab::PropertyTree&>(*one_step) =

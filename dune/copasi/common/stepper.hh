@@ -6,7 +6,7 @@
 
 #include <dune/pdelab/common/convergence/reason.hh>
 #include <dune/pdelab/common/trace.hh>
-#include <dune/pdelab/operator/operator.hh>
+#include <dune/copasi/operator/operator.hh>
 
 #include <dune/common/float_cmp.hh>
 #include <dune/common/parametertree.hh>
@@ -92,7 +92,7 @@ public:
    * @return error condition describing the reason of (not) convergence of the
    * timestep
    */
-  virtual PDELab::ErrorCondition do_step(PDELab::OneStep<State>& one_step,
+  virtual PDELab::ErrorCondition do_step(OneStep<State>& one_step,
                                          const State& in,
                                          State& out,
                                          DurationQuantity& dt) const
@@ -143,7 +143,7 @@ public:
    * otherwise it will be reached from below with the provided dt
    */
   PDELab::ErrorCondition evolve(
-    PDELab::OneStep<State>& one_step,
+    OneStep<State>& one_step,
     const State& in,
     State& out,
     DurationQuantity& dt,
@@ -190,7 +190,7 @@ public:
    * successful step
    */
   PDELab::ErrorCondition snap_to_time(
-    PDELab::OneStep<State>& one_step,
+    OneStep<State>& one_step,
     const State& in,
     State& out,
     DurationQuantity& dt,
@@ -334,7 +334,7 @@ public:
    * @return error condition describing the reason of (not) convergence of the
    * timestep
    */
-  PDELab::ErrorCondition do_step(PDELab::OneStep<State>& one_step,
+  PDELab::ErrorCondition do_step(OneStep<State>& one_step,
                                  const State& in,
                                  State& out,
                                  DurationQuantity& dt) const override
