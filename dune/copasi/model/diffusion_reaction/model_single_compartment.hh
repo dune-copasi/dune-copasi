@@ -65,7 +65,7 @@ public:
   GridFunction make_compartment_function(const std::shared_ptr<const State>&,
                                          std::string_view) const override;
 
-  std::unique_ptr<PDELab::OneStep<State>> make_step_operator(const State&,
+  std::unique_ptr<OneStep<State>> make_step_operator(const State&,
                                                              const ParameterTree&) const override;
 
   void write_vtk(const State&, const std::filesystem::path&, bool = true) const override;

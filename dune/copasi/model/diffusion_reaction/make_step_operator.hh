@@ -10,7 +10,7 @@
 
 #include <dune/pdelab/common/partition/simple.hh>
 #include <dune/pdelab/common/execution.hh>
-#include <dune/pdelab/operator/operator.hh>
+#include <dune/copasi/operator/operator.hh>
 
 #include <spdlog/spdlog.h>
 
@@ -26,7 +26,7 @@ template<class LocalBasisTraits,
          PDELab::Concept::Basis Basis,
          Dune::Concept::GridView CellDataGridView = typename Basis::EntitySet,
          class CellDataType = double>
-[[nodiscard]] inline static std::unique_ptr<PDELab::Operator<Coefficients, Coefficients>>
+[[nodiscard]] inline static std::unique_ptr<Operator<Coefficients, Coefficients>>
 make_step_operator(const ParameterTree& config,
                    const Basis& basis,
                    std::size_t halo,
@@ -34,7 +34,7 @@ make_step_operator(const ParameterTree& config,
                    std::shared_ptr<const CellData<CellDataGridView, CellDataType>> grid_cell_data = nullptr)
 {
 
-  std::unique_ptr<PDELab::Operator<Coefficients, Coefficients>> one_step;
+  std::unique_ptr<Operator<Coefficients, Coefficients>> one_step;
   const auto& assembly_cfg = config.sub("assembly");
 
   auto make_one_step_op = [&, functor_factory, grid_cell_data]<class ExecutionPolicy, PDELab::Concept::Basis OperatorBasis>(

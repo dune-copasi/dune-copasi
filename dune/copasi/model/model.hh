@@ -2,8 +2,7 @@
 #define DUNE_COPASI_MODEL_MODEL_HH
 
 #include <dune/copasi/common/exceptions.hh>
-
-#include <dune/pdelab/operator/operator.hh>
+#include <dune/copasi/operator/operator.hh>
 
 #include <dune/functions/gridfunctions/gridviewfunction.hh>
 
@@ -90,7 +89,7 @@ struct Model
     throw format_exception(NotImplemented{}, "Model write has not been implemented");
   }
 
-  [[nodiscard]] virtual std::unique_ptr<PDELab::OneStep<State>> make_step_operator(
+  [[nodiscard]] virtual std::unique_ptr<OneStep<State>> make_step_operator(
     const State&,
     const ParameterTree&) const = 0;
 
