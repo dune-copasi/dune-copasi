@@ -147,6 +147,9 @@ public:
 
   constexpr static std::true_type localAssembleDoVolume() noexcept { return {}; }
 
+  // constant expression indicating if DOFs should be constrained
+  constexpr static std::true_type localAssembleDoConstraints() noexcept { return {}; }
+
   constexpr static auto localAssembleDoSkeleton() noexcept
   {
     return std::bool_constant<Concept::MultiDomainGrid<typename TestBasis::EntitySet::Grid>>{};
@@ -1436,6 +1439,12 @@ public:
       localAssembleBoundary(intersection, time, ltrial_in, lapp_point_in, ltest_in, ljacobian_in);
     else
       localAssembleJacobianBoundary(intersection, time, ltrial_in, llin_point_in, ltest_in, mat_ii);
+  }
+
+  template< typename Basis >
+  void localAssembleConstraints(const Basis& basis, auto& indices ){
+
+
   }
 };
 
