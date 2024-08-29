@@ -5,3 +5,4 @@ install(FILES adapter.hh
 
 add_subdirectory(forward)
 add_subdirectory(inverse)
+add_subdirectory(common)
