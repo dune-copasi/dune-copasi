@@ -5,6 +5,12 @@
 #include <dune/copasi/operator/forward/instationary/traits.hh>
 #include <dune/copasi/operator/operator.hh>
 
+#include <dune/copasi/operator/common/matrixIterator.hh>
+#include <dune/copasi/operator/common/indexIterator.hh>
+#include <dune/copasi/operator/common/vectorEntry.hh>
+#include <dune/copasi/operator/common/matrixEntry.hh>
+#include <dune/pdelab/basis/backend/istl.hh> 
+
 // we retain the pdelab interface for compatibility
 #include <dune/pdelab/operator/local_assembly/interface.hh>
 
@@ -54,6 +60,9 @@ class InstationaryJacobianAssembler
   using LocalTestBasis = typename TestBasis::LocalView;
   using LocalTrialBasis = typename TrialBasis::LocalView;
 
+  using IndicesBackend = PDELab::ISTLUniformBackend<int>;
+  using IndicesVector = typename TestBasis::template Container<IndicesBackend>;
+
   // stage jacobian is required to be indexable by local test and trial basis degrees of freedom (see localContainerEntry)
   using LocalJacobian = PDELab::LocalMatrixBuffer<TestBasis, TrialBasis, StageJacobian>;
 
@@ -78,11 +87,15 @@ public:
     , _trial{ trial }
     , _test{ test }
     , _mapper{ _trial.entitySet(), Dune::mcmgElementLayout() }
+    , _constrainDOF{ _test.makeContainer(IndicesBackend{}) }
   {
     PDELab::PropertyTree& properties = *this;
 
     properties["container"].documentation = "Matrix (or tensor) container holding the jacobian of an instationary operator";
     properties["container"] = std::make_shared<JacobianContainer>();
+
+    initConstraints();
+
   }
 
   PDELab::ErrorCondition apply(const Coefficients& coefficients, Residual& residual) override
@@ -192,7 +205,7 @@ private:
     {
       if (PDELab::LocalAssembly::skipEntity(mlop, entity)) {
         if (not PDELab::LocalAssembly::skipEntity(slop, entity))
-          DUNE_THROW(InvalidStateException, "skip methods should yiled the same result");
+          DUNE_THROW(InvalidStateException, "skip methods should yield the same result");
         return;
       }
 
@@ -227,7 +240,7 @@ private:
         for (const auto& is : intersections(es, entity)) {
           if (PDELab::LocalAssembly::skipIntersection(mlop, is)) {
             if (not PDELab::LocalAssembly::skipIntersection(slop, is))
-              DUNE_THROW(InvalidStateException, "skip methods should yiled the same result");
+              DUNE_THROW(InvalidStateException, "skip methods should yield the same result");
             continue;
           }
           if (is.neighbor() and (PDELab::LocalAssembly::doSkeleton(slop) || PDELab::LocalAssembly::doSkeleton(mlop))) { // interior and periodic cases
@@ -305,6 +318,58 @@ private:
 
       unbind(ltest_in, ltrial_in);
     });
+
+    // compile time decission to apply constraints
+    if constexpr( _mass_lop.localAssembleDoConstraints() or  _stiff_lop.localAssembleDoConstraints() )
+    {
+      // make constrained DOF unit diagional in Jacobian container
+      applyConstraints();
+    }
+  }
+
+  /**
+   * @brief Initialize which DOFs have to be constrained
+   */
+  void initConstraints()
+  {
+    if constexpr( _mass_lop.localAssembleDoConstraints() )
+    {
+      _mass_lop.localAssembleConstraints( _test, _constrainDOF );  
+    }
+    if constexpr( _stiff_lop.localAssembleDoConstraints() )
+    {
+      _stiff_lop.localAssembleConstraints( _test, _constrainDOF); 
+    }
+  }
+
+  /**
+   * @brief Apply constraints to the constrained DOFs
+   *  
+   * @details This function will change the Jacobian row vectors associated with the 
+   *          constrained degrees of freedom. A row iterator will be used to change 
+   *          all off-diagonal values to zero and put a 1 on the diagonal. 
+   */
+  void applyConstraints()
+  {
+
+    JacobianContainer& jac = getJacobianContainer();
+    
+    using IndexIterator = typename Dune::Copasi::index_iterator<IndicesVector>;
+    
+    for (IndexIterator it(_constrainDOF); not it.at_end(); ++it)
+    {
+      if( (*it) == 1 )
+      {
+        // iterator over the row and change all values to zero 
+        for(Dune::Copasi::matrix_row_iterator it_jac(jac[0][0], it.index()); not it_jac.at_end(); ++it_jac)
+        {
+          *it_jac = 0.0;
+        }
+        // add a 1.0 to the diagional
+        Dune::Copasi::matrixEntry( jac[0][0], it.index() , it.index() ) = double{1.0};
+
+      }
+    }
   }
 
   JacobianContainer& getJacobianContainer() {
@@ -329,6 +394,7 @@ private:
   TrialBasis _trial;
   TestBasis _test;
   Mapper _mapper;
+  IndicesVector _constrainDOF;
 };
 
 } // namespace Dune::PDELab::inline Experimental

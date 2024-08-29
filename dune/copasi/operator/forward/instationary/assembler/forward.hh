@@ -5,6 +5,13 @@
 #include <dune/copasi/operator/forward/instationary/coefficients.hh>
 #include <dune/copasi/operator/forward/instationary/traits.hh>
 
+#include <dune/copasi/operator/common/indexIterator.hh>
+#include <dune/copasi/operator/common/vectorEntry.hh>
+#include <dune/pdelab/basis/backend/istl.hh> 
+
+// we retain the pdelab interface for compatibility
+#include <dune/pdelab/operator/local_assembly/interface.hh>
+
 #include <dune/pdelab/common/local_container.hh>
 #include <dune/pdelab/common/tree_traversal.hh>
 #include <dune/pdelab/common/for_each_entity.hh>
@@ -59,6 +66,9 @@ class InstationaryForwardAssembler : public Operator<Coefficients, Residual>
   using LocalTestBasis  = typename TestBasis::LocalView;
   using LocalTrialBasis = typename TrialBasis::LocalView;
 
+  using IndicesBackend = PDELab::ISTLUniformBackend<int>;
+  using IndicesVector = typename TestBasis::template Container<IndicesBackend>;
+
   using MassFactor = typename InstationaryTraits<
     dt_position>::template MassFactor<DurationQuantity>;
   using StiffnessFactor = typename InstationaryTraits<
@@ -81,7 +91,9 @@ public:
     , _mass_lop{ mass_lop }
     , _stiff_lop{ stiff_lop }
     , _mapper{ _trial.entitySet(), Dune::mcmgElementLayout() }
+    , _constrainDOF{ _test.makeContainer(IndicesBackend{})}
   {
+    initConstraints();
   }
 
   PDELab::ErrorCondition apply(const Coefficients& coefficients, Residual& residuals) override
@@ -286,7 +298,52 @@ private:
 
       unbind(ltest_in, ltrial_in);
     });
+
+    // compile time decission to apply constraints
+    if constexpr( _mass_lop.localAssembleDoConstraints() or  _stiff_lop.localAssembleDoConstraints() )
+    {
+      // make constrained DOF unit diagional in Jacobian container
+      applyConstraints(residuals);
+    }
+
   }
+
+  /**
+   * @brief Initialize which DOFs have to be constrained
+   */
+  void initConstraints()
+  {
+    if constexpr( _mass_lop.localAssembleDoConstraints() )
+    {
+      _mass_lop.localAssembleConstraints( _test, _constrainDOF );  
+    }
+    if constexpr( _stiff_lop.localAssembleDoConstraints() )
+    {
+      _stiff_lop.localAssembleConstraints( _test, _constrainDOF); 
+    }
+  }
+
+  /**
+   * @brief Apply constraints to the constrained DOFs
+   *  
+   * @details This function will change the residual entries associated with the 
+   *          constrained degrees of freedom. A index iterator will be used to change 
+   *          all constrained values to zero. 
+   */
+  void applyConstraints(Residual& residuals) const
+  {
+    using IndexIterator = typename Dune::Copasi::index_iterator<const IndicesVector>;
+    
+    for (IndexIterator it(_constrainDOF); not it.at_end(); ++it)
+    {
+      if( (*it) == 1 )
+      {
+        Dune::Copasi::vectorEntry( residuals[0], it.index() ) = double{0.0};
+      }
+    } 
+    
+  }
+
 
   const InstationaryCoefficients& getInstationaryCoefficients() const {
     return this->template get<InstationaryCoefficients>("instationary_coefficients");
@@ -308,6 +365,7 @@ protected:
 
 private:
   Mapper _mapper;
+  IndicesVector _constrainDOF;
 };
 
 
