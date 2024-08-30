@@ -180,9 +180,13 @@ public:
     CompartmentScalarFunction reaction;
     CompartmentScalarFunction storage;
     CompartmentVectorFunction velocity;
+    CompartmentScalarFunction constrain;
 
     std::vector<CompartmentDiffusionApply> cross_diffusion;
     std::vector<MembraneScalarFunction> outflow;
+
+    std::vector<MembraneScalarFunction> m_reaction;
+    std::vector<MembraneScalarFunction> m_storage;
 
     CompartmentNode(Scalar& value, Vector& gradient, CompartmentPath path, const std::string& name) : value{value}, gradient{gradient}, path{path}, name{name} {}
 
@@ -227,9 +231,13 @@ public:
     MembraneScalarFunction reaction;
     MembraneScalarFunction storage;
     MembraneVectorFunction velocity;
+    MembraneScalarFunction constrain;
 
     std::vector<MembraneDiffusionApply> cross_diffusion;
     std::vector<MembraneScalarFunction> outflow;
+
+    std::vector<MembraneScalarFunction> m_reaction;
+    std::vector<MembraneScalarFunction> m_storage;
 
     const Concept::MembraneSubEntitiesLocalBasisNode auto& to_local_basis_node(
       const PDELab::Concept::LocalBasis auto& lbasis) const
@@ -575,8 +583,7 @@ private:
                 function.membrane_jacobian.emplace_back(std::move(jac), component_fncs_jac);
       });
 
-    PDELab::forEach(
-      _nodes, [&]<class Node>(std::vector<std::vector<Node>>& compartments_fncs, auto l) {
+    PDELab::forEach( _nodes, [&]<class Node>(std::vector<std::vector<Node>>& compartments_fncs, auto l) {
         for (auto& compartment_fncs : compartments_fncs) {
           for (Node& component_fncs : compartment_fncs) {
 
@@ -607,6 +614,14 @@ private:
                   component_fncs.name);
             }
 
+            // Function to add assembly constrain
+            // In principle should not be a differentiable function -> function would be fine
+            if ( component_config.hasSub("assembly_constrain"))
+              set_differentiable_function(component_fncs.constrain,
+                                          fmt::format("{}.assembly_constrain", component_fncs.name),
+                                          component_config.sub("assembly_constrain"),
+                                          ScalarTag{});
+
             if (opts.test(FactoryFalgs::Reaction) and component_config.hasSub("reaction"))
               set_differentiable_function(component_fncs.reaction,
                                           fmt::format("{}.reaction", component_fncs.name),
@@ -636,6 +651,42 @@ private:
                   set_differentiable_function(
                     component_fncs.outflow[i],
                     fmt::format("{}.outflow.{}", component_fncs.name, _compartment_names[l][i]),
+                    boundaries_config.sub(_compartment_names[l][i]),
+                    ScalarTag{});
+                }
+              }
+            }
+            
+            // Add membrane reaction term -> the function to be added to the skeleton integral
+            if (opts.test(FactoryFalgs::Outflow) and component_config.hasSub("m_reaction")) {
+              if (l == 1)
+                throw format_exception(NotImplemented{},
+                                       "membrane reaction functions for membranes is not implemented");
+              const auto& boundaries_config = component_config.sub("m_reaction");
+              for (std::size_t i = 0; i != _compartment_names[l].size(); ++i) {
+                if (boundaries_config.hasSub(_compartment_names[l][i])) {
+                  component_fncs.m_reaction.resize(_compartment_names[l].size());
+                  set_differentiable_function(
+                    component_fncs.m_reaction[i],
+                    fmt::format("{}.m_reaction.{}", component_fncs.name, _compartment_names[l][i]),
+                    boundaries_config.sub(_compartment_names[l][i]),
+                    ScalarTag{});
+                }
+              }
+            }
+
+            // Add membrane reaction term -> the function to be added to the skeleton integral
+            if (opts.test(FactoryFalgs::Storage) and component_config.hasSub("m_storage")) {
+              if (l == 1)
+                throw format_exception(NotImplemented{},
+                                       "membrane storage functions for membranes is not implemented");
+              const auto& boundaries_config = component_config.sub("m_storage");
+              for (std::size_t i = 0; i != _compartment_names[l].size(); ++i) {
+                if (boundaries_config.hasSub(_compartment_names[l][i])) {
+                  component_fncs.m_storage.resize(_compartment_names[l].size());
+                  set_differentiable_function(
+                    component_fncs.m_storage[i],
+                    fmt::format("{}.m_storage.{}", component_fncs.name, _compartment_names[l][i]),
                     boundaries_config.sub(_compartment_names[l][i]),
                     ScalarTag{});
                 }
