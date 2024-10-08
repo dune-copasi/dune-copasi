@@ -90,6 +90,7 @@ target_include_directories(dune-copasi-parser
 target_compile_definitions(dune-copasi-parser
   PRIVATE
     $<$<TARGET_EXISTS:muparser::muparser>:DUNE_COPASI_MUPARSER_MAX_FUNCTIONS=${DUNE_COPASI_MUPARSER_MAX_FUNCTIONS}>
+    $<$<TARGET_EXISTS:muparser::muparser>:DUNE_COPASI_HAVE_MUPARSER>
 )
 
 # target configuration for downstream projects

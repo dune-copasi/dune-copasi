@@ -2,7 +2,7 @@
 #include <dune/copasi/parser/factory.hh>
 #include <dune/copasi/parser/parser.hh>
 
-#if __has_include(<muParser.h>)
+#if DUNE_COPASI_HAVE_MUPARSER
 #include <dune/copasi/parser/mu.hh>
 #endif
 
@@ -23,7 +23,7 @@
 namespace Dune::Copasi {
 
 const ParserType default_parser =
-#if __has_include(<muParser.h>)
+#if DUNE_COPASI_HAVE_MUPARSER
   ParserType::MuParser;
 #elif __has_include(<symengine/symengine_config.h>)
   ParserType::SymEngine;
@@ -38,7 +38,7 @@ auto
 make_parser(ParserType parser_type) -> std::unique_ptr<Parser>
 {
   if (parser_type == ParserType::MuParser) {
-#if __has_include(<muParser.h>)
+#if DUNE_COPASI_HAVE_MUPARSER
     return std::make_unique<MuParser>();
 #else
     throw format_exception(Exception{}, "MuParser is not available");

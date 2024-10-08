@@ -40,7 +40,7 @@ Types of changes
 ### Fixed
 
  - Outflow derivatives set its prefix incorrectly !229
- - Find muParser was failing if compiler default standard was not specified !203
+ - Improve muParser search with CMake !203 !232
 
 ## [2.0.1] ([git-diff][2.0.1-diff]) - 2024-04-22
 
