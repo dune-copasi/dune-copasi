@@ -186,6 +186,8 @@ codespell:
   stage: check
   image: ${DEPENDENCIES_IMAGE}
   script:
+  - ls -la /
+  - ls -lan /
   - codespell
     --skip="./doc/docusaurus/yarn.lock,./.git/**/*,./doc/joss/paper.bib"
     --ignore-words-list="warn"
