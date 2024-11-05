@@ -75,7 +75,12 @@ ENV CMAKE_INSTALL_PREFIX=/duneci/install
 # ENV DUNE_OPTS_FILE=/duneci/dune.opts
 ENV DUNE_OPTS_FILE=/duneci/cmake-flags/dune-copasi.opts
 
-RUN adduser --disabled-password --home /duneci --uid 50000 duneci
+# Create user and group that the duneci will run under, and create base directory for builds
+RUN groupadd duneci \
+  && useradd --disabled-password --home /duneci -g duneci duneci \
+  && mkdir /builds
+  && chown duneci:duneci /builds
+
 USER duneci
 COPY --chown=duneci ./dune-copasi.opts /duneci/cmake-flags/
 COPY --chown=duneci ./.ci /duneci/modules/dune-copasi/.ci
