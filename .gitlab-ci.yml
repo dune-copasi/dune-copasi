@@ -183,6 +183,7 @@ variables:
 codespell:
   variables:
     <<: *debian_clang
+    CI_DEBUG_TRACE: "true"
   stage: check
   image: ${DEPENDENCIES_IMAGE}
   script:
