@@ -77,7 +77,7 @@ ENV DUNE_OPTS_FILE=/duneci/cmake-flags/dune-copasi.opts
 
 # Create user and group that the duneci will run under, and create base directory for builds
 RUN groupadd duneci \
-  && useradd --disabled-password --home /duneci -g duneci duneci \
+  && adduser --disabled-password --home /duneci --group duneci duneci \
   && mkdir /builds
   && chown duneci:duneci /builds
 
