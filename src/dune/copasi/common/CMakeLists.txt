@@ -49,10 +49,10 @@ target_include_directories(dune-copasi-common
 target_link_libraries(dune-copasi-common
   PUBLIC
     function2
+    fmt::fmt
   PRIVATE
     TIFF::TIFF
   INTERFACE
-    fmt::fmt
     spdlog::spdlog
     ${DUNE_LIBS}
 )
