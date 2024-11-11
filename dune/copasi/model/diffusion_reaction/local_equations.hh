@@ -395,6 +395,8 @@ public:
 
   const auto& nodes() const { return _nodes; }
 
+  CompartmentVectorFunction domain_deformation;
+
 private:
   template<class Tree>
     requires Concept::CompartmentScalarLocalBasisNode<Tree> ||
@@ -575,12 +577,18 @@ private:
                 function.membrane_jacobian.emplace_back(std::move(jac), component_fncs_jac);
       });
 
+    if (config.hasSub("domain.deformation"))
+      set_differentiable_function(domain_deformation,
+                                  "domain.deformation",
+                                  config.sub("domain.deformation"),
+                                  VectorTag{});
+
     PDELab::forEach(
       _nodes, [&]<class Node>(std::vector<std::vector<Node>>& compartments_fncs, auto l) {
         for (auto& compartment_fncs : compartments_fncs) {
           for (Node& component_fncs : compartment_fncs) {
 
-            const auto& component_config = config.sub(component_fncs.name, true);
+            const auto& component_config = config.sub("scalar_field").sub(component_fncs.name, true);
 
             if (opts.test(FactoryFalgs::Diffusion) and component_config.hasSub("cross_diffusion")) {
               const auto& cross_diffusion_config = component_config.sub("cross_diffusion");

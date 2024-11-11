@@ -161,7 +161,7 @@ reduce(const ExecutionPolicy exec,
     data.lcoeff.load(data.lbasis, std::false_type{});
 
     std::size_t const order = 4;
-    const auto& quad_rule =
+    thread_local const auto quad_rule =
       QuadratureRules<typename Geometry::ctype, Geometry::coorddimension>::rule(geo.type(), order);
 
     for (std::size_t q = 0; q != quad_rule.size(); ++q) {

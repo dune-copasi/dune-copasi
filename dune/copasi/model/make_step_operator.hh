@@ -257,7 +257,9 @@ make_step_operator(const ParameterTree& config,
     auto dxinv_fixed_tol = nlsover_config.get("dx_inverse_fixed_tolerance", false);
     auto dxinv_min_rel_tol = nlsover_config.get("dx_inverse_min_relative_tolerance", 0.1);
     auto nnorm = nlsover_config.get("norm", "l_2");
+    auto verbosity = nlsover_config.get("verbosity", 1);
 
+    newton_op->get("verbosity") = verbosity;
     newton_op->get("convergence_condition.relative_tolerance") = nrel_tol;
     newton_op->get("convergence_condition.iteration_range") = { nit_range[0], nit_range[1] };
     if (nlsover_config.hasKey("convergence_condition.absolute_tolerance")) {

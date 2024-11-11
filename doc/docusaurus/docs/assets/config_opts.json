@@ -238,6 +238,25 @@
     ".brief": "Control data layout of the matrices and vectors. Note that this affects the allowed solvers",
     ".details": "To visualize the resulting layout of a matrix use the `model.time_step_operator.linear_solver.layout.writer.svg.path` option."
   },
+  "model.domain.deformation.[x|y|z].[expression|parser_type]": {
+    ".brief": "Expression options for the deformation of the domain (Experimental)`",
+    ".details": [
+      "The domain deformation expressions may depend on any number of variables `{var}` from the 'scalar_field' section and only works when using numerical jacobians.",
+      "Depending on a variable `{var}` makes the problem non-linear and makes every `{var}` in 'scalar_field' depend on the variables `{var}` used here.",
+      "In practice, this means that the jacobian of every sub-section in `scalar_field.{var}` needs to also explicitly show the dependency on the variables used here.",
+      "The differential equations on the `scalar` section are posed on the deformed domain and conserved over time via the Reynolds Transport Theorem.",
+      "The latter means that the equations are in their conservative form."
+    ],
+    ".options": {
+      "expression": {
+        ".type": "math-expr"
+      },
+      "parser_type": {
+        ".type": "enum",
+        ".default": "<see '--parser-default' option>"
+      }
+    }
+  },
   "model.scalar_field.{var}.[reaction|storage|velocity.[x|y|z]|outflow.{cmp}].jacobian.{wrt}.[expression|parser_type]": {
     ".brief": "Expression options for the jacobian wrt variable `{wrt}` of the scalar field equation in variable `{var}`",
     ".options": {
