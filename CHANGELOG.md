@@ -30,6 +30,7 @@ Types of changes
 
 ### Added
 
+ - Add experimental support for moving domains !205
  - Enable super builds for simpler installation instructions !230
  - Numerical jacobians !204
 
