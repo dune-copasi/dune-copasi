@@ -5,6 +5,7 @@
 #include <dune/copasi/model/functor_factory_parser.hh>
 #include <dune/copasi/parser/context.hh>
 #include <dune/copasi/finite_element/local_basis_cache.hh>
+#include <dune/copasi/grid/move_geometry.hh>
 #include <dune/copasi/common/exceptions.hh>
 #include <dune/copasi/common/fmt_style.hh>
 
@@ -45,6 +46,7 @@ reduce(const ExecutionPolicy exec,
        const Coefficients& coefficients,
        auto time,
        const ParameterTree& config,
+       const ParameterTree& domain_cfg = {},
        std::shared_ptr<const FunctorFactory<Basis::EntitySet::GridView::dimension>>
          functor_factory = nullptr)
 {
@@ -89,7 +91,6 @@ reduce(const ExecutionPolicy exec,
     typename Basis::LocalView lbasis;
     PDELab::LocalContainerBuffer<Basis, const Coefficients> lcoeff;
     std::unique_ptr<LocalEquations<dim>> leqs;
-    LocalBasisCache<typename FEM::Traits::LocalBasisType::Traits> fe_cache = {};
     std::optional<typename Geometry::JacobianInverse> geojacinv_opt = std::nullopt;
     std::vector<double> values = {};
     std::vector<fu2::unique_function<double() const>> evaluations = {};
@@ -98,7 +99,7 @@ reduce(const ExecutionPolicy exec,
 
   auto init_thread_data = [&]() -> ThreadLocalData {
     auto lbasis = basis.localView();
-    auto leqs_ptr = LocalEquations<dim>::make(lbasis);
+    auto leqs_ptr = LocalEquations<dim>::make(lbasis, {}, domain_cfg, functor_factory);
     leqs_ptr->time = time;
     const auto& leqs = *leqs_ptr;
     ThreadLocalData data{ std::move(lbasis), { basis, &coefficients }, std::move(leqs_ptr) };
@@ -153,12 +154,15 @@ reduce(const ExecutionPolicy exec,
   }
 
   spdlog::info("Evaluating reduce operators");
-  PDELab::forEachEntity(exec, basis.entitySetPartition(), [&thread_data](const auto& cell) {
-    auto& data = thread_data.local();
-    auto geo = cell.geometry();
+  PDELab::forEachEntity(exec, basis.entitySetPartition(), [&thread_data, time](const auto& cell) {
 
+    thread_local LocalBasisCache<typename FEM::Traits::LocalBasisType::Traits> fe_cache = {};
+
+    auto& data = thread_data.local();
     data.lbasis.bind(cell);
     data.lcoeff.load(data.lbasis, std::false_type{});
+
+    const auto& geo = move_geometry(time, data.lbasis, data.lcoeff, data.leqs, fe_cache, cell.geometry(), std::identity{});
 
     std::size_t const order = 4;
     thread_local const auto quad_rule =
@@ -180,9 +184,9 @@ reduce(const ExecutionPolicy exec,
         auto& gradient = data.leqs->get_gradient(node);
         value = 0.;
         gradient = 0.;
-        data.fe_cache.bind(node.finiteElement(), quad_rule);
-        const auto& phi = data.fe_cache.evaluateFunction(q);
-        const auto& jacphi = data.fe_cache.evaluateJacobian(q);
+        fe_cache.bind(node.finiteElement(), quad_rule);
+        const auto& phi = fe_cache.evaluateFunction(q);
+        const auto& jacphi = fe_cache.evaluateJacobian(q);
         for (std::size_t dof = 0; dof != node.size(); ++dof) {
           value += data.lcoeff(node, dof) * phi[dof];
           gradient += data.lcoeff(node, dof) * (jacphi[dof] * geojacinv)[0];

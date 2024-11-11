@@ -161,7 +161,7 @@ ModelMultiCompartment<Traits>::make_initial(const Grid& grid,
 
 template<class Traits>
 auto
-ModelMultiCompartment<Traits>::reduce(const State& state, const ParameterTree& config) const
+ModelMultiCompartment<Traits>::reduce(const State& state, const ParameterTree& reduce_cfg, const ParameterTree& domain_cfg) const
   -> std::map<std::string, double>
 {
   using MultiCompartmentBasis =
@@ -173,7 +173,7 @@ ModelMultiCompartment<Traits>::reduce(const State& state, const ParameterTree& c
   const auto& basis = any_cast<const MultiCompartmentBasis&>(state.basis);
   const auto& coeff = any_cast<const Coefficients&>(state.coefficients);
 
-  return Dune::Copasi::DiffusionReaction::reduce(PDELab::Execution::seq, basis, coeff, state.time, config, _functor_factory);
+  return Dune::Copasi::DiffusionReaction::reduce(PDELab::Execution::seq, basis, coeff, state.time, reduce_cfg, domain_cfg, _functor_factory);
 }
 
 template<class Traits>

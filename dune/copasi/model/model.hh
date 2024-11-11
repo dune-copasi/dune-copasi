@@ -94,7 +94,7 @@ struct Model
     const State&,
     const ParameterTree&) const = 0;
 
-  virtual std::map<std::string, double> reduce(const State&, const ParameterTree&) const
+  virtual std::map<std::string, double> reduce(const State&, const ParameterTree&, const ParameterTree& = {}) const
   {
     throw format_exception(NotImplemented{}, "Model reduce has not been implemented");
   }

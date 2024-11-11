@@ -68,14 +68,14 @@ class LocalOperator
   double _fin_diff_epsilon = 1e-7;
 
   std::shared_ptr<const CellData<CellDataGridView, CellDataType>> _grid_cell_data;
-  PDELab::SharedStash<LocalBasisCache<LBT>> _fe_cache;
   PDELab::SharedStash<LocalEquations<dim>> _local_values_in;
   PDELab::SharedStash<LocalEquations<dim>> _local_values_out;
+  inline static thread_local LocalBasisCache<LBT> _fe_cache = {};
 
   struct NumericalJacobianCache {
     std::any coeff_in, coeff_out, up_in, up_out, down_in, down_out;
   };
-  PDELab::SharedStash<NumericalJacobianCache> _num_jac_cache;
+  inline static thread_local NumericalJacobianCache _num_jac_cache = {};
 
   ExecutionPolicy _execution_policy;
 
@@ -201,7 +201,6 @@ public:
     }() }
     , _fin_diff_epsilon{ config.get("jacobian.epsilon", 1e-7) }
     , _grid_cell_data{ grid_cell_data }
-    , _fe_cache([]() { return std::make_unique<LocalBasisCache<LBT>>(); })
     , _local_values_in([_lop_type = lop_type,
                         _basis = _test_basis,
                         _config = config,
@@ -209,9 +208,9 @@ public:
                         _grid_cell_data = grid_cell_data]() {
       std::unique_ptr<LocalEquations<dim>> ptr;
       if (_lop_type == Form::Mass)
-        ptr = LocalEquations<dim>::make_mass(_basis.localView(), _config, _functor_factory, _grid_cell_data);
+        ptr = LocalEquations<dim>::make_mass(_basis.localView(), _config.sub("scalar_field", true), _config.sub("domain"), _functor_factory, _grid_cell_data);
       else if (_lop_type == Form::Stiffness)
-        ptr = LocalEquations<dim>::make_stiffness(_basis.localView(), _config, _functor_factory, _grid_cell_data);
+        ptr = LocalEquations<dim>::make_stiffness(_basis.localView(), _config.sub("scalar_field", true), _config.sub("domain"), _functor_factory, _grid_cell_data);
       if (not ptr)
         std::terminate();
       return ptr;
@@ -223,14 +222,13 @@ public:
                          _grid_cell_data = std::move(grid_cell_data)]() {
       std::unique_ptr<LocalEquations<dim>> ptr;
       if (_lop_type == Form::Mass)
-        ptr = LocalEquations<dim>::make_mass(_basis.localView(), _config, _functor_factory, _grid_cell_data);
+        ptr = LocalEquations<dim>::make_mass(_basis.localView(), _config.sub("scalar_field", true), _config.sub("domain"), _functor_factory, _grid_cell_data);
       else if (_lop_type == Form::Stiffness)
-        ptr = LocalEquations<dim>::make_stiffness(_basis.localView(), _config, _functor_factory, _grid_cell_data);
+        ptr = LocalEquations<dim>::make_stiffness(_basis.localView(), _config.sub("scalar_field", true), _config.sub("domain"), _functor_factory, _grid_cell_data);
       if (not ptr)
         std::terminate();
       return ptr;
     })
-    , _num_jac_cache([] { return std::make_unique<NumericalJacobianCache>(); })
     , _execution_policy{ execution_policy }
   {
     if (_is_linear and std::exchange(_do_numerical_jacobian, false))
@@ -458,9 +456,9 @@ public:
         auto& gradient = _local_values_in->get_gradient(node);
         value = 0.;
         gradient = 0.;
-        _fe_cache->bind(node.finiteElement(), quad_rule);
-        const auto& phi = _fe_cache->evaluateFunction(q);
-        const auto& jacphi = _fe_cache->evaluateJacobian(q);
+        _fe_cache.bind(node.finiteElement(), quad_rule);
+        const auto& phi = _fe_cache.evaluateFunction(q);
+        const auto& jacphi = _fe_cache.evaluateJacobian(q);
         for (std::size_t dof = 0; dof != node.size(); ++dof) {
             value     += lcoefficients(node, dof) * phi[dof];
             gradient  += lcoefficients(node, dof) * (jacphi[dof] * geojacinv)[0];
@@ -474,9 +472,9 @@ public:
         const auto& eq =
           _local_values_in->get_equation(PDELab::containerEntry(ltrial.tree(), ltest_node.path()));
 
-        _fe_cache->bind(ltest_node.finiteElement(), quad_rule);
-        const auto& psi = _fe_cache->evaluateFunction(q);
-        const auto& jacpsi = _fe_cache->evaluateJacobian(q);
+        _fe_cache.bind(ltest_node.finiteElement(), quad_rule);
+        const auto& psi = _fe_cache.evaluateFunction(q);
+        const auto& jacpsi = _fe_cache.evaluateJacobian(q);
 
         RF scalar = eq.reaction ? RF{-eq.reaction()} : 0.;
         scalar += eq.storage ? RF{eq.value * eq.storage()} : 0.;
@@ -583,9 +581,9 @@ public:
         auto& gradient = _local_values_in->get_gradient(node);
         value = 0.;
         gradient = 0.;
-        _fe_cache->bind(node.finiteElement(), quad_rule);
-        const auto& phi = _fe_cache->evaluateFunction(q);
-        const auto& jacphi = _fe_cache->evaluateJacobian(q);
+        _fe_cache.bind(node.finiteElement(), quad_rule);
+        const auto& phi = _fe_cache.evaluateFunction(q);
+        const auto& jacphi = _fe_cache.evaluateJacobian(q);
         for (std::size_t dof = 0; dof != node.size(); ++dof) {
             value     += llin_point(node, dof) * phi[dof];
             gradient  += llin_point(node, dof) * (jacphi[dof] * geojacinv)[0];
@@ -599,17 +597,17 @@ public:
         const auto& eq =
           _local_values_in->get_equation(PDELab::containerEntry(ltrial.tree(), ltest_node.path()));
 
-        _fe_cache->bind(ltest_node.finiteElement(), quad_rule);
-        const auto& psi = _fe_cache->evaluateFunction(q);
-        const auto& jacpsi = _fe_cache->evaluateJacobian(q);
+        _fe_cache.bind(ltest_node.finiteElement(), quad_rule);
+        const auto& psi = _fe_cache.evaluateFunction(q);
+        const auto& jacpsi = _fe_cache.evaluateJacobian(q);
 
         // accumulate reaction part into jacobian
         if (eq.reaction) {
           for (const auto& jacobian_entry : eq.reaction.compartment_jacobian) {
             auto jac = jacobian_entry();
             const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
-            _fe_cache->bind(wrt_lbasis.finiteElement(), quad_rule);
-            const auto& phi = _fe_cache->evaluateFunction(q);
+            _fe_cache.bind(wrt_lbasis.finiteElement(), quad_rule);
+            const auto& phi = _fe_cache.evaluateFunction(q);
             for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i)
               for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
                 ljacobian.accumulate(
@@ -620,8 +618,8 @@ public:
         if (eq.storage) {
           auto stg = eq.storage();
           const auto& wrt_lbasis = eq.to_local_basis_node(ltrial);
-          _fe_cache->bind(wrt_lbasis.finiteElement(), quad_rule);
-          const auto& phi = _fe_cache->evaluateFunction(q);
+          _fe_cache.bind(wrt_lbasis.finiteElement(), quad_rule);
+          const auto& phi = _fe_cache.evaluateFunction(q);
           for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i)
             for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
               ljacobian.accumulate(
@@ -630,8 +628,8 @@ public:
           for (const auto& jacobian_entry : eq.storage.compartment_jacobian) {
             auto jac = jacobian_entry();
             const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
-            _fe_cache->bind(wrt_lbasis.finiteElement(), quad_rule);
-            const auto& phi = _fe_cache->evaluateFunction(q);
+            _fe_cache.bind(wrt_lbasis.finiteElement(), quad_rule);
+            const auto& phi = _fe_cache.evaluateFunction(q);
             for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i)
               for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
                 ljacobian.accumulate(ltest_node,
@@ -645,8 +643,8 @@ public:
         if (eq.velocity) {
           auto vel = eq.velocity();
           const auto& wrt_lbasis = eq.to_local_basis_node(ltrial);
-          _fe_cache->bind(wrt_lbasis.finiteElement(), quad_rule);
-          const auto& phi = _fe_cache->evaluateFunction(q);
+          _fe_cache.bind(wrt_lbasis.finiteElement(), quad_rule);
+          const auto& phi = _fe_cache.evaluateFunction(q);
           for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i) {
             for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
               ljacobian.accumulate(ltest_node,
@@ -660,8 +658,8 @@ public:
           for (const auto& jacobian_entry : eq.velocity.compartment_jacobian) {
             auto adv_flux = jacobian_entry() * eq.value[0];
             const auto& jac_wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
-            _fe_cache->bind(jac_wrt_lbasis.finiteElement(), quad_rule);
-            const auto& phi = _fe_cache->evaluateFunction(q);
+            _fe_cache.bind(jac_wrt_lbasis.finiteElement(), quad_rule);
+            const auto& phi = _fe_cache.evaluateFunction(q);
             for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i)
               for (std::size_t dof_j = 0; dof_j != jac_wrt_lbasis.size(); ++dof_j)
                 ljacobian.accumulate(ltest_node,
@@ -675,8 +673,8 @@ public:
         // accumulate cross-diffusion part into jacobian
         for (const auto& diffusion : eq.cross_diffusion) {
           const auto& wrt_lbasis = diffusion.wrt.to_local_basis_node(ltrial);
-          _fe_cache->bind(wrt_lbasis.finiteElement(), quad_rule);
-          const auto& jacphi = _fe_cache->evaluateJacobian(q);
+          _fe_cache.bind(wrt_lbasis.finiteElement(), quad_rule);
+          const auto& jacphi = _fe_cache.evaluateJacobian(q);
           // by product rule
           // accumulate linear term
           for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i) {
@@ -690,8 +688,8 @@ public:
           for (const auto& jacobian_entry : diffusion.compartment_jacobian) {
             auto diffusive_flux = jacobian_entry(jacobian_entry.wrt.gradient);
             const auto& jac_wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
-            _fe_cache->bind(jac_wrt_lbasis.finiteElement(), quad_rule);
-            const auto& phi = _fe_cache->evaluateFunction(q);
+            _fe_cache.bind(jac_wrt_lbasis.finiteElement(), quad_rule);
+            const auto& phi = _fe_cache.evaluateFunction(q);
             for (std::size_t dof_i = 0; dof_i != ltest_node.size(); ++dof_i)
               for (std::size_t dof_j = 0; dof_j != jac_wrt_lbasis.size(); ++dof_j)
                 ljacobian.accumulate(ltest_node,
@@ -724,12 +722,12 @@ public:
     // numerical jacobian
     // get local storage that we can modify...
     using LCTrial = PDELab::LocalContainerBuffer<typename LocalTrial::GlobalBasis, typename LocalCoeff::Container>;
-    LCTrial& coeff = value_or_emplace<LCTrial>(_num_jac_cache->coeff_in, ltrial);
+    LCTrial& coeff = value_or_emplace<LCTrial>(_num_jac_cache.coeff_in, ltrial);
 
     // Note LocalCoeff::Container works here because LocalTrial == LocalTest!
     using LCTest = PDELab::LocalContainerBuffer<typename LocalTest::GlobalBasis, typename LocalCoeff::Container>;
-    LCTest& up = value_or_emplace<LCTrial>(_num_jac_cache->up_in, ltest);
-    LCTest& down = value_or_emplace<LCTrial>(_num_jac_cache->down_in, ltest);
+    LCTest& up = value_or_emplace<LCTrial>(_num_jac_cache.up_in, ltest);
+    LCTest& down = value_or_emplace<LCTrial>(_num_jac_cache.down_in, ltest);
     // pre-compute scaling factor, the weight cancels out in the end if ljacobian is weighted
 
     // calculate down = f(u)
@@ -892,8 +890,7 @@ public:
       _local_values_out->normal = -(_local_values_in->normal = normal);
 
       if (not _outflow_i.empty()) {
-        auto quad_proj = [&](auto quad_pos){ return geo_in_i.global(quad_pos); };
-        const auto position_i = quad_proj(position_f);
+        const auto position_i = quad_proj_i(position_f);
         if (not geojacinv_opt_i or not geo_i.affine())
           geojacinv_opt_i.emplace(geo_i.jacobianInverse(position_i));
         const auto& geojacinv_i = *geojacinv_opt_i;
@@ -910,9 +907,9 @@ public:
           auto& gradient = _local_values_in->get_gradient(node);
           value = 0.;
           gradient = 0.;
-          _fe_cache->bind(node.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
-          const auto& phi = _fe_cache->evaluateFunction(q);
-          const auto& jacphi = _fe_cache->evaluateJacobian(q);
+          _fe_cache.bind(node.finiteElement(), quad_rule, quad_proj_i, not intersection.conforming());
+          const auto& phi = _fe_cache.evaluateFunction(q);
+          const auto& jacphi = _fe_cache.evaluateJacobian(q);
           for (std::size_t dof = 0; dof != node.size(); ++dof) {
             value     += lcoefficients(node, dof) * phi[dof];
             gradient  += lcoefficients(node, dof) * (jacphi[dof] * geojacinv_i)[0];
@@ -923,16 +920,15 @@ public:
         for (const auto& [outflow_i, source_i] : _outflow_i) {
           auto outflow = std::invoke(outflow_i);
           const auto& ltest_node_in = source_i.to_local_basis_node(ltest_in);
-          _fe_cache->bind(ltest_node_in.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
-          const auto& psi_i = _fe_cache->evaluateFunction(q);
+          _fe_cache.bind(ltest_node_in.finiteElement(), quad_rule, quad_proj_i, not intersection.conforming());
+          const auto& psi_i = _fe_cache.evaluateFunction(q);
           for (std::size_t dof = 0; dof != ltest_node_in.size(); ++dof)
             lresidual_in.accumulate(ltest_node_in, dof, outflow * psi_i[dof] * factor);
         }
       }
 
       if (not _outflow_o.empty()) {
-        auto quad_proj = [&](auto quad_pos){ return geo_in_o.global(quad_pos); };
-        const auto position_o = quad_proj(position_f);
+        const auto position_o = quad_proj_o(position_f);
         if (not geojacinv_opt_o or not geo_o.affine())
           geojacinv_opt_o.emplace(geo_o.jacobianInverse(position_o));
         const auto& geojacinv_o = *geojacinv_opt_o;
@@ -947,9 +943,9 @@ public:
           auto& gradient = _local_values_out->get_gradient(node);
           value = 0.;
           gradient = 0.;
-          _fe_cache->bind(node.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
-          const auto& phi = _fe_cache->evaluateFunction(q);
-          const auto& jacphi = _fe_cache->evaluateJacobian(q);
+          _fe_cache.bind(node.finiteElement(), quad_rule, quad_proj_o, not intersection.conforming());
+          const auto& phi = _fe_cache.evaluateFunction(q);
+          const auto& jacphi = _fe_cache.evaluateJacobian(q);
           for (std::size_t dof = 0; dof != node.size(); ++dof) {
             value     += lcoefficients(node, dof) * phi[dof];
             gradient  += lcoefficients(node, dof) * (jacphi[dof] * geojacinv_o)[0];
@@ -960,8 +956,8 @@ public:
         for (const auto& [outflow_o, source_o] : _outflow_o) {
           auto outflow = std::invoke(outflow_o);
           const auto& ltest_node_out = source_o.to_local_basis_node(ltest_out);
-          _fe_cache->bind(ltest_node_out.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
-          const auto& psi_o = _fe_cache->evaluateFunction(q);
+          _fe_cache.bind(ltest_node_out.finiteElement(), quad_rule, quad_proj_o, not intersection.conforming());
+          const auto& psi_o = _fe_cache.evaluateFunction(q);
           for (std::size_t dof = 0; dof != ltest_node_out.size(); ++dof)
             lresidual_out.accumulate(ltest_node_out, dof, outflow * psi_o[dof] * factor);
         }
@@ -1097,8 +1093,7 @@ public:
       _local_values_out->normal = -(_local_values_in->normal = normal);
 
       if (not _outflow_i.empty()) {
-        auto quad_proj = [&](auto quad_pos){ return geo_in_i.global(quad_pos); };
-        const auto position_i = quad_proj(position_f);
+        const auto position_i = quad_proj_i(position_f);
         if (not geojacinv_opt_i or not geo_i.affine())
           geojacinv_opt_i.emplace(geo_i.jacobianInverse(position_i));
         const auto& geojacinv_i = *geojacinv_opt_i;
@@ -1115,9 +1110,9 @@ public:
           auto& gradient = _local_values_in->get_gradient(node);
           value = 0.;
           gradient = 0.;
-          _fe_cache->bind(node.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
-          const auto& phi = _fe_cache->evaluateFunction(q);
-          const auto& jacphi = _fe_cache->evaluateJacobian(q);
+          _fe_cache.bind(node.finiteElement(), quad_rule, quad_proj_i, not intersection.conforming());
+          const auto& phi = _fe_cache.evaluateFunction(q);
+          const auto& jacphi = _fe_cache.evaluateJacobian(q);
           for (std::size_t dof = 0; dof != node.size(); ++dof) {
             value     += llin_point(node, dof) * phi[dof];
             gradient  += llin_point(node, dof) * (jacphi[dof] * geojacinv_i)[0];
@@ -1127,16 +1122,16 @@ public:
         // contribution for each component
         for (const auto& [outflow_i, source_i] : _outflow_i) {
           const auto& ltest_node_in = source_i.to_local_basis_node(ltest_in);
-          _fe_cache->bind(ltest_node_in.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
-          const auto& psi = _fe_cache->evaluateFunction(q);
+          _fe_cache.bind(ltest_node_in.finiteElement(), quad_rule, quad_proj_i, not intersection.conforming());
+          const auto& psi = _fe_cache.evaluateFunction(q);
           for (const auto& jacobian_entry : outflow_i.compartment_jacobian) {
             auto jac = jacobian_entry();
             bool do_self_basis = jacobian_entry.wrt.to_local_basis_node(ltrial_out).size() == 0;
             const auto& ltrial = do_self_basis ? ltrial_in : ltrial_out;
             auto& ljacobian = do_self_basis ? ljacobian_in_in : ljacobian_in_out;
             const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
-            _fe_cache->bind(wrt_lbasis.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
-            const auto& phi = _fe_cache->evaluateFunction(q);
+            _fe_cache.bind(wrt_lbasis.finiteElement(), quad_rule, quad_proj_i, not intersection.conforming());
+            const auto& phi = _fe_cache.evaluateFunction(q);
             for (std::size_t dof_i = 0; dof_i != ltest_node_in.size(); ++dof_i)
               for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
                 ljacobian.accumulate(ltest_node_in,
@@ -1149,8 +1144,7 @@ public:
       }
 
       if (not _outflow_o.empty()) {
-        auto quad_proj = [&](auto quad_pos){ return geo_in_o.global(quad_pos); };
-        const auto position_o = quad_proj(position_f);
+        const auto position_o = quad_proj_o(position_f);
         if (not geojacinv_opt_o or not geo_o.affine())
           geojacinv_opt_o.emplace(geo_o.jacobianInverse(position_o));
         const auto& geojacinv_o = *geojacinv_opt_o;
@@ -1165,9 +1159,9 @@ public:
           auto& gradient = _local_values_out->get_gradient(node);
           value = 0.;
           gradient = 0.;
-          _fe_cache->bind(node.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
-          const auto& phi = _fe_cache->evaluateFunction(q);
-          const auto& jacphi = _fe_cache->evaluateJacobian(q);
+          _fe_cache.bind(node.finiteElement(), quad_rule, quad_proj_o, not intersection.conforming());
+          const auto& phi = _fe_cache.evaluateFunction(q);
+          const auto& jacphi = _fe_cache.evaluateJacobian(q);
           for (std::size_t dof = 0; dof != node.size(); ++dof) {
             value     += llin_point(node, dof) * phi[dof];
             gradient  += llin_point(node, dof) * (jacphi[dof] * geojacinv_o)[0];
@@ -1176,16 +1170,16 @@ public:
 
         for (const auto& [outflow_o, source_o] : _outflow_o) {
           const auto& ltest_node_out = source_o.to_local_basis_node(ltest_out);
-          _fe_cache->bind(ltest_node_out.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
-          const auto& psi = _fe_cache->evaluateFunction(q);
+          _fe_cache.bind(ltest_node_out.finiteElement(), quad_rule, quad_proj_o, not intersection.conforming());
+          const auto& psi = _fe_cache.evaluateFunction(q);
           for (const auto& jacobian_entry : outflow_o.compartment_jacobian) {
             auto jac = jacobian_entry();
             bool do_self_basis = jacobian_entry.wrt.to_local_basis_node(ltrial_in).size() == 0;
             const auto& ltrial = do_self_basis ? ltrial_out : ltrial_in;
             auto& ljacobian = do_self_basis ? ljacobian_out_out : ljacobian_out_in;
             const auto& wrt_lbasis = jacobian_entry.wrt.to_local_basis_node(ltrial);
-            _fe_cache->bind(wrt_lbasis.finiteElement(), quad_rule, quad_proj, not intersection.conforming());
-            const auto& phi = _fe_cache->evaluateFunction(q);
+            _fe_cache.bind(wrt_lbasis.finiteElement(), quad_rule, quad_proj_o, not intersection.conforming());
+            const auto& phi = _fe_cache.evaluateFunction(q);
             for (std::size_t dof_i = 0; dof_i != ltest_node_out.size(); ++dof_i)
               for (std::size_t dof_j = 0; dof_j != wrt_lbasis.size(); ++dof_j)
                 ljacobian.accumulate(ltest_node_out,
@@ -1226,15 +1220,15 @@ public:
 
     // numerical jacobian
     using LCTrial = PDELab::LocalContainerBuffer<typename LocalTrial::GlobalBasis, typename LocalCoeff::Container>;
-    LCTrial& coeff_in = value_or_emplace<LCTrial>(_num_jac_cache->coeff_in, ltrial_in);
-    LCTrial& coeff_out = value_or_emplace<LCTrial>(_num_jac_cache->coeff_out, ltrial_out);
+    LCTrial& coeff_in = value_or_emplace<LCTrial>(_num_jac_cache.coeff_in, ltrial_in);
+    LCTrial& coeff_out = value_or_emplace<LCTrial>(_num_jac_cache.coeff_out, ltrial_out);
 
     // Note LocalCoeff::Container works here because LocalTrial == LocalTest!
     using LCTest = PDELab::LocalContainerBuffer<typename LocalTest::GlobalBasis, typename LocalCoeff::Container>;
-    LCTest& up_in = value_or_emplace<LCTrial>(_num_jac_cache->up_in, ltest_in);
-    LCTest& up_out = value_or_emplace<LCTrial>(_num_jac_cache->up_out, ltest_out);
-    LCTest& down_in = value_or_emplace<LCTrial>(_num_jac_cache->down_in, ltest_in);
-    LCTest& down_out = value_or_emplace<LCTrial>(_num_jac_cache->down_out, ltest_out);
+    LCTest& up_in = value_or_emplace<LCTrial>(_num_jac_cache.up_in, ltest_in);
+    LCTest& up_out = value_or_emplace<LCTrial>(_num_jac_cache.up_out, ltest_out);
+    LCTest& down_in = value_or_emplace<LCTrial>(_num_jac_cache.down_in, ltest_in);
+    LCTest& down_out = value_or_emplace<LCTrial>(_num_jac_cache.down_out, ltest_out);
 
     // fill coeff with current linearization point
     coeff_in.clear(ltrial_in);

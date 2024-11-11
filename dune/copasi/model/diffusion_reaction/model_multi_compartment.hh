@@ -80,7 +80,7 @@ public:
 
   void write_vtk(const State&, const std::filesystem::path&, bool) const override;
 
-  std::map<std::string, double> reduce(const State&, const ParameterTree&) const override;
+  std::map<std::string, double> reduce(const State&, const ParameterTree&, const ParameterTree& = {}) const override;
 
 private:
   static MultiCompartmentPreBasis make_multi_compartment_pre_basis(const Grid&,

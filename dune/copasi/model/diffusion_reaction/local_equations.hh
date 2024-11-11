@@ -263,7 +263,8 @@ public:
   template<PDELab::Concept::LocalBasis LocalBasis, class CellDataGridView = typename LocalBasis::GlobalBasis::EntitySet, class CellDataType = double>
   [[nodiscard]] static std::unique_ptr<LocalEquations> make(
     const LocalBasis& lbasis,
-    const ParameterTree& config = {},
+    const ParameterTree& eqs_cfg = {},
+    const ParameterTree& domain_cfg = {},
     std::shared_ptr<const FunctorFactory<dim>> functor_factory = nullptr,
     std::shared_ptr<const CellData<CellDataGridView, CellDataType>> grid_cell_data = nullptr,
     BitFlags<FactoryFalgs> opts = BitFlags<FactoryFalgs>::no_flags())
@@ -294,25 +295,42 @@ public:
               InvalidStateException{}, "\tVariable with name '{}' is repeated", *it);
     });
 
-    if (opts.any()) {
-      if (not functor_factory) {
-        throw format_exception(InvalidStateException{}, "Equations cannot be configured without a functor factory");
-      }
-      local_values->configure(config, functor_factory, grid_cell_data, opts);
+    // configure grid context data
+    if (grid_cell_data) {
+      local_values->cell_values.resize( grid_cell_data->size() );
+      local_values->cell_mask.resize( grid_cell_data->size() );
+      local_values->cell_keys = grid_cell_data->keys();
     }
+
+    if ((opts.any() or domain_cfg.hasSub("deformation")) and not functor_factory)
+      throw format_exception(InvalidStateException{},
+                              "Equations cannot be configured without a functor factory");
+
+    if (opts.any())
+      local_values->configure_eqs(eqs_cfg, functor_factory, opts);
+
+    if (domain_cfg.hasSub("deformation"))
+      set_differentiable_function(*local_values,
+                                  *functor_factory,
+                                  local_values->domain_deformation,
+                                  "domain.deformation",
+                                  domain_cfg.sub("deformation"),
+                                  VectorTag{});
     return local_values;
   }
 
   template<class CellDataGridView, class CellDataType = double>
   static std::unique_ptr<LocalEquations> make_stiffness(
     const PDELab::Concept::LocalBasis auto& lbasis,
-    const ParameterTree& config,
+    const ParameterTree& eqs_cfg,
+    const ParameterTree& domain_cfg,
     std::shared_ptr<const FunctorFactory<dim>> functor_factory,
     std::shared_ptr<const CellData<CellDataGridView, CellDataType>> grid_cell_data
   )
   {
     return make(lbasis,
-                config,
+                eqs_cfg,
+                domain_cfg,
                 functor_factory,
                 grid_cell_data,
                 FactoryFalgs::Reaction | FactoryFalgs::Diffusion | FactoryFalgs::Velocity |
@@ -322,13 +340,15 @@ public:
   template<class CellDataGridView, class CellDataType = double>
   static std::unique_ptr<LocalEquations> make_mass(
     const PDELab::Concept::LocalBasis auto& lbasis,
-    const ParameterTree& config,
+    const ParameterTree& eqs_cfg,
+    const ParameterTree& domain_cfg,
     std::shared_ptr<const FunctorFactory<dim>> functor_factory,
     std::shared_ptr<const CellData<CellDataGridView, CellDataType>> grid_cell_data
   )
   {
     return make(lbasis,
-                config,
+                eqs_cfg,
+                domain_cfg,
                 functor_factory,
                 grid_cell_data,
                 FactoryFalgs::Storage);
@@ -488,107 +508,122 @@ private:
     initialize_nodes(tree.child(_1), fname, 0);
   }
 
-  template<class CellDataGridView, class CellDataType>
-  void configure(const ParameterTree& config,
-                 std::shared_ptr<const FunctorFactory<dim>> functor_factory,
-                 std::shared_ptr<const CellData<CellDataGridView, CellDataType>> grid_cell_data,
-                 BitFlags<FactoryFalgs> opts)
+  using ScalarTag = index_constant<0>;
+  using VectorTag = index_constant<1>;
+  using TensorApplyTag = index_constant<2>;
+
+  // scalar functor maker overload
+  static fu2::unique_function<Scalar() const noexcept> make_functor(
+    const LocalEquations& local_eqs,
+    const FunctorFactory<dim>& functor_factory,
+    std::string_view prefix,
+    const ParameterTree& config,
+    int codim,
+    ScalarTag)
   {
+    return functor_factory.make_scalar(prefix, config, local_eqs, codim);
+  }
 
-    using ScalarTag = index_constant<0>;
-    using VectorTag = index_constant<1>;
-    using TensorApplyTag = index_constant<2>;
+  // vector functor maker overload
+  static fu2::unique_function<Vector() const noexcept> make_functor(
+    const LocalEquations& local_eqs,
+    const FunctorFactory<dim>& functor_factory,
+    std::string_view prefix,
+    const ParameterTree& config,
+    int codim,
+    VectorTag)
+  {
+    return functor_factory.make_vector(prefix, config, local_eqs, codim);
+  }
 
-    // configure grid context data
-    if (grid_cell_data) {
-      this->cell_values.resize( grid_cell_data->size() );
-      this->cell_mask.resize( grid_cell_data->size() );
-      this->cell_keys = grid_cell_data->keys();
-    }
+  // tensor functor maker overload
+  static fu2::unique_function<Vector(Vector) const noexcept> make_functor(
+    const LocalEquations& local_eqs,
+    const FunctorFactory<dim>& functor_factory,
+    std::string_view prefix,
+    const ParameterTree& config,
+    int codim,
+    TensorApplyTag)
+  {
+    return functor_factory.make_tensor_apply(prefix, config, local_eqs, codim);
+  }
 
-    // configure functors
-    auto make_functor = overload(
-      [&](std::string_view prefix, const ParameterTree& config, int codim, ScalarTag)
-        -> fu2::unique_function<Scalar() const noexcept> {
-        return functor_factory->make_scalar(
-          prefix, config, std::as_const(*this), codim);
-      },
-      [&](std::string_view prefix, const ParameterTree& config, int codim, VectorTag)
-        -> fu2::unique_function<Vector() const noexcept> {
-        return functor_factory->make_vector(
-          prefix, config, std::as_const(*this), codim);
-      },
-      [&](std::string_view prefix,
-          const ParameterTree& config,
-          int codim,
-          TensorApplyTag)
-        -> fu2::unique_function<Vector(Vector) const noexcept> {
-        return functor_factory->make_tensor_apply(
-          prefix, config, std::as_const(*this), codim);
-      });
+  // compartment differentiable functor maker overload
+  template<class Signature>
+  static auto set_differentiable_function(const LocalEquations& local_eqs,
+                                          const FunctorFactory<dim>& functor_factory,
+                                          CompartmentDifferentiableFunction<Signature>& function,
+                                          std::string_view prefix,
+                                          const ParameterTree& function_config,
+                                          auto range_tag)
+  {
+    function = CompartmentDifferentiableFunction<Signature>{ make_functor(
+      local_eqs, functor_factory, prefix, function_config, 0, range_tag) };
+    std::set<std::string_view> debug_set;
+    const auto& jac_config = function_config.sub("jacobian");
+    for (const auto& compartment_fncs_jac : local_eqs._nodes[Indices::_0])
+      for (const auto& component_fncs_jac : compartment_fncs_jac)
+        if (jac_config.hasSub(component_fncs_jac.name))
+          if (auto jac =
+                make_functor(local_eqs,
+                             functor_factory,
+                             fmt::format("{}.jacobian.{}", prefix, component_fncs_jac.name),
+                             jac_config.sub(component_fncs_jac.name),
+                             0,
+                             range_tag)) {
+            function.compartment_jacobian.emplace_back(std::move(jac), component_fncs_jac);
+            debug_set.insert(component_fncs_jac.name);
+          }
+    if (jac_config.getSubKeys().size() != debug_set.size())
+      spdlog::warn("Some sub-sections in \"jacobian\" section are being ignored");
+  }
 
-    auto set_differentiable_function = overload(
-      [&]<class Signature>(CompartmentDifferentiableFunction<Signature>& function,
-                           std::string_view prefix,
-                           const ParameterTree& function_config,
-                           auto range_tag) {
-        function = CompartmentDifferentiableFunction<Signature>{ make_functor(
-          prefix, function_config, 0, range_tag) };
-        std::set<std::string_view> debug_set;
-        const auto& jac_config = function_config.sub("jacobian");
-        for (const auto& compartment_fncs_jac : _nodes[Indices::_0])
-          for (const auto& component_fncs_jac : compartment_fncs_jac)
-            if (jac_config.hasSub(component_fncs_jac.name))
-              if (auto jac =
-                    make_functor(fmt::format("{}.jacobian.{}", prefix, component_fncs_jac.name),
-                                 jac_config.sub(component_fncs_jac.name),
-                                 0,
-                                 range_tag)) {
-                function.compartment_jacobian.emplace_back(std::move(jac), component_fncs_jac);
-                debug_set.insert(component_fncs_jac.name);
-              }
-        if (jac_config.getSubKeys().size() != debug_set.size())
-          spdlog::warn("Some sub-sections in \"jacobian\" section are being ignored");
-      },
-      [&]<class Signature>(MembraneDifferentiableFunction<Signature>& function,
-                           std::string_view prefix,
-                           const ParameterTree& function_config,
-                           auto range_tag) {
-        function = MembraneDifferentiableFunction<Signature>{ make_functor(
-          prefix, function_config, 1, range_tag) };
-        const auto& jac_config = function_config.sub("jacobian");
-        for (const auto& compartment_fncs_jac : _nodes[Indices::_0])
-          for (const auto& component_fncs_jac : compartment_fncs_jac)
-            if (jac_config.hasSub(component_fncs_jac.name))
-              if (auto jac =
-                    make_functor(fmt::format("{}.jacobian.{}", prefix, component_fncs_jac.name),
-                                 jac_config.sub(component_fncs_jac.name),
-                                 1,
-                                 range_tag))
-                function.compartment_jacobian.emplace_back(std::move(jac), component_fncs_jac);
-        for (const auto& membrane_fncs_jac : _nodes[Indices::_1])
-          for (const auto& component_fncs_jac : membrane_fncs_jac)
-            if (jac_config.hasSub(component_fncs_jac.name))
-              if (auto jac =
-                    make_functor(fmt::format("{}.jacobian.{}", prefix, component_fncs_jac.name),
-                                 jac_config.sub(component_fncs_jac.name),
-                                 1,
-                                 range_tag))
-                function.membrane_jacobian.emplace_back(std::move(jac), component_fncs_jac);
-      });
+  // membrane differentiable functor maker overload
+  template<class Signature>
+  static auto set_differentiable_function(const LocalEquations& local_eqs,
+                                          const FunctorFactory<dim>& functor_factory,
+                                          MembraneDifferentiableFunction<Signature>& function,
+                                          std::string_view prefix,
+                                          const ParameterTree& function_config,
+                                          auto range_tag)
+  {
+    function = MembraneDifferentiableFunction<Signature>{ make_functor(
+      local_eqs, functor_factory, prefix, function_config, 1, range_tag) };
+    const auto& jac_config = function_config.sub("jacobian");
+    for (const auto& compartment_fncs_jac :local_eqs. _nodes[Indices::_0])
+      for (const auto& component_fncs_jac : compartment_fncs_jac)
+        if (jac_config.hasSub(component_fncs_jac.name))
+          if (auto jac =
+                make_functor(local_eqs,
+                             functor_factory,
+                             fmt::format("{}.jacobian.{}", prefix, component_fncs_jac.name),
+                             jac_config.sub(component_fncs_jac.name),
+                             1,
+                             range_tag))
+            function.compartment_jacobian.emplace_back(std::move(jac), component_fncs_jac);
+    for (const auto& membrane_fncs_jac : local_eqs._nodes[Indices::_1])
+      for (const auto& component_fncs_jac : membrane_fncs_jac)
+        if (jac_config.hasSub(component_fncs_jac.name))
+          if (auto jac =
+                make_functor(local_eqs,
+                             functor_factory,
+                             fmt::format("{}.jacobian.{}", prefix, component_fncs_jac.name),
+                             jac_config.sub(component_fncs_jac.name),
+                             1,
+                             range_tag))
+            function.membrane_jacobian.emplace_back(std::move(jac), component_fncs_jac);
+  }
 
-    if (config.hasSub("domain.deformation"))
-      set_differentiable_function(domain_deformation,
-                                  "domain.deformation",
-                                  config.sub("domain.deformation"),
-                                  VectorTag{});
-
+  void configure_eqs(const ParameterTree& eqs_cfg,
+                     std::shared_ptr<const FunctorFactory<dim>> functor_factory,
+                     BitFlags<FactoryFalgs> opts)
+  {
     PDELab::forEach(
       _nodes, [&]<class Node>(std::vector<std::vector<Node>>& compartments_fncs, auto l) {
         for (auto& compartment_fncs : compartments_fncs) {
           for (Node& component_fncs : compartment_fncs) {
 
-            const auto& component_config = config.sub("scalar_field").sub(component_fncs.name, true);
+            const auto& component_config = eqs_cfg.sub(component_fncs.name, true);
 
             if (opts.test(FactoryFalgs::Diffusion) and component_config.hasSub("cross_diffusion")) {
               const auto& cross_diffusion_config = component_config.sub("cross_diffusion");
@@ -602,6 +637,8 @@ private:
                     auto& cross_diffusion = component_fncs.cross_diffusion.emplace_back(
                       nullptr, component_fncs_cross_diff);
                     set_differentiable_function(
+                      std::as_const(*this),
+                      *functor_factory,
                       cross_diffusion,
                       fmt::format("{}.cross_diffusion", component_fncs.name),
                       diffusion_config,
@@ -616,19 +653,25 @@ private:
             }
 
             if (opts.test(FactoryFalgs::Reaction) and component_config.hasSub("reaction"))
-              set_differentiable_function(component_fncs.reaction,
+              set_differentiable_function(std::as_const(*this),
+                                          *functor_factory,
+                                          component_fncs.reaction,
                                           fmt::format("{}.reaction", component_fncs.name),
                                           component_config.sub("reaction"),
                                           ScalarTag{});
 
             if (opts.test(FactoryFalgs::Velocity) and component_config.hasSub("velocity"))
-              set_differentiable_function(component_fncs.velocity,
+              set_differentiable_function(std::as_const(*this),
+                                          *functor_factory,
+                                          component_fncs.velocity,
                                           fmt::format("{}.velocity", component_fncs.name),
                                           component_config.sub("velocity"),
                                           VectorTag{});
 
             if (opts.test(FactoryFalgs::Storage) and component_config.hasSub("storage"))
-              set_differentiable_function(component_fncs.storage,
+              set_differentiable_function(std::as_const(*this),
+                                          *functor_factory,
+                                          component_fncs.storage,
                                           fmt::format("{}.storage", component_fncs.name),
                                           component_config.sub("storage"),
                                           ScalarTag{});
@@ -642,6 +685,8 @@ private:
                 if (boundaries_config.hasSub(_compartment_names[l][i])) {
                   component_fncs.outflow.resize(_compartment_names[l].size());
                   set_differentiable_function(
+                    std::as_const(*this),
+                    *functor_factory,
                     component_fncs.outflow[i],
                     fmt::format("{}.outflow.{}", component_fncs.name, _compartment_names[l][i]),
                     boundaries_config.sub(_compartment_names[l][i]),

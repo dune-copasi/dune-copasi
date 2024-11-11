@@ -233,7 +233,7 @@ ModelSingleCompartment<Traits>::make_step_operator(const State& state,
 
 template<class Traits>
 auto
-ModelSingleCompartment<Traits>::reduce(const State& state, const ParameterTree& config) const
+ModelSingleCompartment<Traits>::reduce(const State& state, const ParameterTree& reduce_cfg, const ParameterTree& domain_cfg) const
   -> std::map<std::string, double>
 {
   using CompartmentBasis = PDELab::Basis<PDELab::EntitySetPartitioner::Identity<CompartmentEntitySet>, CompartmentPreBasis>;
@@ -244,7 +244,7 @@ ModelSingleCompartment<Traits>::reduce(const State& state, const ParameterTree& 
   const auto& basis = any_cast<const CompartmentBasis&>(state.basis);
   const auto& coeff = any_cast<const Coefficients&>(state.coefficients);
 
-  return Dune::Copasi::DiffusionReaction::reduce(PDELab::Execution::seq, basis, coeff, state.time, config, _functor_factory);
+  return Dune::Copasi::DiffusionReaction::reduce(PDELab::Execution::seq, basis, coeff, state.time, reduce_cfg, domain_cfg, _functor_factory);
 }
 
 template<class Traits>

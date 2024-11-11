@@ -419,7 +419,7 @@ main(int argc, char** argv)
           }
           // evaluate transform/reduce operations on the model state
           if (model_config.hasSub("reduce")) {
-            model->reduce(state, model_config.sub("reduce"));
+            model->reduce(state, model_config.sub("reduce"), model_config.sub("domain"));
           }
         };
 

@@ -30,6 +30,7 @@ struct MultiLinearGeometrySimplexTraits : MultiLinearGeometryTraits<ct>
 
 /**
  * @brief Moves a geometry based on the local deformation equations
+ * @pre geometry is a simplex
  */
 template<Dune::Concept::Geometry Geometry>
 Dune::Concept::Geometry auto
@@ -44,7 +45,6 @@ move_geometry(auto time,
   constexpr int mdim = Geometry::mydimension;
   constexpr int cdim = Geometry::coorddimension;
 
-  // assume we always work with simplicies
   assert(geo.type().isSimplex());
   assert(geo.corners() == mdim+1);
 
@@ -54,18 +54,19 @@ move_geometry(auto time,
 
   std::array<typename Geometry::GlobalCoordinate, mdim+1> corner_storage;
   if (local_eqs->domain_deformation) {
-    // get quadrature rule with only corner points (just for the cache)
+    // get a quadrature rule with only corner points where we want to evaluate the deformation
     thread_local auto quad_rule = [](){
       QuadratureRule<typename Geometry::ctype, mdim> quad_rule;
+      quad_rule.reserve(mdim+1);
       const auto& ref_el = ReferenceElements<typename Geometry::ctype, mdim>::general(GeometryTypes::simplex(mdim));
-      const auto corners = ref_el.size(mdim);
-      for (std::size_t i = 0; i != corners; ++i)
-        quad_rule.emplace_back(ref_el.position(i, mdim), 1./corners);
+      for (int i = 0; i != ref_el.size(mdim); ++i)
+        quad_rule.emplace_back(ref_el.position(i, mdim), std::numeric_limits<double>::quiet_NaN());
       return quad_rule;
     }();
     assert(quad_rule.size() == mdim+1);
+    // evaluate deformation equations on each corner of the current geometry
     for (int i = 0; i != mdim+1; ++i) {
-      // evaluate concentrations at this corner
+      // load trial functions into the equations cache
       forEachLeafNode(lbasis.tree(), [&](const auto& node) {
         if (node.size() == 0)
           return;
@@ -75,17 +76,19 @@ move_geometry(auto time,
         // we have not created the geometry yet so we cannot evaluate the geometry jacobian
         // -> using the gradient would require a non-linear dependency on the geometry jacobian
         gradient = std::numeric_limits<std::decay_t<decltype(gradient)>>::quiet_NaN();
-        fe_cache->bind(node.finiteElement(), quad_rule, quad_proj, true);
-        const auto& phi = fe_cache->evaluateFunction(i);
+        fe_cache.bind(node.finiteElement(), quad_rule, quad_proj, true);
+        const auto& phi = fe_cache.evaluateFunction(i);
         for (std::size_t dof = 0; dof != node.size(); ++dof)
           value += lcoeff(node, dof) * phi[dof];
       });
 
-      // TODO does i in reference element is the same as i in physical element?
+      // [[pre: numbering of reference element corners is the same as for the global geometry]]
       local_eqs->position = geo.corner(i);
+      // evaluate deformation
       corner_storage[i] = local_eqs->position + local_eqs->domain_deformation();
     }
   } else {
+    // copy corners of old geometry to new geometry
     for (int i = 0; i != mdim+1; ++i)
       corner_storage[i] = geo.corner(i);
   }
