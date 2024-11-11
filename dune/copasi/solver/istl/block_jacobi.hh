@@ -98,14 +98,16 @@ public:
     X& x = (v.size() > 1) ? x_tmp.emplace(v) : v;
     x = v;
     for (std::size_t it = 0; it != _iterations; ++it) {
-      PDELab::forEach(policy, mat, [=, &b, &x, &diag_inv = _diag_inv](const auto& row, auto i) mutable {
-        if constexpr (IsNumber<typename M::block_type>{}) {
+      if constexpr (IsNumber<typename M::block_type>{}) {
+        PDELab::forEach(policy, mat, [&b, &x, v, weight = _weight, diag_inv = _diag_inv.data()](const auto& row, auto i) mutable {
           // compute (b-Ax)
           for (auto col = row.begin(); col != row.end(); ++col)
             b[i] -= (*col) * v[col.index()];
           // solve v for Dv=(b-Ax); then x=x+v
-          x[i] += _weight * diag_inv[i] * b[i];
-        } else {
+          x[i] += weight * diag_inv[i] * b[i];
+        });
+      } else {
+        PDELab::forEach(policy, mat, [&b, &x, v, vi, weight = _weight, diag_inv = _diag_inv.data()](const auto& row, auto i) mutable {
           // compute (b-Ax)
           InverseOperatorResult res;
           for (auto col = row.begin(); col != row.end(); ++col)
@@ -115,9 +117,9 @@ public:
           // copy 'x' in 'vi' is just to get the sizes right
           vir = x[i];
           diag_inv[i]->apply(vir, b[i], res);
-          PDELab::axpy(x[i], _weight, vir);
-        }
-      });
+          PDELab::axpy(x[i], weight, vir);
+        });
+      }
       if (v.size() > 1)
         v = x;
     }
