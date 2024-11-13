@@ -33,6 +33,8 @@ public:
   {
   }
 
+  ~BlockJacobi() override = default;
+
   void pre(X& x, Y& b) override
   {
     if (_parallel)

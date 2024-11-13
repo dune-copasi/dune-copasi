@@ -30,7 +30,7 @@ struct ParserData
   // Important: this memory resource will hold the contents of the smart pointers of 'functions' contiguously.
   // Hence, this memory resource needs to be destroyed **after** 'functions' is completely destroyed.
   // Now, because we rely on RAII to release the smart pointers and destroy this memory resource on this struct,
-  // the order of these entries **does** matter! 
+  // the order of these entries **does** matter!
   std::pmr::monotonic_buffer_resource memory_resource;
 #endif
   exprtk::parser<typename ExprTkParser::RangeField> parser;

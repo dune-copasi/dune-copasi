@@ -76,11 +76,6 @@ fi
 # default dune flags
 export DUNE_PDELAB_ENABLE_TRACING=${DUNE_PDELAB_ENABLE_TRACING:-ON}
 
-# default make flags
-if [[ "$CMAKE_BUILD_TYPE" == "Debug" ]]; then
-  MAKE_FLAGS="VERBOSE=1"
-fi
-
 # get environment variables (excluding CMAKE_FLAGS, CMAKE_OPTIONS, and DUNE_CONTROL_PATH)
 ENV_VARS=$(compgen -e)
 ENV_VARS=${ENV_VARS//CMAKE_FLAGS/}

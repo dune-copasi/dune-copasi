@@ -14,6 +14,8 @@ struct DenseInverse final : public InverseOperator<X, Y>
   {
   }
 
+  ~DenseInverse() override = default;
+
   void apply(X& x, Y& b, InverseOperatorResult& res) override
   {
     _inverse.mv(b,x);

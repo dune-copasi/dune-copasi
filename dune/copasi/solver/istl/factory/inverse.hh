@@ -30,7 +30,7 @@ makeInverseOperator(const std::shared_ptr<Op>& op,
   if (config.get("verbosity", 1) > 0)
     spdlog::info("Creating linear solver with type '{}'", type_name);
   if (auto& registry = getIterativeSolverRegistry<Op, Alloc>(); registry.contains(type_name)) {
-    auto prec = makePreconditioner(op, config.sub("preconditioner"));
+    auto prec = makePreconditioner(op, config.sub("preconditioner"), alloc);
     if constexpr (requires { op->getCommunication(); })
       throw format_exception(NotImplemented{}, "Parallel solvers have not been implemented!");
     using ScalarProd = ScalarProduct<typename Op::domain_type>;

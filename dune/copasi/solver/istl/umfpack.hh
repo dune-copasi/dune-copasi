@@ -15,8 +15,15 @@
 #include <ranges>
 #include <version>
 
+// disabled by default due to memory leaks: https://github.com/oneapi-src/oneDPL/pull/1589
+#if DUNE_COPASI_ENABLE_PARALLEL_SORT
 #if __cpp_lib_execution >= 201603L
 #include <execution>
+#include <algorithm>
+#elif __has_include(<oneapi/dpl/execution>)
+#include <oneapi/dpl/execution>
+#include <oneapi/dpl/algorithm>
+#endif
 #endif
 
 namespace Dune::Copasi::ISTL {
@@ -46,18 +53,9 @@ class UMFPackWapper final : public InverseOperator<typename O::domain_type, type
 #endif
   };
 
-  // matrix entries as a (val, row, col) triplet
-  struct Entry
-  {
-    double val;
-    MI row;
-    MI col;
-  };
-
   // rebind allocators to correct types
   using Int64Alloc = typename std::allocator_traits<Alloc>::template rebind_alloc<int64_t>;
   using DoubleAlloc = typename std::allocator_traits<Alloc>::template rebind_alloc<double>;
-  using EntryAlloc = typename std::allocator_traits<Alloc>::template rebind_alloc<Entry>;
 
   struct SymbolicDeleter
   {
@@ -116,6 +114,11 @@ public:
     storeFlatMatrix(op->getmat());
   }
 
+  ~UMFPackWapper() override {
+    if(_umf_numeric_ptr)
+      umfpack_dl_free_numeric(&_umf_numeric_ptr);
+  }
+
 private:
   template<class M>
   void forEachMatrixEntry(M&& mat, const auto& call_back, MI row = MI(), MI col = MI())
@@ -135,27 +138,49 @@ private:
 
   void storeFlatMatrix(const Matrix& mat)
   {
+    // matrix entries as a (val, row, col) triplet
+    struct Entry
+    {
+      double val;
+      MI row;
+      MI col;
+    };
+    using EntryAlloc = typename std::allocator_traits<Alloc>::template rebind_alloc<Entry>;
     EntryAlloc entryalloc(_alloc);
-    std::vector<Entry, EntryAlloc> entries(entryalloc);
+
+    // step 1: store sparse matrix in coordinate format (value, row, col)
+    std::size_t nnz = 0;
+    if (blockLevel<Matrix>() > 1) {
+      forEachMatrixEntry(mat, [&](auto&&, auto&&, auto&&) { ++nnz; });
+    } else {
+      nnz = mat.nonzeroes();
+    }
+
+    auto entries = std::span<Entry>(std::allocator_traits<EntryAlloc>::allocate(entryalloc, nnz), nnz);
+    nnz = 0;
     forEachMatrixEntry(mat, [&](double val, MI row, MI col) {
-      entries.emplace_back(Entry{ val, row, col });
+      std::allocator_traits<EntryAlloc>::construct(entryalloc, &entries[nnz++], val, row, col);
     });
 
+    // step 2: flattern row multi-index into a single index
     if (blockLevel<Matrix>() > 1) {
 
       auto row_compare = [](auto lhs, auto rhs) {
+        // note that sort does not need to order the col entry
         return std::ranges::lexicographical_compare(lhs.row, rhs.row);
       };
-      // transform row multi-index into a flat index (only needed if matrix is nested)
-      // note that sort does not need to order the col entry
-      std::sort(
-#if __cpp_lib_execution >= 201603L
+      // sort row multi-index lexicographically: block ordering of rows -> natural ordering of rows
+      sort(
+#if DUNE_COPASI_ENABLE_PARALLEL_SORT and (__cpp_lib_execution >= 201603L)
         std::execution::par,
+#elif DUNE_COPASI_ENABLE_PARALLEL_SORT and __has_include(<oneapi/dpl/execution>)
+        oneapi::dpl::execution::par,
 #endif
         entries.begin(),
         entries.end(),
         row_compare);
 
+      // convert multi-index into a single index
       MI last_row;
       std::size_t flat_row = -1;
       for (auto& [val, row, col] : entries) {
@@ -179,9 +204,11 @@ private:
     };
 
     // order indices by column (note that sort does need to be order on row entry too)
-    std::sort(
-#if __cpp_lib_execution >= 201603L
-      std::execution::par,
+    sort(
+#if DUNE_COPASI_ENABLE_PARALLEL_SORT and (__cpp_lib_execution >= 201603L)
+        std::execution::par,
+#elif DUNE_COPASI_ENABLE_PARALLEL_SORT and __has_include(<oneapi/dpl/execution>)
+        oneapi::dpl::execution::par,
 #endif
       entries.begin(),
       entries.end(),
@@ -191,6 +218,7 @@ private:
     _umf_values.clear();
     _umf_offsets.clear();
     _umf_rows.clear();
+    _umf_offsets.reserve(entries.back().col[0]);
     _umf_rows.reserve(entries.size());
     _umf_values.reserve(entries.size());
 
@@ -205,9 +233,12 @@ private:
       _umf_values.push_back(val);
       // [[pre: rows are sorted within column]]
       _umf_rows.push_back(static_cast<int64_t>(row[0]));
+      std::allocator_traits<EntryAlloc>::destroy(entryalloc, &entries[i]);
     }
     _umf_m = _umf_offsets.size();
     _umf_offsets.push_back(entries.size());
+
+    std::allocator_traits<EntryAlloc>::deallocate(entryalloc, entries.data(), entries.size());
   }
 
   void factorize()
@@ -226,23 +257,24 @@ private:
                         &symbolic_ptr,
                         _umf_control,
                         _umf_info);
-    std::unique_ptr<void, SymbolicDeleter> _umf_symbolic_ptr{ std::exchange(symbolic_ptr, nullptr) };
     if (_report_symbolic)
-      umfpack_dl_report_symbolic(_umf_symbolic_ptr.get(), _umf_control);
+      umfpack_dl_report_symbolic(symbolic_ptr, _umf_control);
 
     // factorize matrix
-    void* numeric_ptr = nullptr;
+    if(_umf_numeric_ptr)
+      umfpack_dl_free_symbolic(&_umf_numeric_ptr);
+    _umf_numeric_ptr = nullptr;
     umfpack_dl_numeric(_umf_offsets.data(),
                        _umf_rows.data(),
                        _umf_values.data(),
-                       _umf_symbolic_ptr.get(),
-                       &numeric_ptr,
+                       symbolic_ptr,
+                       &_umf_numeric_ptr,
                        _umf_control,
                        _umf_info);
-    _umf_numeric_ptr = std::unique_ptr<void, NumericDeleter>{ std::exchange(numeric_ptr, nullptr) };
     // report results
     if (_report_numeric)
-      umfpack_dl_report_numeric(_umf_numeric_ptr.get(), _umf_control);
+      umfpack_dl_report_numeric(_umf_numeric_ptr, _umf_control);
+    umfpack_dl_free_symbolic(&symbolic_ptr);
   }
 
 public:
@@ -269,7 +301,7 @@ public:
                                    _umf_values.data(),
                                    _umf_x.data(),
                                    _umf_b.data(),
-                                   _umf_numeric_ptr.get(),
+                                   _umf_numeric_ptr,
                                    _umf_control,
                                    _umf_info,
                                    _umf_iworkspace.data(),
@@ -310,7 +342,7 @@ public:
       auto aop = std::dynamic_pointer_cast<O>(op);
       if (not aop)
         throw format_exception(InvalidStateException{}, "Linear operator does not hold a matrix!");
-      // construct preconditioner instance
+      // construct operator instance
       return std::allocate_shared<UMFPackWapper>(opalloc, aop, config, alloc);
     };
   }
@@ -324,7 +356,7 @@ public:
   std::vector<double, DoubleAlloc> _umf_values;
   std::vector<double, DoubleAlloc> _umf_x;
   std::vector<double, DoubleAlloc> _umf_b;
-  std::unique_ptr<void, NumericDeleter> _umf_numeric_ptr;
+  void* _umf_numeric_ptr = nullptr;
   double _umf_control[UMFPACK_CONTROL];
   double _umf_info[UMFPACK_INFO];
   bool _report_symbolic;
