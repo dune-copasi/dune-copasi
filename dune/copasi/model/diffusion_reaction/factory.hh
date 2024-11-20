@@ -64,8 +64,9 @@ make_model(
       return std::index_sequence<DUNE_COPASI_2D_DIFFUSION_REACTION_FEM_ORDERS>{};
     } else if constexpr (Model::Grid::dimensionworld == 3) {
       return std::index_sequence<DUNE_COPASI_3D_DIFFUSION_REACTION_FEM_ORDERS>{};
+    } else {
+      return std::index_sequence<1>{};
     }
-    return std::index_sequence<1>{};
   }();
 
   auto config_fem_order = config.get("order", std::size_t{ 1 });

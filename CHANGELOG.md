@@ -40,6 +40,7 @@ Types of changes
 
 ### Fixed
 
+ - Wrong configuration of higher order polynomial degrees !236
  - Memory leak on the UMFPack solver !235
  - Outflow derivatives set its prefix incorrectly !229
  - Improve muParser search with CMake !203 !232
