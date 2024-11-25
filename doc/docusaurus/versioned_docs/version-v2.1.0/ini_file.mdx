@@ -1,0 +1,111 @@
+---
+id: ini_file
+title: Config File
+description: Syntax of INI file
+sidebar_label: Config File
+tags:
+  - API
+  - CLI
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import CodeBlock from '@theme/CodeBlock';
+
+::::note CLI Usage
+This documentation page is intended for the [Command Line Interface (CLI)](use_cli). If you're new to DuneCopasi, we recommend starting with our [Tutorials](/tutorials).
+::::
+
+To express different [mathematical problems](/math_model) we typically write a configuration file (with `.ini` extension by convention) which entails all the information that is needed for the DuneCopasi solver to construct the problem at hand.
+The configuration file consists of a parameter tree containing the [simulation options](param_tree). The nodes at the top level can be divided in 4 categories:
+
+| Category | Description  |
+|     ---- | -----------  |
+| `grid`                  | The nodes under the grid header describe the basic properties of the grid. For example the dimension, extension, origin, etc.
+| `parser_context`        | Under this node we are able to define constant and functions that can be used to define the mathematical model.
+| `compartments`          | In this category we define the properties related to division of the problem to multiple compartments.
+| `model`                 | This is the heart of the mathematical problem where we define the reaction terms, diffusion, etc.
+
+The ini files we use follow the DUNE convention. In short, the data is composed of a key–value pairs on the form ```key = value```. For example, to define a `property` of the category `grid` we write
+
+```ini title="config.ini"
+grid.property = value
+```
+
+In essence the ini file is nothing else than a parameter tree of key-value pairs. For convenience one can use sections to avoid rewriting the leading part and provide more structure. This is done by using ``` [section.subsection] ``` syntax. The keys below will now be within the designated subsection. As an example, the three following ini files, are equivalent
+
+<Tabs
+  defaultValue="form1"
+  values={[
+      {label: 'No grouping', value: 'form1', },
+      {label: 'Grouping', value: 'form2', },
+      {label: 'Nested grouping', value: 'form3', },
+    ]
+  }>
+
+  <TabItem value="form1">
+
+```ini title="config.ini"
+# No preceding section (everything after a '#' will be ignored)
+section.subsection.first = 1.0
+section.subsection.second = 2.0
+```
+
+  </TabItem>
+  <TabItem value="form2">
+
+```ini title="config.ini"
+[section]
+subsection.first = 1.0
+subsection.second = 2.0
+```
+
+  </TabItem>
+
+
+  <TabItem value="form3">
+
+```ini title="config.ini"
+[section.subsection]
+first = 1.0
+second = 2.0
+```
+
+  </TabItem>
+</Tabs>
+
+
+:::tip Examples
+
+import HeatINI from '!!raw-loader!./assets/ini/heat.ini';
+import VolkaTerraINI from '!!raw-loader!./assets/ini/volka_terra.ini';
+import GreyScottINI from '!!raw-loader!./assets/ini/grey_scott.ini';
+
+<Tabs
+  groupId="config-examples"
+  defaultValue="heat"
+  values={[
+      {label: 'Heat Eqs', value: 'heat', },
+      {label: 'Volka-Terra Eqs', value: 'volka_terra', },
+      {label: 'Grey-Scott Eqs', value: 'grey_scott', },
+    ]
+  }>
+
+  <TabItem value="heat">
+    <CodeBlock language="ini" title="heat.ini" showLineNumbers>
+      {HeatINI}
+    </CodeBlock>
+  </TabItem>
+  <TabItem value="volka_terra">
+    <CodeBlock language="ini" title="volka_terra.ini" showLineNumbers>
+      {VolkaTerraINI}
+    </CodeBlock>
+  </TabItem>
+  <TabItem value="grey_scott">
+    <CodeBlock language="ini" title="grey_scott.ini" showLineNumbers>
+      {GreyScottINI}
+    </CodeBlock>
+  </TabItem>
+</Tabs>
+
+:::

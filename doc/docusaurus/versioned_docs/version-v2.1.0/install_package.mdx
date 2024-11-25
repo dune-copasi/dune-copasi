@@ -1,0 +1,65 @@
+---
+id: install_package
+title: Install Package
+description: How to install the binary package
+sidebar_label: Install from Package Manager
+tags:
+  - Debian
+  - CLI
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import CodeBlock from '@theme/CodeBlock';
+import DuneCopasiHelp from './DuneCopasiHelp'
+
+Debian 11 users who want to use DuneCopasi with its [Command-Line-Interface](use_cli) can install it through the package manager:
+
+### Install
+
+<Tabs
+  groupId="package-manager"
+  defaultValue="apt"
+  values={[
+      {label: 'Debian 11 (apt)', value: 'apt', },
+    ]
+  }>
+
+  <TabItem value="apt">
+
+```bash
+curl -fsSL https://gitlab.dune-project.org/api/v4/projects/819/packages/generic/dune-copasi/2.0.0-git/dune-copasi-runtime.deb -o dune-copasi-runtime.deb
+apt install ./dune-copasi-runtime.deb
+```
+
+  </TabItem>
+</Tabs>
+
+Once installed, the program `dune-copasi` will be available on the command line:
+
+<DuneCopasiHelp/>
+
+:::tip[Configuration Options]
+For more information on the possible options to successfully run a simulation, make sure to visit the [Command Line Interface](use_cli), the [Configuration Options](param_tree), and the [Tutorials](/tutorials) documentations!
+:::
+
+### Uninstall
+
+To remove the package, remove the `dune-copasi-runtime` with the package manager:
+
+<Tabs
+  groupId="package-manager"
+  defaultValue="apt"
+  values={[
+      {label: 'Debian 11 (apt)', value: 'apt', },
+    ]
+  }>
+
+  <TabItem value="apt">
+
+```bash
+apt remove dune-copasi-runtime
+```
+
+  </TabItem>
+</Tabs>

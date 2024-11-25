@@ -1,0 +1,151 @@
+---
+id: use_cli
+title: Command Line Interface Usage
+description: How to use the Command Line Interface
+sidebar_label: Use as CLI
+tags:
+  - CLI
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import CodeBlock from '@theme/CodeBlock';
+import ExampleTerminal from '@site/src/components/ExampleTerminal'
+import DuneCopasiHelp from './DuneCopasiHelp'
+import TestINI from '!!raw-loader!./assets/ini/test.ini';
+
+:::tip Installation Guide
+Check out our [Installation Documentation](install) to find the optimal way to install `dune-copasi` and access the Command Line Interface!
+:::
+
+:::tip CLI on the Web Browser
+If you're interested in exploring and using the Command Line Interface (CLI) without installation, you're in luck! The [Web Browser executable](try) allows you to interact with the CLI directly from any device. No setup required—just open your browser and start experimenting!
+:::
+
+In this form, we provide one executable named `dune-copasi` for running forward simulations from the command line.
+This executable is completely configurable from the command line arguments passed to it.
+
+### Configuration options
+
+By running the program with the command line arguments `--help` or `--help-full`, it will result in the
+possible configuration options to run the program:
+
+<DuneCopasiHelp/>
+
+:::tip[Configuration Options]
+For more information on the possible options to successfully run a simulation, make sure to visit the [Configuration Options](param_tree), and the [Tutorials](/tutorials) documentations!
+:::
+
+### Version
+
+By running the program with the command line argument `--version`, you can find out the installed version of DuneCopasi:
+
+<ExampleTerminal title="Getting DuneCopasi version">
+  {[
+    {
+      input: "dune-copasi --version",
+      output: [
+      "2.0.0",
+      ]
+    }
+  ]}
+</ExampleTerminal>
+
+### Running the program
+
+By parsing a initialization file `config.ini` to the DuneCopasi solver it will exactly know how to construct the problem and the simulation will be started.
+Once it finished you should get the message `dune-copasi successfully finished :)` by the end simulation logs.
+
+:::tip configuration file example
+Having installed we are now set to test the DuneCopasi solver.
+To do this we will create a simple initialization file. We write the code of the minimal example to the file `config.ini`:
+
+<CodeBlock language="ini" title="~/workdir/config.ini" showLineNumbers>
+{TestINI}
+</CodeBlock>
+
+In case of the example above, you have just set up the heat equation with an initial Gaussian distribution (it doesn't save it though).
+:::
+
+<Tabs
+  groupId="cli-type"
+  defaultValue="native"
+  values={[
+      {label: 'Native', value: 'native', },
+      {label: 'Docker', value: 'docker', },
+    ]
+  }>
+
+  <TabItem value="native">
+    <ExampleTerminal prompt="~/workdir$" title="Running DuneCopasi">
+      {[
+        {
+          input: "dune-copasi --config=config.ini",
+          output: [
+          "[2024-03-21 12:38:32.479] [info] Reading configuration file '~/workdir/config.ini'",
+          "[2024-03-21 12:38:32.479] [info] Starting dune-copasi (version: 2.0.0)",
+          "[2024-03-21 12:38:32.580] [info] Axis names are set to: [\"x\", \"y\", \"z\"]",
+          "...",
+          "...",
+          "[2024-03-21 12:38:32.723] [info] dune-copasi successfully finished :)",
+          ]
+        }
+      ]}
+    </ExampleTerminal>
+  </TabItem>
+  <TabItem value="docker">
+    <ExampleTerminal prompt="~/workdir$" title="Running DuneCopasi (with docker)">
+      {[
+        {
+          input: "chmod o+rw $PWD"
+        },
+        {
+          input: "docker run -v $PWD:/dunecopasi dune-copasi --config=config.ini",
+          output: [
+          "[2024-03-21 12:38:32.479] [info] Reading configuration file '~/workdir/config.ini'",
+          "[2024-03-21 12:38:32.479] [info] Starting dune-copasi (version: 2.0.0)",
+          "[2024-03-21 12:38:32.580] [info] Axis names are set to: [\"x\", \"y\", \"z\"]",
+          "...",
+          "...",
+          "[2024-03-21 12:38:32.723] [info] dune-copasi successfully finished :)",
+          ]
+        }
+      ]}
+    </ExampleTerminal>
+  </TabItem>
+</Tabs>
+
+Note that the [output files](output) produced by DuneCopasi are relative to the directory where
+`dune-copasi` is started, hence, it is recommended to run the program within a working directory, for example `~/workdir`.
+
+:::warning[Simulation Failed?]
+A failed simulation may look instead like this:
+
+<ExampleTerminal prompt="~/workdir$" title="Running DuneCopasi (failure)">
+  {[
+    {
+      input: "dune-copasi --config=config.ini",
+      output: [
+      "[2024-03-21 12:38:32.479] [info] Reading configuration file '~/workdir/config.ini'",
+      "[2024-03-21 12:38:32.479] [info] Starting dune-copasi (version: 2.0.0)",
+      "[2024-03-21 12:38:32.580] [info] Axis names are set to: [\"x\", \"y\", \"z\"]",
+      "...",
+      "...",
+      "[2024-03-21 12:38:32.723] [error] Dune reported error:",
+      "[2024-03-21 12:38:32.723] [error]   Message:        Basis has dimension 0, make sure to have at least one 'scalar_field' with a non-empty 'compartment'",
+      "[2024-03-21 12:38:32.723] [error]   Exception type: Dune::InvalidStateException",
+      "[2024-03-21 12:38:32.723] [error] dune-copasi finished with some errors :(",
+      ]
+    }
+  ]}
+</ExampleTerminal>
+
+If your simulation failed, it's worth to ask yourself the following questions:
+
+* What are the contents of your configuration options and what's the expected behavior?
+* What are the **warning** and **error** logs provided by program? Do they give you hints on how to solve the problem?
+* What is stage of the simulation where the problem failed?
+
+In particular, remember that providing no configuration options gives an invalid simulation
+(what would be the simulation for this?), therefore the program rightfully fails.
+:::

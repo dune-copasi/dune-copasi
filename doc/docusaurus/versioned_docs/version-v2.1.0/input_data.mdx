@@ -1,0 +1,95 @@
+---
+id: input_data
+title: Input Data
+description: List of possible to input data
+sidebar_label: Input Data
+tags:
+  - API
+  - CLI
+---
+
+import ConfigOptsJSON from './assets/config_opts.json';
+import Markdown from 'react-markdown';
+
+export const JoinDetailsArray = (a) => {return Array.isArray(a) ? a.join('\n') : a}
+
+::::note CLI Usage
+This documentation page is intended for the [Command Line Interface (CLI)](use_cli). If you're new to DuneCopasi, we recommend starting with our [Tutorials](/tutorials).
+::::
+
+Several input data files in the `dune-copasi` program are possible:
+
+### Config Options (INI Format)
+
+:::note Command Line Arguments:
+* **`--config={path}`**
+:::
+
+An extensive set of [configuration options](param_tree) can be customized via the [DUNE `ini` file convention](ini_file).
+
+::::tip Override options
+The options in the configuration file may be overridden by passing `--{key}={value}` to the command line of the program.
+::::
+
+### Grid (GMSH Format)
+
+:::note Config Options:
+* **`grid.path={path}`**
+:::
+
+<Markdown>
+{JoinDetailsArray(ConfigOptsJSON["grid.[dimension|path|cells|extensions|origin|refinement_level|axis_names]"][".options"]["path"][".details"])}
+</Markdown>
+
+:::tip Example
+Assuming that `path/to/grid.msh` contains a gmsh file with physical entities `1` and `2`, then, the example below will create compartments `inner` and `outer`. The pysical entities with index `1` will be assigned to compartment `outer` whereas the pysical entities with index `2` will be assigned to compartment `inner`.
+```ini title="config.ini"
+[grid]
+path = path/to/grid.msh
+
+[compartments]
+outer.expression = (gmsh_id == 1)
+inner.expression = (gmsh_id == 2)
+```
+:::
+
+### Grid Cell Data (TXT Format)
+
+:::note Config Options:
+* **`grid.cell_data.{dtkn}.path={prefix}`**
+:::
+
+<Markdown>
+{JoinDetailsArray(ConfigOptsJSON["grid.cell_data.{dtkn}.[type|path]"][".details"])}
+</Markdown>
+
+### Images (TIFF Format)
+
+:::note Config Options:
+* **`parser_context.{tkn}.type=tiff`**
+* **`parser_context.{tkn}.path={path}`**
+:::
+
+<Markdown>
+{JoinDetailsArray(ConfigOptsJSON["parser_context.{tkn}.[type|expression|parser_type|domain|range|value|path|interpolate|seed]"][".options"]["type"][".options"]["'tiff'"][".details"])}
+</Markdown>
+
+:::tip Example
+Assuming that `path/to/image.tif` contains a tiff file with values `1` and `2`, then, the example below will create compartments `inner` and `outer`. The grid cells where their center evaluated in `alpha` results in index `1` will be assigned to compartment `outer` whereas the grid cells where their center evaluated in `alpha` results in index `2` will be assigned to compartment `inner`.
+```ini title="config.ini"
+[parser_context.alpha]
+type = tiff
+path = path/to/image.tif
+
+[compartments]
+outer.expression = (alpha(position_x, position_y) <= 1.5)
+inner.expression = (alpha(position_x, position_y) >  1.5)
+```
+Notice how `position_x` and `position_y` are assigned on each grid cell to determine the value of the expression.
+:::
+
+:::info Out of domain behavior
+If the resulting function `{tkn}` is evaluated outside the domain of the `tiff` image, the
+arguments will be [clamped](https://en.wikipedia.org/wiki/Clamping_(graphics)) to
+the nearest valid point in the domain.
+:::
