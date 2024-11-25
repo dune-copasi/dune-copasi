@@ -33,8 +33,8 @@ With Docker available in your command line, you can now obtain the DuneCopasi Do
 This can simply be done by pulling it from the [Docker registry](https://gitlab.dune-project.org/copasi/dune-copasi/container_registry):
 
 ```bash
-docker pull registry.dune-project.org/copasi/dune-copasi/dune-copasi:master
-docker tag registry.dune-project.org/copasi/dune-copasi/dune-copasi:master dune-copasi
+docker pull registry.dune-project.org/copasi/dune-copasi/dune-copasi:v2.1.0
+docker tag registry.dune-project.org/copasi/dune-copasi/dune-copasi:v2.1.0 dune-copasi
 ```
 
 The first line downloads the image from the internet while second one creates a tagged alias named `dune-copasi` so that it is easier to recall.
@@ -48,9 +48,9 @@ Once this is done, your terminal should look something similar to this:
 <ExampleTerminal title="Pulling DuneCopasi Docker image">
   {[
     {
-      input: "docker pull registry.dune-project.org/copasi/dune-copasi/dune-copasi:master",
+      input: "docker pull registry.dune-project.org/copasi/dune-copasi/dune-copasi:v2.1.0",
       output: [
-        "master: Pulling from copasi/dune-copasi/dune-copasi",
+        "v2.1.0: Pulling from copasi/dune-copasi/dune-copasi",
         "09dd50cc7a64: Pull complete",
         "820c3cdfe17d: Pull complete",
         "c91c7d9f3fb1: Pull complete",
@@ -59,16 +59,16 @@ Once this is done, your terminal should look something similar to this:
         "7b80474789e1: Pull complete",
         "bd9ddc54bea9: Pull complete",
         "Digest: sha256:56feba94d0acf8f392eb835a9c25fdbd2124a199ea55cee3ff9635a3871fd597",
-        "Status: Downloaded newer image for registry.dune-project.org/copasi/dune-copasi/dune-copasi:master",
-        "registry.dune-project.org/copasi/dune-copasi/dune-copasi:master",
+        "Status: Downloaded newer image for registry.dune-project.org/copasi/dune-copasi/dune-copasi:v2.1.0",
+        "registry.dune-project.org/copasi/dune-copasi/dune-copasi:v2.1.0",
       ]
     },{
-      input: "docker tag registry.dune-project.org/copasi/dune-copasi/dune-copasi:master dune-copasi",
+      input: "docker tag registry.dune-project.org/copasi/dune-copasi/dune-copasi:v2.1.0 dune-copasi",
     },{
       input: "docker images",
       output: [
         "REPOSITORY    TAG        IMAGE ID       CREATED        SIZE",
-        "dune-copasi   master     acb239d6253e   2 seconds ago  337MB",
+        "dune-copasi   v2.1.0     acb239d6253e   2 seconds ago  337MB",
         "...",
       ]
     }
