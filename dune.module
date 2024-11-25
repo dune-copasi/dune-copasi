@@ -4,6 +4,6 @@
 
 #Name of the module
 Module: dune-copasi
-Version: 2.1.0-git
+Version: 2.1.0
 Maintainer: santiago@dune-project.org
 Depends: dune-uggrid (>= 2.10) dune-pdelab (>= 2.9) dune-multidomaingrid (>= 2.10)
