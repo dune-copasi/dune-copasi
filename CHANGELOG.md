@@ -28,6 +28,8 @@ Types of changes
 
 ## [Unreleased] ([git-diff][Unreleased-diff])
 
+## [2.1.0] ([git-diff][2.1.0-diff]) - 2024-11-25
+
 ### Added
 
  - Add experimental support for moving domains !205
@@ -284,6 +286,8 @@ _**Note**: This version is a complete re-write of the library based on a custom 
 
 [Unreleased]: https://gitlab.dune-project.org/copasi/dune-copasi/-/tree/master
 
+[2.0.1]: https://gitlab.dune-project.org/copasi/dune-copasi/-/releases/v2.0.1
+[2.0.0]: https://gitlab.dune-project.org/copasi/dune-copasi/-/releases/v2.0.0
 [1.1.0]: https://gitlab.dune-project.org/copasi/dune-copasi/-/releases/v1.1.0
 [1.0.0]: https://gitlab.dune-project.org/copasi/dune-copasi/-/releases/v1.0.0
 [0.3.0]: https://gitlab.dune-project.org/copasi/dune-copasi/-/releases/v0.3.0
