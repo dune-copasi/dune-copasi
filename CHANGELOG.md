@@ -276,8 +276,9 @@ _**Note**: This version is a complete re-write of the library based on a custom 
 - [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Solver for reaction-diffusion systems in multiple compartments.
 
-[Unreleased-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v2.0.1...master
-[2.0.1-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v2.0.1...v2.0.1
+[Unreleased-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v2.1.0...master
+[2.1.0-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v2.0.1...v2.1.0
+[2.0.1-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v2.0.0...v2.0.1
 [2.0.0-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v1.1.0...v2.0.0
 [1.1.0-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v1.0.0...v1.1.0
 [1.0.0-diff]: https://gitlab.dune-project.org/copasi/dune-copasi/compare/v0.3.0...v1.0.0
@@ -286,6 +287,7 @@ _**Note**: This version is a complete re-write of the library based on a custom 
 
 [Unreleased]: https://gitlab.dune-project.org/copasi/dune-copasi/-/tree/master
 
+[2.1.0]: https://gitlab.dune-project.org/copasi/dune-copasi/-/releases/v2.1.0
 [2.0.1]: https://gitlab.dune-project.org/copasi/dune-copasi/-/releases/v2.0.1
 [2.0.0]: https://gitlab.dune-project.org/copasi/dune-copasi/-/releases/v2.0.0
 [1.1.0]: https://gitlab.dune-project.org/copasi/dune-copasi/-/releases/v1.1.0
