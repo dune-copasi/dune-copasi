@@ -68,7 +68,16 @@ SETUP_dune_pdelab_REPO="https://gitlab.dune-project.org/pdelab/dune-pdelab.git"
 SETUP_dune_multidomaingrid_BRANCH="master"
 SETUP_dune_multidomaingrid_REPO="https://gitlab.dune-project.org/extensions/dune-multidomaingrid.git"
 
-echo "Downloading patches"
+SETUP_dune_common_BRANCH="releases/2.10"
+SETUP_dune_geometry_BRANCH="releases/2.10"
+SETUP_dune_grid_BRANCH="releases/2.10"
+SETUP_dune_uggrid_BRANCH="releases/2.10"
+SETUP_dune_istl_BRANCH="releases/2.10"
+SETUP_dune_localfunctions_BRANCH="releases/2.10"
+SETUP_dune_functions_BRANCH="releases/2.10"
+SETUP_dune_multidomaingrid_BRANCH="releases/2.10"
+SETUP_dune_typetree_BRANCH="releases/2.10"
+SETUP_dune_pdelab_BRANCH="858ec2cd3bf30ac0bcafe9531705ac665d1170ab"
 
 # hardcoded **ordered** dependencies
 MODULES="common geometry uggrid grid typetree localfunctions istl functions multidomaingrid pdelab"
