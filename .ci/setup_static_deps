@@ -46,7 +46,7 @@ if [[ ! "$OS_TARGET" =~ ^(linux|osx|win32-mingw|win64-mingw)$ ]]; then
 fi
 
 echo "Downloading static libs for OS_TARGET: ${OS_TARGET}"
-DEPS_URL="https://github.com/spatial-model-editor/sme_deps_common/releases/2024.10.29/download/sme_deps_common_${OS_TARGET}.tgz"
+DEPS_URL="https://github.com/spatial-model-editor/sme_deps_common/releases/download/2024.10.29/sme_deps_common_${OS_TARGET}.tgz"
 if command -v wget &> /dev/null; then
   wget -nv $DEPS_URL | sed 's/^/  /'
 elif command -v curl &> /dev/null; then
