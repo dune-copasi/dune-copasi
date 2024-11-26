@@ -81,9 +81,11 @@ variables:
   before_script:
     - |
      if [ -z "$CI_COMMIT_TAG" ]; then
+        # not a tag: add build id
         ./util/version_handler.py --replace-prerelease="git${CI_COMMIT_SHORT_SHA:-0}" --replace-build="dune.gitlab.${CI_JOB_ID:-0}" --update-all
       else
-        ./util/version_handler.py --override-version $CI_COMMIT_TAG --update-all
+        # a tag: replace tag name as version by removing (v)ersion prefix
+        ./util/version_handler.py --override-version ${CI_COMMIT_TAG:1} --update-all
       fi
 
 .setup_exec: &setup_exec
