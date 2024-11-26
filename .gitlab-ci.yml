@@ -229,7 +229,11 @@ deploy_deb:debian_clang:
   stage: deploy
   script:
     - |
-      VERSION=$(./util/version_handler.py)
+      if [ -z "$CI_COMMIT_TAG" ]; then
+        VERSION=$(./util/version_handler.py --replace-prerelease="git")
+      else
+        VERSION=$(./util/version_handler.py)
+      fi
       curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file packages/dune-copasi-runtime.deb "${PACKAGE_REGISTRY}/${VERSION}/dune-copasi-runtime.deb"
   dependencies:
     - build_exec:debian_clang
@@ -338,7 +342,11 @@ deploy:doxygen:
   stage: deploy
   script:
     - |
-      VERSION=$(./util/version_handler.py --replace-prerelease="git")
+      if [ -z "$CI_COMMIT_TAG" ]; then
+        VERSION=$(./util/version_handler.py --replace-prerelease="git")
+      else
+        VERSION=$(./util/version_handler.py)
+      fi
       curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file doc/doxygen/build/html/doxygen.zip "${PACKAGE_REGISTRY}/${VERSION}/dune-copasi-doxygen.zip"
   dependencies:
     - build:doxygen
