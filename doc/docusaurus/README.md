@@ -58,8 +58,12 @@ Doxygen versions are automatically downloaded from the GitLab registry and simpl
 If the doxygen documentation does not exist, links to that page (e.g. `DoxygenButton.js`) will fail to load.
 This typically means that the versioned page must be done *after* the release is done.
 
-#### Ini files
+#### Ini Files
 
 Versioning does not include the asstes folder -_-, so we have to manage them manually.
 Since we want the ini files for examples statically so that they can be served to web CLI, they are served
 from static folder rather than from the docs folder. Links must also be updated manually.
+
+#### Wasm Binary
+
+This also needs to be done manually, just add the new version to the `package.json` and to the `WasmWorker.js`
