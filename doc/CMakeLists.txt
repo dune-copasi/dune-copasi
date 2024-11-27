@@ -29,28 +29,28 @@ if (TARGET Dune::Copasi::Executable)
     NAME                docs_test
     LABELS              docs
     TARGET              Dune::Copasi::Executable
-    WORKING_DIRECTORY   "${CMAKE_CURRENT_BINARY_DIR}/docs/ini/"
+    WORKING_DIRECTORY   "${CMAKE_CURRENT_BINARY_DIR}/assets/ini/"
     CMD_ARGS            --config=test.ini)
 
   dune_add_test(
     NAME                docs_heat
     LABELS              docs
     TARGET              Dune::Copasi::Executable
-    WORKING_DIRECTORY   "${CMAKE_CURRENT_BINARY_DIR}/docs/ini/"
+    WORKING_DIRECTORY   "${CMAKE_CURRENT_BINARY_DIR}/assets/ini/"
     CMD_ARGS            --config=heat.ini)
 
     dune_add_test(
     NAME                docs_volka_terra
     LABELS              docs
     TARGET              Dune::Copasi::Executable
-    WORKING_DIRECTORY   "${CMAKE_CURRENT_BINARY_DIR}/docs/ini/"
+    WORKING_DIRECTORY   "${CMAKE_CURRENT_BINARY_DIR}/assets/ini/"
     CMD_ARGS            --config=volka_terra.ini)
 
   dune_add_test(
     NAME                docs_grey_scott
     LABELS              docs
     TARGET              Dune::Copasi::Executable
-    WORKING_DIRECTORY   "${CMAKE_CURRENT_BINARY_DIR}/docs/ini/"
+    WORKING_DIRECTORY   "${CMAKE_CURRENT_BINARY_DIR}/assets/ini/"
     CMD_ARGS            --config=grey_scott.ini
                         --model.time_step_operator.time_end=1.5)
 

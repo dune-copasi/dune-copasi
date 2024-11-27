@@ -1,12 +1,14 @@
 import {BlobWriter, ZipWriter, BlobReader} from "@zip.js/zip.js"
 import wasm_git from "dune-copasi-wasm-git"
 // import wasm_local from "/dune-copasi.js"
-import wasm_v2 from "dune-copasi-wasm-v2"
+import wasm_v20 from "dune-copasi-wasm-v2.0"
+import wasm_v21 from "dune-copasi-wasm-v2.1"
 
 const versions = {
     "git": wasm_git,
     // "local": wasm_local,
-    "v2": wasm_v2,
+    "v2.0": wasm_v20,
+    "v2.1": wasm_v21,
 }
 
 const home = "/dunecopasi"
@@ -120,7 +122,7 @@ const commands = {
         instance.FS.chdir(path)
 
         postMessage({cmd: "cwd", cwd: instance.FS.cwd()})
-    }, 
+    },
     ls: (args) => {
         if (args.length > 1) {
             postError("usage: ls [DIR]")
@@ -363,7 +365,7 @@ const commands = {
             return
         }
         instance = await versions[args.version](wasm_options)
-    
+
         instance.callMain(["--version"])
 
         for (const url in args.files) {

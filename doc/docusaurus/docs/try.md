@@ -27,6 +27,10 @@ A typical workflow looks as follows:
 
 You can visualize your results by opening them in [Glance](https://kitware.github.io/glance/app/) by Kitware and clicking the folder icon on the website.
 
-<!-- How To use it with examples: provide object mapping urls to paths in virtual file system -->
-<!-- WasmInterface version="v2" examples={{"/test/gauss.ini": "/dunecopasi/gauss.ini"}}  -->
-<WasmInterface version="git" />
+<WasmInterface version="git"
+  examples={{
+    "/ini/next/heat.ini": "/dunecopasi/heat.ini",
+    "/ini/next/grey_scott.ini": "/dunecopasi/grey_scott.ini",
+    "/ini/next/volka_terra.ini": "/dunecopasi/volka_terra.ini"
+  }}
+/>
