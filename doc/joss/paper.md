@@ -103,7 +103,7 @@ Many features of DuneCopasi have been designed and developed with the specific c
 
 Furthermore, DuneCopasi is a stand-alone multi-compartment reaction-diffusion solver that may easily be used for many other fields of research and engineering fitting our model problem (e.g. \autoref{fig:cardiac_ep}).
 
-![DuneCopasi is a highly flexible simulator that is run-time configurable using dedicated configuration files. DuneCopasi can autonomysly interpret mathematical equations, assemble the computational problems and solve these equations based on the configuration file. Here we illustrate the integration of DuneCopasi within a computational electrophysiology pipeline allowing to solve the electrophysiological mono-domain equations with Mitchell-Schaefer cell model using a medical imaging derivied from biventricular geometry. \label{fig:cardiac_ep}](cardiac_ep.png)
+![DuneCopasi is a highly flexible simulator that is run-time configurable using dedicated configuration files. DuneCopasi can autonomysly interpret mathematical equations, assemble the computational problems and solve these equations based on the configuration file. Here we illustrate the integration of DuneCopasi within a computational electrophysiology pipeline allowing to solve the electrophysiological mono-domain equations with Mitchell-Schaefer cell model using a medical imaging derived from biventricular geometry. \label{fig:cardiac_ep}](cardiac_ep.png)
 
 # Statement of Need
 
