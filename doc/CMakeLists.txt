@@ -32,12 +32,14 @@ if (TARGET Dune::Copasi::Executable)
     WORKING_DIRECTORY   "${CMAKE_CURRENT_BINARY_DIR}/docs/ini/"
     CMD_ARGS            --config=test.ini)
 
-  dune_add_test(
-    NAME                docs_heat
-    LABELS              docs
-    TARGET              Dune::Copasi::Executable
-    WORKING_DIRECTORY   "${CMAKE_CURRENT_BINARY_DIR}/docs/ini/"
-    CMD_ARGS            --config=heat.ini)
+  if(ExprTk IN_LIST DUNE_COPASI_PARSER_LIST)
+    dune_add_test(
+      NAME                docs_heat
+      LABELS              docs
+      TARGET              Dune::Copasi::Executable
+      WORKING_DIRECTORY   "${CMAKE_CURRENT_BINARY_DIR}/docs/ini/"
+      CMD_ARGS            --config=heat.ini)
+  endif()
 
     dune_add_test(
     NAME                docs_volka_terra
@@ -46,13 +48,15 @@ if (TARGET Dune::Copasi::Executable)
     WORKING_DIRECTORY   "${CMAKE_CURRENT_BINARY_DIR}/docs/ini/"
     CMD_ARGS            --config=volka_terra.ini)
 
-  dune_add_test(
-    NAME                docs_grey_scott
-    LABELS              docs
-    TARGET              Dune::Copasi::Executable
-    WORKING_DIRECTORY   "${CMAKE_CURRENT_BINARY_DIR}/docs/ini/"
-    CMD_ARGS            --config=grey_scott.ini
-                        --model.time_step_operator.time_end=1.5)
+  if(ExprTk IN_LIST DUNE_COPASI_PARSER_LIST)
+    dune_add_test(
+      NAME                docs_grey_scott
+      LABELS              docs
+      TARGET              Dune::Copasi::Executable
+      WORKING_DIRECTORY   "${CMAKE_CURRENT_BINARY_DIR}/docs/ini/"
+      CMD_ARGS            --config=grey_scott.ini
+                          --model.time_step_operator.time_end=1.5)
+  endif()
 
   file(COPY "docusaurus/tutorials/assets/ini" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/tutorials/")
 
