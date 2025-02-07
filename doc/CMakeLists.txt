@@ -23,48 +23,49 @@ if (TARGET Dune::Copasi::Executable)
 
   dune_declare_test_label(LABELS documentation)
 
-  file(COPY docusaurus/static/ini      DESTINATION ini/)
+  file(COPY docusaurus/static/ini/next/      DESTINATION tests/)
 
   dune_add_test(
     NAME                docs_test
     LABELS              docs
     TARGET              Dune::Copasi::Executable
-    WORKING_DIRECTORY   ini/
+    WORKING_DIRECTORY   tests/
     CMD_ARGS            --config=test.ini)
 
   dune_add_test(
     NAME                docs_heat
     LABELS              docs
     TARGET              Dune::Copasi::Executable
-    WORKING_DIRECTORY   ini/
+    WORKING_DIRECTORY   tests/
+    CMAKE_GUARD         (ExprTk IN_LIST DUNE_COPASI_PARSER_LIST)
     CMD_ARGS            --config=heat.ini)
 
     dune_add_test(
     NAME                docs_volka_terra
     LABELS              docs
     TARGET              Dune::Copasi::Executable
-    WORKING_DIRECTORY   ini/
+    WORKING_DIRECTORY   tests/
     CMD_ARGS            --config=volka_terra.ini)
 
   dune_add_test(
     NAME                docs_grey_scott
     LABELS              docs
     TARGET              Dune::Copasi::Executable
-    WORKING_DIRECTORY   ini/
+    WORKING_DIRECTORY   tests/
+    CMAKE_GUARD         (ExprTk IN_LIST DUNE_COPASI_PARSER_LIST)
     CMD_ARGS            --config=grey_scott.ini
                         --model.time_step_operator.time_end=1.5)
 
-  file(COPY docusaurus/tutorials/assets/ini DESTINATION tutorials/)
+  file(COPY docusaurus/tutorials/assets/ini/ DESTINATION tests/)
 
-  if(ExprTk IN_LIST DUNE_COPASI_PARSER_LIST)
-    dune_add_test(
-      NAME                tutorial_EP_simulation1
-      LABELS              docs
-      TARGET              Dune::Copasi::Executable
-      WORKING_DIRECTORY   tutorials/ini/
-      CMD_ARGS            --config=cardiac_ep_1.ini
-                          --model.time_step_operator.time_end=10
-                          --grid.refinement_level=6)
-  endif()
+  dune_add_test(
+    NAME                tutorial_EP_simulation1
+    LABELS              docs
+    TARGET              Dune::Copasi::Executable
+    WORKING_DIRECTORY   tests/
+    CMAKE_GUARD         (ExprTk IN_LIST DUNE_COPASI_PARSER_LIST)
+    CMD_ARGS            --config=cardiac_ep_1.ini
+                        --model.time_step_operator.time_end=10
+                        --grid.refinement_level=6)
 
 endif()
