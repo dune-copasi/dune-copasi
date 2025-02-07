@@ -10,7 +10,7 @@
 
 # variables from DUNE_OPTIONS_FILE
 #   (optional) CMAKE_FLAGS
-#   (optional) SUDOCMD
+#   (optional) SUDO_CMD
 
 set +e
 
@@ -25,7 +25,7 @@ set -e
 
 # load dune opts
 CMAKE_FLAGS="$(. ${DUNE_OPTIONS_FILE}; eval echo \$CMAKE_FLAGS)"
-SUDOCMD="$(. ${DUNE_OPTIONS_FILE}; eval echo \$SUDOCMD)"
+SUDO_CMD="$(. ${DUNE_OPTIONS_FILE}; eval echo \$SUDO_CMD)"
 
 # load useful functions
 SCRIPT_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -44,8 +44,8 @@ cleanup() {
 }
 
 # set up verbose output in case of failure
-ONFAILURE_PROG="git gcc g++ python pip python3 pip3 cmake $SUDOCMD"
-ONFAILURE_VARS="PATH SUDOCMD DUNE_OPTIONS_FILE CMAKE_FLAGS"
+ONFAILURE_PROG="git gcc g++ python pip python3 pip3 cmake $SUDO_CMD"
+ONFAILURE_VARS="PATH SUDO_CMD DUNE_OPTIONS_FILE CMAKE_FLAGS"
 ONFAILURE_CMD="ls cleanup"
 
 trap onfailure EXIT
@@ -60,7 +60,7 @@ if test "x$CODE_CHECKER_REPORT_PATH" != "x"; then
   CodeChecker analyze $BUILD_PATH/compile_commands.json --config ${SOURCEDIR}/.codechecker.json --output $CODE_CHECKER_REPORT_PATH
   CodeChecker parse --config ${SOURCEDIR}/.codechecker.json --trim-path-prefix ${SOURCEDIR} -e codeclimate $CODE_CHECKER_REPORT_PATH > $CODE_CHECKER_REPORT_PATH/gl-code-quality-report.json
 else
-  $SUDOCMD cmake --build $BUILD_PATH --target install
+  $SUDO_CMD cmake --build $BUILD_PATH --target install
 
   for generator in $CPACK_GENERATORS; do
     cpack -G $generator -B $CPACK_PACKAGE_DIRECTORY CPackConfig.cmake

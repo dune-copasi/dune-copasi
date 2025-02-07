@@ -4,7 +4,7 @@
 
 # variables from DUNE_OPTIONS_FILE
 #   (optional) SETUP_DUNE_TESTTOOLS
-#   (optional) SUDOCMD
+#   (optional) SUDO_CMD
 
 set +e
 
@@ -19,7 +19,7 @@ set -e
 
 # load dune options
 SETUP_DUNE_TESTTOOLS="$(. ${DUNE_OPTIONS_FILE}; eval echo \$SETUP_DUNE_TESTTOOLS)"
-SUDOCMD="$(. ${DUNE_OPTIONS_FILE}; eval echo \$SUDOCMD)"
+SUDO_CMD="$(. ${DUNE_OPTIONS_FILE}; eval echo \$SUDO_CMD)"
 
 # load useful functions
 CALL_DIR=$PWD
@@ -41,8 +41,8 @@ cleanup() {
 }
 
 # set up verbose output in case of failure
-ONFAILURE_PROG="git gcc g++ python pip python3 pip3 cmake wget $SUDOCMD"
-ONFAILURE_VARS="PATH MSYSTEM SUDOCMD SETUP_DUNE_TESTTOOLS DUNE_OPTIONS_FILE"
+ONFAILURE_PROG="git gcc g++ python pip python3 pip3 cmake wget $SUDO_CMD"
+ONFAILURE_VARS="PATH MSYSTEM SUDO_CMD SETUP_DUNE_TESTTOOLS DUNE_OPTIONS_FILE"
 ONFAILURE_VARS+=" CMAKE_FLAGS CMAKE_INSTALL_PREFIX REPO BRANCH PATCHES RECURSIVE BUILD_PATH"
 ONFAILURE_CMD="ls cleanup"
 
@@ -173,7 +173,7 @@ for module in $MODULES; do
 
   # configure, build, and install module
   $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module configure
-  $SUDOCMD $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module bexec cmake --build . --target install
+  $SUDO_CMD $DUNECONTROL --opts=${DUNE_OPTIONS_FILE} --only=dune-$module bexec cmake --build . --target install
 
   # we want to know where the build dir is located
   # since it could be a complex path, we write the path from dunecontrol into a file
