@@ -28,28 +28,7 @@ if [[ ! $(basename $0) == dune-copasi.opts ]] ; then
   mkdir -p $CMAKE_INSTALL_PREFIX &> /dev/null
 fi
 
-SUDOCMD=""
-
-# if not set, find out OS target
-if [[ -z $OS_TARGET ]]; then
-  if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    OS_TARGET="linux"
-    [ ! -w "$CMAKE_INSTALL_PREFIX" ] && SUDOCMD="sudo"
-  elif [[ "$OSTYPE" == "darwin"* ]]; then
-    OS_TARGET="osx"
-    OS_VERSION=${MACOSX_DEPLOYMENT_TARGET:-${OSTYPE#darwin}}
-    [ ! -w "$CMAKE_INSTALL_PREFIX" ] && SUDOCMD="sudo"
-  elif [[ "$OSTYPE" == "msys" ]]; then
-    # Lightweight shell and GNU utilities compiled for Windows (part of MinGW)
-    MACHINE="$(eval gcc -dumpmachine 2>&1)"
-    [[ "$MACHINE" = *'x86_64'* ]] && OS_TARGET="win64-mingw"
-    [[ "$MACHINE" = *'i686'* ]] && OS_TARGET="win32-mingw"
-    export CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS:-"'-static -Wa,-mbig-obj -fvisibility=hidden -fpic'"}
-  else
-    OS_TARGET="$OSTYPE"
-    echo "Warning: Unknown OS_TARGET='$OS_TARGET'!"
-  fi
-fi
+SUDO_CMD=""
 
 # default cmake flags
 export CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH:-"'${CMAKE_INSTALL_PREFIX}'"}
@@ -106,7 +85,6 @@ if [[ $(basename $0) == dune-copasi.opts ]] ; then
   echo "${GREEN}Installation Prefix:${RESET}"
   echo "$CMAKE_INSTALL_PREFIX" | sed 's/^/  /'
   echo "${GREEN}OS Type:${RESET}"
-  echo "$OS_TARGET" | sed 's/^/  /'
   echo "${GREEN}CMake flags:${RESET}"
   echo "$CMAKE_FLAGS" | sed 's/^/  /'
   echo "${GREEN}Make flags:${RESET}"

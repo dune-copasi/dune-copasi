@@ -3,105 +3,51 @@ name: CI Builds
 on: push
 
 env:
+  DUNE_COPASI_GRID_DIMENSIONS: '"2;3"'
   DUNE_COPASI_USE_STATIC_DEPS: 'ON'
-  BUILD_SHARED_LIBS: 'OFF'
-  CMAKE_DISABLE_FIND_PACKAGE_MPI: 'ON'
-  CMAKE_DISABLE_FIND_PACKAGE_parafields: 'ON'
   DUNE_COPASI_DISABLE_FETCH_PACKAGE_parafields: 'ON'
   DUNE_ENABLE_PYTHONBINDINGS: 'OFF'
   DUNE_PDELAB_ENABLE_TRACING: 'OFF'
+  BUILD_SHARED_LIBS: 'OFF'
+  CMAKE_DISABLE_FIND_PACKAGE_MPI: 'ON'
+  CMAKE_DISABLE_FIND_PACKAGE_parafields: 'ON'
 
 jobs:
-  linux:
-    name: Linux
-    runs-on: ubuntu-20.04
-    env:
-      CMAKE_INSTALL_PREFIX: '/opt/smelibs'
-      CMAKE_PREFIX_PATH: '/opt/smelibs'
-      CMAKE_CXX_FLAGS: "'-fvisibility=hidden -D_GLIBCXX_USE_TBB_PAR_BACKEND=0 -DNDEBUG'"
-      MAKE_OPTIONS: "-j4"
-      DUNE_COPASI_GRID_DIMENSIONS: '"2;3"'
-      CC: "clang"
-      CXX: "clang++"
-      TERM: 'xterm-256color'
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: "ubuntu-22.04"
+            shell: "bash"
+          - os: "ubuntu-22.04-arm"
+            shell: "bash"
+          - os: "macos-13"
+            shell: "bash"
+          - os: "macos-14"
+            shell: "bash"
+          - os: "windows-2022"
+            shell: "msys2 {0}"
     defaults:
       run:
-        shell: bash
+        shell: ${{ matrix.shell }}
     steps:
-    - name: Add llvm repo for clang 17 & install
-      run: |
-        sudo wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-        sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-17 main"
-        sudo apt update -yy
-        sudo apt install -yy clang-17
-    - name: Set clang version
-      run: |
-        sudo update-alternatives --remove-all clang || echo "nothing to remove"
-        sudo update-alternatives --remove-all clang++ || echo "nothing to remove"
-        sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-17 100
-        sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-17 100
-    - uses: actions/checkout@v4
-      with:
-        lfs: true
-    - name: Setup static dependencies
-      run: ./.ci/setup_static_deps $PWD/dune-copasi.opts
-    - name: Setup dune dependencies
-      run: ./.ci/setup_dune $PWD/dune-copasi.opts
-    - name: Build and Install
-      run: ./.ci/install $PWD/dune-copasi.opts
-    - name: Build and run tests
-      run: ./.ci/test $PWD/dune-copasi.opts
-
-  macos:
-    name: MacOS
-    runs-on: macos-13
-    env:
-      CMAKE_INSTALL_PREFIX: '/opt/smelibs'
-      CMAKE_PREFIX_PATH: '/opt/smelibs'
-      MAKE_OPTIONS: "-j3"
-      DUNE_COPASI_GRID_DIMENSIONS: '"2;3"'
-      MACOSX_DEPLOYMENT_TARGET: '11'
-      TERM: 'xterm-256color'
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - uses: maxim-lobanov/setup-xcode@v1
+      - uses: spatial-model-editor/setup-ci@2025.02.03
         with:
-          xcode-version: "14.3"
-      - uses: actions/checkout@v4
-        with:
-          lfs: true
-      - name: Setup static dependencies
-        run: ./.ci/setup_static_deps $PWD/dune-copasi.opts
-      - name: Setup dune dependencies
-        run: ./.ci/setup_dune $PWD/dune-copasi.opts
-      - name: Build and Install
-        run: ./.ci/install $PWD/dune-copasi.opts
-      - name: Build and run tests
-        run: ./.ci/test $PWD/dune-copasi.opts
-
-  win64:
-    name: Windows 64-bit
-    runs-on: windows-2022
-    env:
-      CMAKE_INSTALL_PREFIX: '/c/smelibs'
-      CMAKE_PREFIX_PATH: '/c/smelibs'
-      MAKE_OPTIONS: "-j4"
-      DUNE_COPASI_GRID_DIMENSIONS: '"2;3"'
-    defaults:
-      run:
-        shell: msys2 {0}
-    steps:
-      - uses: msys2/setup-msys2@v2
-        with:
-          msystem: UCRT64
-          update: true
-          install: mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake make git mingw-w64-ucrt-x86_64-git-lfs dos2unix
+          sme_deps_common: "2025.02.18"
       - name: Clone repo
-        run: pwd && ls && git lfs install && git clone -b ${{ github.head_ref || github.ref_name }} https://github.com/${{ github.repository }} . && git lfs pull && ls
-      - name: Setup static dependencies
-        run: pwd && ls && ./.ci/setup_static_deps $PWD/dune-copasi.opts
+        run: git lfs install && git clone -b ${{ github.head_ref || github.ref_name }} https://github.com/${{ github.repository }} . && git lfs pull && ls
+      - name: Set environment variables
+        run: |
+          echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
+          echo "CMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET}" >> "$GITHUB_ENV"
+          echo "CMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}" >> "$GITHUB_ENV"
+          if [[ $MSYSTEM ]]; then
+              # on windows add flags to support large object files
+              # https://stackoverflow.com/questions/16596876/object-file-has-too-many-sections
+              echo "CMAKE_CXX_FLAGS='"-fvisibility=hidden -Wa,-mbig-obj -D_GLIBCXX_USE_TBB_PAR_BACKEND=0 -DNDEBUG"'" >> "$GITHUB_ENV"
+          fi
       - name: Setup dune dependencies
         run: ./.ci/setup_dune $PWD/dune-copasi.opts
       - name: Build and Install
