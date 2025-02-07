@@ -14,7 +14,7 @@ env:
 jobs:
   linux:
     name: Linux
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       CMAKE_INSTALL_PREFIX: '/opt/smelibs'
       CMAKE_PREFIX_PATH: '/opt/smelibs'
@@ -28,18 +28,18 @@ jobs:
       run:
         shell: bash
     steps:
-    - name: Add llvm repo for clang 17 & install
+    - name: Add llvm repo for clang 19 & install
       run: |
         sudo wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-        sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-17 main"
+        sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-19 main"
         sudo apt update -yy
-        sudo apt install -yy clang-17
+        sudo apt install -yy clang-19
     - name: Set clang version
       run: |
         sudo update-alternatives --remove-all clang || echo "nothing to remove"
         sudo update-alternatives --remove-all clang++ || echo "nothing to remove"
-        sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-17 100
-        sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-17 100
+        sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-19 100
+        sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-19 100
     - uses: actions/checkout@v4
       with:
         lfs: true
@@ -68,7 +68,36 @@ jobs:
     steps:
       - uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: "14.3"
+          xcode-version: "15.2"
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Setup static dependencies
+        run: ./.ci/setup_static_deps $PWD/dune-copasi.opts
+      - name: Setup dune dependencies
+        run: ./.ci/setup_dune $PWD/dune-copasi.opts
+      - name: Build and Install
+        run: ./.ci/install $PWD/dune-copasi.opts
+      - name: Build and run tests
+        run: ./.ci/test $PWD/dune-copasi.opts
+
+  macos-arm:
+    name: MacOS arm
+    runs-on: macos-14
+    env:
+      CMAKE_INSTALL_PREFIX: '/opt/smelibs'
+      CMAKE_PREFIX_PATH: '/opt/smelibs'
+      MAKE_OPTIONS: "-j3"
+      DUNE_COPASI_GRID_DIMENSIONS: '"2;3"'
+      MACOSX_DEPLOYMENT_TARGET: '11'
+      TERM: 'xterm-256color'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "15.2"
       - uses: actions/checkout@v4
         with:
           lfs: true
