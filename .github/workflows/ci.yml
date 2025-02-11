@@ -60,7 +60,7 @@ jobs:
       CMAKE_PREFIX_PATH: '/opt/smelibs'
       MAKE_OPTIONS: "-j3"
       DUNE_COPASI_GRID_DIMENSIONS: '"2;3"'
-      MACOSX_DEPLOYMENT_TARGET: '11'
+      MACOSX_DEPLOYMENT_TARGET: '12'
       TERM: 'xterm-256color'
     defaults:
       run:
@@ -89,7 +89,7 @@ jobs:
       CMAKE_PREFIX_PATH: '/opt/smelibs'
       MAKE_OPTIONS: "-j3"
       DUNE_COPASI_GRID_DIMENSIONS: '"2;3"'
-      MACOSX_DEPLOYMENT_TARGET: '11'
+      MACOSX_DEPLOYMENT_TARGET: '12'
       TERM: 'xterm-256color'
     defaults:
       run:
