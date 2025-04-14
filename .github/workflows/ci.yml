@@ -33,7 +33,7 @@ jobs:
       run:
         shell: ${{ matrix.shell }}
     steps:
-      - uses: spatial-model-editor/setup-ci@2025.02.03
+      - uses: spatial-model-editor/setup-ci@2025.02.05
         with:
           sme_deps_common: "2025.02.18"
       - name: Clone repo
