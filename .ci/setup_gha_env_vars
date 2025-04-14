@@ -8,6 +8,9 @@ echo "SME_DEPS_COMMON_VERSION: ${SME_DEPS_COMMON_VERSION}"
 echo "PATH: $PATH"
 echo "MSYSTEM: $MSYSTEM"
 
+# temporary workaround for cmake 4.0 complaining about symengine min cmake version being too low:
+export CMAKE_POLICY_VERSION_MINIMUM=3.5
+
 export CMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET}"
 export CMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}
 export CMAKE_CXX_COMPILER_LAUNCHER=ccache
