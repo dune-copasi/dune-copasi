@@ -1,3 +1,5 @@
+#include <dune-copasi-config.hh>
+
 #include <dune/copasi/parser/exprtk.hh>
 
 #include <dune/copasi/common/exceptions.hh>

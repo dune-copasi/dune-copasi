@@ -7,6 +7,8 @@
 
 #include <dune/copasi/common/ostream_to_spdlog.hh>
 
+#include <dune/pdelab/common/container_traversal.hh>
+
 #include <dune/istl/solver.hh>
 
 #include <umfpack.h>

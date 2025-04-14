@@ -1,6 +1,10 @@
 #ifndef DUNE_COPASI_MODEL_MAKE_STEP_OPERATOR_HH
 #define DUNE_COPASI_MODEL_MAKE_STEP_OPERATOR_HH
 
+#include <dune-copasi-config.hh>
+
+#include <dune/copasi/solver/istl/factory/inverse.hh>
+
 #include <dune/pdelab/common/algebra.hh>
 #include <dune/pdelab/common/container_entry.hh>
 #include <dune/pdelab/common/convergence/reason.hh>
@@ -17,7 +21,6 @@
 #include <dune/pdelab/pattern/basis_to_pattern.hh>
 #include <dune/pdelab/pattern/pattern_to_matrix.hh>
 #include <dune/pdelab/pattern/sparsity_pattern.hh>
-#include <dune/copasi/solver/istl/factory/inverse.hh>
 
 #include <dune/istl/io.hh>
 #include <dune/istl/operators.hh>
