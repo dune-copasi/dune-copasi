@@ -11,6 +11,8 @@ env:
   BUILD_SHARED_LIBS: 'OFF'
   CMAKE_DISABLE_FIND_PACKAGE_MPI: 'ON'
   CMAKE_DISABLE_FIND_PACKAGE_parafields: 'ON'
+  CMAKE_CXX_COMPILER_LAUNCHER: 'ccache'
+  CMAKE_POLICY_VERSION_MINIMUM: '3.5'  # temporary workaround for cmake 4.0 complaining about symengine min cmake version being too low
 
 jobs:
   build:
@@ -40,7 +42,6 @@ jobs:
         run: git lfs install && git clone -b ${{ github.head_ref || github.ref_name }} https://github.com/${{ github.repository }} . && git lfs pull && ls
       - name: Set environment variables
         run: |
-          echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
           echo "CMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET}" >> "$GITHUB_ENV"
           echo "CMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}" >> "$GITHUB_ENV"
           if [[ $MSYSTEM ]]; then
