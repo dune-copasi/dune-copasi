@@ -6,7 +6,7 @@
 #include <dune/pdelab/common/local_container.hh>
 #include <dune/pdelab/concepts/basis.hh>
 
-#include <dune/typetree/treecontainer.hh>
+#include <dune/common/typetree/treecontainer.hh>
 
 #include <spdlog/spdlog.h>
 
@@ -57,7 +57,7 @@ interpolate(const Basis& basis,
     lcontainer.clear(lspace);
     buff.clear();
 
-    forEachLeafNode(lspace.tree(), [&](const auto& lbasis_node, auto path) {
+    Dune::PDELab::forEachLeafNode(lspace.tree(), [&](const auto& lbasis_node, auto path) {
       auto& lfunc = lfuncs[path];
       if (lbasis_node.size() == 0 or not lfunc) {
         return;

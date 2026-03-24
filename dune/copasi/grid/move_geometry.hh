@@ -67,7 +67,7 @@ move_geometry(auto time,
     // evaluate deformation equations on each corner of the current geometry
     for (int i = 0; i != mdim+1; ++i) {
       // load trial functions into the equations cache
-      forEachLeafNode(lbasis.tree(), [&](const auto& node) {
+      Dune::PDELab::forEachLeafNode(lbasis.tree(), [&](const auto& node) {
         if (node.size() == 0)
           return;
         auto& value = local_eqs->get_value(node);

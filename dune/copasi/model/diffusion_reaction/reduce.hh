@@ -177,7 +177,7 @@ reduce(const ExecutionPolicy exec,
       data.leqs->integration_factor = weight * geo.integrationElement(position);
 
       // evaluate values at quadrature point
-      forEachLeafNode(data.lbasis.tree(), [&](const auto& node) {
+      Dune::PDELab::forEachLeafNode(data.lbasis.tree(), [&](const auto& node) {
         if (node.size() == 0)
           return;
         auto& value = data.leqs->get_value(node);

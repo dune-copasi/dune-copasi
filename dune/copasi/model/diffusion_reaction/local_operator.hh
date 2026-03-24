@@ -130,7 +130,7 @@ class LocalOperator
     std::size_t intorderadd = 0;
     std::size_t quad_factor = 2;
     Hybrid::forEach(std::tie(lbasis_pack...), [&](const auto& lbasis){
-      forEachLeafNode(lbasis.tree(), [&](const auto& node) {
+      Dune::PDELab::forEachLeafNode(lbasis.tree(), [&](const auto& node) {
         if (node.size() != 0)
           order = std::max<std::size_t>(order, node.finiteElement().localBasis().order());
       });
@@ -240,22 +240,23 @@ public:
       return;
     lbasis.bind(*_test_basis.entitySet().template begin<0>());
     _has_outflow = false;
-    forEachLeafNode(lbasis.tree(), [&](const auto& ltrial_node) {
+    Dune::PDELab::forEachLeafNode(lbasis.tree(), [&](const auto& ltrial_node) {
       const auto& eq = _local_values_in->get_equation(ltrial_node);
       _has_outflow |= not eq.outflow.empty();
     });
     lbasis.unbind();
 
     if constexpr (Concept::MultiDomainGrid<typename TestBasis::EntitySet::Grid>)
-      forEachNode(lbasis.tree(),
-                  overload(
-                    [&](const Concept::CompartmentLocalBasisNode auto& /*ltrial_node*/, auto path) {
-                      auto compartment = back(path);
-                      _compartment2domain.resize(compartment + 1);
-                      _compartment2domain[compartment] =
-                        _test_basis.subSpace(path).entitySet().grid().domain();
-                    },
-                    [&](const auto& /*ltrial_node*/) {}));
+      Dune::PDELab::forEachNode(
+        lbasis.tree(),
+        overload(
+          [&](const Concept::CompartmentLocalBasisNode auto& /*ltrial_node*/, auto path) {
+            auto compartment = back(path);
+            _compartment2domain.resize(compartment + 1);
+            _compartment2domain[compartment] =
+              _test_basis.subSpace(path).entitySet().grid().domain();
+          },
+          [&](const auto& /*ltrial_node*/) {}));
     else
       _compartment2domain.assign(1, std::numeric_limits<std::size_t>::max());
   }
@@ -277,7 +278,7 @@ public:
                       const PDELab::Concept::LocalBasis auto& ltest,
                       auto& lpattern) const noexcept
   {
-    forEachLeafNode(ltest.tree(), [&](const auto& ltest_node) {
+    Dune::PDELab::forEachLeafNode(ltest.tree(), [&](const auto& ltest_node) {
       const auto& ltrial_node = PDELab::containerEntry(ltrial.tree(), ltest_node.path());
       const auto& eq = _local_values_in->get_equation(ltrial_node);
       if (eq.reaction) {
@@ -347,7 +348,7 @@ public:
                                     auto& lpattern_out_in,
                                     auto& lpattern_out_out) noexcept
   {
-    forEachLeafNode(ltest_in.tree(), [&](const auto& ltest_node_in) {
+    Dune::PDELab::forEachLeafNode(ltest_in.tree(), [&](const auto& ltest_node_in) {
       if (ltest_node_in.size() == 0)
         return;
       const auto& ltrial_node = PDELab::containerEntry(ltrial_in.tree(), ltest_node_in.path());
@@ -369,7 +370,7 @@ public:
     if (not intersection.neighbor())
       return;
 
-    forEachLeafNode(ltest_out.tree(), [&](const auto& ltest_node_out) {
+    Dune::PDELab::forEachLeafNode(ltest_out.tree(), [&](const auto& ltest_node_out) {
       if (ltest_node_out.size() == 0)
         return;
       const auto& ltrial_node = PDELab::containerEntry(ltrial_out.tree(), ltest_node_out.path());
@@ -449,7 +450,7 @@ public:
       auto factor = weight * geo.integrationElement(position);
 
       // evaluate concentrations at quadrature point
-      forEachLeafNode(ltrial.tree(), [&](const auto& node) {
+      Dune::PDELab::forEachLeafNode(ltrial.tree(), [&](const auto& node) {
         if (node.size() == 0)
           return;
         auto& value = _local_values_in->get_value(node);
@@ -466,7 +467,7 @@ public:
       });
 
       // contribution for each component
-      forEachLeafNode(ltest.tree(), [&](const auto& ltest_node) {
+      Dune::PDELab::forEachLeafNode(ltest.tree(), [&](const auto& ltest_node) {
         if (ltest_node.size() == 0)
           return;
         const auto& eq =
@@ -574,7 +575,7 @@ public:
       auto factor = weight * geo.integrationElement(position);
 
       // evaluate concentrations at quadrature point
-      forEachLeafNode(ltrial.tree(), [&](const auto& node) {
+      Dune::PDELab::forEachLeafNode(ltrial.tree(), [&](const auto& node) {
         if (node.size() == 0)
           return;
         auto& value = _local_values_in->get_value(node);
@@ -591,7 +592,7 @@ public:
       });
 
       // contribution for each component
-      forEachLeafNode(ltest.tree(), [&](const auto& ltest_node) {
+      Dune::PDELab::forEachLeafNode(ltest.tree(), [&](const auto& ltest_node) {
         if (ltest_node.size() == 0)
           return;
         const auto& eq =
@@ -736,12 +737,12 @@ public:
 
     // fill coeff with current linearization point
     coeff.clear(ltrial);
-    forEachLeafNode(ltrial.tree(), [&](const auto& node) {
+    Dune::PDELab::forEachLeafNode(ltrial.tree(), [&](const auto& node) {
       for (std::size_t dof = 0; dof != node.size(); ++dof)
         coeff(node, dof) = llin_point(node, dof);
     });
 
-    forEachLeafNode(ltrial.tree(), [&](const auto& ltrial_node) {
+    Dune::PDELab::forEachLeafNode(ltrial.tree(), [&](const auto& ltrial_node) {
       for (std::size_t trail_dof = 0; trail_dof != ltrial_node.size(); ++trail_dof) {
         up.clear(ltest);
         auto delta = _fin_diff_epsilon * (1.0 + std::abs(coeff(ltrial_node, trail_dof)));
@@ -749,7 +750,7 @@ public:
         // calculate up = f(u+delta)
         localAssembleVolume(time, ltrial, coeff, ltest, up);
         // accumulate finite difference
-        forEachLeafNode(ltest.tree(), [&](const auto& ltest_node) {
+        Dune::PDELab::forEachLeafNode(ltest.tree(), [&](const auto& ltest_node) {
           for (std::size_t test_dof = 0; test_dof != ltest_node.size(); ++test_dof) {
             ljacobian.accumulate(ltest_node,
                                  test_dof,
@@ -826,7 +827,7 @@ public:
 
     // collect ouflow part for the inside compartment
     if (ltrial_in.size() != 0)
-      forEachLeafNode(ltest_in.tree(), [&](const auto& ltest_node_in, auto path) {
+      Dune::PDELab::forEachLeafNode(ltest_in.tree(), [&](const auto& ltest_node_in, auto path) {
         // evaluate outflow only if component exists on this side but not on
         // the outside entity
         const auto& eq =
@@ -854,7 +855,7 @@ public:
 
     // collect ouflow part for the outside compartment
     if (intersection.neighbor() and ltrial_out.size() != 0)
-      forEachLeafNode(ltest_out.tree(), [&](const auto& ltest_node_out, auto path) {
+      Dune::PDELab::forEachLeafNode(ltest_out.tree(), [&](const auto& ltest_node_out, auto path) {
         // evaluate outflow only if component exists on this side but not on
         // the outside entity
         const auto& eq =
@@ -896,7 +897,7 @@ public:
         const auto& geojacinv_i = *geojacinv_opt_i;
 
         // evaluate concentrations at quadrature point (inside part)
-        forEachLeafNode(ltrial_in.tree(), [&](const auto& node_in, auto path) {
+        Dune::PDELab::forEachLeafNode(ltrial_in.tree(), [&](const auto& node_in, auto path) {
           const auto& node_out = PDELab::containerEntry(ltrial_out.tree(), path);
           if (node_in.size() == 0 and node_out.size() == 0)
             return;
@@ -934,7 +935,7 @@ public:
         const auto& geojacinv_o = *geojacinv_opt_o;
 
         // evaluate concentrations at quadrature point (outside part)
-        forEachLeafNode(ltrial_out.tree(), [&](const auto& node_out, auto path) {
+        Dune::PDELab::forEachLeafNode(ltrial_out.tree(), [&](const auto& node_out, auto path) {
           const auto& node_in = PDELab::containerEntry(ltrial_in.tree(), path);
           // take outside values unless they only exists inside
           const auto& node = (node_out.size() != 0) ? node_out : node_in;
@@ -1026,7 +1027,7 @@ public:
 
     // collect ouflow part for the inside compartment
     if (ltrial_in.size() != 0)
-      forEachLeafNode(ltest_in.tree(), [&](const auto& ltest_node_in, auto path) {
+      Dune::PDELab::forEachLeafNode(ltest_in.tree(), [&](const auto& ltest_node_in, auto path) {
         // evaluate outflow only if component exists on this side but not on
         // the outside entity
         const auto& eq =
@@ -1056,7 +1057,7 @@ public:
 
     // collect ouflow part for the outside compartment
     if (intersection.neighbor() and ltrial_out.size() != 0)
-      forEachLeafNode(ltest_out.tree(), [&](const auto& ltest_node_out, auto path) {
+      Dune::PDELab::forEachLeafNode(ltest_out.tree(), [&](const auto& ltest_node_out, auto path) {
         // evaluate outflow only if component exists on this side but not on
         // the outside entity
         const auto& eq =
@@ -1099,7 +1100,7 @@ public:
         const auto& geojacinv_i = *geojacinv_opt_i;
 
         // evaluate concentrations at quadrature point (inside part)
-        forEachLeafNode(ltrial_in.tree(), [&](const auto& node_in, auto path) {
+        Dune::PDELab::forEachLeafNode(ltrial_in.tree(), [&](const auto& node_in, auto path) {
           const auto& node_out = PDELab::containerEntry(ltrial_out.tree(), path);
           if (node_in.size() == 0 and node_out.size() == 0)
             return;
@@ -1150,7 +1151,7 @@ public:
         const auto& geojacinv_o = *geojacinv_opt_o;
 
         // evaluate concentrations at quadrature point (outside part)
-        forEachLeafNode(ltrial_out.tree(), [&](const auto& node_out, auto path) {
+        Dune::PDELab::forEachLeafNode(ltrial_out.tree(), [&](const auto& node_out, auto path) {
           const auto& node_in = PDELab::containerEntry(ltrial_in.tree(), path);
           // take outside values unless they only exists inside
           const auto& node = (node_out.size() != 0) ? node_out : node_in;
@@ -1232,12 +1233,12 @@ public:
 
     // fill coeff with current linearization point
     coeff_in.clear(ltrial_in);
-    forEachLeafNode(ltrial_in.tree(), [&](const auto& node) {
+    Dune::PDELab::forEachLeafNode(ltrial_in.tree(), [&](const auto& node) {
       for (std::size_t dof = 0; dof != node.size(); ++dof)
         coeff_in(node, dof) = llin_point_in(node, dof);
     });
     coeff_out.clear(ltrial_out);
-    forEachLeafNode(ltrial_out.tree(), [&](const auto& node) {
+    Dune::PDELab::forEachLeafNode(ltrial_out.tree(), [&](const auto& node) {
       for (std::size_t dof = 0; dof != node.size(); ++dof)
         coeff_out(node, dof) = llin_point_out(node, dof);
     });
@@ -1255,7 +1256,7 @@ public:
                           down_in,
                           down_out);
 
-    forEachLeafNode(ltrial_in.tree(), [&](const auto& ltrial_node) {
+    Dune::PDELab::forEachLeafNode(ltrial_in.tree(), [&](const auto& ltrial_node) {
       for (std::size_t trail_dof = 0; trail_dof != ltrial_node.size(); ++trail_dof) {
         up_in.clear(ltest_in);
         up_out.clear(ltest_out);
@@ -1273,7 +1274,7 @@ public:
                               up_in,
                               up_out);
         // accumulate finite difference
-        forEachLeafNode(ltest_in.tree(), [&](const auto& ltest_node) {
+        Dune::PDELab::forEachLeafNode(ltest_in.tree(), [&](const auto& ltest_node) {
           for (std::size_t test_dof = 0; test_dof != ltest_node.size(); ++test_dof) {
             ljacobian_in_in.accumulate(
               ltest_node,
@@ -1283,7 +1284,7 @@ public:
               (up_in(ltest_node, test_dof) - down_in(ltest_node, test_dof)) / delta);
           }
         });
-        forEachLeafNode(ltest_out.tree(), [&](const auto& ltest_node) {
+        Dune::PDELab::forEachLeafNode(ltest_out.tree(), [&](const auto& ltest_node) {
           for (std::size_t test_dof = 0; test_dof != ltest_node.size(); ++test_dof) {
             ljacobian_out_in.accumulate(
               ltest_node,
@@ -1298,7 +1299,7 @@ public:
       }
     });
 
-    forEachLeafNode(ltrial_out.tree(), [&](const auto& ltrial_node) {
+    Dune::PDELab::forEachLeafNode(ltrial_out.tree(), [&](const auto& ltrial_node) {
       for (std::size_t trail_dof = 0; trail_dof != ltrial_node.size(); ++trail_dof) {
         up_in.clear(ltest_in);
         up_out.clear(ltest_out);
@@ -1316,7 +1317,7 @@ public:
                               up_in,
                               up_out);
         // accumulate finite difference
-        forEachLeafNode(ltest_in.tree(), [&](const auto& ltest_node) {
+        Dune::PDELab::forEachLeafNode(ltest_in.tree(), [&](const auto& ltest_node) {
           for (std::size_t test_dof = 0; test_dof != ltest_node.size(); ++test_dof) {
             ljacobian_in_out.accumulate(
               ltest_node,
@@ -1326,7 +1327,7 @@ public:
               (up_in(ltest_node, test_dof) - down_in(ltest_node, test_dof)) / delta);
           }
         });
-        forEachLeafNode(ltest_out.tree(), [&](const auto& ltest_node) {
+        Dune::PDELab::forEachLeafNode(ltest_out.tree(), [&](const auto& ltest_node) {
           for (std::size_t test_dof = 0; test_dof != ltest_node.size(); ++test_dof) {
             ljacobian_out_out.accumulate(
               ltest_node,

@@ -275,7 +275,7 @@ public:
     // calculate how many nodes there are
     std::size_t compartment_count = 0;
     std::size_t membrane_count = 0;
-    PDELab::forEachLeafNode(
+    Dune::PDELab::forEachLeafNode(
       lbasis.tree(),
       overload([&](const Concept::CompartmentScalarLocalBasisNode auto&) { ++compartment_count; },
                [&](const Concept::MembraneScalarLocalBasisNode auto&) { ++membrane_count; }));
