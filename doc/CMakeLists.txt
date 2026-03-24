@@ -23,21 +23,22 @@ if (TARGET Dune::Copasi::Executable)
 
   dune_declare_test_label(LABELS documentation)
 
-  file(COPY docusaurus/static/ini/next/      DESTINATION tests/)
-  file(COPY docusaurus/tutorials/assets/ini/ DESTINATION tests/)
+  set(DUNE_COPASI_DOC_TEST_DIR "${CMAKE_CURRENT_BINARY_DIR}/tests")
+  file(COPY docusaurus/static/ini/next/      DESTINATION "${DUNE_COPASI_DOC_TEST_DIR}")
+  file(COPY docusaurus/tutorials/assets/ini/ DESTINATION "${DUNE_COPASI_DOC_TEST_DIR}")
 
   dune_add_test(
     NAME                docs_test
     LABELS              docs
     TARGET              Dune::Copasi::Executable
-    WORKING_DIRECTORY   tests/
+    WORKING_DIRECTORY   "${DUNE_COPASI_DOC_TEST_DIR}"
     CMD_ARGS            --config=test.ini)
 
   dune_add_test(
     NAME                docs_volka_terra
     LABELS              docs
     TARGET              Dune::Copasi::Executable
-    WORKING_DIRECTORY   tests/
+    WORKING_DIRECTORY   "${DUNE_COPASI_DOC_TEST_DIR}"
     CMD_ARGS            --config=volka_terra.ini)
 
   if (ExprTk IN_LIST DUNE_COPASI_PARSER_LIST)
@@ -45,14 +46,14 @@ if (TARGET Dune::Copasi::Executable)
       NAME                docs_heat
       LABELS              docs
       TARGET              Dune::Copasi::Executable
-      WORKING_DIRECTORY   tests/
+      WORKING_DIRECTORY   "${DUNE_COPASI_DOC_TEST_DIR}"
       CMD_ARGS            --config=heat.ini)
 
     dune_add_test(
       NAME                docs_grey_scott
       LABELS              docs
       TARGET              Dune::Copasi::Executable
-      WORKING_DIRECTORY   tests/
+      WORKING_DIRECTORY   "${DUNE_COPASI_DOC_TEST_DIR}"
       CMD_ARGS            --config=grey_scott.ini
                           --model.time_step_operator.time_end=1.5)
 
@@ -60,7 +61,7 @@ if (TARGET Dune::Copasi::Executable)
       NAME                tutorial_EP_simulation1
       LABELS              docs
       TARGET              Dune::Copasi::Executable
-      WORKING_DIRECTORY   tests/
+      WORKING_DIRECTORY   "${DUNE_COPASI_DOC_TEST_DIR}"
       CMD_ARGS            --config=cardiac_ep_1.ini
                           --model.time_step_operator.time_end=10
                           --grid.refinement_level=6)

@@ -1,1 +1,3 @@
-const char* config_opts_json = R"(@CONFIGURE_OPTIONS_JSON@)";
+constexpr const char config_opts_json[] =
+@CONFIGURE_OPTIONS_JSON_LITERAL@
+;

@@ -1,6 +1,7 @@
 name: CI Builds
 
-on: push
+on:
+  push:
 
 env:
   DUNE_COPASI_GRID_DIMENSIONS: '"2;3"'
@@ -11,47 +12,77 @@ env:
   BUILD_SHARED_LIBS: 'OFF'
   CMAKE_DISABLE_FIND_PACKAGE_MPI: 'ON'
   CMAKE_DISABLE_FIND_PACKAGE_parafields: 'ON'
-  CMAKE_POLICY_VERSION_MINIMUM: '3.5'  # temporary workaround for cmake 4.0 complaining about symengine min cmake version being too low
+  CMAKE_POLICY_VERSION_MINIMUM: '3.5'
 
 jobs:
-  build:
+  unix-build:
+    name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-22.04
+          - ubuntu-22.04-arm
+          - macos-14
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          lfs: true
+      - uses: spatial-model-editor/setup-ci@2026.03.27
+        with:
+          sme_deps_common: '2026.03.27'
+      - name: Set environment variables
+        run: |
+          echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
+          echo "CMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}" >> "$GITHUB_ENV"
+          if [[ -n "${MACOSX_DEPLOYMENT_TARGET:-}" ]]; then
+            echo "CMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET}" >> "$GITHUB_ENV"
+          fi
+      - name: Setup dune dependencies
+        run: ./.ci/setup_dune "$PWD/dune-copasi.opts"
+      - name: Build and install
+        run: ./.ci/install "$PWD/dune-copasi.opts"
+      - name: Build and run tests
+        run: ./.ci/test "$PWD/dune-copasi.opts"
+
+  windows-msvc:
+    name: Build (${{ matrix.runner }}, MSVC)
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: "ubuntu-22.04"
-            shell: "bash"
-          - os: "ubuntu-22.04-arm"
-            shell: "bash"
-          - os: "macos-13"
-            shell: "bash"
-          - os: "macos-14"
-            shell: "bash"
-          - os: "windows-2022"
-            shell: "msys2 {0}"
+          - runner: windows-latest
+          - runner: windows-11-arm
     defaults:
       run:
-        shell: ${{ matrix.shell }}
+        shell: pwsh
+    env:
+      BUILD_TESTING: 'ON'
+      CMAKE_BUILD_TYPE: 'Release'
+      CMAKE_C_COMPILER: cl
+      CMAKE_CXX_COMPILER: cl
+      CMAKE_CXX_EXTENSIONS: 'OFF'
+      CMAKE_CXX_FLAGS: '/permissive- /Zc:__cplusplus /Zc:preprocessor /bigobj /EHsc'
+      CMAKE_GENERATOR: 'Ninja'
     steps:
-      - uses: spatial-model-editor/setup-ci@2025.02.05
+      - uses: actions/checkout@v6
         with:
-          sme_deps_common: "2025.02.18"
-      - name: Clone repo
-        run: git lfs install && git clone -b ${{ github.head_ref || github.ref_name }} https://github.com/${{ github.repository }} . && git lfs pull && ls
-      - name: Set environment variables
-        run: |
-          echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
-          echo "CMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET}" >> "$GITHUB_ENV"
-          echo "CMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}" >> "$GITHUB_ENV"
-          if [[ $MSYSTEM ]]; then
-              # on windows add flags to support large object files
-              # https://stackoverflow.com/questions/16596876/object-file-has-too-many-sections
-              echo "CMAKE_CXX_FLAGS='"-fvisibility=hidden -Wa,-mbig-obj -D_GLIBCXX_USE_TBB_PAR_BACKEND=0 -DNDEBUG"'" >> "$GITHUB_ENV"
-          fi
-      - name: Setup dune dependencies
-        run: ./.ci/setup_dune $PWD/dune-copasi.opts
-      - name: Build and Install
-        run: ./.ci/install $PWD/dune-copasi.opts
-      - name: Build and run tests
-        run: ./.ci/test $PWD/dune-copasi.opts
+          fetch-depth: 1
+          lfs: true
+      - uses: spatial-model-editor/setup-ci@2026.03.27
+        with:
+          sme_deps_common: '2026.03.27'
+      - name: Build DUNE dependencies, dune-copasi, and tests
+        run: ./.ci/build.ps1

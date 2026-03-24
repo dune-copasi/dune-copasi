@@ -63,10 +63,12 @@ inverseOperator2PreconditionerFactory()
             const ParameterTree& config,
             const Alloc& alloc) -> std::shared_ptr<Preconditioner<X, Y>> {
     // wrapper: make sure inverse operator is stored somewhere
-    struct Prec : public Dune::InverseOperator2Preconditioner<InverseOperator<X, Y>>
+    using InverseOp = InverseOperator<X, Y>;
+    using BasePrec = Dune::InverseOperator2Preconditioner<InverseOp>;
+    struct Prec : public BasePrec
     {
-      using InverseOperator2Preconditioner<InverseOperator<X, Y>>::InverseOperator2Preconditioner;
-      std::shared_ptr<InverseOperator<X, Y>> inverse;
+      using BasePrec::BasePrec;
+      std::shared_ptr<InverseOp> inverse;
     };
 
     // make an allocator for this preconditioner
