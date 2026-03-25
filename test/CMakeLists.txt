@@ -77,11 +77,11 @@ if (TARGET Dune::Copasi::Executable)
                       --model.time_step_operator.time_end=0.01
                       --parser_context.rng.type=function
                       --parser_context.rng.expression=x,y:0
-                      --model.time_step_operator.linear_solver.layout.writer.svg.path=mitchell_schaefer_pattern.svg)
+                      --model.time_step_operator.linear_solver.layout.writer.svg.path=${CMAKE_CURRENT_BINARY_DIR}/mitchell_schaefer_pattern.svg)
     add_test(
       NAME      mitchell-schaefer-pattern
       COMMAND   ${CMAKE_COMMAND} -E compare_files
-                mitchell_schaefer_pattern.svg
+                ${CMAKE_CURRENT_BINARY_DIR}/mitchell_schaefer_pattern.svg
                 ${CMAKE_CURRENT_SOURCE_DIR}/data/pattern/mitchell_schaefer_pattern.svg)
     set_tests_properties(mitchell-schaefer-pattern PROPERTIES DEPENDS mitchell-schaefer)
 

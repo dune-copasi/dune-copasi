@@ -62,7 +62,7 @@ for module in functions uggrid typetree; do
   eval SETUP_dune_${module}_REPO=\"https://gitlab.dune-project.org/staging/dune-${module}.git\"
 done
 
-SETUP_dune_pdelab_BRANCH="fix_for_each_leaf_node_ambiguity"
+SETUP_dune_pdelab_BRANCH="fix_tsan_error"
 SETUP_dune_pdelab_REPO="https://gitlab.dune-project.org/pdelab/dune-pdelab.git"
 
 SETUP_dune_multidomaingrid_BRANCH="master"

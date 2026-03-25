@@ -8,11 +8,15 @@
 #include <fmt/core.h>
 
 #include <utility>
-#if __has_include(<stacktrace>)
+#if __has_include(<version>)
+#include <version>
+#endif
+
+#if defined(__cpp_lib_stacktrace) && __cpp_lib_stacktrace >= 202011L
 #include <stacktrace>
 #endif
 
-#if __has_include(<format>)
+#if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
 #include <format>
 #endif
 
@@ -25,7 +29,7 @@ format_exception(Exception&& e, fmt::format_string<Args...> format, Args&&... ar
   auto message = std::string{"Message:        "};
   message += fmt::format(std::move(format), std::forward<Args>(args)...);
   message += fmt::format("\nException type: {}", className<Exception>());
-#if ___cpp_lib_stacktrace >= 202011L && __cpp_lib_formatters >= 202302L
+#if defined(__cpp_lib_stacktrace) && __cpp_lib_stacktrace >= 202011L && defined(__cpp_lib_formatters) && __cpp_lib_formatters >= 202302L
   message += std::format("\nStacktrace:\n{}", std::stacktrace::current());
 #endif
   e.message(message);
