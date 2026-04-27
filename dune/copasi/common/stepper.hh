@@ -16,8 +16,11 @@
 #include <spdlog/spdlog.h>
 
 #include <any>
+#include <cmath>
 #include <concepts>
 #include <cstddef>
+#include <cstdint>
+#include <limits>
 #include <memory>
 #include <tuple>
 
@@ -211,12 +214,23 @@ public:
     PDELab::ErrorCondition error;
     while (FloatCmp::lt(time = _time_const(out), snap_time)) {
       // find number of time steps to fit in the (time,snap_time) range
-      auto timesteps_ratio = ((snap_time - time) / dt);
-      using std::ceil;
-      const auto timesteps_until_end = static_cast<int>(ceil(timesteps_ratio));
-      if (timesteps_until_end <= 0) {
-        throw format_exception(MathError{}, "Timestep doesn't make advances towards snap step");
+      const auto timesteps_ratio = ((snap_time - time) / dt);
+      if (!std::isfinite(timesteps_ratio) || timesteps_ratio <= 0.) {
+        throw format_exception(MathError{},
+                               "Timestep doesn't make advances towards snap "
+                               "step");
       }
+      using std::ceil;
+      const auto rounded_timesteps_until_end = ceil(timesteps_ratio);
+      if (rounded_timesteps_until_end >
+          static_cast<long double>(std::numeric_limits<std::uint64_t>::max())) {
+        throw format_exception(
+            RangeError{},
+            "Snapping step ratio {} exceeds supported step count",
+            timesteps_ratio);
+      }
+      const auto timesteps_until_end =
+          static_cast<std::uint64_t>(rounded_timesteps_until_end);
       DurationQuantity new_dt = (snap_time - time) / timesteps_until_end;
       spdlog::info("Snapping step size {:.5e}s -> {:.5e}s", dt, new_dt);
       dt = new_dt;
